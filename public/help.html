@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>コマンド一覧 — kukuCome</title>
+  <style>
+    :root {
+      --bg: #0d1117; --surface: #161b22; --border: rgba(255,255,255,0.1);
+      --text: #e2e8f0; --muted: #64748b; --accent: #7dd3fc;
+      --green: #22c55e; --purple: #a78bfa; --pink: #f472b6; --yellow: #fbbf24; --orange: #fb923c;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI','Noto Sans JP',sans-serif; min-height: 100vh; padding: 32px 24px 64px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .page-header { display: flex; align-items: baseline; gap: 16px; margin-bottom: 32px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+    .page-title  { font-size: 22px; font-weight: 700; color: var(--accent); }
+    .page-sub    { font-size: 13px; color: var(--muted); }
+    .back-link   { margin-left: auto; font-size: 13px; }
+
+    .section { margin-bottom: 36px; }
+    .section-title {
+      font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    .cmd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+    .cmd-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+    .cmd-row  { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+
+    .cmd-code { font-family: 'Cascadia Code','Consolas',monospace; font-size: 14px; font-weight: 600; background: rgba(125,211,252,0.1); color: var(--accent); padding: 3px 9px; border-radius: 5px; border: 1px solid rgba(125,211,252,0.2); white-space: nowrap; }
+    .cmd-code.green  { background: rgba(34,197,94,0.1);   color: var(--green);  border-color: rgba(34,197,94,0.25); }
+    .cmd-code.purple { background: rgba(167,139,250,0.1); color: var(--purple); border-color: rgba(167,139,250,0.25); }
+    .cmd-code.pink   { background: rgba(244,114,182,0.1); color: var(--pink);   border-color: rgba(244,114,182,0.25); }
+    .cmd-code.yellow { background: rgba(251,191,36,0.1);  color: var(--yellow); border-color: rgba(251,191,36,0.25); }
+    .cmd-code.orange { background: rgba(251,146,60,0.1);  color: var(--orange); border-color: rgba(251,146,60,0.25); }
+
+    .cmd-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .cmd-variants { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
+    .variant { font-family: 'Cascadia Code','Consolas',monospace; font-size: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; color: #94a3b8; }
+    code { background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 3px; font-family: monospace; font-size: 12px; }
+
+    .color-table { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
+    .color-row   { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 7px 10px; font-size: 13px; }
+    .color-swatch { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.15); }
+    .color-name  { font-weight: 600; }
+    .color-hex   { font-family: monospace; font-size: 11px; color: var(--muted); }
+
+    .char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
+    .char-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 8px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .char-emoji { font-size: 28px; line-height: 1; }
+    .char-cmd   { font-family: monospace; font-size: 11px; background: rgba(125,211,252,0.1); color: var(--accent); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(125,211,252,0.2); }
+
+    .hint-box { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #86efac; line-height: 1.8; margin-top: 8px; }
+    .hint-box b { color: #4ade80; }
+    .info-box { background: rgba(125,211,252,0.07); border: 1px solid rgba(125,211,252,0.2); border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #93c5fd; line-height: 1.8; margin-top: 8px; }
+    .info-box b { color: var(--accent); }
+    .warn-box { background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.2); border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #fde68a; line-height: 1.8; margin-top: 8px; }
+
+    .bubble-preview-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+    .bubble-preview-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 12px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .bubble-sample { background: rgba(255,255,255,0.92); color: #111; font-size: 11px; padding: 6px 10px; min-width: 60px; position: relative; }
+    .bubble-sample::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: rgba(255,255,255,0.92); }
+    .bs-round  { border-radius: 14px; }
+    .bs-square { border-radius: 3px; }
+    .bs-cloud  { border-radius: 40% 45% 40% 45% / 45% 40% 45% 40%; }
+    .bs-cloud::after  { display: none; }
+    .bs-spike  { border-radius: 0; padding: 10px 14px; clip-path: polygon(0% 14%,4% 0%,8% 14%,16% 0%,24% 14%,32% 0%,40% 14%,48% 0%,56% 14%,64% 0%,72% 14%,80% 0%,88% 14%,96% 0%,100% 14%,100% 86%,96% 100%,88% 86%,80% 100%,72% 86%,64% 100%,56% 86%,48% 100%,40% 86%,32% 100%,24% 86%,16% 100%,8% 86%,4% 100%,0% 86%); }
+    .bs-spike::after  { display: none; }
+    .bubble-label { font-size: 12px; color: var(--muted); }
+    .bubble-cmd   { font-family: monospace; font-size: 12px; color: var(--accent); }
+
+    .font-table { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 6px; }
+    .font-row { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 8px 12px; }
+    .font-cmd  { font-family: 'Cascadia Code','Consolas',monospace; font-size: 12px; color: var(--accent); background: rgba(125,211,252,0.1); border: 1px solid rgba(125,211,252,0.2); padding: 2px 7px; border-radius: 4px; white-space: nowrap; flex-shrink: 0; }
+    .font-sample { font-size: 14px; color: var(--text); }
+    .font-name-css { font-size: 10px; color: var(--muted); font-family: monospace; }
+    .font-group-label { grid-column: 1 / -1; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 8px; }
+
+    .ui-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+    .ui-card  { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+    .ui-key   { font-size: 13px; font-weight: 600; color: var(--yellow); }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <div class="page-title">🎮 kukuCome コマンド一覧</div>
+    <div class="page-sub">コメントで入力するとキャラや吹き出しを変更できます</div>
+    <a href="/" class="back-link">← メインに戻る</a>
+  </div>
+
+  <!-- ── キャラ設定 ── -->
+  <div class="section">
+    <div class="section-title">🐱 キャラ設定（キャラ1〜500）</div>
+    <div class="char-grid">
+      <div class="char-card"><div class="char-emoji">🐱</div><div class="char-cmd">キャラ1</div></div>
+      <div class="char-card"><div class="char-emoji">🐶</div><div class="char-cmd">キャラ2</div></div>
+      <div class="char-card"><div class="char-emoji">🐸</div><div class="char-cmd">キャラ3</div></div>
+      <div class="char-card"><div class="char-emoji">🐻</div><div class="char-cmd">キャラ4</div></div>
+      <div class="char-card"><div class="char-emoji">🦊</div><div class="char-cmd">キャラ5</div></div>
+      <div class="char-card"><div class="char-emoji">🐰</div><div class="char-cmd">キャラ6</div></div>
+      <div class="char-card"><div class="char-emoji">🐼</div><div class="char-cmd">キャラ7</div></div>
+      <div class="char-card"><div class="char-emoji">🐯</div><div class="char-cmd">キャラ8</div></div>
+      <div class="char-card"><div class="char-emoji">🦁</div><div class="char-cmd">キャラ9</div></div>
+      <div class="char-card"><div class="char-emoji">🐨</div><div class="char-cmd">キャラ10</div></div>
+      <div class="char-card"><div class="char-emoji">🦆</div><div class="char-cmd">キャラ11</div></div>
+      <div class="char-card"><div class="char-emoji">🐧</div><div class="char-cmd">キャラ12</div></div>
+      <div class="char-card"><div class="char-emoji" style="font-size:20px">…</div><div class="char-cmd" style="font-size:10px">キャラ13〜500</div></div>
+    </div>
+    <div class="hint-box">
+      <b>キャラ1〜500</b> まで使用可能。絵文字は50種類が繰り返し割り当てられます。<br>
+      「🖼 キャラ画像」ボタンから好きな画像をキャラに割り当て可能（PNG / JPG / GIF / WebP / SVG）。<br>
+      <b>エイリアス設定</b>：「🖼 キャラ画像」設定画面の各キャラの「エイリアス」欄に文字列を入力すると、視聴者がその文字列をコメントするだけでキャラが変更されます。<br>
+      例：キャラ1 に「猫」と設定 → 視聴者が「猫」とコメントするとキャラ1が登場。
+    </div>
+  </div>
+
+  <!-- ── 吹き出し ── -->
+  <div class="section">
+    <div class="section-title">💬 吹き出しの形</div>
+    <div class="bubble-preview-grid">
+      <div class="bubble-preview-card">
+        <div class="bubble-sample bs-round">こんにちは</div>
+        <div class="bubble-label">丸（デフォルト）</div>
+        <div class="bubble-cmd">吹き出し:丸</div>
+      </div>
+      <div class="bubble-preview-card">
+        <div class="bubble-sample bs-square">こんにちは</div>
+        <div class="bubble-label">四角</div>
+        <div class="bubble-cmd">吹き出し:四角</div>
+      </div>
+      <div class="bubble-preview-card">
+        <div class="bubble-sample bs-cloud">こんにちは</div>
+        <div class="bubble-label">雲</div>
+        <div class="bubble-cmd">吹き出し:雲</div>
+      </div>
+      <div class="bubble-preview-card">
+        <div class="bubble-sample bs-spike">こんにちは</div>
+        <div class="bubble-label">棘</div>
+        <div class="bubble-cmd">吹き出し:棘</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 文字色 ── -->
+  <div class="section">
+    <div class="section-title">🎨 文字色（永続）</div>
+    <div class="color-table">
+      <div class="color-row"><div class="color-swatch" style="background:#FF4444"></div><div><div class="color-name">赤</div><div class="color-hex">色:赤</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#4499FF"></div><div><div class="color-name">青</div><div class="color-hex">色:青</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#44CC44"></div><div><div class="color-name">緑</div><div class="color-hex">色:緑</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFCC00"></div><div><div class="color-name">黄</div><div class="color-hex">色:黄</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#CC44CC"></div><div><div class="color-name">紫</div><div class="color-hex">色:紫</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF88BB"></div><div><div class="color-name">ピンク</div><div class="color-hex">色:ピンク</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF8800"></div><div><div class="color-name">橙</div><div class="color-hex">色:橙</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#00CCCC"></div><div><div class="color-name">シアン</div><div class="color-hex">色:シアン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#87CEEB"></div><div><div class="color-name">水色</div><div class="color-hex">色:水色</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#88FF00"></div><div><div class="color-name">ライム</div><div class="color-hex">色:ライム</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#A0522D"></div><div><div class="color-name">茶</div><div class="color-hex">色:茶</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#888888"></div><div><div class="color-name">灰</div><div class="color-hex">色:灰</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFFFFF"></div><div><div class="color-name">白</div><div class="color-hex">色:白</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#222222;border-color:#555"></div><div><div class="color-name">黒</div><div class="color-hex">色:黒</div></div></div>
+    </div>
+    <div class="hint-box" style="margin-top:10px">カラーコード直接指定も可能：<b>色:#FF6600</b></div>
+  </div>
+
+  <!-- ── その他設定（永続） ── -->
+  <div class="section">
+    <div class="section-title">⚙️ その他の設定（永続）</div>
+    <div class="cmd-grid">
+
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code pink">名前:たろう</span></div>
+        <div class="cmd-desc">表示名を変更。デフォルトは icon_name または「名無し」。最大20文字</div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code green">移動:速い</span></div>
+        <div class="cmd-desc">キャラがランダムに動き回る速度を設定</div>
+        <div class="cmd-variants">
+          <span class="variant">移動:速い</span><span class="variant">移動:普通</span>
+          <span class="variant">移動:遅い</span><span class="variant">移動:止まれ（デフォルト）</span>
+        </div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code green">上:100</span></div>
+        <div class="cmd-desc">現在地から指定ピクセル分だけ方向移動。複数指定すると<b>順番に</b>実行</div>
+        <div class="cmd-variants">
+          <span class="variant">上:100</span><span class="variant">下:50</span>
+          <span class="variant">左:200</span><span class="variant">右:150</span>
+        </div>
+        <div class="cmd-desc" style="margin-top:4px">例: <code>左:100 右:200</code> → 左に100px移動してから右に200px移動</div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code purple">大きさ:大</span></div>
+        <div class="cmd-desc">キャラの表示サイズを変更</div>
+        <div class="cmd-variants">
+          <span class="variant">大きさ:大</span><span class="variant">大きさ:中（デフォルト）</span><span class="variant">大きさ:小</span>
+        </div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code green">はずむ</span></div>
+        <div class="cmd-desc">音楽に乗るようにキャラが上下にバウンスし続ける。<code>移動:止まれ</code> で停止</div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code purple">フォント:メイリオ</span></div>
+        <div class="cmd-desc">吹き出しのフォントを変更。「フォント一覧」セクション参照</div>
+        <div class="cmd-variants">
+          <span class="variant">フォント:メイリオ</span><span class="variant">フォント:YuGothic</span>
+          <span class="variant">フォント:Impact</span><span class="variant">フォント:デフォルト（リセット）</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── コメント単位スタイル ── -->
+  <div class="section">
+    <div class="section-title">✨ コメント単位スタイル（そのコメントのみ・永続しない）</div>
+    <div class="cmd-grid">
+
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code pink">文字サイズ:大</span></div>
+        <div class="cmd-desc">そのコメントだけ文字サイズを変更（次のコメントでリセット）</div>
+        <div class="cmd-variants">
+          <span class="variant">文字サイズ:極大</span><span class="variant">文字サイズ:大</span>
+          <span class="variant">文字サイズ:中</span><span class="variant">文字サイズ:小</span>
+          <span class="variant">文字サイズ:極小</span><span class="variant">文字サイズ:24（px直接指定）</span>
+        </div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code pink">太字</span><span class="cmd-code pink">斜体</span></div>
+        <div class="cmd-desc">そのコメントだけ太字・斜体。組み合わせも可</div>
+        <div class="cmd-variants">
+          <span class="variant">太字 こんにちは！</span>
+          <span class="variant">斜体 Hello</span>
+          <span class="variant">太字 斜体 強調！</span>
+        </div>
+      </div>
+
+    </div>
+    <div class="info-box">
+      これらのスタイルはコマンドを消費します。コマンド部分を除いた残りのテキストが吹き出しに表示されます。<br>
+      例: <b>文字サイズ:極大 太字 うおおお！</b> → 極大サイズの太字で「うおおお！」と表示
+    </div>
+  </div>
+
+  <!-- ── フォント一覧 ── -->
+  <div class="section">
+    <div class="section-title">🔤 フォント一覧（Windows 標準＋インストール済み）</div>
+    <div class="font-table">
+
+      <div class="font-group-label">日本語ゴシック系</div>
+      <div class="font-row"><span class="font-cmd">フォント:メイリオ</span><div><div class="font-sample" style="font-family:Meiryo">あいうえお ABC</div><div class="font-name-css">Meiryo</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:MSゴシック</span><div><div class="font-sample" style="font-family:'MS Gothic'">あいうえお ABC</div><div class="font-name-css">MS Gothic</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:MSPゴシック</span><div><div class="font-sample" style="font-family:'MS PGothic'">あいうえお ABC</div><div class="font-name-css">MS PGothic</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:BIZUDゴシック</span><div><div class="font-sample" style="font-family:'BIZ UDGothic'">あいうえお ABC</div><div class="font-name-css">BIZ UDGothic</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:BIZUDPゴシック</span><div><div class="font-sample" style="font-family:'BIZ UDPGothic'">あいうえお ABC</div><div class="font-name-css">BIZ UDPGothic</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:YuGothic</span><div><div class="font-sample" style="font-family:'Yu Gothic'">あいうえお ABC</div><div class="font-name-css">Yu Gothic</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:YuGothicUI</span><div><div class="font-sample" style="font-family:'Yu Gothic UI'">あいうえお ABC</div><div class="font-name-css">Yu Gothic UI</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:IPAexGothic</span><div><div class="font-sample" style="font-family:IPAexGothic">あいうえお ABC</div><div class="font-name-css">IPAexGothic</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:NotoSansJP</span><div><div class="font-sample" style="font-family:'Noto Sans JP'">あいうえお ABC</div><div class="font-name-css">Noto Sans JP</div></div></div>
+
+      <div class="font-group-label">日本語明朝系</div>
+      <div class="font-row"><span class="font-cmd">フォント:MS明朝</span><div><div class="font-sample" style="font-family:'MS Mincho'">あいうえお ABC</div><div class="font-name-css">MS Mincho</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:MSP明朝</span><div><div class="font-sample" style="font-family:'MS PMincho'">あいうえお ABC</div><div class="font-name-css">MS PMincho</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:BIZUDMincho</span><div><div class="font-sample" style="font-family:'BIZ UDMincho Medium'">あいうえお ABC</div><div class="font-name-css">BIZ UDMincho Medium</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:YuMincho</span><div><div class="font-sample" style="font-family:'Yu Mincho'">あいうえお ABC</div><div class="font-name-css">Yu Mincho</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:IPAexMincho</span><div><div class="font-sample" style="font-family:IPAexMincho">あいうえお ABC</div><div class="font-name-css">IPAexMincho</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:NotoSerifJP</span><div><div class="font-sample" style="font-family:'Noto Serif JP'">あいうえお ABC</div><div class="font-name-css">Noto Serif JP</div></div></div>
+
+      <div class="font-group-label">UD教科書体・デザイン系</div>
+      <div class="font-row"><span class="font-cmd">フォント:UDデジタルN</span><div><div class="font-sample" style="font-family:'UD Digi Kyokasho N'">あいうえお ABC</div><div class="font-name-css">UD Digi Kyokasho N</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:UDデジタルNK</span><div><div class="font-sample" style="font-family:'UD Digi Kyokasho NK'">あいうえお ABC</div><div class="font-name-css">UD Digi Kyokasho NK（等幅）</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:UDデジタルNP</span><div><div class="font-sample" style="font-family:'UD Digi Kyokasho NP'">あいうえお ABC</div><div class="font-name-css">UD Digi Kyokasho NP（プロポ）</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:DelaGothicOne</span><div><div class="font-sample" style="font-family:'Dela Gothic One'">あいうえお ABC</div><div class="font-name-css">Dela Gothic One</div></div></div>
+
+      <div class="font-group-label">その他日本語（インストール済み）</div>
+      <div class="font-row"><span class="font-cmd">フォント:851MkPOP</span><div><div class="font-sample" style="font-family:851MkPOP">あいうえお ABC</div><div class="font-name-css">851MkPOP</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:Genkaimincho</span><div><div class="font-sample" style="font-family:Genkaimincho">あいうえお ABC</div><div class="font-name-css">Genkaimincho</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:KazukiReiwa</span><div><div class="font-sample" style="font-family:KazukiReiwa">あいうえお ABC</div><div class="font-name-css">KazukiReiwa</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:mitubachi</span><div><div class="font-sample" style="font-family:mitubachi">あいうえお ABC</div><div class="font-name-css">mitubachi</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:omatsuri</span><div><div class="font-sample" style="font-family:omatsuri">あいうえお ABC</div><div class="font-name-css">omatsuri</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:sushiki</span><div><div class="font-sample" style="font-family:sushiki">あいうえお ABC</div><div class="font-name-css">sushiki</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:SoukouMincho</span><div><div class="font-sample" style="font-family:SoukouMincho">あいうえお ABC</div><div class="font-name-css">SoukouMincho</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:Isego</span><div><div class="font-sample" style="font-family:Isego">あいうえお ABC</div><div class="font-name-css">Isego</div></div></div>
+
+      <div class="font-group-label">英語フォント</div>
+      <div class="font-row"><span class="font-cmd">フォント:Arial</span><div><div class="font-sample" style="font-family:Arial">Hello World 123</div><div class="font-name-css">Arial</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:Impact</span><div><div class="font-sample" style="font-family:Impact">Hello World 123</div><div class="font-name-css">Impact</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:Georgia</span><div><div class="font-sample" style="font-family:Georgia">Hello World 123</div><div class="font-name-css">Georgia</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:Verdana</span><div><div class="font-sample" style="font-family:Verdana">Hello World 123</div><div class="font-name-css">Verdana</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:Tahoma</span><div><div class="font-sample" style="font-family:Tahoma">Hello World 123</div><div class="font-name-css">Tahoma</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:ComicSans</span><div><div class="font-sample" style="font-family:'Comic Sans MS'">Hello World 123</div><div class="font-name-css">Comic Sans MS</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:SegoeUI</span><div><div class="font-sample" style="font-family:'Segoe UI'">Hello World 123</div><div class="font-name-css">Segoe UI</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:SegoePrint</span><div><div class="font-sample" style="font-family:'Segoe Print'">Hello World 123</div><div class="font-name-css">Segoe Print</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:SegoeScript</span><div><div class="font-sample" style="font-family:'Segoe Script'">Hello World 123</div><div class="font-name-css">Segoe Script</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:Consolas</span><div><div class="font-sample" style="font-family:Consolas">Hello World 123</div><div class="font-name-css">Consolas</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:CourierNew</span><div><div class="font-sample" style="font-family:'Courier New'">Hello World 123</div><div class="font-name-css">Courier New</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:TimesNewRoman</span><div><div class="font-sample" style="font-family:'Times New Roman'">Hello World 123</div><div class="font-name-css">Times New Roman</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:TrebuchetMS</span><div><div class="font-sample" style="font-family:'Trebuchet MS'">Hello World 123</div><div class="font-name-css">Trebuchet MS</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:CascadiaCode</span><div><div class="font-sample" style="font-family:'Cascadia Code'">Hello World 123</div><div class="font-name-css">Cascadia Code</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:InkFree</span><div><div class="font-sample" style="font-family:'Ink Free'">Hello World 123</div><div class="font-name-css">Ink Free</div></div></div>
+
+    </div>
+    <div class="hint-box" style="margin-top:10px">
+      <b>フォント:デフォルト</b> でリセット。<br>
+      上記以外のフォントはフォント名をそのまま入力しても試せます（スペースなしの場合）。例: <b>フォント:Calibri</b>
+    </div>
+  </div>
+
+  <!-- ── メディアコメント ── -->
+  <div class="section">
+    <div class="section-title">🖼 メディアコメント（自動対応）</div>
+    <div class="cmd-grid">
+
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code orange">お絵描きコメント</span></div>
+        <div class="cmd-desc">visualchat タイプのコメント。描いた絵が吹き出しに画像で表示されます</div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code orange">スクリーンショット</span></div>
+        <div class="cmd-desc">sscomment_url が付いたコメント。画像が吹き出しに表示され、テキストもキャプションとして表示されます</div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code orange">ボイスコメント 🔊</span></div>
+        <div class="cmd-desc">voicecomment_url が付いたコメント。音声が自動再生されます</div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code orange">エモーション</span></div>
+        <div class="cmd-desc">emotions フィールドに画像データがあるコメント。エモーション画像とラベルを吹き出しに表示します</div>
+      </div>
+
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code orange">初コメ ⭐</span></div>
+        <div class="cmd-desc">flag_first = 1 のコメント（その枠での初コメント）。吹き出しが太字になり、キャラが振動しながら登場します</div>
+      </div>
+
+    </div>
+    <div class="info-box">
+      メディアコメントはコマンド入力なしで <b>自動的に検出・表示</b> されます。<br>
+      通常テキストとの組み合わせも可能です。
+    </div>
+  </div>
+
+  <!-- ── UI操作 ── -->
+  <div class="section">
+    <div class="section-title">🖱 UI の操作</div>
+    <div class="ui-grid">
+
+      <div class="ui-card">
+        <div class="ui-key">ドラッグ＆ドロップ</div>
+        <div class="cmd-desc">ステージ上のキャラをマウスでつかんで自由に移動できます。ドロップ後は元の移動設定を再開します</div>
+      </div>
+
+      <div class="ui-card">
+        <div class="ui-key">🔔 集合ボタン</div>
+        <div class="cmd-desc">ステージ上のキャラ全員を画面下部中央に横並びで集合させます。キャラ同士が重ならないよう自動調整されます</div>
+      </div>
+
+      <div class="ui-card">
+        <div class="ui-key">BG カラーピッカー</div>
+        <div class="cmd-desc">ステージの背景色を変更できます。OBS のクロマキー色に合わせて設定してください（デフォルト: #00FF00）。設定はブラウザに保存されます</div>
+      </div>
+
+      <div class="ui-card">
+        <div class="ui-key">🗑 リセットボタン</div>
+        <div class="cmd-desc">ステージ上のキャラを全員退場させます。コメント番号もリセットされ、次のコメントから再取得します</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── 組み合わせ例 ── -->
+  <div class="section">
+    <div class="section-title">💡 組み合わせ例</div>
+    <div class="cmd-grid">
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code yellow">色:赤 こんにちは！</span></div>
+        <div class="cmd-desc">色を赤に変えつつ「こんにちは！」と表示</div>
+      </div>
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code yellow">吹き出し:棘 色:紫 うおー！</span></div>
+        <div class="cmd-desc">吹き出しを棘形・紫テキストにして表示</div>
+      </div>
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code yellow">右:200 下:100 ここにいるよ</span></div>
+        <div class="cmd-desc">右に200px移動→下に100px移動しながら「ここにいるよ」と表示（順番に実行）</div>
+      </div>
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code yellow">文字サイズ:極大 太字 うおおおお！！</span></div>
+        <div class="cmd-desc">極大サイズの太字でそのコメントだけ表示</div>
+      </div>
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code yellow">フォント:Impact 色:赤 YABAI</span></div>
+        <div class="cmd-desc">フォントをImpact・赤色に設定して「YABAI」と表示</div>
+      </div>
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code yellow">はずむ 大きさ:大 ノリノリ〜</span></div>
+        <div class="cmd-desc">大サイズでバウンス開始しながらコメント表示</div>
+      </div>
+    </div>
+    <div class="hint-box">
+      コマンドは複数同時使用可。コマンド部分を除いた残りのテキストが吹き出しに表示されます。<br>
+      <b>キャラN / エイリアスだけは単独コマンド</b>（他コマンドと同時使用不可）。<br>
+      設定（色・吹き出し・移動・フォントなど）は <b>ipid ごとに記憶</b>され、次のコメントから自動適用されます。
+    </div>
+  </div>
+
+</body>
+</html>

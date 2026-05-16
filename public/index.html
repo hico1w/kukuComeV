@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>kukuCome</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- 設定バー -->
+  <div id="settings">
+    <span class="logo">🎮 kukuCome</span>
+    <input id="apikey" type="password" placeholder="APIキー" autocomplete="off" spellcheck="false">
+    <input id="hash"   type="text"     placeholder="配信番号（空欄で自動取得）" spellcheck="false">
+    <button id="startBtn"    class="btn-start">▶ 開始</button>
+    <button id="stopBtn"     class="btn-stop"  disabled>■ 停止</button>
+    <button id="toggleLog"   class="btn-log">💬 ログ</button>
+    <button id="openImgModal" class="btn-img">🖼 キャラ画像</button>
+    <button id="gatherBtn"   class="btn-gather">🔔 集合</button>
+    <button id="clearStage"  class="btn-clear">🗑 リセット</button>
+    <a href="/help.html" target="_blank" class="btn btn-help">❓ コマンド</a>
+    <label class="bg-color-label" title="背景色">BG<input id="bgColor" type="color" value="#00FF00"></label>
+    <span id="status" class="status-idle">● 停止中</span>
+    <span class="help-link">
+      <a href="https://live.erinn.biz/login.php?action=getAPIKey" target="_blank">APIキー取得</a>
+    </span>
+  </div>
+
+  <!-- ステージ -->
+  <div id="stage">
+    <div id="emptyHint">
+      <div class="hint-title">👆 開始ボタンを押してください</div>
+      <div class="hint-commands">
+        視聴者がコメントで「キャラ1」〜「キャラ10」と入力するとキャラが登場します<br>
+        <a href="/help.html" target="_blank" style="color:#111;text-decoration:underline">❓ コマンド一覧を見る</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- コメントログ -->
+  <div id="commentLog" class="hidden">
+    <div class="log-header">💬 コメントログ</div>
+    <div id="commentList"></div>
+  </div>
+
+  <!-- キャラ画像設定モーダル -->
+  <div id="imageModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <span>🖼 キャラ画像設定</span>
+        <div class="modal-header-sub">画像は <code>public/chara/</code> フォルダに入れてください</div>
+        <button id="closeModal" class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-images-section">
+          <div class="modal-section-title">利用可能な画像 <button id="reloadImages" class="btn-reload">↺ 再読込</button></div>
+          <div id="imageGrid" class="image-grid"></div>
+        </div>
+        <div class="modal-chars-section">
+          <div class="modal-section-title">キャラ割り当て</div>
+          <div id="charSlots" class="char-slots"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "kukucome",
+  "version": "1.0.0",
+  "description": "kukuLIVE コメントビジュアライザー",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
