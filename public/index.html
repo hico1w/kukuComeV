@@ -13,22 +13,139 @@
     <span class="logo">🎮 kukuCome</span>
     <input id="apikey" type="password" placeholder="APIキー" autocomplete="off" spellcheck="false">
     <input id="hash"   type="text"     placeholder="配信番号（空欄で自動取得）" spellcheck="false">
-    <button id="startBtn"    class="btn-start">▶ 開始</button>
-    <button id="stopBtn"     class="btn-stop"  disabled>■ 停止</button>
-    <button id="toggleLog"   class="btn-log">💬 ログ</button>
-    <button id="openImgModal" class="btn-img">🖼 キャラ画像</button>
-    <button id="gatherBtn"   class="btn-gather">🔔 集合</button>
-    <button id="clearStage"  class="btn-clear">🗑 リセット</button>
-    <a href="/help.html" target="_blank" class="btn btn-help">❓ コマンド</a>
-    <label class="bg-color-label" title="背景色">BG<input id="bgColor" type="color" value="#00FF00"></label>
+    <button id="startBtn"  class="btn-start">▶ 開始</button>
+    <button id="stopBtn"   class="btn-stop" disabled>■ 停止</button>
+    <button id="adminBtn"  class="btn-admin">⚙️ 管理</button>
     <span id="status" class="status-idle">● 停止中</span>
     <span class="help-link">
       <a href="https://live.erinn.biz/login.php?action=getAPIKey" target="_blank">APIキー取得</a>
     </span>
   </div>
 
+  <!-- 管理モーダル -->
+  <div id="adminModal" class="admin-modal-overlay hidden">
+    <div class="admin-modal">
+      <div class="admin-modal-header">
+        <span>⚙️ 管理パネル</span>
+        <button id="closeAdminModal" class="modal-close">✕</button>
+      </div>
+      <div class="admin-modal-body">
+
+        <div class="admin-group">
+          <div class="admin-group-title">📺 表示</div>
+          <button id="toggleLog"    class="btn-log">💬 ログ</button>
+          <button id="openImgModal" class="btn-img">🖼 キャラ画像</button>
+          <button id="copyObsUrl"   class="btn-obs">📋 OBS URL</button>
+          <a href="/help.html" target="_blank" class="btn btn-help">❓ コマンド</a>
+        </div>
+
+        <div class="admin-group">
+          <div class="admin-group-title">🎮 ゲーム操作</div>
+          <button id="gatherBtn"      class="btn-gather">🔔 集合</button>
+          <button id="gatherBottomBtn" class="btn-gather">⬇ 下集合</button>
+          <button id="dismissBossBtn" class="btn-dismiss-boss">💀 ボス消去</button>
+          <button id="moveLockBtn"    class="btn-move-lock">🔒 移動制限</button>
+          <button id="wordleBtn"      class="btn-wordle">📝 Wordle</button>
+          <button id="hayaoshiBtn"    class="btn-hayaoshi">⚡ 早押し</button>
+        </div>
+
+        <div class="admin-group">
+          <div class="admin-group-title">🖼 背景・エリア</div>
+          <label class="bg-color-label" title="背景色">BG色<input id="bgColor" type="color" value="#00FF00"></label>
+          <input id="bgImageInput" type="file" accept="image/*" style="display:none">
+          <button id="bgImageBtn" class="btn-bg-img">🖼 BG画像</button>
+          <button id="bgClearBtn" class="btn-bg-clear" style="display:none">✕BG</button>
+          <select id="moveAreaSelect" title="キャラの移動エリア">
+            <option value="all">移動:全体</option>
+            <option value="bottom">移動:下半分</option>
+            <option value="top">移動:上半分</option>
+            <option value="left">移動:左半分</option>
+            <option value="right">移動:右半分</option>
+            <option value="bottomLeft">移動:左下</option>
+            <option value="bottomRight">移動:右下</option>
+          </select>
+        </div>
+
+        <div class="admin-group">
+          <div class="admin-group-title">⚡ 早押し演出</div>
+          <div class="size-row">
+            <span class="size-label">🔤 文字サイズ</span>
+            <input id="nikoSizeSlider" type="range" min="12" max="100" value="40" class="size-slider">
+            <span id="nikoSizeVal" class="size-val">40px</span>
+            <button id="nikoSizeReset" class="btn-size-reset">↺</button>
+          </div>
+          <div class="size-row">
+            <span class="size-label">💧 透明度</span>
+            <input id="nikoOpacitySlider" type="range" min="0" max="100" value="100" class="size-slider">
+            <span id="nikoOpacityVal" class="size-val">100%</span>
+            <button id="nikoOpacityReset" class="btn-size-reset">↺</button>
+          </div>
+          <div class="size-row">
+            <span class="size-label">⏱ 頻度</span>
+            <input id="hayaoshiFreqSlider" type="range" min="1" max="60" value="5" class="size-slider">
+            <span id="hayaoshiFreqVal" class="size-val">5s</span>
+            <button id="hayaoshiFreqReset" class="btn-size-reset">↺</button>
+          </div>
+          <div class="size-row">
+            <span class="size-label">💨 速度</span>
+            <input id="hayaoshiSpeedSlider" type="range" min="1" max="60" value="8" class="size-slider">
+            <span id="hayaoshiSpeedVal" class="size-val">8s</span>
+            <button id="hayaoshiSpeedReset" class="btn-size-reset">↺</button>
+          </div>
+        </div>
+
+        <div class="admin-group">
+          <div class="admin-group-title">⚔️ ボス設定</div>
+          <div class="size-row">
+            <span class="size-label">❤️ HP倍率</span>
+            <input id="bossHpScaleSlider" type="range" min="1" max="100" step="1" value="1" class="size-slider">
+            <span id="bossHpScaleVal" class="size-val">1x</span>
+            <button id="bossHpScaleReset" class="btn-size-reset">↺</button>
+          </div>
+          <div class="size-row">
+            <span class="size-label">🔁 反撃率</span>
+            <input id="counterRateSlider" type="range" min="0" max="100" value="40" class="size-slider">
+            <span id="counterRateVal" class="size-val">40%</span>
+            <button id="counterRateReset" class="btn-size-reset">↺</button>
+          </div>
+        </div>
+
+        <div class="admin-group">
+          <div class="admin-group-title">📐 サイズ調整</div>
+          <div class="size-row">
+            <span class="size-label">🧑 キャラ</span>
+            <input id="charSizeSlider" type="range" min="30" max="300" value="100" class="size-slider">
+            <span id="charSizeVal" class="size-val">100%</span>
+            <button id="charSizeReset" class="btn-size-reset">↺</button>
+          </div>
+          <div class="size-row">
+            <span class="size-label">🐉 ボス</span>
+            <input id="bossSizeSlider" type="range" min="30" max="300" value="100" class="size-slider">
+            <span id="bossSizeVal" class="size-val">100%</span>
+            <button id="bossSizeReset" class="btn-size-reset">↺</button>
+          </div>
+        </div>
+
+        <div class="admin-group">
+          <div class="admin-group-title">🔧 システム</div>
+          <button id="compactBtn"     class="btn-compact">📦 コンパクト</button>
+          <button id="stopAllBtn"    class="btn-stop-all">⏹ 全停止</button>
+          <button id="clearStage"    class="btn-clear">🗑 リセット</button>
+          <button id="debugBtn"      class="btn-debug">🐛 DEBUG</button>
+          <button id="debugMpBtn"    class="btn-debug">💧 全員MP+30</button>
+          <a href="/debug.html" target="_blank" rel="opener" class="btn btn-debug">🔬 デバッグ画面</a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- ステージ -->
   <div id="stage">
+    <div id="trashCan" title="ここにドラッグするとキャラが消えます">
+      <img src="/img/gomi.png" alt="ゴミ箱">
+    </div>
+    <div id="bombBtn" title="💣 全員爆破">💣</div>
     <div id="emptyHint">
       <div class="hint-title">👆 開始ボタンを押してください</div>
       <div class="hint-commands">
@@ -58,7 +175,7 @@
           <div id="imageGrid" class="image-grid"></div>
         </div>
         <div class="modal-chars-section">
-          <div class="modal-section-title">キャラ割り当て</div>
+          <div class="modal-section-title">キャラ割り当て <button id="batchAssign" class="btn-reload">🖼 全画像を一括割り当て</button></div>
           <div id="charSlots" class="char-slots"></div>
         </div>
       </div>

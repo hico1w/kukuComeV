@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>kukuCome デバッグ</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0f1117;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 13px;
+      padding: 12px;
+    }
+    h1 { font-size: 15px; color: #94a3b8; margin-bottom: 12px; letter-spacing: 0.05em; }
+    .section {
+      background: #1e2330;
+      border: 1px solid #2d3748;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-size: 12px;
+      font-weight: bold;
+      color: #7dd3fc;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 7px;
+    }
+    label { color: #94a3b8; white-space: nowrap; min-width: 64px; }
+    input[type="text"], input[type="number"], select, textarea {
+      flex: 1;
+      background: #0f1117;
+      border: 1px solid #374151;
+      border-radius: 5px;
+      color: #e2e8f0;
+      padding: 5px 8px;
+      font-size: 13px;
+      outline: none;
+    }
+    input[type="text"]:focus, input[type="number"]:focus,
+    select:focus, textarea:focus { border-color: #3b82f6; }
+    textarea { resize: vertical; min-height: 60px; font-family: inherit; }
+    button {
+      background: #1d4ed8;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      padding: 6px 14px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: bold;
+      transition: background 0.15s;
+    }
+    button:hover { background: #2563eb; }
+    button:active { background: #1e40af; }
+    .btn-send { background: #15803d; }
+    .btn-send:hover { background: #16a34a; }
+    .log {
+      background: #0a0d14;
+      border: 1px solid #1e2330;
+      border-radius: 5px;
+      padding: 8px;
+      height: 100px;
+      overflow-y: auto;
+      font-size: 11px;
+      color: #64748b;
+      font-family: monospace;
+    }
+    .log-entry { padding: 1px 0; border-bottom: 1px solid #1a2035; }
+    .log-entry.ok  { color: #4ade80; }
+    .log-entry.err { color: #f87171; }
+    .no-users { color: #475569; font-style: italic; }
+    #refreshBtn { background: #374151; font-size: 11px; padding: 4px 8px; }
+    #refreshBtn:hover { background: #4b5563; }
+    input[type="number"] { width: 70px; flex: none; }
+    #statusDot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; margin-right: 6px; vertical-align: middle; }
+    #statusDot.connected { background: #22c55e; }
+  </style>
+</head>
+<body>
+
+<h1>🔬 kukuCome デバッグパネル <span id="statusDot" title="接続状態"></span></h1>
+
+<!-- キャラ追加 -->
+<div class="section">
+  <div class="section-title">👤 キャラ追加</div>
+  <div class="row">
+    <label>名前</label>
+    <input type="text" id="addName" placeholder="空欄でランダム">
+  </div>
+  <div class="row">
+    <label>キャラ番号</label>
+    <input type="number" id="addCharNum" min="1" max="500" value="1">
+    <button id="addCharBtn">追加</button>
+  </div>
+</div>
+
+<!-- コメント送信 -->
+<div class="section">
+  <div class="section-title">💬 コメント送信</div>
+  <div class="row">
+    <label>送信者</label>
+    <select id="senderSelect"><option value="">-- ユーザーを選択 --</option></select>
+    <button id="refreshBtn">↺</button>
+  </div>
+  <div class="row">
+    <label>メッセージ</label>
+    <textarea id="msgInput" placeholder="コメント内容を入力&#10;（複数行は1行ずつ順番に送信）"></textarea>
+  </div>
+  <div class="row" style="justify-content:flex-end">
+    <button id="sendBtn" class="btn-send">▶ 送信</button>
+  </div>
+</div>
+
+<!-- ログ -->
+<div class="section">
+  <div class="section-title">📋 ログ</div>
+  <div class="log" id="logArea"></div>
+</div>
+
+<script>
+  const channel = new BroadcastChannel('kukucome-debug');
+  let connected = false;
+  let _userNames = {};
+
+  function setConnected(v) {
+    connected = v;
+    document.getElementById('statusDot').className = v ? 'connected' : '';
+  }
+
+  function log(msg, type = '') {
+    const el = document.getElementById('logArea');
+    const d = document.createElement('div');
+    d.className = 'log-entry' + (type ? ' ' + type : '');
+    d.textContent = new Date().toLocaleTimeString('ja') + '  ' + msg;
+    el.prepend(d);
+    if (el.children.length > 80) el.lastChild.remove();
+  }
+
+  function nextDebugId() {
+    return 'dbg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+  }
+
+  // メインウィンドウからのメッセージを受信
+  channel.onmessage = (e) => {
+    if (e.data.type === 'users') {
+      setConnected(true);
+      updateUserDropdown(e.data.data);
+    }
+  };
+
+  function updateUserDropdown(list) {
+    const sel = document.getElementById('senderSelect');
+    const prev = sel.value;
+    _userNames = {};
+    sel.innerHTML = '<option value="">-- ユーザーを選択 --</option>';
+    if (!list || list.length === 0) {
+      sel.innerHTML += '<option disabled class="no-users">（キャラがいません）</option>';
+      return;
+    }
+    list.forEach(u => {
+      _userNames[u.ipid] = u.name;
+      const opt = document.createElement('option');
+      opt.value = u.ipid;
+      opt.textContent = (u.name || '名無し') + '  [' + u.ipid.slice(0, 12) + ']';
+      sel.appendChild(opt);
+    });
+    if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
+  }
+
+  function refreshUsers() {
+    channel.postMessage({ type: 'getUsers' });
+  }
+
+  // キャラ追加
+  document.getElementById('addCharBtn').addEventListener('click', () => {
+    const name    = document.getElementById('addName').value.trim();
+    const charNum = parseInt(document.getElementById('addCharNum').value) || 1;
+    const ipid    = nextDebugId();
+    channel.postMessage({
+      type: 'processComment',
+      comment: {
+        ipid,
+        icon_name: name || ('デバッグ' + ipid.slice(-4)),
+        message:   'キャラ' + charNum,
+        type:      'comment',
+        cnum:      Date.now(),
+      }
+    });
+    log(`キャラ追加送信: ${name || ipid}  キャラ${charNum}`, 'ok');
+    setTimeout(refreshUsers, 300);
+  });
+
+  // コメント送信
+  document.getElementById('sendBtn').addEventListener('click', () => {
+    const ipid = document.getElementById('senderSelect').value;
+    if (!ipid) { log('送信者を選択してください', 'err'); return; }
+    const raw   = document.getElementById('msgInput').value;
+    const lines = raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    if (lines.length === 0) { log('メッセージを入力してください', 'err'); return; }
+    const name = _userNames[ipid] || '名無し';
+    lines.forEach((line, i) => {
+      setTimeout(() => {
+        channel.postMessage({
+          type: 'processComment',
+          comment: {
+            ipid,
+            icon_name: name,
+            message:   line,
+            type:      'comment',
+            cnum:      Date.now() + i,
+          }
+        });
+        log(`送信 [${name}]: ${line}`, 'ok');
+      }, i * 300);
+    });
+  });
+
+  document.getElementById('refreshBtn').addEventListener('click', refreshUsers);
+
+  // Enter で送信（Shift+Enter で改行）
+  document.getElementById('msgInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      document.getElementById('sendBtn').click();
+    }
+  });
+
+  // 初期化 & 定期更新
+  refreshUsers();
+  setInterval(refreshUsers, 2000);
+</script>
+</body>
+</html>
