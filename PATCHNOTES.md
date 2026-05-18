@@ -7,10 +7,14 @@
 ### 🔬 デバッグウィンドウ通信方式をBroadcastChannelに変更
 - `window.opener._debugAPI` 方式を廃止し、**BroadcastChannel**（`'kukucome-debug'`）経由の通信に全面切り替え
   - Chrome の `target="_blank"` デフォルト `noopener` による `window.opener=null` 問題を根本解決
-- `app.js`: `_debugBC` を追加。`getUsers` メッセージでユーザー一覧を返信、`processComment` メッセージで処理を実行
+- `app.js`: `_debugBC` を追加。`getUsers` メッセージでユーザー一覧を返信、`processComment` メッセージで `handleComment()` を呼び出し
 - `debug.html`: `window.opener` 依存をすべて削除し `BroadcastChannel` に置き換え
   - ユーザーID生成を debug.html 内で完結（`Date.now() + random`）
   - 接続状態インジケーター（緑/赤ドット）を追加
+- `index.html`: デバッグ画面リンクに `rel="opener"` を追加
+- **バグ修正**: BroadcastChannel ハンドラで `processComment` と参照していたが、実際の関数名は `handleComment` であったため `Uncaught ReferenceError` が発生していた問題を修正
+  - `window._debugAPI` の `processComment,` → `handleComment,` に変更
+  - `_debugBC.onmessage` 内の `processComment(d.comment)` → `handleComment(d.comment)` に変更
 
 ---
 
@@ -106,8 +110,7 @@
 - `postStatusComment(user)` 関数を追加（`showStatusModal` の直前に定義）
 - 投稿内容: 名前・Lv・HP/MaxHP・MP・ATK・EXP・合計ダメージ・死亡回数・Wordle/早押し正解数・装備・ペット・アクティブ称号
 - `apikey` が未設定の場合はリクエストをスキップ
-- `hash` は現在の接続ハッシュ値をそのまま使用（空欄可）
-- `anon=1 / icon=0` 固定
+- パラメータ: `category=comment`, `type=write`, `apikey`, `icon=0`, `comment` のみ（`hash=` / `anon=` は含まない）
 
 ---
 
