@@ -484,7 +484,7 @@ function applyAvatarStyle(user) {
   const a = document.getElementById('a-' + user.ipid);
   if (!a || !user.charDef) return;
   const lvScale = 1 + ((user.level || 1) - 1) * 0.06;
-  const px = Math.round(user.size * 1.5 * lvScale * charSizeScale);
+  const px = Math.round(user.size * 1.5 * lvScale * charSizeScale * (user.brWinnerScale || 1));
   a.style.width  = px + 'px';
   a.style.height = px + 'px';
   const imgFile = charImages[user.charDef.id] || 'kisyokeee.png';
@@ -493,7 +493,7 @@ function applyAvatarStyle(user) {
 }
 
 function renderPetBadge(user) {
-  const petSize = Math.max(20, Math.round(user.size * 0.75 * charSizeScale));
+  const petSize = Math.max(20, Math.round(user.size * 0.75 * charSizeScale * (user.brWinnerScale || 1)));
   const slot = document.getElementById('p-' + user.ipid);
   if (slot) {
     if (!user.pet) { slot.className = 'char-pet'; slot.innerHTML = ''; }
@@ -525,6 +525,9 @@ function updateNameDisplay(user) {
                 : 'title-tag-normal';
       html = '<span class="title-tag ' + cls + '">' + escapeHtml(t.name) + '</span>' + escapeHtml(user.name);
     }
+  }
+  if (user.brWinner) {
+    html = '<span class="title-tag title-tag-winner">優勝</span>' + html;
   }
   n.innerHTML = html;
 }
@@ -949,6 +952,7 @@ let bossHpCounter = 100; // 初回100、以降200ずつ増加
 let bossCount = 1;       // 現在何体目のボスか
 let bossCounterRate = 0.40; // 反撃確率（0〜1）
 let bossHpScale    = 1;    // ボスHP倍率（1〜100）
+let brHpMult       = 200;  // バトルロイヤル仮想HP倍率
 let nikoFontSize  = 40;  // 早押しコメント文字サイズ(px)
 let nikoOpacity   = 1.0; // 早押しコメント透明度（0〜1）
 function nextBossHp() {
@@ -1237,13 +1241,33 @@ function endBattleRoyale(winner) {
   brState.active = false;
   if (winner) {
     brState.ranking.push(winner.ipid);
+    winner.brWinner = true;
     addToLog(winner, '👑 バトルロイヤル 優勝！', '#fbbf24');
     showBRWinBanner(winner);
+    updateNameDisplay(winner);
+    winner.brWinnerScale = 3;
+    applyAvatarStyle(winner);
+    renderPetBadge(winner);
+    setTimeout(() => {
+      if (!winner.el) return;
+      delete winner.brWinnerScale;
+      applyAvatarStyle(winner);
+      renderPetBadge(winner);
+    }, 60000);
   }
+  // 脱落キャラを保存済みHPで復活
+  const savedHp = brState.savedHp || {};
   Object.values(users).forEach(u => { u.brOut = false; });
+  const snapshot = brState;
   brState = null;
-  // 元のHPに戻して表示を更新
-  Object.values(users).forEach(u => updateStatsDisplay(u));
+  Object.keys(snapshot.maxHp).forEach(ipid => {
+    const u = users[ipid];
+    if (!u) return;
+    u.hp = savedHp[ipid] ?? (u.hp ?? 30);
+    if (!u.el) ensureCharOnStage(u);
+    updateStatsDisplay(u);
+    updateNameDisplay(u);
+  });
   const btn = document.getElementById('battleRoyaleBtn');
   if (btn) btn.classList.remove('active');
 }
@@ -1297,14 +1321,16 @@ function startBattleRoyale() {
     showBRToast(null, { name: '参加者2人以上必要です' }, 0, false, true, 0);
     return;
   }
+  const savedHp = {};
+  eligible.forEach(u => { savedHp[u.ipid] = u.hp ?? 30; });
   brState = {
     active: true,
     survivors: new Set(eligible.map(u => u.ipid)),
-    hp: {}, maxHp: {}, ranking: [], autoTimer: null,
+    hp: {}, maxHp: {}, savedHp, ranking: [], autoTimer: null,
     interval: 1000, escalateTimer: null,
   };
   eligible.forEach(u => {
-    const mhp = calcMaxHp(u) * 500;
+    const mhp = calcMaxHp(u) * brHpMult;
     brState.hp[u.ipid] = mhp;
     brState.maxHp[u.ipid] = mhp;
   });
@@ -2990,6 +3016,25 @@ document.getElementById('moveAreaSelect').addEventListener('change', e => {
   });
 })();
 
+(function initBrHpMultSlider() {
+  const slider = document.getElementById('brHpMultSlider');
+  const val    = document.getElementById('brHpMultVal');
+  if (!slider || !val) return;
+  const saved = parseInt(localStorage.getItem('brHpMult') ?? '200');
+  brHpMult = saved;
+  slider.value = saved;
+  val.textContent = saved + 'x';
+  slider.addEventListener('input', () => {
+    brHpMult = parseInt(slider.value);
+    val.textContent = brHpMult + 'x';
+    localStorage.setItem('brHpMult', brHpMult);
+  });
+  document.getElementById('brHpMultReset').addEventListener('click', () => {
+    slider.value = 200;
+    slider.dispatchEvent(new Event('input'));
+  });
+})();
+
 document.getElementById('batchAssign').addEventListener('click', () => {
   availableImages.forEach((fname, i) => { charImages[i + 1] = fname; });
   saveCharImages();
@@ -4410,6 +4455,82 @@ _debugBC.onmessage = (e) => {
   } else if (d.type === 'getUsers') {
     const list = Object.values(users).map(u => ({ ipid: u.ipid, name: u.name || '名無し' }));
     _debugBC.postMessage({ type: 'users', data: list });
+  }
+};
+
+// ── 管理ウィンドウ（BroadcastChannel） ───────────────────────────────
+const _adminBC = new BroadcastChannel('kukucome-admin');
+_adminBC.onmessage = (e) => {
+  const d = e.data;
+  if (d.type === 'click' && d.id) {
+    document.getElementById(d.id)?.click();
+  } else if (d.type === 'slider' && d.id) {
+    const el = document.getElementById(d.id);
+    if (el) { el.value = d.value; el.dispatchEvent(new Event('input')); }
+  } else if (d.type === 'select' && d.id) {
+    const el = document.getElementById(d.id);
+    if (el) { el.value = d.value; el.dispatchEvent(new Event('change')); }
+  } else if (d.type === 'color' && d.id) {
+    const el = document.getElementById(d.id);
+    if (el) { el.value = d.value; el.dispatchEvent(new Event('input')); }
+  } else if (d.type === 'getState' || d.type === 'ping') {
+    const sliderIds = ['nikoSizeSlider','nikoOpacitySlider','hayaoshiFreqSlider','hayaoshiSpeedSlider',
+                       'bossHpScaleSlider','counterRateSlider','charSizeSlider','bossSizeSlider','brHpMultSlider'];
+    const state = {};
+    sliderIds.forEach(sid => { const el = document.getElementById(sid); if (el) state[sid] = el.value; });
+    state.bgColor  = document.getElementById('bgColor')?.value;
+    state.moveArea = document.getElementById('moveAreaSelect')?.value;
+    _adminBC.postMessage({ type: d.type === 'ping' ? 'pong' : 'state', data: state });
+  } else if (d.type === 'processComment') {
+    if (d.comment) handleComment(d.comment);
+  } else if (d.type === 'getUsers') {
+    const list = Object.values(users).filter(u => u.el).map(u => ({ ipid: u.ipid, name: u.name || '名無し' }));
+    _adminBC.postMessage({ type: 'users', data: list });
+  } else if (d.type === 'addAtkAll') {
+    const val = parseInt(d.value) || 0;
+    if (val <= 0) return;
+    Object.values(users).filter(u => u.el).forEach(u => {
+      if (!u.equips) u.equips = [];
+      const existing = u.equips.find(e => e.name === '強化' && e.stat === 'atk');
+      if (existing) {
+        existing.value += val;
+        const r2 = RARITY[Math.min(existing.value, RARITY.length - 1)] || RARITY[1];
+        existing.rarityName = r2.name; existing.rarityCls = r2.cls;
+      } else {
+        const rarEntry = RARITY[Math.min(val, RARITY.length - 1)] || RARITY[1];
+        u.equips.push({ name: '強化', icon: '⚡', stat: 'atk', value: val, rarityName: rarEntry.name, rarityCls: rarEntry.cls });
+      }
+      u.atk = calcAtk(u);
+      updateEquipBadge(u);
+      updateStatsDisplay(u);
+    });
+  } else if (d.type === 'distributeRandomPets') {
+    Object.values(users).filter(u => u.el).forEach(u => {
+      u.pet = rollPetGacha();
+      renderPetBadge(u);
+      updateStatsDisplay(u);
+    });
+  } else if (d.type === 'distributeRandomEquips') {
+    Object.values(users).filter(u => u.el).forEach(u => {
+      if (!u.equips) u.equips = [];
+      const value    = rollEquipValue(750);
+      const type     = EQUIP_POOL[Math.floor(Math.random() * EQUIP_POOL.length)];
+      const rarEntry = RARITY[Math.min(value, RARITY.length - 1)] || RARITY[1];
+      const newEquip = { ...type, value, rarityName: rarEntry.name, rarityCls: rarEntry.cls };
+      const existing = u.equips.find(e => e.name === newEquip.name);
+      if (existing) {
+        const gain = Math.max(1, Math.floor(newEquip.value * 0.5));
+        existing.value += gain;
+        const r2 = RARITY[Math.min(existing.value, RARITY.length - 1)] || RARITY[1];
+        existing.rarityName = r2.name; existing.rarityCls = r2.cls;
+      } else {
+        u.equips.push(newEquip);
+      }
+      u.maxHp = calcMaxHp(u);
+      u.atk   = calcAtk(u);
+      updateEquipBadge(u);
+      updateStatsDisplay(u);
+    });
   }
 };
 

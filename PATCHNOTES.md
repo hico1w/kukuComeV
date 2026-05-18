@@ -2,6 +2,79 @@
 
 ---
 
+## v1.46.0 — 2026-05-18
+
+### 👑 バトルロイヤル終了後の脱落キャラ復活・優勝者サイズ3倍
+- **脱落キャラ復活**: BR終了後、脱落したキャラを開始前のHPで全員再スポーン
+  - `startBattleRoyale` で参加者の HP を `brState.savedHp` に保存
+  - `endBattleRoyale` で `brState.maxHp` のキー全員に対し `ensureCharOnStage()` を呼び出し、`savedHp` を復元
+- **優勝者3倍サイズ（1分間）**: BR優勝者のキャラが1分間3倍サイズで表示される
+  - `winner.brWinnerScale = 3` を設定し `applyAvatarStyle` / `renderPetBadge` に反映
+  - 60秒後に `brWinnerScale` を削除して元サイズに戻す
+- `applyAvatarStyle` / `renderPetBadge`: `user.brWinnerScale` を乗数として考慮するよう変更
+
+---
+
+## v1.45.0 — 2026-05-18
+
+### 👑 バトルロイヤル仮想HP倍率を変更・管理パネルから調整可能に
+- 仮想HP倍率をデフォルト **500x → 200x** に変更
+- `app.js`: `let brHpMult = 200` を追加、BR開始時の仮想HP計算を `calcMaxHp(u) * brHpMult` に変更
+- `app.js`: `initBrHpMultSlider()` IIFE を追加（`localStorage` に保存・復元）
+- `index.html`: 管理モーダルに「👑 バトルロイヤル」グループを追加（仮想HP倍率スライダー 1〜1000x）
+- `admin.html`: 「👑 バトルロイヤル」セクションを追加（同スライダー、別ウィンドウにも反映）
+- 管理ウィンドウの状態同期（`getState` / `applyState`）に `brHpMultSlider` を追加
+
+---
+
+## v1.44.0 — 2026-05-18
+
+### 👑 バトルロイヤル優勝ラベルを追加
+- 優勝キャラの名前の左に虹色グロー「優勝」ラベルを表示（称号の左側に配置）
+- `app.js`: `endBattleRoyale` で `winner.brWinner = true` をセット → `updateNameDisplay(winner)` 呼び出し
+- `app.js`: `updateNameDisplay` に `brWinner` フラグ判定を追加し `title-tag-winner` を先頭に挿入
+- `style.css`: `.title-tag-winner` — 金〜ピンク〜青〜緑の虹グラデーションが1.2秒でスクロール＋黄金グロー点滅アニメーション
+
+---
+
+## v1.43.0 — 2026-05-18
+
+### 🔬 管理パネルにデバッグ機能を統合
+- `public/admin.html`:
+  - 「🔬 デバッグ」セクションを追加（`debug.html` の機能を内包）
+  - キャラ追加: 名前・キャラ番号を入力してキャラをスポーン
+  - コメント送信: ユーザー選択ドロップダウン + メッセージ textarea + 送信ボタン
+  - **⚡ 全員ATK+**: 自由入力した値分、全キャラの ATK を加算（「強化」装備として付与・累積）
+  - **🐾 全員ランダムペット**: 全キャラにペットガチャ結果を一括配布
+  - **⚔️ 全員ランダム装備**: 全キャラにランダム装備を一括配布（同名装備は合成）
+  - ユーザー一覧を3秒ごとに自動更新、デバッグログ表示
+  - `/debug.html` へのリンクボタンを削除（管理パネルに統合済みのため）
+- `app.js`: `_adminBC` ハンドラに以下を追加
+  - `processComment` → `handleComment()` に転送
+  - `getUsers` → アクティブユーザー一覧を返信
+  - `addAtkAll` → 全キャラに「⚡強化」ATK装備を付与・再計算
+  - `distributeRandomPets` → 全キャラに `rollPetGacha()` 結果を付与
+  - `distributeRandomEquips` → 全キャラに `rollEquipValue(750)` + `EQUIP_POOL` からランダム装備を付与
+
+---
+
+## v1.42.0 — 2026-05-18
+
+### ⚙️ 管理パネルを別ウィンドウで開けるように
+- `public/admin.html` を新規作成 — モーダルと同じ全ボタン・スライダーを搭載
+  - BroadcastChannel `'kukucome-admin'` でメインウィンドウと通信
+  - 開いた瞬間にメインウィンドウから現在のスライダー値・BG色・移動エリアを取得して反映
+  - 3秒ごとに ping/pong で接続確認（緑/赤ドット表示）
+- `app.js`: `_adminBC` ハンドラを追加
+  - `click` → 対象ボタンの `.click()` を実行
+  - `slider` → `.value` をセットして `input` イベントを発火
+  - `select` / `color` → 同様に `change` / `input` を発火
+  - `getState` / `ping` → 現在の全スライダー値・BG色・移動エリアを返信
+- `index.html`: 管理モーダルヘッダーに「🔗 別ウィンドウ」ボタンを追加
+- `style.css`: `.btn-popout` スタイルを追加
+
+---
+
 ## v1.41.0 — 2026-05-18
 
 ### 🔔 集合ボタンを多行対応

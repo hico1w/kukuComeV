@@ -711,6 +711,17 @@ body {
   border-radius: 4px;
 }
 .modal-close:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.btn-popout {
+  margin-left: auto;
+  background: none;
+  border: 1px solid #374151;
+  color: #94a3b8;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.btn-popout:hover { background: rgba(255,255,255,0.08); color: #e2e8f0; }
 
 .modal-body {
   display: flex;
@@ -1949,6 +1960,19 @@ body.compact-mode .title-tag         { display: none !important; }
 @keyframes titleRainbow {
   0%   { background-position: 0% 50%; }
   100% { background-position: 200% 50%; }
+}
+.title-tag-winner {
+  background: linear-gradient(90deg,#fde047,#f97316,#ec4899,#a855f7,#3b82f6,#34d399,#fde047);
+  background-size: 300% 100%;
+  color: #fff;
+  border: none;
+  font-weight: 900;
+  animation: titleRainbow 1.2s linear infinite, winnerGlow 1.5s ease-in-out infinite alternate;
+  text-shadow: 0 0 6px rgba(255,255,255,0.9);
+}
+@keyframes winnerGlow {
+  from { box-shadow: 0 0 4px 1px rgba(253,224,71,0.6); }
+  to   { box-shadow: 0 0 10px 3px rgba(253,224,71,0.95); }
 }
 
 /* ── 称号解放ポップアップ ─────────────────────────────────────── */

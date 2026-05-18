@@ -27,6 +27,7 @@
     <div class="admin-modal">
       <div class="admin-modal-header">
         <span>⚙️ 管理パネル</span>
+        <button onclick="window.open('/admin.html','kukuCome管理','width=480,height=820,resizable=yes')" class="btn-popout" title="別ウィンドウで開く">🔗 別ウィンドウ</button>
         <button id="closeAdminModal" class="modal-close">✕</button>
       </div>
       <div class="admin-modal-body">
@@ -48,6 +49,16 @@
           <button id="wordleBtn"         class="btn-wordle">📝 Wordle</button>
           <button id="hayaoshiBtn"       class="btn-hayaoshi">⚡ 早押し</button>
           <button id="battleRoyaleBtn"   class="btn-br">👑 バトルロイヤル</button>
+        </div>
+
+        <div class="admin-group">
+          <div class="admin-group-title">👑 バトルロイヤル</div>
+          <div class="size-row">
+            <span class="size-label">❤️ 仮想HP倍率</span>
+            <input id="brHpMultSlider" type="range" min="1" max="1000" step="1" value="200" class="size-slider">
+            <span id="brHpMultVal" class="size-val">200x</span>
+            <button id="brHpMultReset" class="btn-size-reset">↺</button>
+          </div>
         </div>
 
         <div class="admin-group">

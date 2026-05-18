@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>kukuCome 管理</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0f1117;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 13px;
+      padding: 10px;
+    }
+    h1 {
+      font-size: 14px;
+      color: #94a3b8;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #statusDot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      flex-shrink: 0;
+    }
+    #statusDot.connected { background: #22c55e; }
+    .section {
+      background: #1e2330;
+      border: 1px solid #2d3748;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+    }
+    .section-title {
+      font-size: 11px;
+      font-weight: bold;
+      color: #7dd3fc;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 5px; }
+    button, a.btn {
+      background: #374151;
+      color: #e2e8f0;
+      border: none;
+      border-radius: 5px;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      transition: background 0.15s;
+    }
+    button:hover, a.btn:hover { background: #4b5563; }
+    button:active { filter: brightness(0.85); }
+    .btn-start    { background: #15803d; }
+    .btn-start:hover { background: #16a34a; }
+    .btn-stop     { background: #b91c1c; }
+    .btn-stop:hover  { background: #dc2626; }
+    .btn-purple   { background: #6d28d9; }
+    .btn-purple:hover { background: #7c3aed; }
+    .btn-amber    { background: #92400e; }
+    .btn-amber:hover  { background: #b45309; }
+    .btn-red      { background: #7f1d1d; }
+    .btn-red:hover    { background: #991b1b; }
+    .btn-debug    { background: #1e3a5f; }
+    .btn-debug:hover  { background: #1d4ed8; }
+
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .input-label { color: #94a3b8; white-space: nowrap; min-width: 64px; font-size: 12px; }
+    input[type="text"], input[type="number"], select.dbg-select, textarea {
+      flex: 1;
+      background: #0f1117;
+      border: 1px solid #374151;
+      border-radius: 5px;
+      color: #e2e8f0;
+      padding: 4px 7px;
+      font-size: 12px;
+      outline: none;
+    }
+    input[type="text"]:focus, input[type="number"]:focus,
+    select.dbg-select:focus, textarea:focus { border-color: #3b82f6; }
+    textarea { resize: vertical; min-height: 52px; font-family: inherit; }
+    .btn-send-dbg { background: #15803d; }
+    .btn-send-dbg:hover { background: #16a34a; }
+    .btn-refresh-dbg { background: #374151; padding: 3px 7px; font-size: 11px; }
+    .btn-refresh-dbg:hover { background: #4b5563; }
+    input[type="number"].atk-input { width: 70px; flex: none; }
+    .dbg-log {
+      background: #0a0d14;
+      border: 1px solid #1e2330;
+      border-radius: 5px;
+      padding: 6px;
+      height: 80px;
+      overflow-y: auto;
+      font-size: 11px;
+      color: #64748b;
+      font-family: monospace;
+      margin-top: 4px;
+    }
+    .dbg-log-entry { padding: 1px 0; }
+    .dbg-log-entry.ok  { color: #4ade80; }
+    .dbg-log-entry.err { color: #f87171; }
+
+    .size-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .size-label { color: #94a3b8; white-space: nowrap; min-width: 72px; font-size: 12px; }
+    .size-slider { flex: 1; accent-color: #3b82f6; }
+    .size-val { color: #e2e8f0; min-width: 44px; font-size: 12px; text-align: right; }
+    .btn-reset {
+      background: #374151;
+      padding: 3px 7px;
+      font-size: 11px;
+      border-radius: 4px;
+    }
+    .btn-reset:hover { background: #4b5563; }
+
+    select {
+      background: #0f1117;
+      border: 1px solid #374151;
+      border-radius: 5px;
+      color: #e2e8f0;
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+    input[type="color"] {
+      width: 36px; height: 26px;
+      border: 1px solid #374151;
+      border-radius: 4px;
+      padding: 2px;
+      background: #0f1117;
+      cursor: pointer;
+      vertical-align: middle;
+    }
+    label.color-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: #94a3b8;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>⚙️ kukuCome 管理 <span id="statusDot" title="メインウィンドウ接続状態"></span></h1>
+
+<!-- 表示 -->
+<div class="section">
+  <div class="section-title">📺 表示</div>
+  <div class="btn-row">
+    <button onclick="cmd('toggleLog')">💬 ログ</button>
+    <button onclick="cmd('openImgModal')">🖼 キャラ画像</button>
+    <button onclick="cmd('copyObsUrl')">📋 OBS URL</button>
+    <a href="/help.html" target="_blank" class="btn">❓ コマンド</a>
+  </div>
+</div>
+
+<!-- ゲーム操作 -->
+<div class="section">
+  <div class="section-title">🎮 ゲーム操作</div>
+  <div class="btn-row">
+    <button onclick="cmd('gatherBtn')">🔔 集合</button>
+    <button onclick="cmd('gatherBottomBtn')">⬇ 下集合</button>
+    <button onclick="cmd('dismissBossBtn')" class="btn-red">💀 ボス消去</button>
+    <button onclick="cmd('moveLockBtn')">🔒 移動制限</button>
+    <button onclick="cmd('wordleBtn')" class="btn-amber">📝 Wordle</button>
+    <button onclick="cmd('hayaoshiBtn')" class="btn-amber">⚡ 早押し</button>
+    <button onclick="cmd('battleRoyaleBtn')" class="btn-purple">👑 バトルロイヤル</button>
+  </div>
+</div>
+
+<!-- バトルロイヤル -->
+<div class="section">
+  <div class="section-title">👑 バトルロイヤル</div>
+  <div class="size-row">
+    <span class="size-label">❤️ 仮想HP倍率</span>
+    <input type="range" id="brHpMultSlider" min="1" max="1000" step="1" value="200" class="size-slider"
+           oninput="syncSlider(this,'brHpMultVal',v=>v+'x')">
+    <span id="brHpMultVal" class="size-val">200x</span>
+    <button class="btn-reset" onclick="resetSlider('brHpMultSlider',200,'brHpMultVal',v=>v+'x')">↺</button>
+  </div>
+</div>
+
+<!-- 背景・エリア -->
+<div class="section">
+  <div class="section-title">🖼 背景・エリア</div>
+  <div class="btn-row" style="align-items:center">
+    <label class="color-label">BG色
+      <input type="color" id="bgColorInput" value="#00FF00"
+             oninput="channel.postMessage({type:'color',id:'bgColor',value:this.value})">
+    </label>
+    <select id="moveAreaInput" onchange="channel.postMessage({type:'select',id:'moveAreaSelect',value:this.value})">
+      <option value="all">移動:全体</option>
+      <option value="bottom">移動:下半分</option>
+      <option value="top">移動:上半分</option>
+      <option value="left">移動:左半分</option>
+      <option value="right">移動:右半分</option>
+      <option value="bottomLeft">移動:左下</option>
+      <option value="bottomRight">移動:右下</option>
+    </select>
+  </div>
+</div>
+
+<!-- 早押し演出 -->
+<div class="section">
+  <div class="section-title">⚡ 早押し演出</div>
+  <div class="size-row">
+    <span class="size-label">🔤 文字サイズ</span>
+    <input type="range" id="nikoSizeSlider" min="12" max="100" value="40" class="size-slider"
+           oninput="syncSlider(this,'nikoSizeVal',v=>v+'px')">
+    <span id="nikoSizeVal" class="size-val">40px</span>
+    <button class="btn-reset" onclick="resetSlider('nikoSizeSlider',40,'nikoSizeVal',v=>v+'px')">↺</button>
+  </div>
+  <div class="size-row">
+    <span class="size-label">💧 透明度</span>
+    <input type="range" id="nikoOpacitySlider" min="0" max="100" value="100" class="size-slider"
+           oninput="syncSlider(this,'nikoOpacityVal',v=>v+'%')">
+    <span id="nikoOpacityVal" class="size-val">100%</span>
+    <button class="btn-reset" onclick="resetSlider('nikoOpacitySlider',100,'nikoOpacityVal',v=>v+'%')">↺</button>
+  </div>
+  <div class="size-row">
+    <span class="size-label">⏱ 頻度</span>
+    <input type="range" id="hayaoshiFreqSlider" min="1" max="60" value="5" class="size-slider"
+           oninput="syncSlider(this,'hayaoshiFreqVal',v=>v+'s')">
+    <span id="hayaoshiFreqVal" class="size-val">5s</span>
+    <button class="btn-reset" onclick="resetSlider('hayaoshiFreqSlider',5,'hayaoshiFreqVal',v=>v+'s')">↺</button>
+  </div>
+  <div class="size-row">
+    <span class="size-label">💨 速度</span>
+    <input type="range" id="hayaoshiSpeedSlider" min="1" max="60" value="8" class="size-slider"
+           oninput="syncSlider(this,'hayaoshiSpeedVal',v=>v+'s')">
+    <span id="hayaoshiSpeedVal" class="size-val">8s</span>
+    <button class="btn-reset" onclick="resetSlider('hayaoshiSpeedSlider',8,'hayaoshiSpeedVal',v=>v+'s')">↺</button>
+  </div>
+</div>
+
+<!-- ボス設定 -->
+<div class="section">
+  <div class="section-title">⚔️ ボス設定</div>
+  <div class="size-row">
+    <span class="size-label">❤️ HP倍率</span>
+    <input type="range" id="bossHpScaleSlider" min="1" max="100" step="1" value="1" class="size-slider"
+           oninput="syncSlider(this,'bossHpScaleVal',v=>v+'x')">
+    <span id="bossHpScaleVal" class="size-val">1x</span>
+    <button class="btn-reset" onclick="resetSlider('bossHpScaleSlider',1,'bossHpScaleVal',v=>v+'x')">↺</button>
+  </div>
+  <div class="size-row">
+    <span class="size-label">🔁 反撃率</span>
+    <input type="range" id="counterRateSlider" min="0" max="100" value="40" class="size-slider"
+           oninput="syncSlider(this,'counterRateVal',v=>v+'%')">
+    <span id="counterRateVal" class="size-val">40%</span>
+    <button class="btn-reset" onclick="resetSlider('counterRateSlider',40,'counterRateVal',v=>v+'%')">↺</button>
+  </div>
+</div>
+
+<!-- サイズ調整 -->
+<div class="section">
+  <div class="section-title">📐 サイズ調整</div>
+  <div class="size-row">
+    <span class="size-label">🧑 キャラ</span>
+    <input type="range" id="charSizeSlider" min="30" max="300" value="100" class="size-slider"
+           oninput="syncSlider(this,'charSizeVal',v=>v+'%')">
+    <span id="charSizeVal" class="size-val">100%</span>
+    <button class="btn-reset" onclick="resetSlider('charSizeSlider',100,'charSizeVal',v=>v+'%')">↺</button>
+  </div>
+  <div class="size-row">
+    <span class="size-label">🐉 ボス</span>
+    <input type="range" id="bossSizeSlider" min="30" max="300" value="100" class="size-slider"
+           oninput="syncSlider(this,'bossSizeVal',v=>v+'%')">
+    <span id="bossSizeVal" class="size-val">100%</span>
+    <button class="btn-reset" onclick="resetSlider('bossSizeSlider',100,'bossSizeVal',v=>v+'%')">↺</button>
+  </div>
+</div>
+
+<!-- システム -->
+<div class="section">
+  <div class="section-title">🔧 システム</div>
+  <div class="btn-row">
+    <button onclick="cmd('compactBtn')">📦 コンパクト</button>
+    <button onclick="cmd('stopAllBtn')">⏹ 全停止</button>
+    <button onclick="cmd('clearStage')" class="btn-red">🗑 リセット</button>
+    <button onclick="cmd('debugBtn')" class="btn-debug">🐛 DEBUG</button>
+    <button onclick="cmd('debugMpBtn')" class="btn-debug">💧 全員MP+30</button>
+  </div>
+</div>
+
+<!-- デバッグ -->
+<div class="section">
+  <div class="section-title">🔬 デバッグ</div>
+
+  <!-- キャラ追加 -->
+  <div class="input-row">
+    <span class="input-label">名前</span>
+    <input type="text" id="dbgAddName" placeholder="空欄でランダム">
+  </div>
+  <div class="input-row">
+    <span class="input-label">キャラ番号</span>
+    <input type="number" id="dbgAddCharNum" min="1" max="500" value="1" class="atk-input" style="flex:none;width:70px">
+    <button onclick="dbgAddChar()" class="btn-debug">👤 追加</button>
+  </div>
+
+  <!-- コメント送信 -->
+  <div class="input-row">
+    <span class="input-label">送信者</span>
+    <select id="dbgSenderSelect" class="dbg-select"><option value="">-- 選択 --</option></select>
+    <button onclick="dbgRefreshUsers()" class="btn-refresh-dbg">↺</button>
+  </div>
+  <div class="input-row">
+    <span class="input-label">メッセージ</span>
+    <textarea id="dbgMsgInput" placeholder="コメント内容&#10;（複数行は1行ずつ送信）"></textarea>
+  </div>
+  <div class="input-row" style="justify-content:flex-end">
+    <button onclick="dbgSendMsg()" class="btn-send-dbg">▶ 送信</button>
+  </div>
+
+  <!-- 一括デバッグ操作 -->
+  <div class="input-row">
+    <span class="input-label">ATK加算</span>
+    <input type="number" id="dbgAtkVal" min="1" max="999" value="10" class="atk-input" style="flex:none;width:70px">
+    <button onclick="dbgAddAtkAll()" class="btn-debug">⚡ 全員ATK+</button>
+  </div>
+  <div class="btn-row" style="margin-top:4px">
+    <button onclick="dbgDistributePets()" class="btn-debug">🐾 全員ランダムペット</button>
+    <button onclick="dbgDistributeEquips()" class="btn-debug">⚔️ 全員ランダム装備</button>
+  </div>
+
+  <div class="dbg-log" id="dbgLog"></div>
+</div>
+
+<script>
+  const channel = new BroadcastChannel('kukucome-admin');
+  let connected = false;
+
+  function setConnected(v) {
+    connected = v;
+    document.getElementById('statusDot').className = v ? 'connected' : '';
+  }
+
+  function cmd(id) {
+    channel.postMessage({ type: 'click', id });
+  }
+
+  function syncSlider(el, valId, fmt) {
+    document.getElementById(valId).textContent = fmt(el.value);
+    channel.postMessage({ type: 'slider', id: el.id, value: el.value });
+  }
+
+  function resetSlider(sliderId, def, valId, fmt) {
+    const el = document.getElementById(sliderId);
+    el.value = def;
+    document.getElementById(valId).textContent = fmt(def);
+    channel.postMessage({ type: 'slider', id: sliderId, value: String(def) });
+    // リセットボタンは元のIDのリセットボタンをクリック扱いで中継
+    channel.postMessage({ type: 'click', id: sliderId.replace('Slider', 'Reset') });
+  }
+
+  // 状態受信
+  channel.onmessage = (e) => {
+    const d = e.data;
+    if (d.type === 'state') {
+      setConnected(true);
+      applyState(d.data);
+    } else if (d.type === 'pong') {
+      setConnected(true);
+    } else if (d.type === 'users') {
+      setConnected(true);
+      _dbgUserNames = {};
+      const sel = document.getElementById('dbgSenderSelect');
+      const prev = sel.value;
+      sel.innerHTML = '<option value="">-- 選択 --</option>';
+      (d.data || []).forEach(u => {
+        _dbgUserNames[u.ipid] = u.name;
+        const opt = document.createElement('option');
+        opt.value = u.ipid;
+        opt.textContent = (u.name || '名無し') + '  [' + u.ipid.slice(0, 12) + ']';
+        sel.appendChild(opt);
+      });
+      if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
+    }
+  };
+
+  // ── デバッグ関数 ──────────────────────────────────────────────────
+  let _dbgUserNames = {};
+
+  function dbgLog(msg, type) {
+    const el = document.getElementById('dbgLog');
+    const d = document.createElement('div');
+    d.className = 'dbg-log-entry' + (type ? ' ' + type : '');
+    d.textContent = new Date().toLocaleTimeString('ja') + '  ' + msg;
+    el.prepend(d);
+    if (el.children.length > 50) el.lastChild.remove();
+  }
+
+  function dbgNextId() {
+    return 'dbg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+  }
+
+  function dbgRefreshUsers() {
+    channel.postMessage({ type: 'getUsers' });
+  }
+
+  function dbgAddChar() {
+    const name    = document.getElementById('dbgAddName').value.trim();
+    const charNum = parseInt(document.getElementById('dbgAddCharNum').value) || 1;
+    const ipid    = dbgNextId();
+    channel.postMessage({
+      type: 'processComment',
+      comment: { ipid, icon_name: name || ('デバッグ' + ipid.slice(-4)), message: 'キャラ' + charNum, type: 'comment', cnum: Date.now() }
+    });
+    dbgLog(`キャラ追加: ${name || ipid}  キャラ${charNum}`, 'ok');
+    setTimeout(dbgRefreshUsers, 300);
+  }
+
+  function dbgSendMsg() {
+    const ipid = document.getElementById('dbgSenderSelect').value;
+    if (!ipid) { dbgLog('送信者を選択してください', 'err'); return; }
+    const raw   = document.getElementById('dbgMsgInput').value;
+    const lines = raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    if (lines.length === 0) { dbgLog('メッセージを入力してください', 'err'); return; }
+    const name = _dbgUserNames[ipid] || '名無し';
+    lines.forEach((line, i) => {
+      setTimeout(() => {
+        channel.postMessage({ type: 'processComment', comment: { ipid, icon_name: name, message: line, type: 'comment', cnum: Date.now() + i } });
+        dbgLog(`送信 [${name}]: ${line}`, 'ok');
+      }, i * 300);
+    });
+  }
+
+  function dbgAddAtkAll() {
+    const val = parseInt(document.getElementById('dbgAtkVal').value) || 0;
+    if (val <= 0) { dbgLog('1以上の値を入力してください', 'err'); return; }
+    channel.postMessage({ type: 'addAtkAll', value: String(val) });
+    dbgLog(`全員ATK+${val}`, 'ok');
+  }
+
+  function dbgDistributePets() {
+    channel.postMessage({ type: 'distributeRandomPets' });
+    dbgLog('全員にランダムペット配布', 'ok');
+  }
+
+  function dbgDistributeEquips() {
+    channel.postMessage({ type: 'distributeRandomEquips' });
+    dbgLog('全員にランダム装備配布', 'ok');
+  }
+
+  document.getElementById('dbgMsgInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); dbgSendMsg(); }
+  });
+
+  dbgRefreshUsers();
+  setInterval(dbgRefreshUsers, 3000);
+
+  function applyState(s) {
+    const sliderDefs = [
+      { id:'nikoSizeSlider',     valId:'nikoSizeVal',     fmt: v=>v+'px' },
+      { id:'nikoOpacitySlider',  valId:'nikoOpacityVal',  fmt: v=>v+'%'  },
+      { id:'hayaoshiFreqSlider', valId:'hayaoshiFreqVal', fmt: v=>v+'s'  },
+      { id:'hayaoshiSpeedSlider',valId:'hayaoshiSpeedVal',fmt: v=>v+'s'  },
+      { id:'bossHpScaleSlider',  valId:'bossHpScaleVal',  fmt: v=>v+'x'  },
+      { id:'counterRateSlider',  valId:'counterRateVal',  fmt: v=>v+'%'  },
+      { id:'charSizeSlider',     valId:'charSizeVal',     fmt: v=>v+'%'  },
+      { id:'bossSizeSlider',     valId:'bossSizeVal',     fmt: v=>v+'%'  },
+      { id:'brHpMultSlider',     valId:'brHpMultVal',     fmt: v=>v+'x'  },
+    ];
+    sliderDefs.forEach(({ id, valId, fmt }) => {
+      if (s[id] !== undefined) {
+        document.getElementById(id).value = s[id];
+        document.getElementById(valId).textContent = fmt(s[id]);
+      }
+    });
+    if (s.bgColor)   document.getElementById('bgColorInput').value  = s.bgColor;
+    if (s.moveArea)  document.getElementById('moveAreaInput').value = s.moveArea;
+  }
+
+  // 起動時に状態を要求、2秒ごとに接続確認
+  function requestState() {
+    channel.postMessage({ type: 'getState' });
+  }
+  requestState();
+  setInterval(() => {
+    channel.postMessage({ type: 'ping' });
+    setTimeout(() => { if (!connected) setConnected(false); }, 1000);
+  }, 3000);
+</script>
+</body>
+</html>
