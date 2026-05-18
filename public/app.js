@@ -478,6 +478,8 @@ function createCharacter(user) {
     }
     e.preventDefault();
   });
+
+  if (compactMode) gatherCharactersBottom();
 }
 
 function applyAvatarStyle(user) {
@@ -4536,7 +4538,8 @@ _adminBC.onmessage = (e) => {
 
 // ── 30分ごとの自動バトルロイヤル ─────────────────────────────────────
 setInterval(() => {
-  // BR中またはキャラが2体未満なら何もしない
+  // コンパクトモード中・BR中・キャラが2体未満なら何もしない
+  if (compactMode) return;
   if (brState?.active) return;
   const eligible = Object.values(users).filter(u => u.el && !u.ko && !u.afk);
   if (eligible.length < 2) return;
