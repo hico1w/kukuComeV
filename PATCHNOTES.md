@@ -2,6 +2,95 @@
 
 ---
 
+## v1.41.0 — 2026-05-18
+
+### 🔔 集合ボタンを多行対応
+- `gatherCharacters`: 1行最大12体、13体目から次の行へ折り返す
+- 各行ごとに横幅・gapを再計算してセンタリング
+- 行間は10px、下から積み上げる形でY座標を配置
+
+---
+
+## v1.40.0 — 2026-05-18
+
+### 🐛 集合・円形配置で画面外にキャラが出る問題を修正
+- `clampToStage(u, x, y)` ヘルパー関数を追加
+  - キャラ幅: `size × 1.5 × charSizeScale`、高さ: 幅 + 60px（名前ラベル + stats 分）
+  - 右側に +30px、上側に +20px の余白を追加（名前ラベル・バブルのはみ出し対策）
+  - 戻り値 `{x, y}` は必ずステージ内に収まる値
+- `gatherCharacters`: `charW` に `charSizeScale` を追加。`clampToStage` でクランプ
+- `gatherCharactersBottom`: `clampToStage` でクランプ
+- `arrangeBRCircle`: インライン `Math.max/min` を `clampToStage` に置き換え
+
+---
+
+## v1.39.0 — 2026-05-18
+
+### ⚔️ バトルロイヤル開始時に円形配置
+- `arrangeBRCircle(participants)` を追加。`startBattleRoyale` 開始時に全参加者を円形に並べる
+- 半径: `max(参加人数×30, min(横幅,縦幅)×38%)`（少人数は小さめ、多人数は画面いっぱい）
+- 12時方向スタートで等間隔に配置。各キャラは0.7sのアニメーションで移動
+- 移動タイマー（`moveTimer`/`walkTimer`）を一時クリアしてから位置をセット
+
+---
+
+## v1.38.0 — 2026-05-18
+
+### ⚔️ バトルロイヤル演出・バランス強化
+- **自動攻撃の加速**: BR開始時は1000ms間隔、5秒ごとに10ms短縮、最小100msまで加速
+  - `brState.interval`で管理、`brState.escalateTimer`（`setInterval` 5000ms）で毎5秒更新
+  - `brAutoAttack`は`brState.interval`をそのまま次のタイムアウトに使用
+- **脱落時の中央バナー表示**: `showBREliminationBanner(user, rank)` を追加
+  - ステージ中央に「💀 名前 / N位 脱落」を大きく表示（2.5秒後にフェードアウト）
+  - `style.css`: `.br-elim-banner` / `.br-elim-name` / `.br-elim-rank` + アニメーションを追加
+- **ダメージログ（右上トースト）**: 表示上限を6行 → 10行に変更
+
+---
+
+## v1.37.0 — 2026-05-18
+
+### ⚔️ バトルロイヤル中の表示HPを仮想HPに切り替え
+- `updateStatsDisplay`: BR中かつ参加者の場合、表示HPを`brState.hp[ipid]`/`brState.maxHp[ipid]`に切り替え
+- `brAttack`: ダメージ処理後に`updateStatsDisplay(target)`を呼び出し、リアルタイムで仮想HPを反映
+- `startBattleRoyale`: 開始時に全参加者の表示を仮想HPに一括更新
+- `endBattleRoyale`: 終了後に`brState = null`となったあと全員の表示を元のHPに戻す
+
+---
+
+## v1.36.0 — 2026-05-18
+
+### 🐛 バトルロイヤル終了しない問題を修正 + 仕様変更
+- **ゴミ箱/爆破でキャラ削除時のBR残留バグ修正**
+  - ゴミ箱にドラッグされたキャラがBR中に`brState.survivors`に残り続けゲームが終わらない問題を修正
+  - `mouseup`ハンドラ（trash drop時）でBR survivorsからの除去と終了チェックを追加
+  - 💣爆破ボタン（`spawnBloodBath`）でも`endBattleRoyale(null)`を呼び出してBRを強制終了するよう修正
+- **仮想HP変更**: `calcMaxHp(user) × 1000` → `× 500` に変更
+- **自動攻撃インターバル変更**: 3000ms固定 → 700〜1000msのランダム間隔（`setTimeout`再帰方式に変更）
+- **30分ごとの自動BR開始機能を追加**
+  - ステージに2体以上いる場合、30分おきに自動でバトルロイヤルを開始
+  - ボスが起動中の場合は先に自動消去してから600ms後にBR開始
+  - BR中または参加者不足の場合はスキップ
+
+---
+
+## v1.35.0 — 2026-05-18
+
+### 👑 バトルロイヤルモード追加
+- **管理パネル** `⚙️管理` → `👑 バトルロイヤル` ボタンを追加（`index.html`）
+- **開始条件**: ボス戦中は不可、ステージに2体以上のキャラが必要
+- **仮想HP**: 開始時に `calcMaxHp(user) × 1000` を各参加者の仮想HPとして設定（ダメージ計算式はボス戦と同一）
+- **攻撃トリガー**: コメント投稿ごとにランダムな生存者を1体選んで攻撃。自動攻撃（3秒間隔）も並行実行
+- **脱落ルール**: 仮想HPが0になったキャラはフライアウトアニメーションで脱落。最後の1体が優勝
+- **トースト表示** (`#brToastContainer`): 攻撃ごとに「攻撃者 ⚔️ ターゲット −ダメージ」をトーストで表示。クリティカル時は金色。脱落時は「💀 名前 が脱落 N位」
+- **優勝演出**: 花火・ハートシャワー・勝者バナー表示
+- **再押しで中断**: ボタン再押しで即中断（優勝者なし終了）
+- **ステージリセット連動**: `🗑 リセット` ボタン押下時に BR タイマーを確実にクリア
+- **脱落者保護**: 脱落済みユーザーからのコメントは以降の処理をスキップ
+- `app.js`: `brState`・`rushToChar`・`brAttack`・`brAutoAttack`・`brEliminate`・`endBattleRoyale`・`showBRToast`・`showBRWinBanner`・`startBattleRoyale` を追加
+- `style.css`: `.btn-br`・`#brToastContainer`・`.br-toast`・`.br-start-banner`・`.br-win-banner` および関連アニメーションを追加
+
+---
+
 ## v1.34.0 — 2026-05-18
 
 ### 🔬 デバッグウィンドウ通信方式をBroadcastChannelに変更

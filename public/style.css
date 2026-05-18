@@ -2058,3 +2058,110 @@ body.compact-mode .title-tag         { display: none !important; }
   line-height: 1.5;
 }
 .btn-size-reset:hover { background: #475569; color: #e2e8f0; }
+
+/* ── バトルロイヤル ──────────────────────────── */
+.btn-br { background: #7c3aed; color: #fff; }
+.btn-br:hover { background: #6d28d9; }
+.btn-br.active { background: #b91c1c; animation: brBtnPulse 1s infinite; }
+@keyframes brBtnPulse { 0%,100%{box-shadow:0 0 0 0 rgba(185,28,28,.6)} 50%{box-shadow:0 0 0 6px rgba(185,28,28,0)} }
+
+#brToastContainer {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
+  max-width: 300px;
+}
+.br-toast {
+  background: rgba(10,12,22,0.92);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 13px;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: brToastIn 0.2s ease forwards, brToastOut 0.35s ease 2.4s forwards;
+}
+.br-toast-crit { border-color: rgba(251,191,36,0.55); }
+.br-toast-elim { border-color: rgba(248,113,113,0.55); background: rgba(30,8,8,0.92); }
+.br-atk  { color: #7dd3fc; font-weight: 700; }
+.br-tgt  { color: #f87171; }
+.br-dmg  { font-weight: 700; }
+.br-toast-crit .br-dmg { color: #fbbf24; }
+.br-rank { color: #94a3b8; font-size: 11px; margin-left: 4px; }
+@keyframes brToastIn  { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
+@keyframes brToastOut { from{opacity:1} to{opacity:0} }
+
+.br-start-banner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  background: rgba(124,58,237,0.92);
+  color: #fff;
+  font-size: 26px;
+  font-weight: 900;
+  padding: 18px 36px;
+  border-radius: 16px;
+  border: 2px solid #a78bfa;
+  z-index: 70;
+  pointer-events: none;
+  animation: brBannerIn 0.3s ease, brBannerOut 0.4s ease 2.6s forwards;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+.br-win-banner {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  background: linear-gradient(135deg,rgba(120,53,15,0.95),rgba(161,98,7,0.95));
+  color: #fef3c7;
+  font-size: 28px;
+  font-weight: 900;
+  padding: 20px 40px;
+  border-radius: 16px;
+  border: 2px solid #fbbf24;
+  z-index: 70;
+  pointer-events: none;
+  animation: brBannerIn 0.3s ease, brBannerOut 0.4s ease 4.6s forwards;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  text-align: center;
+}
+@keyframes brBannerIn  { from{opacity:0;transform:translate(-50%,-60%)} to{opacity:1;transform:translate(-50%,-50%)} }
+@keyframes brBannerOut { from{opacity:1} to{opacity:0} }
+.br-elim-banner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  background: rgba(10,12,22,0.92);
+  border: 2px solid #ef4444;
+  border-radius: 14px;
+  padding: 18px 40px;
+  text-align: center;
+  z-index: 85;
+  pointer-events: none;
+  animation: brElimIn 0.25s ease-out, brElimOut 0.4s ease 2s forwards;
+}
+.br-elim-name {
+  display: block;
+  font-size: 32px;
+  font-weight: 900;
+  color: #f87171;
+  text-shadow: 0 2px 10px rgba(239,68,68,0.6);
+}
+.br-elim-rank {
+  display: block;
+  font-size: 16px;
+  color: #94a3b8;
+  margin-top: 6px;
+  letter-spacing: 0.08em;
+}
+@keyframes brElimIn  { from{opacity:0;transform:translate(-50%,-50%) scale(0.6)} to{opacity:1;transform:translate(-50%,-50%) scale(1)} }
+@keyframes brElimOut { from{opacity:1} to{opacity:0} }

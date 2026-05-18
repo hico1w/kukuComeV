@@ -650,36 +650,60 @@ function restoreMotion(user) {
 }
 
 // ── 集合 ──────────────────────────────────────
+function clampToStage(u, x, y) {
+  const w = Math.round(u.size * 1.5 * charSizeScale);
+  const h = w + 60; // 名前ラベル + stats テキスト分
+  return {
+    x: Math.max(0, Math.min(stage.clientWidth  - w - 50, x)), // 右側：名前/statsのはみ出し分
+    y: Math.max(20, Math.min(stage.clientHeight - h,      y)), // 上側：バブル等のはみ出し分
+  };
+}
+
 function gatherCharacters() {
   const onStage = Object.values(users).filter(u => u.el);
   if (onStage.length === 0) return;
 
-  const GAP      = 20;
-  const stageW   = stage.clientWidth;
-  const stageH   = stage.clientHeight;
-  const charW    = u => u.size * 1.5;
+  const ROW_MAX = 12;
+  const GAP     = 20;
+  const ROW_GAP = 10;
+  const stageW  = stage.clientWidth;
+  const stageH  = stage.clientHeight;
+  const cw      = u => Math.round(u.size * 1.5 * charSizeScale);
+  const ch      = u => Math.round(u.size * 1.5 * charSizeScale) + 60;
 
-  const totalCharW = onStage.reduce((s, u) => s + charW(u), 0);
-  let   gap        = GAP;
-
-  // キャラが多くてはみ出す場合はgapを詰める
-  const totalWithGap = totalCharW + GAP * (onStage.length - 1);
-  if (totalWithGap > stageW - 40) {
-    gap = Math.max(4, (stageW - 40 - totalCharW) / Math.max(1, onStage.length - 1));
+  // 行に分割（最大12体ずつ）
+  const rows = [];
+  for (let i = 0; i < onStage.length; i += ROW_MAX) {
+    rows.push(onStage.slice(i, i + ROW_MAX));
   }
 
-  const totalW  = totalCharW + gap * (onStage.length - 1);
-  let   x       = Math.max(10, (stageW - totalW) / 2);
-  const maxCharH = onStage.reduce((m, u) => Math.max(m, u.size * 1.5 + 24), 0);
-  const y        = Math.max(20, stageH - maxCharH * 2);
+  // 各行の高さを計算して、下から積み上げる形でY座標を決定
+  const rowHeights = rows.map(row => Math.max(...row.map(ch)));
+  const totalH     = rowHeights.reduce((s, h) => s + h, 0) + ROW_GAP * (rows.length - 1);
+  let   y          = stageH - totalH - 20;
 
-  onStage.forEach(u => {
-    u.x = x;
-    u.y = y;
-    u.el.style.transition = 'left 600ms cubic-bezier(0.34,1.56,0.64,1), top 600ms cubic-bezier(0.34,1.56,0.64,1)';
-    u.el.style.left = u.x + 'px';
-    u.el.style.top  = u.y + 'px';
-    x += charW(u) + gap;
+  rows.forEach((row, ri) => {
+    const rowH      = rowHeights[ri];
+    const totalRowW = row.reduce((s, u) => s + cw(u), 0);
+    let   gap       = GAP;
+    const totalWithGap = totalRowW + GAP * (row.length - 1);
+    if (totalWithGap > stageW - 40) {
+      gap = Math.max(4, (stageW - 40 - totalRowW) / Math.max(1, row.length - 1));
+    }
+    const totalW = totalRowW + gap * (row.length - 1);
+    let   x      = Math.max(10, (stageW - totalW) / 2);
+
+    row.forEach(u => {
+      const clamped = clampToStage(u, x, y);
+      u.x = clamped.x;
+      u.y = clamped.y;
+      u.el.style.transition = 'left 600ms cubic-bezier(0.34,1.56,0.64,1), top 600ms cubic-bezier(0.34,1.56,0.64,1)';
+      u.el.style.left = u.x + 'px';
+      u.el.style.top  = u.y + 'px';
+      x += cw(u) + gap;
+    });
+
+    y += rowH + ROW_GAP;
   });
 }
 
@@ -695,9 +719,11 @@ function gatherCharactersBottom() {
   const step = n > 1 ? Math.min(charW(onStage[0]) + 8, (stageW - 20) / n) : 0;
   const startX = Math.max(10, (stageW - (step * (n - 1) + charW(onStage[0]))) / 2);
   onStage.forEach((u, i) => {
-    const h = charH(u);
-    u.x = Math.round(startX + step * i);
-    u.y = Math.max(0, stageH - h - 10);
+    const rawX = Math.round(startX + step * i);
+    const rawY = stageH - charH(u) - 10;
+    const clamped = clampToStage(u, rawX, rawY);
+    u.x = clamped.x;
+    u.y = clamped.y;
     u.el.style.transition = 'left 600ms cubic-bezier(0.34,1.56,0.64,1), top 600ms cubic-bezier(0.34,1.56,0.64,1)';
     u.el.style.left = u.x + 'px';
     u.el.style.top  = u.y + 'px';
@@ -917,7 +943,8 @@ function spawnHeartShower(cx, cy) {
 // ボス討伐・育成
 // ──────────────────────────────────────────────────────────────────
 let bossState = null;
-let bossManuallyCleared = false; // 消去ボタン押下後は自動召喚しない
+let bossManuallyCleared = false;
+let brState   = null; // バトルロイヤル状態 // 消去ボタン押下後は自動召喚しない
 let bossHpCounter = 100; // 初回100、以降200ずつ増加
 let bossCount = 1;       // 現在何体目のボスか
 let bossCounterRate = 0.40; // 反撃確率（0〜1）
@@ -1045,12 +1072,14 @@ function updateStatsDisplay(user) {
   const s = document.getElementById('s-' + user.ipid);
   if (!s) return;
   const lv  = user.level || 1;
-  const hp  = user.hp    ?? 30;
-  const mhp = user.maxHp ?? 30;
   const mp  = user.mp    ?? 10;
   const atk = calcAtk(user);
   const expToNext = lv >= 10 ? 'MAX' : LEVEL_EXP[lv] - (user.exp || 0);
-  s.textContent = `HP:${hp}/${mhp}  MP:${mp}  ATK:${atk}  EXP:${expToNext}`;
+  // BR中は仮想HPを表示
+  const inBR = brState?.active && brState.hp[user.ipid] !== undefined;
+  const hp  = inBR ? Math.max(0, brState.hp[user.ipid])         : (user.hp    ?? 30);
+  const mhp = inBR ? (brState.maxHp[user.ipid] ?? hp)           : (user.maxHp ?? 30);
+  s.textContent = `HP:${hp.toLocaleString()}/${mhp.toLocaleString()}  MP:${mp}  ATK:${atk}  EXP:${expToNext}`;
 }
 
 function randomizeCharAppearance(user) {
@@ -1109,6 +1138,220 @@ function rushToBoss(user) {
     user.el.style.transform  = '';
     setTimeout(() => { if (user.el) user.el.style.transition = ''; }, 440);
   }, 240);
+}
+
+// ── バトルロイヤル ────────────────────────────────────────────────
+function rushToChar(attacker, target) {
+  if (!attacker.el || !target.el) return;
+  const ar = attacker.el.getBoundingClientRect();
+  const tr = target.el.getBoundingClientRect();
+  const dx = (tr.left + tr.width  / 2) - (ar.left + ar.width  / 2);
+  const dy = (tr.top  + tr.height / 2) - (ar.top  + ar.height / 2);
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+  const rx  = (dx / len) * Math.min(len * 0.55, 110);
+  const ry  = (dy / len) * Math.min(len * 0.55, 110);
+  attacker.el.style.transition = 'transform 0.24s ease-in';
+  attacker.el.style.transform  = `translate(${rx}px,${ry}px) scale(1.2)`;
+  setTimeout(() => {
+    if (!attacker.el) return;
+    attacker.el.style.transition = 'transform 0.44s cubic-bezier(0.34,1.56,0.64,1)';
+    attacker.el.style.transform  = '';
+    setTimeout(() => { if (attacker.el) attacker.el.style.transition = ''; }, 440);
+  }, 240);
+}
+
+function brAttack(attacker, target) {
+  if (!brState?.active) return;
+  if (!brState.survivors.has(attacker.ipid) || !brState.survivors.has(target.ipid)) return;
+  if (!attacker.el || !target.el) return;
+
+  const atk      = calcAtk(attacker);
+  const titleBon = typeof getTitleBonuses === 'function' ? getTitleBonuses(attacker) : { dmgM: 1, crit: 0 };
+  const petId    = attacker.pet?.abilityId;
+  const critBonus = petId === 'scout' ? 0.05 : petId === 'crit_up' ? 0.20 : 0;
+  const isCrit   = Math.random() < (0.15 + critBonus + (titleBon.crit || 0));
+  const hayaMult = attacker.hayaoshiBuff ? 1.5 : 1;
+  attacker.hayaoshiBuff = false;
+  const dmg = Math.round((isCrit
+    ? Math.max(1, atk * (2 + Math.floor(Math.random() * 3)) * 2)
+    : Math.max(1, atk * (1 + Math.floor(Math.random() * 3)))) * hayaMult * (titleBon.dmgM || 1));
+
+  rushToChar(attacker, target);
+  setTimeout(() => {
+    if (!brState?.active || !brState.survivors.has(target.ipid)) return;
+    brState.hp[target.ipid] = Math.max(0, (brState.hp[target.ipid] || 0) - dmg);
+    updateStatsDisplay(target);
+    playSentouSound();
+    const { x, y } = getCharCenter(target);
+    showDamageNumber(x, y - 20, (isCrit ? '💥' : '') + dmg.toLocaleString(), isCrit);
+    if (target.el) {
+      target.el.classList.add('trembling');
+      setTimeout(() => target.el?.classList.remove('trembling'), 700);
+    }
+    showBRToast(attacker, target, dmg, isCrit, false, 0);
+    if (brState.hp[target.ipid] <= 0) brEliminate(target);
+  }, 240);
+}
+
+function brAutoAttack() {
+  if (!brState?.active) return;
+  const alive = [...brState.survivors].map(id => users[id]).filter(u => u?.el);
+  if (alive.length >= 2) {
+    const atk = alive[Math.floor(Math.random() * alive.length)];
+    const others = alive.filter(u => u !== atk);
+    brAttack(atk, others[Math.floor(Math.random() * others.length)]);
+  }
+  if (brState?.active) {
+    brState.autoTimer = setTimeout(brAutoAttack, brState.interval);
+  }
+}
+
+function brEliminate(user) {
+  if (!brState?.active) return;
+  brState.survivors.delete(user.ipid);
+  brState.ranking.push(user.ipid);
+  user.brOut = true;
+  const rank = Object.keys(brState.maxHp).length - brState.ranking.length + 1;
+  if (user.el) {
+    const dx = (Math.random() - 0.5) * 300;
+    const dy = -(100 + Math.random() * 150);
+    const rot = (Math.random() - 0.5) * 270;
+    user.el.style.transition = 'transform 0.7s ease-in, opacity 0.6s ease-in';
+    user.el.style.transform  = `translate(${dx}px,${dy}px) rotate(${rot}deg) scale(0)`;
+    user.el.style.opacity    = '0';
+    setTimeout(() => { if (user.el) { user.el.remove(); user.el = null; } }, 700);
+  }
+  showBRToast(null, user, 0, false, true, rank);
+  showBREliminationBanner(user, rank);
+  addToLog(user, `💀 ${rank}位 脱落`, '#f87171');
+  if (brState.survivors.size <= 1) {
+    const winner = brState.survivors.size === 1 ? users[[...brState.survivors][0]] : null;
+    setTimeout(() => endBattleRoyale(winner), 800);
+  }
+}
+
+function endBattleRoyale(winner) {
+  if (!brState) return;
+  clearTimeout(brState.autoTimer);
+  clearInterval(brState.escalateTimer);
+  brState.active = false;
+  if (winner) {
+    brState.ranking.push(winner.ipid);
+    addToLog(winner, '👑 バトルロイヤル 優勝！', '#fbbf24');
+    showBRWinBanner(winner);
+  }
+  Object.values(users).forEach(u => { u.brOut = false; });
+  brState = null;
+  // 元のHPに戻して表示を更新
+  Object.values(users).forEach(u => updateStatsDisplay(u));
+  const btn = document.getElementById('battleRoyaleBtn');
+  if (btn) btn.classList.remove('active');
+}
+
+function showBRToast(attacker, target, damage, isCrit, isElim, rank) {
+  const container = document.getElementById('brToastContainer');
+  if (!container) return;
+  const el = document.createElement('div');
+  el.className = 'br-toast' + (isCrit ? ' br-toast-crit' : '') + (isElim ? ' br-toast-elim' : '');
+  if (isElim) {
+    el.innerHTML = `💀 <b>${escapeHtml(target.name)}</b> が脱落<span class="br-rank">${rank}位</span>`;
+  } else {
+    el.innerHTML = `<span class="br-atk">${escapeHtml(attacker.name)}</span> ⚔️ <span class="br-tgt">${escapeHtml(target.name)}</span> <span class="br-dmg">${isCrit ? '💥' : '−'}${damage.toLocaleString()}</span>`;
+  }
+  container.prepend(el);
+  while (container.children.length > 10) container.lastChild.remove();
+  setTimeout(() => el.remove(), 2800);
+}
+
+function showBREliminationBanner(user, rank) {
+  const el = document.createElement('div');
+  el.className = 'br-elim-banner';
+  el.innerHTML = `<span class="br-elim-name">💀 ${escapeHtml(user.name)}</span><span class="br-elim-rank">${rank}位 脱落</span>`;
+  document.getElementById('stage').appendChild(el);
+  setTimeout(() => el.remove(), 2500);
+}
+
+function showBRWinBanner(winner) {
+  const banner = document.createElement('div');
+  banner.className = 'br-win-banner';
+  banner.innerHTML = `👑 ${escapeHtml(winner.name)}<br><span style="font-size:16px">が優勝！</span>`;
+  document.getElementById('stage').appendChild(banner);
+  spawnFireworks(getCharCenter(winner).x, getCharCenter(winner).y);
+  spawnHeartShower(getCharCenter(winner).x, getCharCenter(winner).y);
+  showBubble(winner, '👑 優勝！', {});
+  setTimeout(() => banner.remove(), 5000);
+}
+
+function startBattleRoyale() {
+  // トグル：起動中なら強制終了
+  if (brState?.active) {
+    endBattleRoyale(null);
+    return;
+  }
+  if (bossState && !bossState.defeated) {
+    showBRToast(null, { name: 'ボス戦中はBR不可' }, 0, false, true, 0);
+    return;
+  }
+  const eligible = Object.values(users).filter(u => u.el && !u.ko && !u.afk);
+  if (eligible.length < 2) {
+    showBRToast(null, { name: '参加者2人以上必要です' }, 0, false, true, 0);
+    return;
+  }
+  brState = {
+    active: true,
+    survivors: new Set(eligible.map(u => u.ipid)),
+    hp: {}, maxHp: {}, ranking: [], autoTimer: null,
+    interval: 1000, escalateTimer: null,
+  };
+  eligible.forEach(u => {
+    const mhp = calcMaxHp(u) * 500;
+    brState.hp[u.ipid] = mhp;
+    brState.maxHp[u.ipid] = mhp;
+  });
+  // 5秒ごとに10ms短縮（最小100ms）
+  brState.escalateTimer = setInterval(() => {
+    if (!brState) return;
+    brState.interval = Math.max(100, brState.interval - 10);
+  }, 5000);
+  const btn = document.getElementById('battleRoyaleBtn');
+  if (btn) btn.classList.add('active');
+  const banner = document.createElement('div');
+  banner.className = 'br-start-banner';
+  banner.textContent = `👑 バトルロイヤル開始！ ${eligible.length}人参戦`;
+  document.getElementById('stage').appendChild(banner);
+  setTimeout(() => banner.remove(), 3000);
+  addToLog({ name: 'SYSTEM', charDef: null }, `👑 バトルロイヤル開始！ ${eligible.length}人参戦`, '#fbbf24');
+  eligible.forEach(u => updateStatsDisplay(u));
+  arrangeBRCircle(eligible);
+  brState.autoTimer = setTimeout(brAutoAttack, brState.interval);
+}
+
+function arrangeBRCircle(participants) {
+  const sw = stage.clientWidth;
+  const sh = stage.clientHeight;
+  const cx = sw / 2;
+  const cy = sh / 2;
+  const n  = participants.length;
+  // 参加人数に応じて半径を調整（最小100、最大は画面の38%）
+  const minR = n * 30;
+  const r    = Math.max(minR, Math.min(sw, sh) * 0.38);
+
+  participants.forEach((u, i) => {
+    if (!u.el) return;
+    // 移動タイマーを一時停止
+    if (u.moveTimer) { clearTimeout(u.moveTimer); u.moveTimer = null; }
+    if (u.walkTimer) { clearTimeout(u.walkTimer); u.walkTimer = null; }
+
+    const angle = (i / n) * Math.PI * 2 - Math.PI / 2; // 12時位置スタート
+    const hw = Math.round(u.size * 1.5 * charSizeScale) / 2;
+    const clamped = clampToStage(u, Math.round(cx + r * Math.cos(angle) - hw), Math.round(cy + r * Math.sin(angle) - hw));
+    u.x = clamped.x;
+    u.y = clamped.y;
+    u.el.style.transition = 'left 0.7s ease-in-out, top 0.7s ease-in-out';
+    u.el.style.left = u.x + 'px';
+    u.el.style.top  = u.y + 'px';
+    setTimeout(() => { if (u.el) u.el.style.transition = ''; }, 800);
+  });
 }
 
 function damageUser(user, dmg) {
@@ -1777,6 +2020,9 @@ function handleComment(comment) {
   const ipid  = comment.ipid || comment.from || 'master';
   const user  = getUser(ipid);
 
+  // バトルロイヤル中：脱落済みユーザーは処理スキップ
+  if (brState?.active && user.brOut) return;
+
   // icon_name が匿名でなければ実名を使用、匿名ならnames.txtのランダム名を維持
   if (comment.icon_name && !user.nameManual) {
     if (!comment.icon_name.includes('匿名')) {
@@ -2161,6 +2407,15 @@ function handleComment(comment) {
     attackBoss(user, message.length);
   }
 
+  // ── バトルロイヤル中：コメントで攻撃 ───────────
+  if (brState?.active && brState.survivors.has(ipid) && !user.brOut) {
+    const others = [...brState.survivors]
+      .filter(id => id !== ipid)
+      .map(id => users[id])
+      .filter(u => u?.el);
+    if (others.length > 0) brAttack(user, others[Math.floor(Math.random() * others.length)]);
+  }
+
   // ── 通常テキスト ─────────────────────────────
   if (!display) { addToLog(user, message, '#475569'); return; }
 
@@ -2298,6 +2553,7 @@ document.getElementById('stopBtn').addEventListener('click', () => {
 });
 
 document.getElementById('clearStage').addEventListener('click', () => {
+  if (brState) { clearTimeout(brState.autoTimer); clearInterval(brState.escalateTimer); brState = null; }
   Object.values(users).forEach(u => {
     if (u.el)          u.el.remove();
     if (u.moveTimer)   clearTimeout(u.moveTimer);
@@ -2488,6 +2744,7 @@ document.getElementById('debugMpBtn').addEventListener('click', () => {
 document.getElementById('bombBtn').addEventListener('click', () => spawnBloodBath());
 
 function spawnBloodBath() {
+  if (brState?.active) endBattleRoyale(null);
   const sw = stage.clientWidth, sh = stage.clientHeight;
   const charEls = [...stage.querySelectorAll('.character')];
 
@@ -2572,6 +2829,8 @@ function spawnBloodBath() {
     emptyHint.classList.remove('hidden');
   }, 700);
 }
+
+document.getElementById('battleRoyaleBtn').addEventListener('click', startBattleRoyale);
 
 document.getElementById('dismissBossBtn').addEventListener('click', () => {
   if (!bossState) return;
@@ -2919,6 +3178,16 @@ document.addEventListener('mouseup', () => {
       if (user.walkTimer)   clearTimeout(user.walkTimer);
       el.remove();
       delete users[ipid];
+      // BR中にゴミ箱に捨てられた場合、サバイバーから除去して終了チェック
+      if (brState?.active && brState.survivors.has(ipid)) {
+        brState.survivors.delete(ipid);
+        brState.ranking.push(ipid);
+        if (brState.survivors.size <= 1) {
+          const winnerId = [...brState.survivors][0];
+          const winner = winnerId ? users[winnerId] : null;
+          setTimeout(() => endBattleRoyale(winner), 800);
+        }
+      }
     }, 300);
   }
   // movement は mousedown で '止まれ' に設定済み
@@ -4143,6 +4412,34 @@ _debugBC.onmessage = (e) => {
     _debugBC.postMessage({ type: 'users', data: list });
   }
 };
+
+// ── 30分ごとの自動バトルロイヤル ─────────────────────────────────────
+setInterval(() => {
+  // BR中またはキャラが2体未満なら何もしない
+  if (brState?.active) return;
+  const eligible = Object.values(users).filter(u => u.el && !u.ko && !u.afk);
+  if (eligible.length < 2) return;
+
+  // ボスが起動中なら先に消去
+  if (bossState && !bossState.defeated) {
+    bossManuallyCleared = true;
+    bossState.defeated = true;
+    if (bossState.el) {
+      bossState.el.style.transition = 'transform 0.4s ease-in, opacity 0.4s ease-in';
+      bossState.el.style.transform  = 'scale(0) rotate(15deg)';
+      bossState.el.style.opacity    = '0';
+      setTimeout(() => { bossState?.el?.remove(); bossState = null; }, 450);
+    } else {
+      bossState = null;
+    }
+    const prev = document.getElementById('bossSpeech');
+    if (prev) prev.remove();
+    // ボス消去後にBR開始
+    setTimeout(startBattleRoyale, 600);
+  } else {
+    startBattleRoyale();
+  }
+}, 30 * 60 * 1000);
 
 // ── OBSモード（?obs=1 で設定バーを非表示にして自動スタート） ──
 (function initOBSMode() {
