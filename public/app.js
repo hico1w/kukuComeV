@@ -1149,10 +1149,15 @@ function randomizeCharAppearance(user) {
 function rollEquipValue(bossMaxHp) {
   const cap = Math.min(10, Math.max(1, Math.ceil(bossMaxHp / 150)));
   // 2回振って高い方（強ボスほど高レア出やすい）
-  return Math.max(
+  const val = Math.max(
     Math.ceil(Math.random() * cap),
     Math.ceil(Math.random() * cap),
   );
+  // 神話レアリティ(value>=8)は追加ゲートで1/10に絞る
+  if (RARITY[Math.min(val, RARITY.length - 1)]?.cls === 'rarity-myth' && Math.random() >= 0.1) {
+    return 7; // 伝説に格下げ
+  }
+  return val;
 }
 
 function updateEquipBadge(user) {
