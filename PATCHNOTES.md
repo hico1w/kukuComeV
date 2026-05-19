@@ -2,6 +2,108 @@
 
 ---
 
+## v1.57.0 — 2026-05-19
+
+### 🎮 管理パネルに全員一括モーション/移動ボタンを追加
+- `admin.html` ゲーム操作セクションに4ボタンを追加
+  - 🚶 全員歩く → `startWalk(u)` を全員に適用
+  - 🏃 全員移動:普通 → `movement='普通'` で `scheduleMove(u)` を全員に適用
+  - 🎵 全員はずむ → `applyMotion(u, 'bouncing')` を全員に適用
+  - 🌀 全員回転 → `applyMotion(u, 'spinning')` を全員に適用
+- `app.js` `handleAdminMessage` に `allWalk` / `allMoveNormal` / `allBounce` / `allSpin` ハンドラを追加
+
+---
+
+## v1.56.0 — 2026-05-19
+
+### 👑 バトルロイヤル終了後3秒で自動下集合
+- `endBattleRoyale()` の末尾に `setTimeout(() => gatherCharactersBottom(), 3000)` を追加
+
+---
+
+## v1.55.0 — 2026-05-19
+
+### 🐛 大きいキャラが画面外にはみ出すバグを修正
+- `clampToStage()` / `gatherCharacters()` / `gatherCharactersBottom()` の高さ・幅計算を
+  推定値（`size × 1.5 × charSizeScale`）から実際の DOM サイズ（`el.offsetWidth` / `el.offsetHeight`）に変更
+  - `lvScale`・`brWinnerScale` 等が加味されていなかった問題を解消
+  - 下集合ボタン押下時にキャラ下部が画面外に出る問題を修正
+- `randX()` / `randY()` もキャラの実サイズを参照するよう変更（自動移動時のはみ出し対策）
+
+---
+
+## v1.54.0 — 2026-05-19
+
+### ⚔️ ボスHP を参加者の総ATK連動に変更（案A）
+- `nextBossHp()` を「参加者全員のATK合計 × 係数 × HP倍率」方式に変更
+  - 参加者が強くなるほど・人数が多いほどボスHPが増加
+  - 参加者0人またはATK合計0のときは最低値100を保証
+- `bossHpCounter`（固定増加）は廃止
+- 手動召喚（`ボス召喚：数値`）は引き続き指定値を優先
+- **⚔️ ATK係数スライダー**を管理パネルに追加（1〜200、デフォルト20）
+  - `index.html` および `admin.html` のボス設定セクションに追加
+  - `localStorage` に永続化、WebSocket/BC 経由で同期
+
+---
+
+## v1.53.0 — 2026-05-18
+
+### 🐛 コンパクトモードOFF後に早押し自動起動が止まるバグを修正
+- `setCompactMode(false)` 時、`pollTimer` が動いていれば `hayaoshiAutoTimerWhite/Red` を再スケジュール
+- コンパクトモードをON→OFFすると以降の自動早押しが止まっていた
+
+---
+
+## v1.52.0 — 2026-05-18
+
+### 🐉 ボスの出現位置を最後のD&D位置に固定
+- `let bossLastPos` を追加
+- ボスのmouseupハンドラでドロップ時の座標を `bossLastPos` に保存
+- `spawnBoss` でボス初期位置に `bossLastPos` を使用（未設定時は従来の中央上部）
+
+---
+
+## v1.51.0 — 2026-05-18
+
+### 🖼 管理パネル（admin.html）にBG画像変更機能を追加
+- `admin.html` 背景・エリアセクションに「🖼 BG画像」ボタンと「✕BG」クリアボタンを追加
+  - BG画像は admin.html から直接 `/api/bg-upload` にPOSTしてサーバー保存
+  - 取得URLを `adminSend({ type:'bgImage', url })` でメインウィンドウに中継
+  - クリアは `/api/bg` DELETE → `adminSend({ type:'bgClear' })`
+  - 接続時の状態同期（`bgImageUrl`）でボタン表示を自動切替
+- `app.js`: `handleAdminMessage` に `bgImage` / `bgClear` ハンドラを追加
+- `app.js`: `getState` レスポンスに `bgImageUrl` を追加
+- `admin.html`: BG色の送信を `channel.postMessage` → `adminSend` に統一
+
+---
+
+## v1.50.0 — 2026-05-18
+
+### 🔌 管理パネルをOBSブラウザソース外から操作可能に（WebSocket中継）
+- `server.js`: `ws` パッケージを追加。`/ws` エンドポイントにWebSocketサーバーを追加
+  - `main`（index.html）と `admin`（admin.html）の2ロールを管理
+  - admin→main、main→adminにメッセージを中継
+- `app.js`: `handleAdminMessage(d, replyFn)` を共通関数として抽出
+  - BroadcastChannel・WebSocket の両方から同じハンドラを呼び出す構造に変更
+  - `initAdminWS()` IIFE を追加 — サーバーWS経由でadmin.htmlと通信（自動再接続）
+- `admin.html`: `adminSend(msg)` を追加 — BC と WS の両方に同時送信
+  - WS接続時はステータスドットがWS接続状態を反映
+  - WS接続が確立した時点で自動的に状態取得・ユーザー一覧取得を実行
+- **使い方**: OBSブラウザソースでindex.htmlを開いたまま、通常ブラウザで `http://localhost:3000/admin.html` を開けば操作可能
+
+---
+
+## v1.49.0 — 2026-05-18
+
+### 🎥 OBS透過モード（?transparent=1）を追加
+- URLに `?transparent=1` を付けると body・html・stage の背景色を透明に固定
+- `applyBgColor` は透過モード中スキップされるためBG色ピッカーの影響を受けない
+- BG画像（`backgroundImage`）は別プロパティなので透過モードでも表示される
+- 設定バーはそのまま表示される（`?obs=1` とは独立）
+- OBSカスタムCSSは不要、URLのみで制御可能
+
+---
+
 ## v1.48.0 — 2026-05-18
 
 ### 📦 コンパクトモード中は自動バトルロイヤルを抑制

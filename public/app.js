@@ -116,7 +116,10 @@ const bgImageBtn   = document.getElementById('bgImageBtn');
 const bgClearBtn   = document.getElementById('bgClearBtn');
 const bgImageInput = document.getElementById('bgImageInput');
 
+const transparentBg = new URLSearchParams(location.search).get('transparent') === '1';
+
 function applyBgColor(c) {
+  if (transparentBg) return;
   stage.style.backgroundColor = c;
   document.body.style.background = c;
   document.documentElement.style.background = c;
@@ -137,6 +140,11 @@ function applyBgImage(url) {
 }
 
 (function initBg() {
+  if (transparentBg) {
+    document.documentElement.style.background = 'transparent';
+    document.body.style.background = 'transparent';
+    stage.style.backgroundColor = 'transparent';
+  }
   const savedColor = localStorage.getItem('bgColor') || '#00FF00';
   bgColorInput.value = savedColor;
   applyBgColor(savedColor);
@@ -333,8 +341,8 @@ function getUser(ipid) {
       nameManual:  false,
       size:        80,
       font:        '',
-      x: randX(),
-      y: randY(),
+      x: randX({ size: 80 }),
+      y: randY({ size: 80 }),
       el:          null,
       exp:            0,
       level:          1,
@@ -382,16 +390,18 @@ function getUser(ipid) {
   return users[ipid];
 }
 
-function randX() {
-  const w = stage.clientWidth;
-  const lo = Math.floor(moveArea.x0 * w) + 10;
-  const hi = Math.max(Math.floor(moveArea.x1 * w) - 120, lo + 10);
+function randX(u) {
+  const w    = stage.clientWidth;
+  const uw   = u?.el ? (u.el.offsetWidth  || Math.round((u.size || 80) * 1.5 * charSizeScale)) : Math.round((u?.size || 80) * 1.5 * charSizeScale);
+  const lo   = Math.floor(moveArea.x0 * w) + 10;
+  const hi   = Math.max(Math.floor(moveArea.x1 * w) - uw - 10, lo + 10);
   return lo + Math.random() * (hi - lo);
 }
-function randY() {
-  const h = stage.clientHeight;
-  const lo = Math.floor(moveArea.y0 * h) + 10;
-  const hi = Math.max(Math.floor(moveArea.y1 * h) - 120, lo + 10);
+function randY(u) {
+  const h    = stage.clientHeight;
+  const uh   = u?.el ? (u.el.offsetHeight || (Math.round((u.size || 80) * 1.5 * charSizeScale) + 60)) : (Math.round((u?.size || 80) * 1.5 * charSizeScale) + 60);
+  const lo   = Math.floor(moveArea.y0 * h) + 10;
+  const hi   = Math.max(Math.floor(moveArea.y1 * h) - uh - 10, lo + 10);
   return lo + Math.random() * (hi - lo);
 }
 
@@ -566,8 +576,8 @@ function scheduleMove(user) {
 
   user.moveTimer = setTimeout(() => {
     if (!users[user.ipid] || user.movement === '止まれ') return;
-    user.x = randX();
-    user.y = randY();
+    user.x = randX(user);
+    user.y = randY(user);
     if (user.el) {
       user.el.style.transition = `left ${duration}ms ease-in-out, top ${duration}ms ease-in-out`;
       user.el.style.left = user.x + 'px';
@@ -656,11 +666,11 @@ function restoreMotion(user) {
 
 // ── 集合 ──────────────────────────────────────
 function clampToStage(u, x, y) {
-  const w = Math.round(u.size * 1.5 * charSizeScale);
-  const h = w + 60; // 名前ラベル + stats テキスト分
+  const w = u.el ? (u.el.offsetWidth  || Math.round(u.size * 1.5 * charSizeScale)) : Math.round(u.size * 1.5 * charSizeScale);
+  const h = u.el ? (u.el.offsetHeight || (w + 60)) : (w + 60);
   return {
-    x: Math.max(0, Math.min(stage.clientWidth  - w - 50, x)), // 右側：名前/statsのはみ出し分
-    y: Math.max(20, Math.min(stage.clientHeight - h,      y)), // 上側：バブル等のはみ出し分
+    x: Math.max(0, Math.min(stage.clientWidth  - w, x)),
+    y: Math.max(20, Math.min(stage.clientHeight - h, y)),
   };
 }
 
@@ -673,8 +683,8 @@ function gatherCharacters() {
   const ROW_GAP = 10;
   const stageW  = stage.clientWidth;
   const stageH  = stage.clientHeight;
-  const cw      = u => Math.round(u.size * 1.5 * charSizeScale);
-  const ch      = u => Math.round(u.size * 1.5 * charSizeScale) + 60;
+  const cw      = u => u.el ? (u.el.offsetWidth  || Math.round(u.size * 1.5 * charSizeScale)) : Math.round(u.size * 1.5 * charSizeScale);
+  const ch      = u => u.el ? (u.el.offsetHeight || (Math.round(u.size * 1.5 * charSizeScale) + 60)) : (Math.round(u.size * 1.5 * charSizeScale) + 60);
 
   // 行に分割（最大12体ずつ）
   const rows = [];
@@ -717,8 +727,8 @@ function gatherCharactersBottom() {
   if (onStage.length === 0) return;
   const stageW = stage.clientWidth;
   const stageH = stage.clientHeight;
-  const charW  = u => Math.round(u.size * 1.5 * charSizeScale);
-  const charH  = u => Math.round(u.size * 1.5 * charSizeScale) + 48; // avatar + name + stats
+  const charW  = u => u.el ? (u.el.offsetWidth  || Math.round(u.size * 1.5 * charSizeScale)) : Math.round(u.size * 1.5 * charSizeScale);
+  const charH  = u => u.el ? (u.el.offsetHeight || (Math.round(u.size * 1.5 * charSizeScale) + 48)) : (Math.round(u.size * 1.5 * charSizeScale) + 48);
   // 重なり許容で均等配置
   const n    = onStage.length;
   const step = n > 1 ? Math.min(charW(onStage[0]) + 8, (stageW - 20) / n) : 0;
@@ -750,12 +760,31 @@ function setCompactMode(on) {
   const wordlePanel = document.getElementById('wordlePanel');
   if (wordlePanel) wordlePanel.style.display = on ? 'none' : '';
 
-  // 早押し自動停止
+  // 早押し：コンパクトONで停止、OFFで再開（配信中のみ）
   if (on) {
     clearTimeout(hayaoshiAutoTimerWhite); hayaoshiAutoTimerWhite = null;
     clearTimeout(hayaoshiAutoTimerRed);   hayaoshiAutoTimerRed   = null;
     hayaoshiItems.forEach(it => clearTimeout(it.timeoutId));
     hayaoshiItems = [];
+  } else if (pollTimer) {
+    if (!hayaoshiAutoTimerWhite) {
+      (function scheduleHayaoshiWhite() {
+        hayaoshiAutoTimerWhite = setTimeout(() => {
+          if (!pollTimer) return;
+          startHayaoshiAutoWhite();
+          scheduleHayaoshiWhite();
+        }, hayaoshiFreq);
+      })();
+    }
+    if (!hayaoshiAutoTimerRed) {
+      (function scheduleHayaoshiRed() {
+        hayaoshiAutoTimerRed = setTimeout(() => {
+          if (!pollTimer) return;
+          startHayaoshiAutoRed();
+          scheduleHayaoshiRed();
+        }, hayaoshiFreq * 3);
+      })();
+    }
   }
 
   // ボタン表示更新
@@ -950,17 +979,17 @@ function spawnHeartShower(cx, cy) {
 let bossState = null;
 let bossManuallyCleared = false;
 let brState   = null; // バトルロイヤル状態 // 消去ボタン押下後は自動召喚しない
-let bossHpCounter = 100; // 初回100、以降200ずつ増加
 let bossCount = 1;       // 現在何体目のボスか
 let bossCounterRate = 0.40; // 反撃確率（0〜1）
 let bossHpScale    = 1;    // ボスHP倍率（1〜100）
+let bossAtkCoeff   = 20;   // 参加者ATK合計への係数
 let brHpMult       = 200;  // バトルロイヤル仮想HP倍率
 let nikoFontSize  = 40;  // 早押しコメント文字サイズ(px)
 let nikoOpacity   = 1.0; // 早押しコメント透明度（0〜1）
 function nextBossHp() {
-  const hp = Math.round(bossHpCounter * bossHpScale);
-  bossHpCounter += 200;
-  return hp;
+  const totalAtk = Object.values(users).filter(u => u.el && !u.ko)
+    .reduce((sum, u) => sum + calcAtk(u), 0);
+  return Math.max(100, Math.round(Math.max(1, totalAtk) * bossAtkCoeff * bossHpScale));
 }
 let moveLocked = false;          // 移動制限モード（方向移動・移動コマンド禁止）
 let debugMode  = false;          // デバッグモード（全キャラATK=50）
@@ -969,6 +998,7 @@ let bossDamageMap = {};          // ipid → { name, totalDmg }
 let rankingState     = null;
 let rankingDragState = null;
 let bossDragState = null;
+let bossLastPos   = null; // 最後にD&Dした位置
 // Lv1〜10 累計攻撃数（合計150）
 const LEVEL_EXP = [0, 3, 10, 22, 40, 65, 90, 115, 133, 150];
 
@@ -1272,6 +1302,7 @@ function endBattleRoyale(winner) {
   });
   const btn = document.getElementById('battleRoyaleBtn');
   if (btn) btn.classList.remove('active');
+  setTimeout(() => gatherCharactersBottom(), 3000);
 }
 
 function showBRToast(attacker, target, damage, isCrit, isElim, rank) {
@@ -1549,8 +1580,8 @@ function spawnBoss(maxHp) {
 
   const el = document.createElement('div');
   el.id = 'bossEl';
-  el.style.left = Math.max(0, stage.clientWidth / 2 - barWidth / 2) + 'px';
-  el.style.top  = '20px';
+  el.style.left = (bossLastPos ? bossLastPos.x : Math.max(0, stage.clientWidth / 2 - barWidth / 2)) + 'px';
+  el.style.top  = (bossLastPos ? bossLastPos.y : 20) + 'px';
   el.innerHTML = `
     <div class="boss-label-row" style="width:${barWidth}px">
       <span class="boss-label">${bossCount} BOSS</span>
@@ -2999,6 +3030,25 @@ document.getElementById('moveAreaSelect').addEventListener('change', e => {
   });
 })();
 
+(function initBossAtkCoeffSlider() {
+  const slider = document.getElementById('bossAtkCoeffSlider');
+  const val    = document.getElementById('bossAtkCoeffVal');
+  if (!slider || !val) return;
+  const saved = parseInt(localStorage.getItem('bossAtkCoeff') ?? '20');
+  bossAtkCoeff = saved;
+  slider.value = saved;
+  val.textContent = saved + 'x';
+  slider.addEventListener('input', () => {
+    bossAtkCoeff = parseInt(slider.value);
+    val.textContent = bossAtkCoeff + 'x';
+    localStorage.setItem('bossAtkCoeff', bossAtkCoeff);
+  });
+  document.getElementById('bossAtkCoeffReset').addEventListener('click', () => {
+    slider.value = 20;
+    slider.dispatchEvent(new Event('input'));
+  });
+})();
+
 (function initCounterRateSlider() {
   const slider = document.getElementById('counterRateSlider');
   const val    = document.getElementById('counterRateVal');
@@ -3191,6 +3241,9 @@ document.addEventListener('mouseup', () => {
   }
 
   if (bossDragState) {
+    if (bossState?.el) {
+      bossLastPos = { x: parseInt(bossState.el.style.left), y: parseInt(bossState.el.style.top) };
+    }
     bossDragState = null;
     return;
   }
@@ -4460,10 +4513,8 @@ _debugBC.onmessage = (e) => {
   }
 };
 
-// ── 管理ウィンドウ（BroadcastChannel） ───────────────────────────────
-const _adminBC = new BroadcastChannel('kukucome-admin');
-_adminBC.onmessage = (e) => {
-  const d = e.data;
+// ── 管理ウィンドウ（BroadcastChannel + WebSocket） ────────────────────
+function handleAdminMessage(d, replyFn) {
   if (d.type === 'click' && d.id) {
     document.getElementById(d.id)?.click();
   } else if (d.type === 'slider' && d.id) {
@@ -4477,17 +4528,18 @@ _adminBC.onmessage = (e) => {
     if (el) { el.value = d.value; el.dispatchEvent(new Event('input')); }
   } else if (d.type === 'getState' || d.type === 'ping') {
     const sliderIds = ['nikoSizeSlider','nikoOpacitySlider','hayaoshiFreqSlider','hayaoshiSpeedSlider',
-                       'bossHpScaleSlider','counterRateSlider','charSizeSlider','bossSizeSlider','brHpMultSlider'];
+                       'bossHpScaleSlider','bossAtkCoeffSlider','counterRateSlider','charSizeSlider','bossSizeSlider','brHpMultSlider'];
     const state = {};
     sliderIds.forEach(sid => { const el = document.getElementById(sid); if (el) state[sid] = el.value; });
-    state.bgColor  = document.getElementById('bgColor')?.value;
-    state.moveArea = document.getElementById('moveAreaSelect')?.value;
-    _adminBC.postMessage({ type: d.type === 'ping' ? 'pong' : 'state', data: state });
+    state.bgColor    = document.getElementById('bgColor')?.value;
+    state.moveArea   = document.getElementById('moveAreaSelect')?.value;
+    state.bgImageUrl = localStorage.getItem('bgImageUrl') || '';
+    replyFn({ type: d.type === 'ping' ? 'pong' : 'state', data: state });
   } else if (d.type === 'processComment') {
     if (d.comment) handleComment(d.comment);
   } else if (d.type === 'getUsers') {
     const list = Object.values(users).filter(u => u.el).map(u => ({ ipid: u.ipid, name: u.name || '名無し' }));
-    _adminBC.postMessage({ type: 'users', data: list });
+    replyFn({ type: 'users', data: list });
   } else if (d.type === 'addAtkAll') {
     const val = parseInt(d.value) || 0;
     if (val <= 0) return;
@@ -4512,6 +4564,22 @@ _adminBC.onmessage = (e) => {
       renderPetBadge(u);
       updateStatsDisplay(u);
     });
+  } else if (d.type === 'bgImage') {
+    if (d.url) { localStorage.setItem('bgImageUrl', d.url); applyBgImage(d.url); }
+  } else if (d.type === 'bgClear') {
+    localStorage.removeItem('bgImageUrl'); applyBgImage(null);
+  } else if (d.type === 'allWalk') {
+    Object.values(users).filter(u => u.el).forEach(u => startWalk(u));
+  } else if (d.type === 'allMoveNormal') {
+    Object.values(users).filter(u => u.el).forEach(u => {
+      stopWalk(u);
+      u.movement = '普通';
+      scheduleMove(u);
+    });
+  } else if (d.type === 'allBounce') {
+    Object.values(users).filter(u => u.el).forEach(u => applyMotion(u, 'bouncing'));
+  } else if (d.type === 'allSpin') {
+    Object.values(users).filter(u => u.el).forEach(u => applyMotion(u, 'spinning'));
   } else if (d.type === 'distributeRandomEquips') {
     Object.values(users).filter(u => u.el).forEach(u => {
       if (!u.equips) u.equips = [];
@@ -4534,7 +4602,27 @@ _adminBC.onmessage = (e) => {
       updateStatsDisplay(u);
     });
   }
-};
+}
+
+// BroadcastChannel（同一ブラウザ内）
+const _adminBC = new BroadcastChannel('kukucome-admin');
+_adminBC.onmessage = (e) => handleAdminMessage(e.data, msg => _adminBC.postMessage(msg));
+
+// WebSocket（OBSブラウザソース↔通常ブラウザのadmin.html）
+(function initAdminWS() {
+  const url = `ws://${location.host}/ws`;
+  let ws;
+  function connect() {
+    ws = new WebSocket(url);
+    ws.onopen  = () => ws.send(JSON.stringify({ type: 'identify', role: 'main' }));
+    ws.onmessage = (e) => {
+      let d; try { d = JSON.parse(e.data); } catch { return; }
+      handleAdminMessage(d, msg => { if (ws.readyState === 1) ws.send(JSON.stringify(msg)); });
+    };
+    ws.onclose = () => setTimeout(connect, 3000);
+  }
+  connect();
+})();
 
 // ── 30分ごとの自動バトルロイヤル ─────────────────────────────────────
 setInterval(() => {

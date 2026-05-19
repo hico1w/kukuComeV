@@ -1,7 +1,8 @@
-const express = require('express');
-const https   = require('https');
-const path    = require('path');
-const fs      = require('fs');
+const express          = require('express');
+const https            = require('https');
+const path             = require('path');
+const fs               = require('fs');
+const { WebSocketServer } = require('ws');
 
 const app  = express();
 const PORT = 3000;
@@ -144,7 +145,35 @@ app.get('/api/time', (req, res) => {
   res.json({ hour: now.getHours(), day: now.getDay() });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`✅ kukuCome 起動: http://localhost:${PORT}`);
   console.log('   Ctrl+C で停止');
+});
+
+// ── WebSocket中継サーバー（管理パネル↔メインウィンドウ） ────────────
+const wss = new WebSocketServer({ server, path: '/ws' });
+const wsClients = { main: new Set(), admin: new Set() };
+
+wss.on('connection', ws => {
+  let role = null;
+  ws.on('message', raw => {
+    let msg;
+    try { msg = JSON.parse(raw); } catch { return; }
+    if (msg.type === 'identify') {
+      role = msg.role;
+      if (role === 'main' || role === 'admin') wsClients[role].add(ws);
+      return;
+    }
+    // admin→main、main→admin に中継
+    const targets = role === 'admin' ? wsClients.main
+                  : role === 'main'  ? wsClients.admin
+                  : null;
+    if (!targets) return;
+    const out = JSON.stringify(msg);
+    targets.forEach(c => { if (c.readyState === 1) c.send(out); });
+  });
+  ws.on('close', () => {
+    wsClients.main.delete(ws);
+    wsClients.admin.delete(ws);
+  });
 });

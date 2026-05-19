@@ -184,6 +184,12 @@
     <button onclick="cmd('hayaoshiBtn')" class="btn-amber">⚡ 早押し</button>
     <button onclick="cmd('battleRoyaleBtn')" class="btn-purple">👑 バトルロイヤル</button>
   </div>
+  <div class="btn-row" style="margin-top:5px">
+    <button onclick="adminSend({type:'allWalk'})">🚶 全員歩く</button>
+    <button onclick="adminSend({type:'allMoveNormal'})">🏃 全員移動:普通</button>
+    <button onclick="adminSend({type:'allBounce'})">🎵 全員はずむ</button>
+    <button onclick="adminSend({type:'allSpin'})">🌀 全員回転</button>
+  </div>
 </div>
 
 <!-- バトルロイヤル -->
@@ -201,12 +207,17 @@
 <!-- 背景・エリア -->
 <div class="section">
   <div class="section-title">🖼 背景・エリア</div>
-  <div class="btn-row" style="align-items:center">
+  <div class="btn-row" style="align-items:center;margin-bottom:6px">
     <label class="color-label">BG色
       <input type="color" id="bgColorInput" value="#00FF00"
-             oninput="channel.postMessage({type:'color',id:'bgColor',value:this.value})">
+             oninput="adminSend({type:'color',id:'bgColor',value:this.value})">
     </label>
-    <select id="moveAreaInput" onchange="channel.postMessage({type:'select',id:'moveAreaSelect',value:this.value})">
+    <input type="file" id="adminBgImageInput" accept="image/*" style="display:none">
+    <button id="adminBgImageBtn" class="btn-amber">🖼 BG画像</button>
+    <button id="adminBgClearBtn" class="btn-red" style="display:none">✕BG</button>
+  </div>
+  <div class="btn-row" style="align-items:center">
+    <select id="moveAreaInput" onchange="adminSend({type:'select',id:'moveAreaSelect',value:this.value})">
       <option value="all">移動:全体</option>
       <option value="bottom">移動:下半分</option>
       <option value="top">移動:上半分</option>
@@ -260,6 +271,13 @@
            oninput="syncSlider(this,'bossHpScaleVal',v=>v+'x')">
     <span id="bossHpScaleVal" class="size-val">1x</span>
     <button class="btn-reset" onclick="resetSlider('bossHpScaleSlider',1,'bossHpScaleVal',v=>v+'x')">↺</button>
+  </div>
+  <div class="size-row">
+    <span class="size-label">⚔️ ATK係数</span>
+    <input type="range" id="bossAtkCoeffSlider" min="1" max="200" step="1" value="20" class="size-slider"
+           oninput="syncSlider(this,'bossAtkCoeffVal',v=>v+'x')">
+    <span id="bossAtkCoeffVal" class="size-val">20x</span>
+    <button class="btn-reset" onclick="resetSlider('bossAtkCoeffSlider',20,'bossAtkCoeffVal',v=>v+'x')">↺</button>
   </div>
   <div class="size-row">
     <span class="size-label">🔁 反撃率</span>
@@ -345,35 +363,40 @@
 </div>
 
 <script>
+  // ── 送信チャンネル（BroadcastChannel + WebSocket） ────────────────
   const channel = new BroadcastChannel('kukucome-admin');
+  let _ws = null;
   let connected = false;
+
+  function adminSend(msg) {
+    channel.postMessage(msg);
+    if (_ws?.readyState === WebSocket.OPEN) _ws.send(JSON.stringify(msg));
+  }
 
   function setConnected(v) {
     connected = v;
     document.getElementById('statusDot').className = v ? 'connected' : '';
   }
 
-  function cmd(id) {
-    channel.postMessage({ type: 'click', id });
+  // WebSocket接続（自動再接続）
+  function connectWS() {
+    _ws = new WebSocket(`ws://${location.host}/ws`);
+    _ws.onopen = () => {
+      _ws.send(JSON.stringify({ type: 'identify', role: 'admin' }));
+      setConnected(true);
+      adminSend({ type: 'getState' });
+      dbgRefreshUsers();
+    };
+    _ws.onmessage = (e) => {
+      let d; try { d = JSON.parse(e.data); } catch { return; }
+      handleReply(d);
+    };
+    _ws.onclose = () => { setConnected(false); setTimeout(connectWS, 3000); };
   }
+  connectWS();
 
-  function syncSlider(el, valId, fmt) {
-    document.getElementById(valId).textContent = fmt(el.value);
-    channel.postMessage({ type: 'slider', id: el.id, value: el.value });
-  }
-
-  function resetSlider(sliderId, def, valId, fmt) {
-    const el = document.getElementById(sliderId);
-    el.value = def;
-    document.getElementById(valId).textContent = fmt(def);
-    channel.postMessage({ type: 'slider', id: sliderId, value: String(def) });
-    // リセットボタンは元のIDのリセットボタンをクリック扱いで中継
-    channel.postMessage({ type: 'click', id: sliderId.replace('Slider', 'Reset') });
-  }
-
-  // 状態受信
-  channel.onmessage = (e) => {
-    const d = e.data;
+  // ── 受信ハンドラ ─────────────────────────────────────────────────
+  function handleReply(d) {
     if (d.type === 'state') {
       setConnected(true);
       applyState(d.data);
@@ -394,7 +417,24 @@
       });
       if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
     }
-  };
+  }
+  channel.onmessage = (e) => handleReply(e.data);
+
+  // ── コントロール関数 ─────────────────────────────────────────────
+  function cmd(id) { adminSend({ type: 'click', id }); }
+
+  function syncSlider(el, valId, fmt) {
+    document.getElementById(valId).textContent = fmt(el.value);
+    adminSend({ type: 'slider', id: el.id, value: el.value });
+  }
+
+  function resetSlider(sliderId, def, valId, fmt) {
+    const el = document.getElementById(sliderId);
+    el.value = def;
+    document.getElementById(valId).textContent = fmt(def);
+    adminSend({ type: 'slider', id: sliderId, value: String(def) });
+    adminSend({ type: 'click', id: sliderId.replace('Slider', 'Reset') });
+  }
 
   // ── デバッグ関数 ──────────────────────────────────────────────────
   let _dbgUserNames = {};
@@ -412,18 +452,13 @@
     return 'dbg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
   }
 
-  function dbgRefreshUsers() {
-    channel.postMessage({ type: 'getUsers' });
-  }
+  function dbgRefreshUsers() { adminSend({ type: 'getUsers' }); }
 
   function dbgAddChar() {
     const name    = document.getElementById('dbgAddName').value.trim();
     const charNum = parseInt(document.getElementById('dbgAddCharNum').value) || 1;
     const ipid    = dbgNextId();
-    channel.postMessage({
-      type: 'processComment',
-      comment: { ipid, icon_name: name || ('デバッグ' + ipid.slice(-4)), message: 'キャラ' + charNum, type: 'comment', cnum: Date.now() }
-    });
+    adminSend({ type: 'processComment', comment: { ipid, icon_name: name || ('デバッグ' + ipid.slice(-4)), message: 'キャラ' + charNum, type: 'comment', cnum: Date.now() } });
     dbgLog(`キャラ追加: ${name || ipid}  キャラ${charNum}`, 'ok');
     setTimeout(dbgRefreshUsers, 300);
   }
@@ -437,7 +472,7 @@
     const name = _dbgUserNames[ipid] || '名無し';
     lines.forEach((line, i) => {
       setTimeout(() => {
-        channel.postMessage({ type: 'processComment', comment: { ipid, icon_name: name, message: line, type: 'comment', cnum: Date.now() + i } });
+        adminSend({ type: 'processComment', comment: { ipid, icon_name: name, message: line, type: 'comment', cnum: Date.now() + i } });
         dbgLog(`送信 [${name}]: ${line}`, 'ok');
       }, i * 300);
     });
@@ -446,26 +481,65 @@
   function dbgAddAtkAll() {
     const val = parseInt(document.getElementById('dbgAtkVal').value) || 0;
     if (val <= 0) { dbgLog('1以上の値を入力してください', 'err'); return; }
-    channel.postMessage({ type: 'addAtkAll', value: String(val) });
+    adminSend({ type: 'addAtkAll', value: String(val) });
     dbgLog(`全員ATK+${val}`, 'ok');
   }
 
   function dbgDistributePets() {
-    channel.postMessage({ type: 'distributeRandomPets' });
+    adminSend({ type: 'distributeRandomPets' });
     dbgLog('全員にランダムペット配布', 'ok');
   }
 
   function dbgDistributeEquips() {
-    channel.postMessage({ type: 'distributeRandomEquips' });
+    adminSend({ type: 'distributeRandomEquips' });
     dbgLog('全員にランダム装備配布', 'ok');
   }
+
+  // ── BG画像 ────────────────────────────────────────────────────────
+  document.getElementById('adminBgImageBtn').addEventListener('click', () => {
+    document.getElementById('adminBgImageInput').click();
+  });
+  document.getElementById('adminBgImageInput').addEventListener('change', async () => {
+    const file = document.getElementById('adminBgImageInput').files[0];
+    if (!file) return;
+    document.getElementById('adminBgImageInput').value = '';
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const res  = await fetch('/api/bg-upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dataUrl: ev.target.result }),
+        });
+        const data = await res.json();
+        if (data.url) {
+          const url = data.url + '?t=' + Date.now();
+          adminSend({ type: 'bgImage', url });
+          document.getElementById('adminBgImageBtn').style.display = 'none';
+          document.getElementById('adminBgClearBtn').style.display = '';
+        }
+      } catch (err) { console.error('BG upload error:', err); }
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('adminBgClearBtn').addEventListener('click', async () => {
+    await fetch('/api/bg', { method: 'DELETE' }).catch(() => {});
+    adminSend({ type: 'bgClear' });
+    document.getElementById('adminBgImageBtn').style.display = '';
+    document.getElementById('adminBgClearBtn').style.display = 'none';
+  });
 
   document.getElementById('dbgMsgInput').addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); dbgSendMsg(); }
   });
 
-  dbgRefreshUsers();
   setInterval(dbgRefreshUsers, 3000);
+
+  // 定期ping（BC経由・同一ブラウザ用）
+  setInterval(() => {
+    channel.postMessage({ type: 'ping' });
+    setTimeout(() => { if (_ws?.readyState !== WebSocket.OPEN) setConnected(false); }, 1000);
+  }, 3000);
 
   function applyState(s) {
     const sliderDefs = [
@@ -487,17 +561,11 @@
     });
     if (s.bgColor)   document.getElementById('bgColorInput').value  = s.bgColor;
     if (s.moveArea)  document.getElementById('moveAreaInput').value = s.moveArea;
+    if (s.bgImageUrl !== undefined) {
+      document.getElementById('adminBgImageBtn').style.display  = s.bgImageUrl ? 'none' : '';
+      document.getElementById('adminBgClearBtn').style.display  = s.bgImageUrl ? ''     : 'none';
+    }
   }
-
-  // 起動時に状態を要求、2秒ごとに接続確認
-  function requestState() {
-    channel.postMessage({ type: 'getState' });
-  }
-  requestState();
-  setInterval(() => {
-    channel.postMessage({ type: 'ping' });
-    setTimeout(() => { if (!connected) setConnected(false); }, 1000);
-  }, 3000);
 </script>
 </body>
 </html>
