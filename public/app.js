@@ -1693,20 +1693,7 @@ function attackBoss(user, msgLen) {
 
   // MP回復（コメント1回分、ヒット数に依存しない）
   const mpExtra = { mp_boost:1, mp_regen:2, mp_master:3 }[petId] ?? 0;
-  user.mp = Math.min(20, (user.mp ?? 0) + 1 + mpExtra);
-  if (user.mp >= 20 && !user.ko) {
-    user.mp -= 2;
-    if (!user.tc) user.tc = {};
-    user.tc.mpFull = (user.tc.mpFull || 0) + 1;
-    Object.values(users).forEach(u => {
-      if (!u.el || u.ko) return;
-      u.hp = Math.min(calcMaxHp(u), (u.hp ?? 30) + 2);
-      updateStatsDisplay(u);
-      const { x: ux, y: uy } = getCharCenter(u);
-      showDamageNumber(ux, uy - 30, '🩹+2', false, 16, '#86efac');
-    });
-    addToLog(user, '✨ MP満タン → 全員HP+2回復！', '#86efac');
-  }
+  user.mp = (user.mp ?? 0) + 1 + mpExtra;
   updateStatsDisplay(user);
 
   // EXP（コメント1回分）
@@ -2846,7 +2833,7 @@ document.getElementById('debugBtn').addEventListener('click', () => {
 
 document.getElementById('debugMpBtn').addEventListener('click', () => {
   Object.values(users).forEach(u => {
-    u.mp = Math.min(20, (u.mp ?? 0) + 30);
+    u.mp = (u.mp ?? 0) + 30;
     updateStatsDisplay(u);
   });
 });
