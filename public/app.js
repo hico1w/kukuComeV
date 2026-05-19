@@ -2067,9 +2067,9 @@ function showLevelUpBanner() {
 
 // 音声再生
 // ──────────────────────────────────────────────────────────────────
-function playLocalSound(src) {
+function playLocalSound(src, volume = 0.8) {
   if (compactMode) return;
-  try { const a = new Audio(src); a.volume = 0.8; a.play().catch(() => {}); } catch {}
+  try { const a = new Audio(src); a.volume = volume; a.play().catch(() => {}); } catch {}
 }
 
 function playVoice(url) {
@@ -4204,7 +4204,7 @@ const SLOT_PANEL_MS = SLOT_TOTAL_MS + 1600;    // パネル消滅まで
 function playSlot(user) {
   if (!user.el) return;
   user.slotSpinning = true;
-  playLocalSound(SOUND_SLOT_START);
+  playLocalSound(SOUND_SLOT_START, 0.7);
 
   const { reels, result } = rollSlotOutcome();
 
