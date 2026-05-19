@@ -2259,7 +2259,36 @@ function handleComment(comment) {
     return;
   }
 
-  // ── スロット ──────────────────────────────────
+  // ── スロット停止 ──────────────────────────────
+  if (message.includes('スロット停止')) {
+    if (user.slotAutoMode) {
+      user.slotAutoMode = false;
+      ensureCharOnStage(user);
+      showBubble(user, '🎰 スロット停止', {});
+      addToLog(user, '🎰 スロット停止', '#94a3b8');
+    }
+    return;
+  }
+
+  // ── スロット開始（自動連続） ───────────────────
+  if (message.includes('スロット開始')) {
+    if (compactMode) { ensureCharOnStage(user); showBubble(user, 'コンパクトモード中は使用できません', {}); return; }
+    ensureCharOnStage(user);
+    if (user.slotAutoMode) return;
+    if (user.slotSpinning) return;
+    if ((user.mp ?? 0) < 1) {
+      showBubble(user, `MPが足りない… (${user.mp ?? 0}/1)`, {});
+      return;
+    }
+    user.slotAutoMode = true;
+    user.mp -= 1;
+    updateStatsDisplay(user);
+    playSlot(user);
+    addToLog(user, '🎰 スロット開始（自動）', '#fbbf24');
+    return;
+  }
+
+  // ── スロット（1回） ───────────────────────────
   if (message.includes('スロット')) {
     if (compactMode) { ensureCharOnStage(user); showBubble(user, 'コンパクトモード中は使用できません', {}); return; }
     ensureCharOnStage(user);
@@ -4094,9 +4123,12 @@ function getSlotResult(r1, r2, r3) {
   if (r1 === '⭐' && r2 === '⭐' && r3 === '⭐') return { label: '⭐ スター！', mp: 25 };
   if (r1 === '🔔' && r2 === '🔔' && r3 === '🔔') return { label: '🔔 ベル！', mp: 10 };
   if (r1 === '🍒' && r2 === '🍒' && r3 === '🍒') return { label: '🍒 チェリー！', mp: 5 };
-  if (r1 === r2 || r2 === r3 || r1 === r3)        return { label: 'ペア  MP+2', mp: 2 };
   return { label: 'ハズレ…', mp: 0 };
 }
+
+const SLOT_INTERVAL = 330; // リール停止間隔(ms)
+const SLOT_TOTAL_MS = SLOT_INTERVAL * 3 + 200; // 結果表示まで
+const SLOT_PANEL_MS = SLOT_TOTAL_MS + 1600;    // パネル消滅まで
 
 function playSlot(user) {
   if (!user.el) return;
@@ -4126,7 +4158,7 @@ function playSlot(user) {
       reelEls[i].textContent = reels[i];
       reelEls[i].classList.remove('slot-spinning');
       reelEls[i].classList.add('slot-stopped');
-    }, (i + 1) * 220);
+    }, (i + 1) * SLOT_INTERVAL);
   });
 
   setTimeout(() => {
@@ -4155,12 +4187,24 @@ function playSlot(user) {
     if (!user.tc) user.tc = {};
     user.tc.slotPlays = (user.tc.slotPlays || 0) + 1;
     if (result.mp > 0) user.tc.slotWins = (user.tc.slotWins || 0) + 1;
-  }, 220 * 3 + 50);
+  }, SLOT_TOTAL_MS);
 
   setTimeout(() => {
     panel.remove();
     user.slotSpinning = false;
-  }, 2800);
+    // 自動モード継続
+    if (user.slotAutoMode) {
+      if ((user.mp ?? 0) >= 1) {
+        user.mp -= 1;
+        updateStatsDisplay(user);
+        playSlot(user);
+      } else {
+        user.slotAutoMode = false;
+        if (user.el) showBubble(user, 'MPがなくなりました… スロット停止', {});
+        addToLog(user, '🎰 MP切れ・スロット自動停止', '#94a3b8');
+      }
+    }
+  }, SLOT_PANEL_MS);
 }
 
 // ── 次回BRタイマーパネル ──────────────────────────────────────────
