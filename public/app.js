@@ -2259,6 +2259,22 @@ function handleComment(comment) {
     return;
   }
 
+  // ── スロット ──────────────────────────────────
+  if (message.includes('スロット')) {
+    if (compactMode) { ensureCharOnStage(user); showBubble(user, 'コンパクトモード中は使用できません', {}); return; }
+    ensureCharOnStage(user);
+    if (user.slotSpinning) return;
+    if ((user.mp ?? 0) < 1) {
+      showBubble(user, `MPが足りない… (${user.mp ?? 0}/1)`, {});
+      return;
+    }
+    user.mp -= 1;
+    updateStatsDisplay(user);
+    playSlot(user);
+    addToLog(user, '🎰 スロット！', '#fbbf24');
+    return;
+  }
+
   // ── ステータス確認 ────────────────────────────
   if (message.includes('ステータス確認')) {
     if (compactMode) { ensureCharOnStage(user); showBubble(user, 'コンパクトモード中は使用できません', {}); return; }
@@ -4053,6 +4069,98 @@ function handleQuizAnswer(user, message) {
   playLocalSound(SOUND_QUIZ_CORRECT);
 
   setTimeout(() => { if (quizState) nextQuizQuestion(); }, 4000);
+}
+
+// ── スロットマシン ────────────────────────────────────────────────
+const SLOT_REELS_DEF = [
+  { icon: '🍒', weight: 35 },
+  { icon: '🍋', weight: 28 },
+  { icon: '🔔', weight: 20 },
+  { icon: '⭐', weight: 12 },
+  { icon: '💎', weight:  4 },
+  { icon: '7️⃣', weight:  1 },
+];
+const SLOT_TOTAL_W = SLOT_REELS_DEF.reduce((s, r) => s + r.weight, 0);
+
+function rollSlotReel() {
+  let rand = Math.random() * SLOT_TOTAL_W;
+  for (const r of SLOT_REELS_DEF) { rand -= r.weight; if (rand <= 0) return r.icon; }
+  return SLOT_REELS_DEF[0].icon;
+}
+
+function getSlotResult(r1, r2, r3) {
+  if (r1 === '7️⃣' && r2 === '7️⃣' && r3 === '7️⃣') return { label: '🎰 JACKPOT！！！', mp: 200, jackpot: true };
+  if (r1 === '💎' && r2 === '💎' && r3 === '💎') return { label: '💎 ダイヤ！！', mp: 60 };
+  if (r1 === '⭐' && r2 === '⭐' && r3 === '⭐') return { label: '⭐ スター！', mp: 25 };
+  if (r1 === '🔔' && r2 === '🔔' && r3 === '🔔') return { label: '🔔 ベル！', mp: 10 };
+  if (r1 === '🍒' && r2 === '🍒' && r3 === '🍒') return { label: '🍒 チェリー！', mp: 5 };
+  if (r1 === r2 || r2 === r3 || r1 === r3)        return { label: 'ペア  MP+2', mp: 2 };
+  return { label: 'ハズレ…', mp: 0 };
+}
+
+function playSlot(user) {
+  if (!user.el) return;
+  user.slotSpinning = true;
+
+  const reels  = [rollSlotReel(), rollSlotReel(), rollSlotReel()];
+  const result = getSlotResult(reels[0], reels[1], reels[2]);
+
+  const panel = document.createElement('div');
+  panel.className = 'slot-panel';
+  panel.innerHTML =
+    `<div class="slot-title">🎰 スロット</div>` +
+    `<div class="slot-reels">` +
+      `<div class="slot-reel slot-spinning">❓</div>` +
+      `<div class="slot-reel slot-spinning">❓</div>` +
+      `<div class="slot-reel slot-spinning">❓</div>` +
+    `</div>` +
+    `<div class="slot-result"></div>`;
+  user.el.appendChild(panel);
+
+  const reelEls = panel.querySelectorAll('.slot-reel');
+  const resultEl = panel.querySelector('.slot-result');
+
+  [0, 1, 2].forEach(i => {
+    setTimeout(() => {
+      if (!reelEls[i]) return;
+      reelEls[i].textContent = reels[i];
+      reelEls[i].classList.remove('slot-spinning');
+      reelEls[i].classList.add('slot-stopped');
+    }, (i + 1) * 220);
+  });
+
+  setTimeout(() => {
+    if (!panel.isConnected) return;
+    resultEl.textContent = result.label;
+    resultEl.className   = 'slot-result' + (result.mp > 0 ? ' slot-win' : '');
+
+    if (result.mp > 0) {
+      user.mp = (user.mp ?? 0) + result.mp;
+      updateStatsDisplay(user);
+      const { x, y } = getCharCenter(user);
+      showDamageNumber(x, y - 50, `🎰 MP+${result.mp}`, false, 18, '#fbbf24');
+      if (result.jackpot) {
+        Object.values(users).filter(u => u.el).forEach(u => {
+          const { x: ux, y: uy } = getCharCenter(u);
+          spawnFireworks(ux, uy);
+        });
+        spawnHeartShower(x, y);
+        playLocalSound(SOUND_MYTH_DROP);
+      } else if (result.mp >= 25) {
+        spawnFireworks(x, y);
+        playLocalSound(SOUND_HAYAOSHI_WHITE);
+      }
+    }
+
+    if (!user.tc) user.tc = {};
+    user.tc.slotPlays = (user.tc.slotPlays || 0) + 1;
+    if (result.mp > 0) user.tc.slotWins = (user.tc.slotWins || 0) + 1;
+  }, 220 * 3 + 50);
+
+  setTimeout(() => {
+    panel.remove();
+    user.slotSpinning = false;
+  }, 2800);
 }
 
 // ── 次回BRタイマーパネル ──────────────────────────────────────────
