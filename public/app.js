@@ -4107,28 +4107,31 @@ function handleQuizAnswer(user, message) {
 }
 
 // ── スロットマシン ────────────────────────────────────────────────
-const SLOT_REELS_DEF = [
-  { icon: '🍒', weight: 50 },
-  { icon: '🔔', weight: 30 },
-  { icon: '⭐', weight: 15 },
-  { icon: '💎', weight:  4 },
-  { icon: '7️⃣', weight:  1 },
-];
-const SLOT_TOTAL_W = SLOT_REELS_DEF.reduce((s, r) => s + r.weight, 0);
+const SLOT_ICONS = ['🍒', '🔔', '⭐', '💎', '7️⃣'];
 
-function rollSlotReel() {
-  let rand = Math.random() * SLOT_TOTAL_W;
-  for (const r of SLOT_REELS_DEF) { rand -= r.weight; if (rand <= 0) return r.icon; }
-  return SLOT_REELS_DEF[0].icon;
-}
+// 結果先行方式: 当選確率を直接指定（%）、残りはハズレ
+const SLOT_OUTCOMES = [
+  { icon: '7️⃣', pct:  0.5, label: '🎰 JACKPOT！！！', mp: 200, jackpot: true, sound: SOUND_SLOT_777    },
+  { icon: '💎', pct:  1.0, label: '💎 ダイヤ！！',    mp:  60,               sound: SOUND_SLOT_PIRORI },
+  { icon: '⭐', pct:  5.0, label: '⭐ スター！',      mp:  25,               sound: SOUND_SLOT_PIRORI },
+  { icon: '🔔', pct: 10.0, label: '🔔 ベル！',        mp:  10,               sound: SOUND_SLOT_PIRORI },
+  { icon: '🍒', pct: 20.0, label: '🍒 チェリー！',    mp:   5,               sound: SOUND_SLOT_CHERRY },
+]; // ハズレ = 63.5%
 
-function getSlotResult(r1, r2, r3) {
-  if (r1 === '7️⃣' && r2 === '7️⃣' && r3 === '7️⃣') return { label: '🎰 JACKPOT！！！', mp: 200, jackpot: true, sound: SOUND_SLOT_777 };
-  if (r1 === '💎' && r2 === '💎' && r3 === '💎') return { label: '💎 ダイヤ！！',   mp: 60,  sound: SOUND_SLOT_PIRORI };
-  if (r1 === '⭐' && r2 === '⭐' && r3 === '⭐') return { label: '⭐ スター！',     mp: 25,  sound: SOUND_SLOT_PIRORI };
-  if (r1 === '🔔' && r2 === '🔔' && r3 === '🔔') return { label: '🔔 ベル！',       mp: 10,  sound: SOUND_SLOT_PIRORI };
-  if (r1 === '🍒' && r2 === '🍒' && r3 === '🍒') return { label: '🍒 チェリー！',   mp: 5,   sound: SOUND_SLOT_CHERRY };
-  return { label: 'ハズレ…', mp: 0, sound: SOUND_SLOT_MISS };
+function rollSlotOutcome() {
+  const rand = Math.random() * 100;
+  let cum = 0;
+  for (const o of SLOT_OUTCOMES) {
+    cum += o.pct;
+    if (rand < cum) return { reels: [o.icon, o.icon, o.icon], result: o };
+  }
+  // ハズレ: 三つ揃いにならない表示用絵柄を生成
+  const pick = () => SLOT_ICONS[Math.floor(Math.random() * SLOT_ICONS.length)];
+  const r = [pick(), pick(), pick()];
+  if (r[0] === r[1] && r[1] === r[2]) {
+    r[2] = SLOT_ICONS[(SLOT_ICONS.indexOf(r[2]) + 1) % SLOT_ICONS.length];
+  }
+  return { reels: r, result: { label: 'ハズレ…', mp: 0, sound: SOUND_SLOT_MISS } };
 }
 
 const SLOT_INTERVAL = 330; // リール停止間隔(ms)
@@ -4140,8 +4143,7 @@ function playSlot(user) {
   user.slotSpinning = true;
   playLocalSound(SOUND_SLOT_START);
 
-  const reels  = [rollSlotReel(), rollSlotReel(), rollSlotReel()];
-  const result = getSlotResult(reels[0], reels[1], reels[2]);
+  const { reels, result } = rollSlotOutcome();
 
   const panel = document.createElement('div');
   panel.className = 'slot-panel';
