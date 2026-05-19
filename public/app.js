@@ -282,6 +282,12 @@ const SOUND_GACHA_EPIC     = '/sound/petgatya/' + encodeURIComponent('ジャジ�
 const SOUND_GACHA_LEGEND   = '/sound/petgatya/' + encodeURIComponent('きらきら輝く6.mp3');
 const SOUND_GACHA_MYTH     = '/sound/petgatya/' + encodeURIComponent('nc272529_当たりの効果音.mp3');
 const SOUND_QUIZ_CORRECT   = '/sound/quiz/'    + encodeURIComponent('クイズ正解2.mp3');
+const SOUND_SLOT_START     = '/sound/slot/'    + encodeURIComponent('start.wav');
+const SOUND_SLOT_STOP      = '/sound/slot/'    + encodeURIComponent('カーソル移動2.mp3');
+const SOUND_SLOT_MISS      = '/sound/slot/'    + encodeURIComponent('ビープ音4.mp3');
+const SOUND_SLOT_CHERRY    = '/sound/slot/'    + encodeURIComponent('決定ボタンを押す26.mp3');
+const SOUND_SLOT_PIRORI    = '/sound/slot/'    + encodeURIComponent('nc129326_ピロピロピロピロ.mp3');
+const SOUND_SLOT_777       = '/sound/slot/'    + encodeURIComponent('777.mp3');
 
 let charImages   = loadCharImages();
 let charAliases  = loadCharAliases();
@@ -4118,12 +4124,12 @@ function rollSlotReel() {
 }
 
 function getSlotResult(r1, r2, r3) {
-  if (r1 === '7️⃣' && r2 === '7️⃣' && r3 === '7️⃣') return { label: '🎰 JACKPOT！！！', mp: 200, jackpot: true };
-  if (r1 === '💎' && r2 === '💎' && r3 === '💎') return { label: '💎 ダイヤ！！', mp: 60 };
-  if (r1 === '⭐' && r2 === '⭐' && r3 === '⭐') return { label: '⭐ スター！', mp: 25 };
-  if (r1 === '🔔' && r2 === '🔔' && r3 === '🔔') return { label: '🔔 ベル！', mp: 10 };
-  if (r1 === '🍒' && r2 === '🍒' && r3 === '🍒') return { label: '🍒 チェリー！', mp: 5 };
-  return { label: 'ハズレ…', mp: 0 };
+  if (r1 === '7️⃣' && r2 === '7️⃣' && r3 === '7️⃣') return { label: '🎰 JACKPOT！！！', mp: 200, jackpot: true, sound: SOUND_SLOT_777 };
+  if (r1 === '💎' && r2 === '💎' && r3 === '💎') return { label: '💎 ダイヤ！！',   mp: 60,  sound: SOUND_SLOT_PIRORI };
+  if (r1 === '⭐' && r2 === '⭐' && r3 === '⭐') return { label: '⭐ スター！',     mp: 25,  sound: SOUND_SLOT_PIRORI };
+  if (r1 === '🔔' && r2 === '🔔' && r3 === '🔔') return { label: '🔔 ベル！',       mp: 10,  sound: SOUND_SLOT_PIRORI };
+  if (r1 === '🍒' && r2 === '🍒' && r3 === '🍒') return { label: '🍒 チェリー！',   mp: 5,   sound: SOUND_SLOT_CHERRY };
+  return { label: 'ハズレ…', mp: 0, sound: SOUND_SLOT_MISS };
 }
 
 const SLOT_INTERVAL = 330; // リール停止間隔(ms)
@@ -4133,6 +4139,7 @@ const SLOT_PANEL_MS = SLOT_TOTAL_MS + 1600;    // パネル消滅まで
 function playSlot(user) {
   if (!user.el) return;
   user.slotSpinning = true;
+  playLocalSound(SOUND_SLOT_START);
 
   const reels  = [rollSlotReel(), rollSlotReel(), rollSlotReel()];
   const result = getSlotResult(reels[0], reels[1], reels[2]);
@@ -4158,6 +4165,7 @@ function playSlot(user) {
       reelEls[i].textContent = reels[i];
       reelEls[i].classList.remove('slot-spinning');
       reelEls[i].classList.add('slot-stopped');
+      playLocalSound(SOUND_SLOT_STOP);
     }, (i + 1) * SLOT_INTERVAL);
   });
 
@@ -4165,6 +4173,7 @@ function playSlot(user) {
     if (!panel.isConnected) return;
     resultEl.textContent = result.label;
     resultEl.className   = 'slot-result' + (result.mp > 0 ? ' slot-win' : '');
+    playLocalSound(result.sound);
 
     if (result.mp > 0) {
       user.mp = (user.mp ?? 0) + result.mp;
