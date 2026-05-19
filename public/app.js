@@ -760,6 +760,10 @@ function setCompactMode(on) {
   const wordlePanel = document.getElementById('wordlePanel');
   if (wordlePanel) wordlePanel.style.display = on ? 'none' : '';
 
+  // クイズパネル
+  const quizPanel = document.getElementById('quizPanel');
+  if (quizPanel) quizPanel.style.display = on ? 'none' : '';
+
   // 早押し：コンパクトONで停止、OFFで再開（配信中のみ）
   if (on) {
     clearTimeout(hayaoshiAutoTimerWhite); hayaoshiAutoTimerWhite = null;
@@ -2173,6 +2177,11 @@ function handleComment(comment) {
     }
   }
 
+  // ── クイズ回答チェック ────────────────────────
+  if (quizState && !quizState.answered) {
+    handleQuizAnswer(user, message.trim());
+  }
+
   // ── AFK ───────────────────────────────────────
   if (user.afk) {
     user.afk = false;
@@ -2773,6 +2782,14 @@ document.getElementById('wordleBtn').addEventListener('click', () => {
   }
 });
 
+document.getElementById('quizBtn').addEventListener('click', () => {
+  if (quizState) {
+    stopQuiz();
+  } else if (quizQuestions.length > 0) {
+    startQuiz();
+  }
+});
+
 document.getElementById('moveLockBtn').addEventListener('click', () => {
   moveLocked = !moveLocked;
   document.getElementById('moveLockBtn').classList.toggle('active', moveLocked);
@@ -2912,6 +2929,7 @@ document.getElementById('stopAllBtn').addEventListener('click', () => {
     u.movement = '止まれ';
     if (u.moveTimer) { clearTimeout(u.moveTimer); u.moveTimer = null; }
     if (u.el) u.el.style.transition = 'none';
+    stopWalk(u);
     applyMotion(u, null);
   });
 });
@@ -3178,6 +3196,19 @@ document.addEventListener('mousemove', e => {
     return;
   }
 
+  if (quizDragState) {
+    const panel = document.getElementById('quizPanel');
+    if (panel && quizState) {
+      const { ox, oy, sx, sy } = quizDragState;
+      const sr = stage.getBoundingClientRect();
+      quizState.panelX = Math.max(0, Math.min(sr.width  - panel.offsetWidth,  ox + (e.clientX - sx)));
+      quizState.panelY = Math.max(0, Math.min(sr.height - panel.offsetHeight, oy + (e.clientY - sy)));
+      panel.style.left = quizState.panelX + 'px';
+      panel.style.top  = quizState.panelY + 'px';
+    }
+    return;
+  }
+
   if (bossDragState && bossState?.el) {
     const { ox, oy, sx, sy } = bossDragState;
     const sr = stage.getBoundingClientRect();
@@ -3237,6 +3268,15 @@ document.addEventListener('mouseup', () => {
       localStorage.setItem('wordlePanelY', Math.round(wordleState.panelY));
     }
     wordleDragState = null;
+    return;
+  }
+
+  if (quizDragState) {
+    if (quizState) {
+      localStorage.setItem('quizPanelX', Math.round(quizState.panelX));
+      localStorage.setItem('quizPanelY', Math.round(quizState.panelY));
+    }
+    quizDragState = null;
     return;
   }
 
@@ -3834,6 +3874,145 @@ function handleWordleGuess(user, word) {
 }
 
 // Wordle パネルのドラッグ（mousemove / mouseup に組み込み）
+
+// ── クイズゲーム ──────────────────────────────────────────────────
+let quizQuestions = [];
+let quizState = null; // { question, answer, answered, winnerName, timeLeft, timer, panelX, panelY }
+let quizDragState = null;
+
+(async function loadQuizQuestions() {
+  try {
+    const r = await fetch('/text/quiz.txt');
+    const t = await r.text();
+    quizQuestions = t.split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 0 && l.includes(','))
+      .map(l => {
+        const parts = l.split(',');
+        const a = parts.pop().trim();
+        const q = parts.join(',').trim();
+        return { q, a };
+      })
+      .filter(({ q, a }) => q && a);
+  } catch {}
+})();
+
+function normalizeAnswer(s) {
+  return (s || '')
+    .replace(/[\s　]/g, '')
+    .replace(/[Ａ-Ｚａ-ｚ０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .toLowerCase()
+    .replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+}
+
+function checkQuizAnswer(guess, answer) {
+  const g = normalizeAnswer(guess);
+  const a = normalizeAnswer(answer);
+  if (!g) return false;
+  if (g === a) return true;
+  if (g.length >= 2 && (a.includes(g) || g.includes(a))) return true;
+  return false;
+}
+
+function startQuiz() {
+  if (!quizQuestions.length) return;
+  const panelX = parseInt(localStorage.getItem('quizPanelX')) || 10;
+  const panelY = parseInt(localStorage.getItem('quizPanelY')) || 80;
+  quizState = { panelX, panelY };
+  nextQuizQuestion();
+}
+
+function stopQuiz() {
+  if (!quizState) return;
+  clearInterval(quizState.timer);
+  quizState = null;
+  const panel = document.getElementById('quizPanel');
+  if (panel) panel.remove();
+}
+
+function nextQuizQuestion() {
+  if (!quizState || !quizQuestions.length) return;
+  clearInterval(quizState.timer);
+  const entry = quizQuestions[Math.floor(Math.random() * quizQuestions.length)];
+  quizState.question   = entry.q;
+  quizState.answer     = entry.a;
+  quizState.answered   = false;
+  quizState.winnerName = null;
+  quizState.timeLeft   = 30;
+  renderQuizPanel();
+  quizState.timer = setInterval(() => {
+    if (!quizState || quizState.answered) return;
+    quizState.timeLeft = Math.max(0, quizState.timeLeft - 1);
+    renderQuizPanel();
+    if (quizState.timeLeft === 0) {
+      clearInterval(quizState.timer);
+      quizState.answered = true;
+      renderQuizPanel();
+      setTimeout(() => { if (quizState) nextQuizQuestion(); }, 4000);
+    }
+  }, 1000);
+}
+
+function renderQuizPanel() {
+  let panel = document.getElementById('quizPanel');
+  if (!quizState) { if (panel) panel.remove(); return; }
+
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'quizPanel';
+    stage.appendChild(panel);
+    panel.addEventListener('mousedown', e => {
+      if (e.button !== 0 || dragState || trashDragState || bossDragState || wordleDragState) return;
+      const r  = panel.getBoundingClientRect();
+      const sr = stage.getBoundingClientRect();
+      quizDragState = { ox: r.left - sr.left, oy: r.top - sr.top, sx: e.clientX, sy: e.clientY };
+      e.preventDefault(); e.stopPropagation();
+    });
+  }
+
+  panel.style.left = quizState.panelX + 'px';
+  panel.style.top  = quizState.panelY + 'px';
+
+  const { question, answer, answered, winnerName, timeLeft } = quizState;
+  const solved   = answered && winnerName;
+  const timedOut = answered && !winnerName;
+
+  let html = `<div class="quiz-header">
+    <span>${solved ? '✅ 正解！' : timedOut ? '⏰ 時間切れ' : '❓ クイズ'}</span>
+    <span class="quiz-timer${!answered && timeLeft <= 5 ? ' quiz-timer-low' : ''}">${answered ? '' : `⏱ ${timeLeft}s`}</span>
+  </div>
+  <div class="quiz-question">${escapeHtml(question)}</div>`;
+
+  if (answered) {
+    html += `<div class="quiz-answer">答え：${escapeHtml(answer)}</div>`;
+    if (solved) {
+      html += `<div class="quiz-winner">🎉 ${escapeHtml(winnerName)} が正解！</div>`;
+    }
+  }
+
+  panel.innerHTML = html;
+}
+
+function handleQuizAnswer(user, message) {
+  if (!quizState || quizState.answered) return;
+  if (!checkQuizAnswer(message, quizState.answer)) return;
+
+  clearInterval(quizState.timer);
+  quizState.answered   = true;
+  quizState.winnerName = user.name || '名無し';
+  if (!user.tc) user.tc = {};
+  user.tc.quizWins = (user.tc.quizWins || 0) + 1;
+  renderQuizPanel();
+
+  user.hp = Math.min(calcMaxHp(user), (user.hp ?? 30) + 20);
+  updateStatsDisplay(user);
+  const { x, y } = getCharCenter(user);
+  showDamageNumber(x, y - 30, '💊+20', false, 20, '#86efac');
+  spawnFireworks(x, y);
+  playLocalSound(SOUND_HAYAOSHI_WHITE);
+
+  setTimeout(() => { if (quizState) nextQuizQuestion(); }, 4000);
+}
 
 // ── 早押しゲーム ──────────────────────────────────────────────────
 let hayaoshiItems = []; // { type:'white'|'red', keyword, timeoutId } — 複数同時対応

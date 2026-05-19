@@ -77,6 +77,7 @@ body {
 .btn-move-lock     { background: #475569; color: #fff; }
 .btn-move-lock.active { background: #dc2626; color: #fff; }
 .btn-wordle        { background: #0f766e; color: #fff; }
+.btn-quiz          { background: #1d4ed8; color: #fff; }
 
 /* 管理モーダル */
 .admin-modal-overlay {
@@ -1472,6 +1473,56 @@ body {
   20%  { transform: translate(-50%, -50%) scale(1); }
   80%  { opacity: 1; }
   100% { opacity: 0; transform: translate(-50%, -50%); }
+}
+
+/* ── クイズパネル ── */
+#quizPanel {
+  position: absolute;
+  background: rgba(10, 12, 20, 0.93);
+  border: 2px solid #3b82f6;
+  border-radius: 12px;
+  padding: 10px 14px 12px;
+  min-width: 240px;
+  max-width: 360px;
+  color: #e2e8f0;
+  user-select: none;
+  cursor: grab;
+  z-index: 65;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+}
+#quizPanel:active { cursor: grabbing; }
+.quiz-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #7dd3fc;
+  margin-bottom: 8px;
+  pointer-events: none;
+}
+.quiz-timer { font-size: 13px; color: #94a3b8; }
+.quiz-timer-low { color: #f87171; animation: quizBlink 0.5s step-end infinite; }
+@keyframes quizBlink { 50% { opacity: 0; } }
+.quiz-question {
+  font-size: 15px;
+  line-height: 1.5;
+  color: #f1f5f9;
+  margin-bottom: 6px;
+  word-break: break-all;
+  pointer-events: none;
+}
+.quiz-answer {
+  font-size: 13px;
+  color: #86efac;
+  font-weight: 700;
+  margin-bottom: 3px;
+  pointer-events: none;
+}
+.quiz-winner {
+  font-size: 12px;
+  color: #fbbf24;
+  pointer-events: none;
 }
 
 /* ── ダメージランキングパネル ── */
