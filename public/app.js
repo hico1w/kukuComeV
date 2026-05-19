@@ -4134,6 +4134,69 @@ function rollSlotOutcome() {
   return { reels: r, result: { label: 'ハズレ…', mp: 0, sound: SOUND_SLOT_MISS } };
 }
 
+const SLOT_PROB_DEFAULTS = { cherry: 20, bell: 10, star: 5, diamond: 1, jackpot: 0.5 };
+
+function loadSlotProbs() {
+  const saved = JSON.parse(localStorage.getItem('slotProbs') || 'null') || {};
+  const d = SLOT_PROB_DEFAULTS;
+  return {
+    cherry:  parseFloat(saved.cherry  ?? d.cherry),
+    bell:    parseFloat(saved.bell    ?? d.bell),
+    star:    parseFloat(saved.star    ?? d.star),
+    diamond: parseFloat(saved.diamond ?? d.diamond),
+    jackpot: parseFloat(saved.jackpot ?? d.jackpot),
+  };
+}
+
+function applySlotProbs(probs) {
+  // SLOT_OUTCOMES の順: [jackpot, diamond, star, bell, cherry]
+  SLOT_OUTCOMES[0].pct = probs.jackpot;
+  SLOT_OUTCOMES[1].pct = probs.diamond;
+  SLOT_OUTCOMES[2].pct = probs.star;
+  SLOT_OUTCOMES[3].pct = probs.bell;
+  SLOT_OUTCOMES[4].pct = probs.cherry;
+  localStorage.setItem('slotProbs', JSON.stringify(probs));
+  document.querySelectorAll('.slot-miss-rate').forEach(el => {
+    const total = probs.cherry + probs.bell + probs.star + probs.diamond + probs.jackpot;
+    el.textContent = Math.max(0, 100 - total).toFixed(1) + '%';
+  });
+}
+
+(function initSlotProbSliders() {
+  const defs = [
+    { key: 'cherry',  id: 'slotProbCherry',  valId: 'slotProbCherryVal'  },
+    { key: 'bell',    id: 'slotProbBell',     valId: 'slotProbBellVal'    },
+    { key: 'star',    id: 'slotProbStar',     valId: 'slotProbStarVal'    },
+    { key: 'diamond', id: 'slotProbDiamond',  valId: 'slotProbDiamondVal' },
+    { key: 'jackpot', id: 'slotProbJackpot',  valId: 'slotProbJackpotVal' },
+  ];
+  const saved = loadSlotProbs();
+  defs.forEach(({ key, id, valId }) => {
+    const slider = document.getElementById(id);
+    const valEl  = document.getElementById(valId);
+    const reset  = document.getElementById(id + 'Reset');
+    if (!slider) return;
+    slider.value = saved[key];
+    if (valEl) valEl.textContent = saved[key] + '%';
+    slider.addEventListener('input', () => {
+      const v = parseFloat(slider.value);
+      if (valEl) valEl.textContent = v + '%';
+      const probs = loadSlotProbs();
+      probs[key] = v;
+      applySlotProbs(probs);
+    });
+    reset?.addEventListener('click', () => {
+      const def = SLOT_PROB_DEFAULTS[key];
+      slider.value = def;
+      if (valEl) valEl.textContent = def + '%';
+      const probs = loadSlotProbs();
+      probs[key] = def;
+      applySlotProbs(probs);
+    });
+  });
+  applySlotProbs(saved);
+})();
+
 const SLOT_INTERVAL = 330; // リール停止間隔(ms)
 const SLOT_TOTAL_MS = SLOT_INTERVAL * 3 + 200; // 結果表示まで
 const SLOT_PANEL_MS = SLOT_TOTAL_MS + 1600;    // パネル消滅まで
@@ -4966,7 +5029,8 @@ function handleAdminMessage(d, replyFn) {
     if (el) { el.value = d.value; el.dispatchEvent(new Event('input')); }
   } else if (d.type === 'getState' || d.type === 'ping') {
     const sliderIds = ['nikoSizeSlider','nikoOpacitySlider','hayaoshiFreqSlider','hayaoshiSpeedSlider',
-                       'bossHpScaleSlider','bossAtkCoeffSlider','counterRateSlider','charSizeSlider','bossSizeSlider','brHpMultSlider'];
+                       'bossHpScaleSlider','bossAtkCoeffSlider','counterRateSlider','charSizeSlider','bossSizeSlider','brHpMultSlider',
+                       'slotProbCherry','slotProbBell','slotProbStar','slotProbDiamond','slotProbJackpot'];
     const state = {};
     sliderIds.forEach(sid => { const el = document.getElementById(sid); if (el) state[sid] = el.value; });
     state.bgColor    = document.getElementById('bgColor')?.value;

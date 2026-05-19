@@ -293,6 +293,50 @@
   </div>
 </div>
 
+<!-- スロット確率 -->
+<div class="section">
+  <div class="section-title">🎰 スロット確率</div>
+  <div class="size-row">
+    <span class="size-label">🍒 チェリー</span>
+    <input type="range" id="slotProbCherry" min="0" max="50" step="1" value="20" class="size-slider"
+           oninput="syncSlotProb(this,'slotProbCherryVal')">
+    <span id="slotProbCherryVal" class="size-val">20%</span>
+    <button class="btn-reset" onclick="resetSlotProb('slotProbCherry',20,'slotProbCherryVal')">↺</button>
+  </div>
+  <div class="size-row">
+    <span class="size-label">🔔 ベル</span>
+    <input type="range" id="slotProbBell" min="0" max="50" step="1" value="10" class="size-slider"
+           oninput="syncSlotProb(this,'slotProbBellVal')">
+    <span id="slotProbBellVal" class="size-val">10%</span>
+    <button class="btn-reset" onclick="resetSlotProb('slotProbBell',10,'slotProbBellVal')">↺</button>
+  </div>
+  <div class="size-row">
+    <span class="size-label">⭐ スター</span>
+    <input type="range" id="slotProbStar" min="0" max="20" step="0.5" value="5" class="size-slider"
+           oninput="syncSlotProb(this,'slotProbStarVal')">
+    <span id="slotProbStarVal" class="size-val">5%</span>
+    <button class="btn-reset" onclick="resetSlotProb('slotProbStar',5,'slotProbStarVal')">↺</button>
+  </div>
+  <div class="size-row">
+    <span class="size-label">💎 ダイヤ</span>
+    <input type="range" id="slotProbDiamond" min="0" max="10" step="0.5" value="1" class="size-slider"
+           oninput="syncSlotProb(this,'slotProbDiamondVal')">
+    <span id="slotProbDiamondVal" class="size-val">1%</span>
+    <button class="btn-reset" onclick="resetSlotProb('slotProbDiamond',1,'slotProbDiamondVal')">↺</button>
+  </div>
+  <div class="size-row">
+    <span class="size-label">7️⃣ JACKPOT</span>
+    <input type="range" id="slotProbJackpot" min="0" max="5" step="0.1" value="0.5" class="size-slider"
+           oninput="syncSlotProb(this,'slotProbJackpotVal')">
+    <span id="slotProbJackpotVal" class="size-val">0.5%</span>
+    <button class="btn-reset" onclick="resetSlotProb('slotProbJackpot',0.5,'slotProbJackpotVal')">↺</button>
+  </div>
+  <div class="size-row">
+    <span class="size-label" style="color:#64748b">ハズレ</span>
+    <span id="slotMissRateAdmin" class="size-val" style="color:#64748b">63.5%</span>
+  </div>
+</div>
+
 <!-- サイズ調整 -->
 <div class="section">
   <div class="section-title">📐 サイズ調整</div>
@@ -546,6 +590,28 @@
     setTimeout(() => { if (_ws?.readyState !== WebSocket.OPEN) setConnected(false); }, 1000);
   }, 3000);
 
+  function updateSlotMissAdmin() {
+    const ids = ['slotProbCherry','slotProbBell','slotProbStar','slotProbDiamond','slotProbJackpot'];
+    const total = ids.reduce((s, id) => s + parseFloat(document.getElementById(id)?.value || 0), 0);
+    const el = document.getElementById('slotMissRateAdmin');
+    if (el) el.textContent = Math.max(0, 100 - total).toFixed(1) + '%';
+  }
+
+  function syncSlotProb(el, valId) {
+    document.getElementById(valId).textContent = parseFloat(el.value) + '%';
+    adminSend({ type: 'slider', id: el.id, value: el.value });
+    updateSlotMissAdmin();
+  }
+
+  function resetSlotProb(sliderId, def, valId) {
+    const el = document.getElementById(sliderId);
+    el.value = def;
+    document.getElementById(valId).textContent = parseFloat(def) + '%';
+    adminSend({ type: 'slider', id: sliderId, value: String(def) });
+    adminSend({ type: 'click', id: sliderId + 'Reset' });
+    updateSlotMissAdmin();
+  }
+
   function applyState(s) {
     const sliderDefs = [
       { id:'nikoSizeSlider',     valId:'nikoSizeVal',     fmt: v=>v+'px' },
@@ -557,6 +623,11 @@
       { id:'charSizeSlider',     valId:'charSizeVal',     fmt: v=>v+'%'  },
       { id:'bossSizeSlider',     valId:'bossSizeVal',     fmt: v=>v+'%'  },
       { id:'brHpMultSlider',     valId:'brHpMultVal',     fmt: v=>v+'x'  },
+      { id:'slotProbCherry',     valId:'slotProbCherryVal',  fmt: v=>parseFloat(v)+'%' },
+      { id:'slotProbBell',       valId:'slotProbBellVal',    fmt: v=>parseFloat(v)+'%' },
+      { id:'slotProbStar',       valId:'slotProbStarVal',    fmt: v=>parseFloat(v)+'%' },
+      { id:'slotProbDiamond',    valId:'slotProbDiamondVal', fmt: v=>parseFloat(v)+'%' },
+      { id:'slotProbJackpot',    valId:'slotProbJackpotVal', fmt: v=>parseFloat(v)+'%' },
     ];
     sliderDefs.forEach(({ id, valId, fmt }) => {
       if (s[id] !== undefined) {
@@ -564,6 +635,7 @@
         document.getElementById(valId).textContent = fmt(s[id]);
       }
     });
+    updateSlotMissAdmin();
     if (s.bgColor)   document.getElementById('bgColorInput').value  = s.bgColor;
     if (s.moveArea)  document.getElementById('moveAreaInput').value = s.moveArea;
     if (s.bgImageUrl !== undefined) {
