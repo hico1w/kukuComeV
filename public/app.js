@@ -4108,10 +4108,9 @@ function handleQuizAnswer(user, message) {
 
 // ── スロットマシン ────────────────────────────────────────────────
 const SLOT_REELS_DEF = [
-  { icon: '🍒', weight: 35 },
-  { icon: '🍋', weight: 28 },
-  { icon: '🔔', weight: 20 },
-  { icon: '⭐', weight: 12 },
+  { icon: '🍒', weight: 50 },
+  { icon: '🔔', weight: 30 },
+  { icon: '⭐', weight: 15 },
   { icon: '💎', weight:  4 },
   { icon: '7️⃣', weight:  1 },
 ];
