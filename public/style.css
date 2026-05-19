@@ -78,6 +78,8 @@ body {
 .btn-move-lock.active { background: #dc2626; color: #fff; }
 .btn-wordle        { background: #0f766e; color: #fff; }
 .btn-quiz          { background: #1d4ed8; color: #fff; }
+.btn-br-timer      { background: #4c1d95; color: #e9d5ff; }
+.btn-br-timer.active { background: #7c3aed; }
 
 /* 管理モーダル */
 .admin-modal-overlay {
@@ -1524,6 +1526,25 @@ body {
   color: #fbbf24;
   pointer-events: none;
 }
+
+/* ── BRタイマーパネル ── */
+#brTimerPanel {
+  position: absolute;
+  background: rgba(10, 12, 20, 0.88);
+  border: 2px solid #7c3aed;
+  border-radius: 10px;
+  padding: 8px 20px 10px;
+  color: #e2e8f0;
+  user-select: none;
+  cursor: grab;
+  z-index: 65;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  min-width: 120px;
+}
+#brTimerPanel:active { cursor: grabbing; }
+.brt-title { font-size: 11px; color: #a78bfa; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 2px; }
+.brt-time  { font-size: 28px; font-weight: 900; color: #f1f5f9; letter-spacing: 0.04em; }
 
 /* ── ダメージランキングパネル ── */
 #rankingPanel {

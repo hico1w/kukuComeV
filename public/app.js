@@ -281,6 +281,7 @@ const SOUND_GACHA_RARE     = '/sound/petgatya/' + encodeURIComponent('ジャン�
 const SOUND_GACHA_EPIC     = '/sound/petgatya/' + encodeURIComponent('ジャジャーン.mp3');
 const SOUND_GACHA_LEGEND   = '/sound/petgatya/' + encodeURIComponent('きらきら輝く6.mp3');
 const SOUND_GACHA_MYTH     = '/sound/petgatya/' + encodeURIComponent('nc272529_当たりの効果音.mp3');
+const SOUND_QUIZ_CORRECT   = '/sound/quiz/'    + encodeURIComponent('クイズ正解2.mp3');
 
 let charImages   = loadCharImages();
 let charAliases  = loadCharAliases();
@@ -764,6 +765,10 @@ function setCompactMode(on) {
   const quizPanel = document.getElementById('quizPanel');
   if (quizPanel) quizPanel.style.display = on ? 'none' : '';
 
+  // BRタイマーパネル
+  const brTimerPanel = document.getElementById('brTimerPanel');
+  if (brTimerPanel) brTimerPanel.style.display = (on || !brTimerVisible) ? 'none' : '';
+
   // 早押し：コンパクトONで停止、OFFで再開（配信中のみ）
   if (on) {
     clearTimeout(hayaoshiAutoTimerWhite); hayaoshiAutoTimerWhite = null;
@@ -983,6 +988,11 @@ function spawnHeartShower(cx, cy) {
 let bossState = null;
 let bossManuallyCleared = false;
 let brState   = null; // バトルロイヤル状態 // 消去ボタン押下後は自動召喚しない
+let brNextAutoAt    = Date.now() + 30 * 60 * 1000; // 次回自動BR予定時刻(ms)
+let brTimerVisible  = false;
+let brTimerDragState = null;
+let brTimerPanelX   = parseInt(localStorage.getItem('brTimerPanelX')) || 10;
+let brTimerPanelY   = parseInt(localStorage.getItem('brTimerPanelY')) || 150;
 let bossCount = 1;       // 現在何体目のボスか
 let bossCounterRate = 0.40; // 反撃確率（0〜1）
 let bossHpScale    = 1;    // ボスHP倍率（1〜100）
@@ -1267,6 +1277,13 @@ function brEliminate(user) {
   if (brState.survivors.size <= 1) {
     const winner = brState.survivors.size === 1 ? users[[...brState.survivors][0]] : null;
     setTimeout(() => endBattleRoyale(winner), 800);
+  } else {
+    // 脱落ごとに残存者を円形配置
+    setTimeout(() => {
+      if (!brState?.active) return;
+      const survivors = [...brState.survivors].map(id => users[id]).filter(u => u?.el);
+      arrangeBRCircle(survivors);
+    }, 900);
   }
 }
 
@@ -1307,6 +1324,14 @@ function endBattleRoyale(winner) {
   const btn = document.getElementById('battleRoyaleBtn');
   if (btn) btn.classList.remove('active');
   setTimeout(() => gatherCharactersBottom(), 3000);
+  // バトロワ終了後に自動でボス召喚（キャラが揃ってから）
+  setTimeout(() => {
+    if (bossState && !bossState.defeated) return;
+    if (compactMode) return;
+    const hp = nextBossHp();
+    spawnBoss(hp);
+    addToLog({ name: 'SYSTEM', charDef: null }, `🐉 バトロワ後ボス召喚！ HP:${hp}`, '#ef4444');
+  }, 7000);
 }
 
 function showBRToast(attacker, target, damage, isCrit, isElim, rank) {
@@ -1358,6 +1383,7 @@ function startBattleRoyale() {
     showBRToast(null, { name: '参加者2人以上必要です' }, 0, false, true, 0);
     return;
   }
+  brNextAutoAt = Date.now() + 30 * 60 * 1000; // 次回自動BRタイマーをリセット
   const savedHp = {};
   eligible.forEach(u => { savedHp[u.ipid] = u.hp ?? 30; });
   brState = {
@@ -2277,6 +2303,7 @@ function handleComment(comment) {
   // ── ボス召喚 ─────────────────────────────────
   if (/^ボス召喚(?:[：:]\d+)?$/.test(message)) {
     if (compactMode) return;
+    if (brState?.active) return; // バトロワ中は無効
     if (bossState && !bossState.defeated) {
       // ボス戦中は無効
       return;
@@ -3209,6 +3236,19 @@ document.addEventListener('mousemove', e => {
     return;
   }
 
+  if (brTimerDragState) {
+    const panel = document.getElementById('brTimerPanel');
+    if (panel) {
+      const { ox, oy, sx, sy } = brTimerDragState;
+      const sr = stage.getBoundingClientRect();
+      brTimerPanelX = Math.max(0, Math.min(sr.width  - panel.offsetWidth,  ox + (e.clientX - sx)));
+      brTimerPanelY = Math.max(0, Math.min(sr.height - panel.offsetHeight, oy + (e.clientY - sy)));
+      panel.style.left = brTimerPanelX + 'px';
+      panel.style.top  = brTimerPanelY + 'px';
+    }
+    return;
+  }
+
   if (bossDragState && bossState?.el) {
     const { ox, oy, sx, sy } = bossDragState;
     const sr = stage.getBoundingClientRect();
@@ -3277,6 +3317,13 @@ document.addEventListener('mouseup', () => {
       localStorage.setItem('quizPanelY', Math.round(quizState.panelY));
     }
     quizDragState = null;
+    return;
+  }
+
+  if (brTimerDragState) {
+    localStorage.setItem('brTimerPanelX', Math.round(brTimerPanelX));
+    localStorage.setItem('brTimerPanelY', Math.round(brTimerPanelY));
+    brTimerDragState = null;
     return;
   }
 
@@ -4009,10 +4056,55 @@ function handleQuizAnswer(user, message) {
   const { x, y } = getCharCenter(user);
   showDamageNumber(x, y - 30, '💊+20', false, 20, '#86efac');
   spawnFireworks(x, y);
-  playLocalSound(SOUND_HAYAOSHI_WHITE);
+  playLocalSound(SOUND_QUIZ_CORRECT);
 
   setTimeout(() => { if (quizState) nextQuizQuestion(); }, 4000);
 }
+
+// ── 次回BRタイマーパネル ──────────────────────────────────────────
+function renderBRTimerPanel() {
+  let panel = document.getElementById('brTimerPanel');
+
+  if (!brTimerVisible) {
+    if (panel) panel.style.display = 'none';
+    return;
+  }
+
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'brTimerPanel';
+    stage.appendChild(panel);
+    panel.addEventListener('mousedown', e => {
+      if (e.button !== 0 || dragState || trashDragState || bossDragState || wordleDragState || quizDragState) return;
+      const r  = panel.getBoundingClientRect();
+      const sr = stage.getBoundingClientRect();
+      brTimerDragState = { ox: r.left - sr.left, oy: r.top - sr.top, sx: e.clientX, sy: e.clientY };
+      e.preventDefault(); e.stopPropagation();
+    });
+  }
+
+  panel.style.display = '';
+  panel.style.left = brTimerPanelX + 'px';
+  panel.style.top  = brTimerPanelY + 'px';
+
+  if (brState?.active) {
+    panel.innerHTML = '<div class="brt-title">👑 BR中</div><div class="brt-time">−−:−−</div>';
+    return;
+  }
+
+  const remaining = Math.max(0, brNextAutoAt - Date.now());
+  const mins = Math.floor(remaining / 60000);
+  const secs = Math.floor((remaining % 60000) / 1000);
+  panel.innerHTML = `<div class="brt-title">⏰ 次のBR</div><div class="brt-time">${mins}:${String(secs).padStart(2, '0')}</div>`;
+}
+
+setInterval(renderBRTimerPanel, 1000);
+
+document.getElementById('brTimerBtn').addEventListener('click', () => {
+  brTimerVisible = !brTimerVisible;
+  document.getElementById('brTimerBtn').classList.toggle('active', brTimerVisible);
+  renderBRTimerPanel();
+});
 
 // ── 早押しゲーム ──────────────────────────────────────────────────
 let hayaoshiItems = []; // { type:'white'|'red', keyword, timeoutId } — 複数同時対応
@@ -4806,6 +4898,7 @@ _adminBC.onmessage = (e) => handleAdminMessage(e.data, msg => _adminBC.postMessa
 // ── 30分ごとの自動バトルロイヤル ─────────────────────────────────────
 setInterval(() => {
   // コンパクトモード中・BR中・キャラが2体未満なら何もしない
+  brNextAutoAt = Date.now() + 30 * 60 * 1000; // タイマーを次の30分にリセット
   if (compactMode) return;
   if (brState?.active) return;
   const eligible = Object.values(users).filter(u => u.el && !u.ko && !u.afk);
