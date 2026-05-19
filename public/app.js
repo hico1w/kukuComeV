@@ -1008,6 +1008,8 @@ function nextBossHp() {
 let moveLocked = false;          // 移動制限モード（方向移動・移動コマンド禁止）
 let debugMode  = false;          // デバッグモード（全キャラATK=50）
 let compactMode = false;         // コンパクトモード
+let equipHidden  = false;        // 装備アイコン非表示
+let brAutoEnabled = true;        // 自動バトルロイヤル有効フラグ
 let bossDamageMap = {};          // ipid → { name, totalDmg }
 let rankingState     = null;
 let rankingDragState = null;
@@ -4106,6 +4108,17 @@ document.getElementById('brTimerBtn').addEventListener('click', () => {
   renderBRTimerPanel();
 });
 
+document.getElementById('hideEquipBtn').addEventListener('click', () => {
+  equipHidden = !equipHidden;
+  stage.classList.toggle('equip-hidden', equipHidden);
+  document.getElementById('hideEquipBtn').classList.toggle('active', equipHidden);
+});
+
+document.getElementById('brAutoBtn').addEventListener('click', () => {
+  brAutoEnabled = !brAutoEnabled;
+  document.getElementById('brAutoBtn').classList.toggle('active', !brAutoEnabled);
+});
+
 // ── 早押しゲーム ──────────────────────────────────────────────────
 let hayaoshiItems = []; // { type:'white'|'red', keyword, timeoutId } — 複数同時対応
 const HAYAOSHI_FALLBACK = ['スター','ライブ','ゲーム','アニメ','サクラ','ハート','カワイイ','スゴイ'];
@@ -4897,8 +4910,9 @@ _adminBC.onmessage = (e) => handleAdminMessage(e.data, msg => _adminBC.postMessa
 
 // ── 30分ごとの自動バトルロイヤル ─────────────────────────────────────
 setInterval(() => {
-  // コンパクトモード中・BR中・キャラが2体未満なら何もしない
+  // コンパクトモード中・BR中・自動BR無効・キャラが2体未満なら何もしない
   brNextAutoAt = Date.now() + 30 * 60 * 1000; // タイマーを次の30分にリセット
+  if (!brAutoEnabled) return;
   if (compactMode) return;
   if (brState?.active) return;
   const eligible = Object.values(users).filter(u => u.el && !u.ko && !u.afk);

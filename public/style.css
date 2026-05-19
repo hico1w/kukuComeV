@@ -78,8 +78,12 @@ body {
 .btn-move-lock.active { background: #dc2626; color: #fff; }
 .btn-wordle        { background: #0f766e; color: #fff; }
 .btn-quiz          { background: #1d4ed8; color: #fff; }
-.btn-br-timer      { background: #4c1d95; color: #e9d5ff; }
+.btn-br-timer        { background: #4c1d95; color: #e9d5ff; }
 .btn-br-timer.active { background: #7c3aed; }
+.btn-br-auto         { background: #064e3b; color: #6ee7b7; }
+.btn-br-auto.active  { background: #7f1d1d; color: #fca5a5; }
+.btn-hide-equip         { background: #374151; color: #e2e8f0; }
+.btn-hide-equip.active  { background: #1e3a5f; color: #93c5fd; }
 
 /* 管理モーダル */
 .admin-modal-overlay {
@@ -1882,6 +1886,9 @@ body {
 a.btn-debug    { text-decoration: none; display: inline-block; }
 .btn-compact   { background: #334155; color: #cbd5e1; }
 .btn-compact.compact-active { background: #1e3a5f; color: #7dd3fc; border: 1px solid #3b82f6; }
+
+/* ── 装備アイコン非表示 ── */
+#stage.equip-hidden .char-equip-area { display: none !important; }
 
 /* ── コンパクトモード ── */
 body.compact-mode .char-stats        { display: none !important; }
