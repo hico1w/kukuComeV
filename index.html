@@ -154,7 +154,7 @@
 
   <div class="page-header">
     <div class="page-title">🎮 kukuCome コマンド一覧</div>
-    <div class="page-sub">kukuLIVE コメントビジュアライザー — 視聴者がコメントで入力するコマンドの一覧　v1.32.0</div>
+    <div class="page-sub">kukuLIVE コメントビジュアライザー — 視聴者がコメントで入力するコマンドの一覧　v1.75.0</div>
   </div>
 
   <!-- ── 機能解説 ── -->
@@ -210,7 +210,7 @@
         <div class="feature-card-title" style="color:#7dd3fc">📊 キャラステータス</div>
         <div class="feature-card-body">
           <b>HP</b>：基本30 ＋ HP系装備ボーナス（鉄壁ペットで+10追加）<br>
-          <b>MP</b>：基本10、最大20。攻撃するたびに+1（ペットにより追加あり）。死亡してもリセットされない。<br>
+          <b>MP</b>：基本10、上限なし。攻撃するたびに+1（ペットにより追加あり）。スロット・回復・ペットガチャで消費。死亡してもリセットされない。<br>
           <b>ATK</b>：1 ＋ レベル ＋ ATK系装備ボーナス<br>
           <b>クリティカル</b>：15%の確率でダメージ×2〜4倍。クリ率はペットで上昇。<br>
           ステータスはキャラの下に常時表示されます。
@@ -233,7 +233,7 @@
           MPが2未満の場合は失敗します。回復中もボスへの攻撃は発動します。
           <div class="mp-visual">
             <div class="mp-bar-wrap"><div class="mp-bar" style="width:100%"></div></div>
-            <div class="mp-label">MP 20/20（最大）</div>
+            <div class="mp-label">MP 上限なし</div>
           </div>
         </div>
       </div>
@@ -244,7 +244,7 @@
           コメントに <b>ペットガチャ</b> と入力すると <b>MP10を消費</b> してペットを1体引けます。<br>
           ペットはキャラクターの右下に常時表示され、様々なバトル効果を発揮します。<br>
           ペットも攻撃モーションを行い（キャラの後に順番に）、ダメージ数字も表示されます。<br>
-          新たにガチャを引くと前のペットは上書きされます。<b>ノーマル〜神話</b>の5段階レアリティ。
+          新たにガチャを引くと前のペットは上書きされます。<b>通算20回</b>引くとペット枠が2つに解放されます。<b>ノーマル〜神話</b>の5段階レアリティ。
         </div>
       </div>
 
@@ -392,7 +392,8 @@
     </table>
     <div class="info-box">
       装備値のロール方法：<b>1〜上限の値を2回振って高い方</b>を採用します（強ボスほど高い値が出やすい）。<br>
-      レアリティはATK/HP値で決定：+1〜2=ノーマル、+3〜4=レア、+5〜6=エピック、+7〜8=伝説、+9〜10=神話。
+      レアリティはATK/HP値で決定：+1〜2=ノーマル、+3〜4=レア、+5〜6=エピック、+7〜8=伝説、+9〜10=神話。<br>
+      <b>神話装備</b>は確率が1/10に補正されます（神話相当の値が出ても90%の確率でランクダウン）。
     </div>
   </div>
 
@@ -442,11 +443,84 @@
         <b>白</b>：<code>text/sinjakome.txt</code>からランダム出題→正解でHP+10<br>
         <b>赤</b>：<code>text/yojijukugo.txt</code>から四字熟語出題→正解でATK×1.5（30秒）</div>
       </div>
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code yellow">❓ クイズボタン</span></div>
+        <div class="cmd-desc">クイズを1問出題（<code>text/quiz.txt</code> から出題）。30秒以内に答えをコメントすると正解判定。正解者はHP+20回復＋正解音が鳴る。<br>
+        答えの判定はひらがな・カタカナ・全角半角を統一して部分一致（2文字以上）で判定。</div>
+      </div>
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code yellow">👑 バトルロイヤルボタン</span></div>
+        <div class="cmd-desc">バトルロイヤルを開始。30秒の参加受付後に自動でスタート。<br>
+        コメントするたびにランダムな相手へ攻撃。HPが0になると脱落。最後の1人が優勝。<br>
+        バトロワ中はボス召喚コマンド無効。終了後に自動でボス召喚。</div>
+        <div class="cmd-variants">
+          <span class="variant">参加（コメント）→ エントリー</span>
+        </div>
+      </div>
     </div>
     <div class="info-box">
       <b>Wordle</b>：<code>text/wordle.txt</code> の単語から出題（1行1単語、5文字のカタカナ）。正解で<b>HP全回復＋全画面バナー</b>。<br>
       <b>早押し</b>：コメントとキーワードが完全一致した最初の人が勝者。複数問題が同時表示されることがあります。<br>
+      <b>クイズ</b>：<code>text/quiz.txt</code> の形式は「問題文,答え」（1行1問）。<br>
       <b>流れる速さ</b>は管理パネル「速度スライダー」で調整可（1〜60秒）。
+    </div>
+  </div>
+
+  <!-- ── スロット ── -->
+  <div class="section">
+    <div class="section-title">🎰 スロットマシン</div>
+    <div class="cmd-grid">
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code purple">スロット</span></div>
+        <div class="cmd-desc"><b>MP1消費</b>してスロットを1回回す。3リールが順番に停止し、役が揃うとMP報酬を獲得。</div>
+      </div>
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code purple">スロット開始</span></div>
+        <div class="cmd-desc">自動連続スロットを開始（1回ごとにMP1消費）。MPがなくなると自動停止。</div>
+      </div>
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code purple">スロット停止</span></div>
+        <div class="cmd-desc">自動スロットを停止する。</div>
+      </div>
+    </div>
+    <table class="equip-prob-table" style="margin-top:12px">
+      <thead><tr><th>役</th><th>デフォルト確率</th><th>報酬MP</th><th>備考</th></tr></thead>
+      <tbody>
+        <tr><td>🍒×3 チェリー</td><td>20%</td><td>+5</td><td></td></tr>
+        <tr><td>🔔×3 ベル</td><td>10%</td><td>+10</td><td></td></tr>
+        <tr><td>⭐×3 スター</td><td>5%</td><td>+25</td><td></td></tr>
+        <tr><td>💎×3 ダイヤ</td><td>1%</td><td>+60</td><td></td></tr>
+        <tr><td>7️⃣×3 JACKPOT</td><td>0.5%</td><td>+200</td><td>全キャラに花火演出</td></tr>
+        <tr><td>ハズレ</td><td>63.5%</td><td>0</td><td></td></tr>
+      </tbody>
+    </table>
+    <div class="info-box" style="margin-top:8px">
+      各役の当選確率は管理パネル「🎰 スロット確率」セクションのスライダーで変更可能。<br>
+      リールアニメーションは演出のみ。当選結果は事前に確率テーブルから決定される（<b>結果先行方式</b>）。
+    </div>
+  </div>
+
+  <!-- ── AFK・放置 ── -->
+  <div class="section">
+    <div class="section-title">💤 AFK・放置</div>
+    <div class="cmd-grid">
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code">AFK</span></div>
+        <div class="cmd-desc">キャラクターの上に「💤 AFK」を表示し続ける。次のチャットを送信すると自動解除。</div>
+      </div>
+      <div class="cmd-card">
+        <div class="cmd-row"><span class="cmd-code">放置:テキスト</span></div>
+        <div class="cmd-desc">任意のテキストを「💤 テキスト」として表示し続ける。次のチャットで自動解除。全角コロン（：）も可。</div>
+        <div class="cmd-variants">
+          <span class="variant">放置:洗濯</span>
+          <span class="variant">放置:お風呂</span>
+          <span class="variant">放置：ご飯</span>
+        </div>
+      </div>
+    </div>
+    <div class="info-box" style="margin-top:8px">
+      AFK・放置中のキャラはグレーアウト表示になります。<br>
+      透明度・グレースケール・明るさは管理パネル「📐 サイズ調整」の「💤 AFK」スライダーで個別調整可能。
     </div>
   </div>
 
