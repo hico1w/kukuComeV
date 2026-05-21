@@ -306,6 +306,31 @@ E:\claude\kukuCome\public\help\hico1w.io\index.htmlを最新化して
 
 全員歩くボタン。全員移動:普通ボタン 全員はずむボタン　全員回転ボタン。を管理パネル（admin.html）に追加してください。
 
+以下の追加をしてください
+・クイズの正解時にE:\claude\kukuCome\public\sound\quiz\クイズ正解2.mp3を再生してください。
+・次回のバトロワ開始までの残り時間タイマーを追加。ドラッグ＆ドロップ可能で管理パネルから表示切替可能
+・バトロワ中に一人脱落ごとに円形配置を呼び出す。（バトロワ開始時に行う円形配置のことです。）
+・バトロワ中にはボス召喚コマンドを無効とする。
+・バトロワ終了時に自動でボス召喚コマンドを実施
+スロット機能に効果音を追加してください。
+
+スロット回転開始時：E:\claude\kukuCome\public\sound\slot\start.wav
+絵柄止まった時：E:\claude\kukuCome\public\sound\slot\カーソル移動2.mp3
+ハズレ：E:\claude\kukuCome\public\sound\slot\ビープ音4.mp3
+🍒：E:\claude\kukuCome\public\sound\slot\決定ボタンを押す26.mp3
+🔔：E:\claude\kukuCome\public\sound\slot\nc129326_ピロピロピロピロ.mp3
+⭐：E:\claude\kukuCome\public\sound\slot\nc129326_ピロピロピロピロ.mp3
+💎：E:\claude\kukuCome\public\sound\slot\nc129326_ピロピロピロピロ.mp3
+7️⃣：E:\claude\kukuCome\public\sound\slot\777.mp3
+
+チェリーを20%,ベルを10％,スターを5%,ダイヤを1％,JACKPOTを0.5％で当たるように調整してください
+・15分チャットがなかったら自動でAFKにしてほしい。
+・放置コマンド追加。「放置:洗濯」と書いたら次の」チャットをするまで「洗濯」と表示しつづける。
+「洗濯」の部分は自由記述できる
+爆弾、ごみ箱の表示/非表示切り替えボタンを管理パネルに追加
+コメントに「射」が含まれていたら、コメントを右下から発射する。
+1文字ずつバラバラに物理演算し、キャラも判定を持つ。
+射出の強さや反発係数など管理パネルに追加。
 ---------------------------------------------------
 
 
@@ -329,16 +354,15 @@ HPが0のキャラを一定時間後に回収しに来る。「助ける」と�
 
 
 
-
-
 index.htmlを更新してほしい。
 全ての機能、仕様、コマンドを記載してください。
 
 
 
 
-
-
+スピキ生成ボタンを管理パネルに追加。特別なボスを召喚。
+ボス画像：E:\claude\kukuCome\public\chara\img_-0002-2607607172.png
+攻撃されるたびE:\claude\kukuCome\public\sound\dragからランダムに1つ再生
 
 
 

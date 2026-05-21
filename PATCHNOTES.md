@@ -2,6 +2,170 @@
 
 ---
 
+## v1.91.0 — 2026-05-21
+
+### ⚰️ KO 自動復活時間を 2秒 → 10秒 に変更
+- KO 状態からの自動復活タイマーを 2000ms から 10000ms に延長
+- **app.js**: `damageUser()` 内の `user.koTimer = setTimeout(...)` の遅延値を変更
+
+---
+
+## v1.90.0 — 2026-05-21
+
+### 🐉 ボスHPバー：横幅をボス画像幅以内に制限
+- HPバー・ラベル行の横幅がボス画像（`bossSize`）を超えないよう上限を `bossSize` に変更
+- **app.js**: `barWidth` 計算を `Math.min(bossSize, Math.round(stage.clientWidth * 0.6))` に変更
+
+---
+
+## v1.89.0 — 2026-05-21
+
+### 🚀 射コマンド：ボス衝突時に弾が消えないよう変更
+- 文字弾がボスに当たっても弾を削除しなくなった（寿命まで飛び続ける）
+- 連続ダメージ防止のため弾ごとに 500ms のクールダウンを設定（`b.bossCooldown`）
+- **app.js**: `startKaiPhysics()` のボス判定内から `b.el.remove()` / `splice` を削除し、`performance.now()` によるクールダウン判定を追加
+
+---
+
+## v1.88.0 — 2026-05-21
+
+### 🚀 射コマンド：射出方向をキャラ→画面上部中央に変更
+- キャラの現在位置から画面上部中央（`stageWidth/2, 0`）を狙う角度を `atan2` で算出し、そこに±15°のブレを加えるように変更
+- キャラが左にいれば右斜め上、右にいれば左斜め上へ自然に射出される
+- **app.js**: `launchBullets()` 内で `targetAngle = Math.atan2(0 - cy, stageW/2 - cx)` を計算し angle に適用
+
+---
+
+## v1.87.0 — 2026-05-21
+
+### 🚀 射コマンド：射出角度を±15°に変更
+- 射出角度のランダム幅を±30°から±15°（`Math.PI / 6`）に縮小
+- **app.js**: `launchBullets()` 内の angle 計算を `* (Math.PI / 6)` に変更
+
+---
+
+## v1.86.0 — 2026-05-21
+
+### 🚀 射コマンド：射出方向を真上±30°に変更
+- 射出角度を全方向ランダムから「真上（-90°）を中心に±30°のランダム」に変更
+- **app.js**: `launchBullets()` 内の `angle` を `-Math.PI / 2 + (Math.random() - 0.5) * (Math.PI / 3)` に変更
+
+---
+
+## v1.85.0 — 2026-05-21
+
+### 💤 AFK コマンド：全角「ＡＦＫ」でも起動可能に
+- コメントに `ＡＦＫ`（全角）が含まれていても AFK 状態になるように
+- 既存の `AFK`（半角大文字・小文字混在）対応は維持
+- **app.js**: `handleComment` 内の正規表現を `/AFK|ＡＦＫ/i` に変更
+
+---
+
+## v1.84.0 — 2026-05-21
+
+### 💤 放置コマンド：「無明」でも起動可能に
+- `放置:テキスト` に加え `無明:テキスト` でも同じ放置コマンドが使えるように
+- 全角コロン（：）も引き続き対応
+- **app.js**: `handleComment` 内の正規表現を `/^(?:放置|無明)[：:](.+)$/` に変更
+
+---
+
+## v1.83.0 — 2026-05-21
+
+### 🚀 射コマンド：射出起点をキャラ位置に変更
+- 射出された文字弾の発射起点を「ステージ右下固定」から「コマンド実行者のキャラ中心」に変更
+- 射出角度も上方向固定から全方向ランダム（360°）に変更し、キャラから四方へ散らばるように
+- **app.js**: `launchBullets()` 内で `getCharCenter(user)` を使用、`angle` を `Math.random() * Math.PI * 2` に変更
+
+---
+
+## v1.82.0 — 2026-05-21
+
+### 🎰 全員スロット開始/停止ボタン追加
+- 管理パネル（index.html・admin.html）のスロット確率セクションに「🎰 全員開始」「⏹ 全員停止」ボタンを追加
+- **全員開始**: ステージ上の全ユーザーに対し、MP >= 1 かつ未スロット中のユーザーを対象に `slotAutoMode = true` で自動スロットを開始
+- **全員停止**: 全ユーザーの `slotAutoMode = false` をセットし、現在の1スピン完了後に自動継続を停止
+- **app.js**: `slotAllStartBtn` / `slotAllStopBtn` イベントリスナー追加
+- **index.html**: スロット確率グループにボタン行追加
+- **admin.html**: スロット確率セクションにボタン行追加（`cmd()` 経由）
+- **style.css**: `.btn-slot-all-start` / `.btn-slot-all-stop` スタイル追加
+
+---
+
+## v1.81.0 — 2026-05-21
+
+### 🔊 スロット効果音 ON/OFF 切り替え
+- 管理パネル（index.html・admin.html）のスロット確率セクションに「🔊 スロット音」トグルボタンを追加
+- ON 状態（デフォルト）: 青色表示、全スロット音再生
+- OFF 状態: 赤色表示、スロットのすべての効果音（開始音・リール停止音・結果音）をミュート
+- 設定は `localStorage`（キー: `slotSoundEnabled`）に保存され、ページリロード後も維持
+- **app.js**: `slotSoundEnabled` フラグ追加、3箇所の `playLocalSound` 呼び出しにガード追加、`initSlotSound()` IIFE で起動時復元、`slotSoundBtn` イベントリスナー追加
+- **index.html**: スロット確率グループ末尾に `id="slotSoundBtn"` ボタン追加
+- **admin.html**: スロット確率セクション末尾に `onclick="cmd('slotSoundBtn')"` ボタン追加
+- **style.css**: `.btn-slot-sound` / `.btn-slot-sound.active` スタイル追加
+
+---
+
+## v1.80.0 — 2026-05-21
+
+### 👾 スピキ生成ボタン追加
+- 管理パネル（admin.html）⚔️ ボス設定セクションに「👾 スピキ生成」ボタンを追加
+- クリックすると専用画像（`img_-0002-2607607172.png`）のスピキボスを召喚
+- ラベルが「👾 スピキ」で表示され、通常ボスと区別可能
+- **スピキボスへの攻撃時は `playSentouSound` が `dragSounds` からランダム再生に切り替わる**（sentouSoundsは使用しない）
+- 射コマンド・ペット攻撃・通常攻撃すべてで適用
+- HP・撃破演出・ダメージランキングは通常ボスと同様
+- **app.js**: `spawnSpikiBoss()`, `playSentouSound()` 修正, `spikiBossBtn` リスナー追加
+- **index.html**: `id="spikiBossBtn"` 非表示ボタン追加
+- **admin.html**: ボス設定セクションにスピキ生成ボタン追加
+
+---
+
+## v1.79.0 — 2026-05-21
+
+### 🚀 射コマンド：ボスへのダメージ対応
+- 射出された文字弾がボスに当たると1〜5ダメージ
+- 通常攻撃と同じ演出（戦闘効果音・ボスフラッシュアニメ・ダメージ数字表示）
+- ダメージは射撃者のユーザーに帰属（ダメージランキングに加算）
+- ボスHPが0になれば通常討伐と同様に `defeatBoss()` を呼び出す
+- `_kaiBossTarget()` ヘルパーで毎フレーム1回だけ `getBoundingClientRect` を呼び出してボス位置を取得
+- 文字弾はボス衝突時に即消滅（貫通なし）
+- **app.js**: `startKaiPhysics`/`_kaiBossTarget` 追加、`launchBullets` に `user` 参照を追加
+
+---
+
+## v1.78.0 — 2026-05-21
+
+### 🚀 射コマンド追加（物理演算）
+- コメントに「射」が含まれていると、コメント文字を1文字ずつ物理弾として右下から発射
+- requestAnimationFrame による物理ループ（`startKaiPhysics` / `kaiStep`）
+  - 重力・壁反射・床摩擦・フェードアウト（寿命後半30%）・速度方向に回転
+- キャラクターとの当たり判定（反射ベクトル計算で跳ね返る）
+- 管理パネルにスライダー4種追加（index.html・admin.html）
+  - 🚀 射出強さ（5〜40）
+  - 反発係数（0〜100%）
+  - 重力（0〜100%）
+  - 弾文字サイズ（16〜64px）
+- `getState` / `applyState` に4スライダーを追加（管理ウィンドウ同期対応）
+- **app.js**: `launchBullets()`, `startKaiPhysics()`, `initKaiSliders()`, handleComment に射判定を追加
+- **style.css**: `.kai-bullet` クラス追加
+- **index.html / admin.html**: 🚀 射コマンド スライダーセクション追加
+
+---
+
+## v1.77.0 — 2026-05-21
+
+### 🗑 ゴミ箱の表示問題を根本修正
+- CSS に `right: 18px; bottom: 18px` をデフォルト位置として追加し、JSポジション設定に失敗しても必ず右下に表示されるように対応
+- `initTrashPosition` を改修：localStorage保存座標がある場合のみJSでleft/topを設定し、ない場合はCSS位置をそのまま使用
+- ドラッグ開始時の初期座標を `style.left` ではなく `getBoundingClientRect` で取得するよう修正（CSS位置との整合性を確保）
+- ドラッグ中は `right/bottom` をautoにクリアしてから `left/top` を設定する処理を追加
+- 透明度を0.45 → 0.65に引き上げてより視認しやすく
+- **style.css**: `#trashCan` に `right/bottom/opacity` 追加
+- **app.js**: `initTrashPosition` / マウスダウン / ドラッグ mousemove を修正
+
+---
+
 ## v1.76.0 — 2026-05-19
 
 ### 💣🗑 爆弾・ゴミ箱の表示切替ボタンを管理パネルに追加

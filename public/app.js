@@ -237,6 +237,11 @@ let sentouSounds = [];
 })();
 
 function playSentouSound() {
+  // スピキボスは攻撃されるたびdrag音をランダム再生
+  if (bossState?.isSpiki && dragSounds.length) {
+    playLocalSound('/sound/drag/' + encodeURIComponent(dragSounds[Math.floor(Math.random() * dragSounds.length)]));
+    return;
+  }
   if (!sentouSounds.length) return;
   playLocalSound('/sound/sentou/' + encodeURIComponent(sentouSounds[Math.floor(Math.random() * sentouSounds.length)]));
 }
@@ -1029,6 +1034,13 @@ let equipHidden  = false;        // 装備アイコン非表示
 let brAutoEnabled = true;        // 自動バトルロイヤル有効フラグ
 let bombHidden   = false;        // 爆弾ボタン非表示
 let trashHidden  = false;        // ゴミ箱非表示
+let slotSoundEnabled = true;    // スロット効果音ON/OFF
+let kaiBullets    = [];          // 射コマンド物理弾リスト
+let kaiAnimId     = null;        // 射物理ループ requestAnimationFrame ID
+let kaiSpeed      = 18;          // 射出強さ
+let kaiRestitution = 0.65;       // 反発係数
+let kaiGravity    = 0.35;        // 重力加速度
+let kaiBulletSize = 32;          // 弾文字サイズ(px)
 let bossDamageMap = {};          // ipid → { name, totalDmg }
 let rankingState     = null;
 let rankingDragState = null;
@@ -1538,7 +1550,7 @@ function charDeath(user) {
     applyAvatarStyle(user);
     updateEquipBadge(user);
     updateStatsDisplay(user);
-  }, 2000);
+  }, 10000);
   updateLevelBadge(user);
   applyAvatarStyle(user);
   updateStatsDisplay(user);
@@ -1632,7 +1644,7 @@ function spawnBoss(maxHp) {
   const bossSize = Math.round((maxHp > 3000
     ? Math.round((1 + Math.random() * 3) * 80)
     : Math.round((80 + Math.min(maxHp - 100, 1900) / 1900 * 200) * 1.5)) * bossSizeScale);
-  const barWidth = Math.min(Math.round(stage.clientWidth * 0.6), Math.max(150, Math.round(bossSize * 1.25)));
+  const barWidth = Math.min(bossSize, Math.round(stage.clientWidth * 0.6));
 
   const el = document.createElement('div');
   el.id = 'bossEl';
@@ -1666,6 +1678,19 @@ function spawnBoss(maxHp) {
     e.preventDefault();
     e.stopPropagation();
   });
+}
+
+function spawnSpikiBoss() {
+  const hp = nextBossHp();
+  spawnBoss(hp);
+  // 画像をスピキ専用に差し替え
+  const ba = bossState.el.querySelector('#bossAvatar');
+  if (ba) ba.innerHTML = `<img src="/chara/img_-0002-2607607172.png" alt="スピキ">`;
+  // ラベル変更
+  const lbl = bossState.el.querySelector('.boss-label');
+  if (lbl) lbl.textContent = '👾 スピキ';
+  bossState.isSpiki = true;
+  addToLog({ name: 'SYSTEM', charDef: null }, `👾 スピキ召喚！ HP:${hp}`, '#a855f7');
 }
 
 function updateBossHpDisplay() {
@@ -2228,7 +2253,7 @@ function handleComment(comment) {
     if (user.afkEl) { user.afkEl.remove(); user.afkEl = null; }
     user.el?.classList.remove('char-afk');
   }
-  if (/AFK/i.test(message)) {
+  if (/AFK|ＡＦＫ/i.test(message)) {
     ensureCharOnStage(user);
     user.afk = true;
     if (user.afkEl) user.afkEl.remove();
@@ -2242,7 +2267,7 @@ function handleComment(comment) {
     return;
   }
   // 放置コマンド: 「放置:テキスト」
-  const afkTextMatch = message.trim().match(/^放置[：:](.+)$/);
+  const afkTextMatch = message.trim().match(/^(?:放置|無明)[：:](.+)$/);
   if (afkTextMatch) {
     ensureCharOnStage(user);
     const text = afkTextMatch[1].trim();
@@ -2255,6 +2280,12 @@ function handleComment(comment) {
     user.afkEl = afkEl;
     user.el.classList.add('char-afk');
     addToLog(user, '💤 放置: ' + text, '#64748b');
+    return;
+  }
+
+  // ── 射コマンド：1文字ずつ物理発射 ───────────────
+  if (message.includes('射')) {
+    launchBullets(user, message);
     return;
   }
 
@@ -3010,6 +3041,10 @@ function spawnBloodBath() {
 
 document.getElementById('battleRoyaleBtn').addEventListener('click', startBattleRoyale);
 
+document.getElementById('spikiBossBtn').addEventListener('click', () => {
+  spawnSpikiBoss();
+});
+
 document.getElementById('dismissBossBtn').addEventListener('click', () => {
   if (!bossState) return;
   bossManuallyCleared = true;
@@ -3096,6 +3131,166 @@ document.getElementById('moveAreaSelect').addEventListener('change', e => {
 })();
 
 // ── AFK表示スライダー（透明度・グレースケール・明るさ） ──────────
+// ── 射コマンド：物理演算ループ ────────────────────────────────────
+function startKaiPhysics() {
+  if (kaiAnimId) return;
+  function step() {
+    const stageW = stage.clientWidth;
+    const stageH = stage.clientHeight;
+    const charTargets = Object.values(users)
+      .filter(u => u.el)
+      .map(u => {
+        const w = u.el.offsetWidth  || 60;
+        const h = u.el.offsetHeight || 80;
+        return { cx: u.x + w * 0.5, cy: u.y + h * 0.45, r: Math.min(w, h) * 0.4 };
+      });
+    const bossTarget = _kaiBossTarget();
+    for (let i = kaiBullets.length - 1; i >= 0; i--) {
+      const b = kaiBullets[i];
+      b.vy += kaiGravity;
+      b.x  += b.vx;
+      b.y  += b.vy;
+      // 壁反射
+      if (b.x - b.r < 0)      { b.x = b.r;          b.vx =  Math.abs(b.vx) * kaiRestitution; }
+      if (b.x + b.r > stageW) { b.x = stageW - b.r; b.vx = -Math.abs(b.vx) * kaiRestitution; }
+      if (b.y - b.r < 0)      { b.y = b.r;           b.vy =  Math.abs(b.vy) * kaiRestitution; }
+      if (b.y + b.r > stageH) {
+        b.y = stageH - b.r;
+        b.vy = -Math.abs(b.vy) * kaiRestitution;
+        if (Math.abs(b.vy) < 1.5) { b.vy = 0; b.vx *= 0.85; }
+      }
+      // キャラクター当たり判定
+      for (const c of charTargets) {
+        const dx = b.x - c.cx, dy = b.y - c.cy;
+        const d2 = dx * dx + dy * dy;
+        const minD = b.r + c.r;
+        if (d2 < minD * minD && d2 > 0) {
+          const d  = Math.sqrt(d2);
+          const nx = dx / d, ny = dy / d;
+          const dot = b.vx * nx + b.vy * ny;
+          if (dot < 0) {
+            b.vx -= (1 + kaiRestitution) * dot * nx;
+            b.vy -= (1 + kaiRestitution) * dot * ny;
+          }
+          const ov = minD - d;
+          b.x += nx * ov; b.y += ny * ov;
+        }
+      }
+      // ボス当たり判定（ヒット後も弾は消えない・クールダウンで連続ダメージ防止）
+      if (bossTarget) {
+        const dx = b.x - bossTarget.cx, dy = b.y - bossTarget.cy;
+        const now = performance.now();
+        if (dx * dx + dy * dy < (b.r + bossTarget.r) ** 2) {
+          if (!b.bossCooldown || now - b.bossCooldown > 500) {
+            b.bossCooldown = now;
+            const dmg = Math.floor(Math.random() * 5) + 1;
+            bossState.hp = Math.max(0, bossState.hp - dmg);
+            updateBossHpDisplay();
+            if (b.user) {
+              if (!bossDamageMap[b.user.ipid]) bossDamageMap[b.user.ipid] = { name: b.user.name || '名無し', totalDmg: 0 };
+              bossDamageMap[b.user.ipid].name = b.user.name || '名無し';
+              bossDamageMap[b.user.ipid].totalDmg += dmg;
+              b.user.totalDmgDealt = (b.user.totalDmgDealt || 0) + dmg;
+            }
+            playSentouSound();
+            const ba = bossState.el.querySelector('#bossAvatar');
+            if (ba) {
+              ba.classList.remove('boss-hit-flash');
+              void ba.offsetWidth;
+              ba.classList.add('boss-hit-flash');
+              ba.addEventListener('animationend', () => ba.classList.remove('boss-hit-flash'), { once: true });
+            }
+            showDamageNumber(
+              bossTarget.cx + (Math.random() - 0.5) * 70,
+              bossTarget.by + 30, dmg, false
+            );
+            if (bossState.hp <= 0 && !bossState.defeated) setTimeout(() => defeatBoss(), 200);
+          }
+        }
+      }
+      // フェードアウト（寿命後半30%）
+      const fadeStart = b.maxLife * 0.7;
+      const alpha = b.life > fadeStart ? 1 - (b.life - fadeStart) / (b.maxLife - fadeStart) : 1;
+      b.el.style.left      = (b.x - b.r) + 'px';
+      b.el.style.top       = (b.y - b.r) + 'px';
+      b.el.style.opacity   = Math.max(0, alpha).toFixed(3);
+      b.el.style.transform = 'rotate(' + (Math.atan2(b.vy, b.vx) * 180 / Math.PI) + 'deg)';
+      b.life++;
+      if (b.life >= b.maxLife) { b.el.remove(); kaiBullets.splice(i, 1); }
+    }
+    kaiAnimId = kaiBullets.length > 0 ? requestAnimationFrame(step) : null;
+  }
+  kaiAnimId = requestAnimationFrame(step);
+}
+// ボス当たり判定rect（step内で毎フレーム1回だけ取得）
+function _kaiBossTarget() {
+  if (!bossState?.el || bossState.defeated) return null;
+  const br = bossState.el.getBoundingClientRect();
+  const sr = stage.getBoundingClientRect();
+  const bx = br.left - sr.left, by = br.top - sr.top;
+  return { cx: bx + br.width * 0.5, cy: by + br.height * 0.45, r: Math.min(br.width, br.height) * 0.45, by, bx };
+}
+
+function launchBullets(user, text) {
+  if (compactMode) return;
+  ensureCharOnStage(user);
+  const chars  = [...text];
+  const colors = ['#ff4444','#ff8c00','#ffd700','#44dd55','#4499ff','#cc44ff','#ff44bb','#00dddd'];
+  addToLog(user, '🚀 射: ' + text, '#f97316');
+  chars.forEach((ch, i) => {
+    setTimeout(() => {
+      const { x: cx, y: cy } = getCharCenter(user);
+      const el = document.createElement('div');
+      el.className = 'kai-bullet';
+      const r = Math.round(kaiBulletSize * 0.55);
+      el.style.cssText = `width:${r*2}px;height:${r*2}px;font-size:${kaiBulletSize}px;color:${colors[i % colors.length]};`;
+      el.textContent = ch;
+      stage.appendChild(el);
+      const targetAngle = Math.atan2(0 - cy, stage.clientWidth / 2 - cx);
+      const angle = targetAngle + (Math.random() - 0.5) * (Math.PI / 6);
+      const speed = kaiSpeed * (0.8 + Math.random() * 0.4);
+      kaiBullets.push({
+        el, r, user,
+        x: cx,
+        y: cy,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 0,
+        maxLife: 300 + Math.floor(Math.random() * 120),
+      });
+      startKaiPhysics();
+    }, i * 70);
+  });
+}
+
+(function initKaiSliders() {
+  const defs = [
+    { id:'kaiSpeedSlider',       valId:'kaiSpeedVal',       key:'kaiSpeed',       def:18, fmt:v=>v,      apply:v=>{ kaiSpeed=v; }            },
+    { id:'kaiRestitutionSlider', valId:'kaiRestitutionVal', key:'kaiRestitution', def:65, fmt:v=>v+'%',  apply:v=>{ kaiRestitution=v/100; }  },
+    { id:'kaiGravitySlider',     valId:'kaiGravityVal',     key:'kaiGravity',     def:35, fmt:v=>v+'%',  apply:v=>{ kaiGravity=v/100; }      },
+    { id:'kaiBulletSizeSlider',  valId:'kaiBulletSizeVal',  key:'kaiBulletSize',  def:32, fmt:v=>v+'px', apply:v=>{ kaiBulletSize=v; }       },
+  ];
+  defs.forEach(({ id, valId, key, def, fmt, apply }) => {
+    const slider = document.getElementById(id);
+    const valEl  = document.getElementById(valId);
+    if (!slider) return;
+    const saved = parseInt(localStorage.getItem(key) ?? def);
+    slider.value = saved;
+    if (valEl) valEl.textContent = fmt(saved);
+    apply(saved);
+    slider.addEventListener('input', () => {
+      const v = parseInt(slider.value);
+      if (valEl) valEl.textContent = fmt(v);
+      apply(v);
+      localStorage.setItem(key, v);
+    });
+    document.getElementById(id.replace('Slider', 'Reset'))?.addEventListener('click', () => {
+      slider.value = def;
+      slider.dispatchEvent(new Event('input'));
+    });
+  });
+})();
+
 (function initAfkSliders() {
   const defs = [
     { id: 'afkOpacitySlider',   valId: 'afkOpacityVal',   key: 'afkOpacity',   def: 45,  cssVar: '--afk-opacity',   toCSS: v => v / 100 },
@@ -3266,24 +3461,31 @@ document.getElementById('imageModal').addEventListener('click', e => {
 // ── ゴミ箱の位置初期化 ──────────────────────────
 (function initTrashPosition() {
   const trashEl = document.getElementById('trashCan');
-  const savedX  = localStorage.getItem('trashX');
-  const savedY  = localStorage.getItem('trashY');
+  const savedX = localStorage.getItem('trashX');
+  const savedY = localStorage.getItem('trashY');
   if (savedX !== null && savedY !== null) {
-    trashEl.style.left = savedX + 'px';
-    trashEl.style.top  = savedY + 'px';
-  } else {
-    trashEl.style.left = (stage.clientWidth  - 72 - 18) + 'px';
-    trashEl.style.top  = (stage.clientHeight - 72 - 18) + 'px';
+    const sw   = stage.clientWidth  || window.innerWidth;
+    const sh   = stage.clientHeight || window.innerHeight;
+    const maxX = Math.max(0, sw - 72);
+    const maxY = Math.max(0, sh - 72);
+    const x    = Math.max(0, Math.min(maxX, parseInt(savedX) || 0));
+    const y    = Math.max(0, Math.min(maxY, parseInt(savedY) || 0));
+    trashEl.style.right  = 'auto';
+    trashEl.style.bottom = 'auto';
+    trashEl.style.left   = x + 'px';
+    trashEl.style.top    = y + 'px';
   }
+  // 保存座標がない場合はCSSの right:18px bottom:18px がそのまま有効
 })();
 
 document.getElementById('trashCan').addEventListener('mousedown', e => {
   if (e.button !== 0 || dragState) return;
-  const trashEl  = document.getElementById('trashCan');
+  const trashEl   = document.getElementById('trashCan');
+  const trashRect = trashEl.getBoundingClientRect();
   const stageRect = stage.getBoundingClientRect();
   trashDragState = {
-    ox: parseInt(trashEl.style.left) || 0,
-    oy: parseInt(trashEl.style.top)  || 0,
+    ox: trashRect.left - stageRect.left,
+    oy: trashRect.top  - stageRect.top,
     sx: e.clientX,
     sy: e.clientY,
   };
@@ -3370,8 +3572,10 @@ document.addEventListener('mousemove', e => {
     const stageRect = stage.getBoundingClientRect();
     const x = Math.max(0, Math.min(stageRect.width  - 72, ox + (e.clientX - sx)));
     const y = Math.max(0, Math.min(stageRect.height - 72, oy + (e.clientY - sy)));
-    trashEl.style.left = x + 'px';
-    trashEl.style.top  = y + 'px';
+    trashEl.style.right  = 'auto';
+    trashEl.style.bottom = 'auto';
+    trashEl.style.left   = x + 'px';
+    trashEl.style.top    = y + 'px';
     return;
   }
 
@@ -4262,7 +4466,7 @@ const SLOT_PANEL_MS = SLOT_TOTAL_MS + 1600;    // パネル消滅まで
 function playSlot(user) {
   if (!user.el) return;
   user.slotSpinning = true;
-  playLocalSound(SOUND_SLOT_START, 0.7);
+  if (slotSoundEnabled) playLocalSound(SOUND_SLOT_START, 0.7);
 
   const { reels, result } = rollSlotOutcome();
 
@@ -4287,7 +4491,7 @@ function playSlot(user) {
       reelEls[i].textContent = reels[i];
       reelEls[i].classList.remove('slot-spinning');
       reelEls[i].classList.add('slot-stopped');
-      playLocalSound(SOUND_SLOT_STOP);
+      if (slotSoundEnabled) playLocalSound(SOUND_SLOT_STOP);
     }, (i + 1) * SLOT_INTERVAL);
   });
 
@@ -4295,7 +4499,7 @@ function playSlot(user) {
     if (!panel.isConnected) return;
     resultEl.textContent = result.label;
     resultEl.className   = 'slot-result' + (result.mp > 0 ? ' slot-win' : '');
-    playLocalSound(result.sound);
+    if (slotSoundEnabled) playLocalSound(result.sound);
 
     if (result.mp > 0) {
       user.mp = (user.mp ?? 0) + result.mp;
@@ -4399,6 +4603,33 @@ document.getElementById('toggleTrashBtn').addEventListener('click', () => {
   trashHidden = !trashHidden;
   document.getElementById('trashCan').style.display = trashHidden ? 'none' : '';
   document.getElementById('toggleTrashBtn').classList.toggle('active', trashHidden);
+});
+
+document.getElementById('slotSoundBtn').addEventListener('click', () => {
+  slotSoundEnabled = !slotSoundEnabled;
+  document.getElementById('slotSoundBtn').classList.toggle('active', !slotSoundEnabled);
+  localStorage.setItem('slotSoundEnabled', slotSoundEnabled ? '1' : '0');
+});
+(function initSlotSound() {
+  const saved = localStorage.getItem('slotSoundEnabled');
+  if (saved === '0') {
+    slotSoundEnabled = false;
+    document.getElementById('slotSoundBtn').classList.add('active');
+  }
+})();
+
+document.getElementById('slotAllStartBtn').addEventListener('click', () => {
+  Object.values(users).filter(u => u.el && !u.slotAutoMode && !u.slotSpinning).forEach(u => {
+    if ((u.mp ?? 0) < 1) return;
+    u.slotAutoMode = true;
+    u.mp -= 1;
+    updateStatsDisplay(u);
+    playSlot(u);
+  });
+});
+
+document.getElementById('slotAllStopBtn').addEventListener('click', () => {
+  Object.values(users).filter(u => u.el).forEach(u => { u.slotAutoMode = false; });
 });
 
 document.getElementById('brAutoBtn').addEventListener('click', () => {
@@ -5101,7 +5332,8 @@ function handleAdminMessage(d, replyFn) {
     const sliderIds = ['nikoSizeSlider','nikoOpacitySlider','hayaoshiFreqSlider','hayaoshiSpeedSlider',
                        'bossHpScaleSlider','bossAtkCoeffSlider','counterRateSlider','charSizeSlider','bossSizeSlider','brHpMultSlider',
                        'slotProbCherry','slotProbBell','slotProbStar','slotProbDiamond','slotProbJackpot',
-                       'afkOpacitySlider','afkGrayscaleSlider','afkBrightnessSlider'];
+                       'afkOpacitySlider','afkGrayscaleSlider','afkBrightnessSlider',
+                       'kaiSpeedSlider','kaiRestitutionSlider','kaiGravitySlider','kaiBulletSizeSlider'];
     const state = {};
     sliderIds.forEach(sid => { const el = document.getElementById(sid); if (el) state[sid] = el.value; });
     state.bgColor    = document.getElementById('bgColor')?.value;
