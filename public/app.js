@@ -1027,6 +1027,8 @@ let debugMode  = false;          // デバッグモード（全キャラATK=50�
 let compactMode = false;         // コンパクトモード
 let equipHidden  = false;        // 装備アイコン非表示
 let brAutoEnabled = true;        // 自動バトルロイヤル有効フラグ
+let bombHidden   = false;        // 爆弾ボタン非表示
+let trashHidden  = false;        // ゴミ箱非表示
 let bossDamageMap = {};          // ipid → { name, totalDmg }
 let rankingState     = null;
 let rankingDragState = null;
@@ -4385,6 +4387,18 @@ document.getElementById('hideEquipBtn').addEventListener('click', () => {
   equipHidden = !equipHidden;
   stage.classList.toggle('equip-hidden', equipHidden);
   document.getElementById('hideEquipBtn').classList.toggle('active', equipHidden);
+});
+
+document.getElementById('toggleBombBtn').addEventListener('click', () => {
+  bombHidden = !bombHidden;
+  document.getElementById('bombBtn').style.display = bombHidden ? 'none' : '';
+  document.getElementById('toggleBombBtn').classList.toggle('active', bombHidden);
+});
+
+document.getElementById('toggleTrashBtn').addEventListener('click', () => {
+  trashHidden = !trashHidden;
+  document.getElementById('trashCan').style.display = trashHidden ? 'none' : '';
+  document.getElementById('toggleTrashBtn').classList.toggle('active', trashHidden);
 });
 
 document.getElementById('brAutoBtn').addEventListener('click', () => {
