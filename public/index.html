@@ -227,9 +227,148 @@
     <div id="bombBtn" title="💣 全員爆破">💣</div>
     <div id="emptyHint">
       <div class="hint-title">👆 開始ボタンを押してください</div>
-      <div class="hint-commands">
-        視聴者がコメントで「キャラ1」〜「キャラ10」と入力するとキャラが登場します<br>
-        <a href="/help.html" target="_blank" style="color:#111;text-decoration:underline">❓ コマンド一覧を見る</a>
+      <div class="hint-subtitle">視聴者がコメントでコマンドを入力してキャラクターを操作できます</div>
+
+      <div class="hint-grid">
+
+        <!-- キャラクター -->
+        <div class="hint-card">
+          <div class="hint-card-title">🧑 キャラクター登場・変更</div>
+          <dl class="hint-dl">
+            <dt>キャラ1〜500</dt><dd>指定番号のキャラで登場</dd>
+            <dt>キャラ（番号なし）</dt><dd>ランダムキャラで登場</dd>
+            <dt>名前：〇〇</dt><dd>表示名を変更（1〜20文字）</dd>
+            <dt>色：赤/青/緑…</dt><dd>キャラカラーを変更</dd>
+            <dt>大きさ：大/中/小</dt><dd>キャラサイズを変更</dd>
+          </dl>
+        </div>
+
+        <!-- モーション・移動 -->
+        <div class="hint-card">
+          <div class="hint-card-title">🎮 モーション・移動</div>
+          <dl class="hint-dl">
+            <dt>歩く</dt><dd>歩行モーション</dd>
+            <dt>はずむ</dt><dd>バウンスモーション</dd>
+            <dt>回転</dt><dd>スピンモーション</dd>
+            <dt>震える</dt><dd>震えモーション</dd>
+            <dt>ぐにゃぐにゃ</dt><dd>ウェーブモーション</dd>
+            <dt>止まれ</dt><dd>動きを止める</dd>
+            <dt>移動：速い/普通/遅い</dt><dd>自動移動速度を変更</dd>
+            <dt>上/下/左/右：数値</dt><dd>指定方向へ移動（px）</dd>
+          </dl>
+        </div>
+
+        <!-- 吹き出し・テキスト -->
+        <div class="hint-card">
+          <div class="hint-card-title">💬 吹き出し・テキスト装飾</div>
+          <dl class="hint-dl">
+            <dt>吹き出し：丸/四角/雲</dt><dd>吹き出し形状変更</dd>
+            <dt>吹き出し：棘/ハート/思考/叫び</dt><dd>吹き出し形状変更</dd>
+            <dt>飾り：光る/グロー/虹/点線/なし</dt><dd>テキスト装飾</dd>
+            <dt>文字サイズ：極大/大/中/小/極小</dt><dd>文字サイズ変更</dd>
+            <dt>フォント：フォント名</dt><dd>フォント変更（55種以上）</dd>
+            <dt>太字</dt><dd>太字表示</dd>
+            <dt>斜体</dt><dd>斜体表示</dd>
+          </dl>
+        </div>
+
+        <!-- スロット -->
+        <div class="hint-card">
+          <div class="hint-card-title">🎰 スロット（1MP/回）</div>
+          <dl class="hint-dl">
+            <dt>スロット</dt><dd>1回だけ実行</dd>
+            <dt>スロット開始</dt><dd>自動連続スロット開始</dd>
+            <dt>スロット停止</dt><dd>自動スロットを停止</dd>
+          </dl>
+          <table class="hint-table">
+            <tr><th>役</th><th>確率</th><th>報酬MP</th></tr>
+            <tr><td>🍒×3 チェリー</td><td>20%</td><td>+5</td></tr>
+            <tr><td>🔔×3 ベル</td><td>10%</td><td>+10</td></tr>
+            <tr><td>⭐×3 スター</td><td>5%</td><td>+25</td></tr>
+            <tr><td>💎×3 ダイヤ</td><td>1%</td><td>+60</td></tr>
+            <tr><td>7️⃣×3 JACKPOT</td><td>0.5%</td><td>+200</td></tr>
+          </table>
+        </div>
+
+        <!-- ペットガチャ -->
+        <div class="hint-card">
+          <div class="hint-card-title">🐾 ペットガチャ（10MP）</div>
+          <dl class="hint-dl">
+            <dt>ペットガチャ</dt><dd>ランダムでペットを獲得</dd>
+          </dl>
+          <div class="hint-rarity-row">
+            <span class="hint-rarity nr">ノーマル 50%</span>
+            <span class="hint-rarity r">レア 25%</span>
+            <span class="hint-rarity ep">エピック 15%</span>
+            <span class="hint-rarity lg">伝説 5%</span>
+            <span class="hint-rarity my">神話 5%</span>
+          </div>
+          <div class="hint-note">20回目でペット2枠目解放。ペット能力は自動発動。</div>
+        </div>
+
+        <!-- ボス・戦闘 -->
+        <div class="hint-card">
+          <div class="hint-card-title">⚔️ ボス・戦闘・回復</div>
+          <dl class="hint-dl">
+            <dt>ボス召喚</dt><dd>ボスを召喚（バトロワ中は不可）</dd>
+            <dt>ボス召喚：数値</dt><dd>HP指定でボス召喚</dd>
+            <dt>（任意コメント）</dt><dd>ボス戦中は文字数×ATKでダメージ</dd>
+            <dt>回復</dt><dd>2MP消費、全体HP+2回復</dd>
+            <dt>開ける</dt><dd>宝箱を開ける（装備・MPドロップ）</dd>
+          </dl>
+          <div class="hint-note">倒すと全員に装備ドロップ。装備はATK/DEFを強化。</div>
+        </div>
+
+        <!-- AFK・放置 -->
+        <div class="hint-card">
+          <div class="hint-card-title">💤 AFK・放置</div>
+          <dl class="hint-dl">
+            <dt>AFK</dt><dd>「💤 AFK」を表示し続ける</dd>
+            <dt>放置：テキスト</dt><dd>任意テキストを表示し続ける</dd>
+          </dl>
+          <div class="hint-note">次のチャット送信で自動解除。透明度・グレーアウト強度は管理パネルで調整可能。</div>
+        </div>
+
+        <!-- エフェクト -->
+        <div class="hint-card">
+          <div class="hint-card-title">🎆 エフェクト・その他</div>
+          <dl class="hint-dl">
+            <dt>花火</dt><dd>花火エフェクト</dd>
+            <dt>紙吹雪</dt><dd>紙吹雪エフェクト</dd>
+            <dt>流れ星</dt><dd>流れ星エフェクト</dd>
+            <dt>ハートシャワー</dt><dd>ハートシャワー</dd>
+            <dt>ステータス確認</dt><dd>自分のステータスをポップアップ表示</dd>
+          </dl>
+        </div>
+
+        <!-- ゲームモード -->
+        <div class="hint-card">
+          <div class="hint-card-title">📝 ゲームモード（管理者が開始）</div>
+          <dl class="hint-dl">
+            <dt>Wordle</dt><dd>カタカナ5文字で回答（最大6回）</dd>
+            <dt>クイズ</dt><dd>答えをコメントで送信（30秒以内）</dd>
+            <dt>早押し</dt><dd>問題に合わせたキーワードをコメント</dd>
+            <dt>バトルロイヤル</dt><dd>「参加」でエントリー、コメントで攻撃</dd>
+          </dl>
+        </div>
+
+        <!-- 自動機能 -->
+        <div class="hint-card">
+          <div class="hint-card-title">⚙️ 自動機能・仕様</div>
+          <dl class="hint-dl">
+            <dt>コメントごと</dt><dd>EXP+1（一定量でレベルアップ）</dd>
+            <dt>レベルアップ</dt><dd>ATK・最大HP強化</dd>
+            <dt>初コメ</dt><dd>自動で太字表示</dd>
+            <dt>MPの上限</dt><dd>なし（スロット・回復・ペットガチャで消費）</dd>
+            <dt>コンボ</dt><dd>同コメ連続でダメージボーナス</dd>
+            <dt>長コメ</dt><dd>15文字以上でカウント（称号に影響）</dd>
+          </dl>
+        </div>
+
+      </div>
+
+      <div class="hint-footer">
+        <a href="/help.html" target="_blank" style="color:#334155;text-decoration:underline;pointer-events:auto">❓ コマンド詳細・フォント一覧はこちら</a>
       </div>
     </div>
   </div>

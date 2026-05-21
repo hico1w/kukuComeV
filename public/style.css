@@ -313,15 +313,105 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 14px;
-  pointer-events: none;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 16px 12px 20px;
+  overflow-y: auto;
+  pointer-events: auto;
 }
 #emptyHint.hidden { display: none; }
 
 .hint-title {
-  font-size: 16px;
-  color: rgba(0,0,0,0.45);
+  font-size: 15px;
+  font-weight: bold;
+  color: rgba(0,0,0,0.5);
+  flex-shrink: 0;
+}
+.hint-subtitle {
+  font-size: 12px;
+  color: rgba(0,0,0,0.4);
+  flex-shrink: 0;
+}
+.hint-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 8px;
+  width: 100%;
+  max-width: 1280px;
+}
+.hint-card {
+  background: rgba(255,255,255,0.84);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-size: 11px;
+}
+.hint-card-title {
+  font-size: 12px;
+  font-weight: bold;
+  color: #1e293b;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+.hint-dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 8px;
+  margin: 0;
+}
+.hint-dl dt {
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+}
+.hint-dl dd {
+  margin: 0;
+  color: #475569;
+}
+.hint-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 6px;
+  font-size: 11px;
+}
+.hint-table th {
+  background: rgba(0,0,0,0.07);
+  padding: 2px 5px;
+  text-align: center;
+  font-weight: bold;
+}
+.hint-table td {
+  padding: 2px 5px;
+  text-align: center;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.hint-rarity-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+.hint-rarity {
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: bold;
+}
+.hint-rarity.nr { background:#e2e8f0; color:#475569; }
+.hint-rarity.r  { background:#bbf7d0; color:#166534; }
+.hint-rarity.ep { background:#bfdbfe; color:#1e40af; }
+.hint-rarity.lg { background:#e9d5ff; color:#6b21a8; }
+.hint-rarity.my { background:#fef08a; color:#713f12; }
+.hint-note {
+  font-size: 10px;
+  color: #64748b;
+  margin-top: 5px;
+}
+.hint-footer {
+  font-size: 12px;
+  color: rgba(0,0,0,0.4);
+  flex-shrink: 0;
 }
 .hint-commands {
   font-size: 12px;
