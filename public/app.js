@@ -474,6 +474,17 @@ function createCharacter(user) {
   scheduleMove(user);
   restoreMotion(user);
 
+  // AFK/放置状態の復元
+  if (user.afk || user.afkText) {
+    if (user.afkEl) user.afkEl.remove();
+    const afkEl = document.createElement('div');
+    afkEl.className = 'afk-bubble';
+    afkEl.textContent = '💤 ' + (user.afkText || 'AFK');
+    el.appendChild(afkEl);
+    user.afkEl = afkEl;
+    el.classList.add('char-afk');
+  }
+
   // 名前クリックでステータスモーダル（手動クローズ）
   el.querySelector('.char-name')?.addEventListener('click', e => {
     e.stopPropagation();
@@ -2209,8 +2220,9 @@ function handleComment(comment) {
   }
 
   // ── AFK ───────────────────────────────────────
-  if (user.afk) {
+  if (user.afk || user.afkText) {
     user.afk = false;
+    user.afkText = null;
     if (user.afkEl) { user.afkEl.remove(); user.afkEl = null; }
     user.el?.classList.remove('char-afk');
   }
@@ -2225,6 +2237,22 @@ function handleComment(comment) {
     user.afkEl = afkEl;
     user.el.classList.add('char-afk');
     addToLog(user, '💤 AFK', '#64748b');
+    return;
+  }
+  // 放置コマンド: 「放置:テキスト」
+  const afkTextMatch = message.trim().match(/^放置[：:](.+)$/);
+  if (afkTextMatch) {
+    ensureCharOnStage(user);
+    const text = afkTextMatch[1].trim();
+    user.afkText = text;
+    if (user.afkEl) user.afkEl.remove();
+    const afkEl = document.createElement('div');
+    afkEl.className = 'afk-bubble';
+    afkEl.textContent = '💤 ' + text;
+    user.el.appendChild(afkEl);
+    user.afkEl = afkEl;
+    user.el.classList.add('char-afk');
+    addToLog(user, '💤 放置: ' + text, '#64748b');
     return;
   }
 
