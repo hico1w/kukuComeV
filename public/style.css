@@ -1104,7 +1104,7 @@ body {
 .character.char-burning .avatar { animation: charBurning 0.4s ease-in-out infinite !important; }
 
 /* AFK状態（薄暗く、敵攻撃無効） */
-.character.char-afk { opacity: 0.45; filter: grayscale(0.6) brightness(0.55); }
+.character.char-afk { opacity: var(--afk-opacity, 0.45); filter: grayscale(0.6) brightness(0.55); }
 .character.char-afk .avatar { animation: none !important; }
 
 /* 突進エフェクト（残像） */

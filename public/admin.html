@@ -354,6 +354,13 @@
     <span id="bossSizeVal" class="size-val">100%</span>
     <button class="btn-reset" onclick="resetSlider('bossSizeSlider',100,'bossSizeVal',v=>v+'%')">↺</button>
   </div>
+  <div class="size-row">
+    <span class="size-label">💤 AFK透明度</span>
+    <input type="range" id="afkOpacitySlider" min="0" max="100" value="45" class="size-slider"
+           oninput="syncSlider(this,'afkOpacityVal',v=>v+'%')">
+    <span id="afkOpacityVal" class="size-val">45%</span>
+    <button class="btn-reset" onclick="resetSlider('afkOpacitySlider',45,'afkOpacityVal',v=>v+'%')">↺</button>
+  </div>
 </div>
 
 <!-- システム -->
@@ -628,6 +635,7 @@
       { id:'slotProbStar',       valId:'slotProbStarVal',    fmt: v=>parseFloat(v)+'%' },
       { id:'slotProbDiamond',    valId:'slotProbDiamondVal', fmt: v=>parseFloat(v)+'%' },
       { id:'slotProbJackpot',    valId:'slotProbJackpotVal', fmt: v=>parseFloat(v)+'%' },
+      { id:'afkOpacitySlider',   valId:'afkOpacityVal',      fmt: v=>v+'%'             },
     ];
     sliderDefs.forEach(({ id, valId, fmt }) => {
       if (s[id] !== undefined) {

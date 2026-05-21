@@ -3093,6 +3093,27 @@ document.getElementById('moveAreaSelect').addEventListener('change', e => {
   });
 })();
 
+// ── AFK透明度スライダー ────────────────────────────────────────────
+(function initAfkOpacitySlider() {
+  const slider = document.getElementById('afkOpacitySlider');
+  const val    = document.getElementById('afkOpacityVal');
+  if (!slider) return;
+  const saved = parseInt(localStorage.getItem('afkOpacity') ?? '45');
+  slider.value = saved;
+  val.textContent = saved + '%';
+  document.documentElement.style.setProperty('--afk-opacity', saved / 100);
+  slider.addEventListener('input', () => {
+    const v = parseInt(slider.value);
+    val.textContent = v + '%';
+    document.documentElement.style.setProperty('--afk-opacity', v / 100);
+    localStorage.setItem('afkOpacity', v);
+  });
+  document.getElementById('afkOpacityReset')?.addEventListener('click', () => {
+    slider.value = 45;
+    slider.dispatchEvent(new Event('input'));
+  });
+})();
+
 (function initNikoSliders() {
   const sizeSlider = document.getElementById('nikoSizeSlider');
   const sizeVal    = document.getElementById('nikoSizeVal');
@@ -5058,7 +5079,8 @@ function handleAdminMessage(d, replyFn) {
   } else if (d.type === 'getState' || d.type === 'ping') {
     const sliderIds = ['nikoSizeSlider','nikoOpacitySlider','hayaoshiFreqSlider','hayaoshiSpeedSlider',
                        'bossHpScaleSlider','bossAtkCoeffSlider','counterRateSlider','charSizeSlider','bossSizeSlider','brHpMultSlider',
-                       'slotProbCherry','slotProbBell','slotProbStar','slotProbDiamond','slotProbJackpot'];
+                       'slotProbCherry','slotProbBell','slotProbStar','slotProbDiamond','slotProbJackpot',
+                       'afkOpacitySlider'];
     const state = {};
     sliderIds.forEach(sid => { const el = document.getElementById(sid); if (el) state[sid] = el.value; });
     state.bgColor    = document.getElementById('bgColor')?.value;
