@@ -361,6 +361,20 @@
     <span id="afkOpacityVal" class="size-val">45%</span>
     <button class="btn-reset" onclick="resetSlider('afkOpacitySlider',45,'afkOpacityVal',v=>v+'%')">↺</button>
   </div>
+  <div class="size-row">
+    <span class="size-label">💤 グレースケール</span>
+    <input type="range" id="afkGrayscaleSlider" min="0" max="100" value="60" class="size-slider"
+           oninput="syncSlider(this,'afkGrayscaleVal',v=>v+'%')">
+    <span id="afkGrayscaleVal" class="size-val">60%</span>
+    <button class="btn-reset" onclick="resetSlider('afkGrayscaleSlider',60,'afkGrayscaleVal',v=>v+'%')">↺</button>
+  </div>
+  <div class="size-row">
+    <span class="size-label">💤 明るさ</span>
+    <input type="range" id="afkBrightnessSlider" min="0" max="100" value="55" class="size-slider"
+           oninput="syncSlider(this,'afkBrightnessVal',v=>v+'%')">
+    <span id="afkBrightnessVal" class="size-val">55%</span>
+    <button class="btn-reset" onclick="resetSlider('afkBrightnessSlider',55,'afkBrightnessVal',v=>v+'%')">↺</button>
+  </div>
 </div>
 
 <!-- システム -->
@@ -635,7 +649,9 @@
       { id:'slotProbStar',       valId:'slotProbStarVal',    fmt: v=>parseFloat(v)+'%' },
       { id:'slotProbDiamond',    valId:'slotProbDiamondVal', fmt: v=>parseFloat(v)+'%' },
       { id:'slotProbJackpot',    valId:'slotProbJackpotVal', fmt: v=>parseFloat(v)+'%' },
-      { id:'afkOpacitySlider',   valId:'afkOpacityVal',      fmt: v=>v+'%'             },
+      { id:'afkOpacitySlider',   valId:'afkOpacityVal',   fmt: v=>v+'%' },
+      { id:'afkGrayscaleSlider', valId:'afkGrayscaleVal', fmt: v=>v+'%' },
+      { id:'afkBrightnessSlider',valId:'afkBrightnessVal',fmt: v=>v+'%' },
     ];
     sliderDefs.forEach(({ id, valId, fmt }) => {
       if (s[id] !== undefined) {

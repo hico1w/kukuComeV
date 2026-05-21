@@ -3093,24 +3093,31 @@ document.getElementById('moveAreaSelect').addEventListener('change', e => {
   });
 })();
 
-// ── AFK透明度スライダー ────────────────────────────────────────────
-(function initAfkOpacitySlider() {
-  const slider = document.getElementById('afkOpacitySlider');
-  const val    = document.getElementById('afkOpacityVal');
-  if (!slider) return;
-  const saved = parseInt(localStorage.getItem('afkOpacity') ?? '45');
-  slider.value = saved;
-  val.textContent = saved + '%';
-  document.documentElement.style.setProperty('--afk-opacity', saved / 100);
-  slider.addEventListener('input', () => {
-    const v = parseInt(slider.value);
-    val.textContent = v + '%';
-    document.documentElement.style.setProperty('--afk-opacity', v / 100);
-    localStorage.setItem('afkOpacity', v);
-  });
-  document.getElementById('afkOpacityReset')?.addEventListener('click', () => {
-    slider.value = 45;
-    slider.dispatchEvent(new Event('input'));
+// ── AFK表示スライダー（透明度・グレースケール・明るさ） ──────────
+(function initAfkSliders() {
+  const defs = [
+    { id: 'afkOpacitySlider',   valId: 'afkOpacityVal',   key: 'afkOpacity',   def: 45,  cssVar: '--afk-opacity',   toCSS: v => v / 100 },
+    { id: 'afkGrayscaleSlider', valId: 'afkGrayscaleVal', key: 'afkGrayscale', def: 60,  cssVar: '--afk-grayscale', toCSS: v => v / 100 },
+    { id: 'afkBrightnessSlider',valId: 'afkBrightnessVal',key: 'afkBrightness',def: 55,  cssVar: '--afk-brightness',toCSS: v => v / 100 },
+  ];
+  defs.forEach(({ id, valId, key, def, cssVar, toCSS }) => {
+    const slider = document.getElementById(id);
+    const valEl  = document.getElementById(valId);
+    if (!slider) return;
+    const saved = parseInt(localStorage.getItem(key) ?? def);
+    slider.value = saved;
+    if (valEl) valEl.textContent = saved + '%';
+    document.documentElement.style.setProperty(cssVar, toCSS(saved));
+    slider.addEventListener('input', () => {
+      const v = parseInt(slider.value);
+      if (valEl) valEl.textContent = v + '%';
+      document.documentElement.style.setProperty(cssVar, toCSS(v));
+      localStorage.setItem(key, v);
+    });
+    document.getElementById(id.replace('Slider', 'Reset'))?.addEventListener('click', () => {
+      slider.value = def;
+      slider.dispatchEvent(new Event('input'));
+    });
   });
 })();
 
@@ -5080,7 +5087,7 @@ function handleAdminMessage(d, replyFn) {
     const sliderIds = ['nikoSizeSlider','nikoOpacitySlider','hayaoshiFreqSlider','hayaoshiSpeedSlider',
                        'bossHpScaleSlider','bossAtkCoeffSlider','counterRateSlider','charSizeSlider','bossSizeSlider','brHpMultSlider',
                        'slotProbCherry','slotProbBell','slotProbStar','slotProbDiamond','slotProbJackpot',
-                       'afkOpacitySlider'];
+                       'afkOpacitySlider','afkGrayscaleSlider','afkBrightnessSlider'];
     const state = {};
     sliderIds.forEach(sid => { const el = document.getElementById(sid); if (el) state[sid] = el.value; });
     state.bgColor    = document.getElementById('bgColor')?.value;
