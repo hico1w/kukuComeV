@@ -2,6 +2,15 @@
 
 ---
 
+## v2.32.0 — 2026-05-23
+
+### 💾 管理パネルの設定を localStorage に直接保存するよう修正
+- `admin.html` の `sendSDText` / `sendTTSText` / `sendAIText` / `sendVolumeText` に `localStorage.setItem(key, value)` を追加
+- 変更前: adminSend 経由で main ページが受信した時だけ保存 → 接続が切れていると消失
+- 変更後: admin.html が変更と同時に直接 localStorage に書き込む（main ページへの送信と並行）
+
+---
+
 ## v2.31.0 — 2026-05-23
 
 ### 💾 管理パネルの設定保存を修正

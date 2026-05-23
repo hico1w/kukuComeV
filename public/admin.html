@@ -911,18 +911,22 @@
   }
 
   function sendSDText(key, value) {
+    localStorage.setItem(key, value);
     adminSend({ type: 'sdText', key, value });
   }
 
   function sendTTSText(key, value) {
+    localStorage.setItem(key, value);
     adminSend({ type: 'ttsText', key, value });
   }
 
   function sendAIText(key, value) {
+    localStorage.setItem(key, value);
     adminSend({ type: 'aiText', key, value });
   }
 
   function sendVolumeText(key, value) {
+    localStorage.setItem(key, value);
     adminSend({ type: 'volumeText', key, value });
   }
 
