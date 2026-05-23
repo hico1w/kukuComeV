@@ -1038,7 +1038,8 @@
   </div>
 
   <script>
-    const STANDALONE_CHARS = ["00004-159183190.png","00027-104778952.png","00088-37272471.png","00098-1412327967.png","00145-3565940783.png","00180-2373247942.png","00181-100637137.png","00187-150337088.png","00520-1559860186.png","00536-1081971587.png","02f167a6-f29c-4e92-a51d-5d5c4b4bb41e.png","06bbaa60-4404-4049-a877-79388923e5a0.png","0fe214b1-ac41-4d71-9f9c-41fefe05fb66 (1).png","17ba8402c-6aad-4687-b187-444538fbf4e3.png","1e743fb4-fdd4-4795-8439-acbe9187cbdf.png","20250601065914_db8b8f.png","20260102222250_08cba8.png","247805.png","248008.png","248106.png","265631.png","3.png","340.webp","407de.png","47cf257515ce38d88dd97b22f664e02f.png","500cc.png","5853d.png","85a6b.png","8YN0b3v.png","96453884795d2144bc0c47a4bc0dd40c.png","ageru_dot.png","andono.png","babyageru.png","babyhico.png","babyou.png","baka.png","BCO.c3410ddd-15c4-48be-965a-710039e85cce.png","butterfly.png","ChatGPT Image 2026年1月4日 01_37_38.png","content.png","cureageru.png","d9de8fe5ed0a6e3573ea12ff7268909f.png","dowageru.png","feafae.png","fefaefage35.png","fefer246t34.png","ffffdsfsd.png","fgaeea24ty.png","gacho.png","gatitoukaw_diferuw.png","gatitoukaw_hagarenaiw.png","gatitoukaw_hicobabyw.png","gatitoukawomukyuaw.png","gelato_pique.mushi.png","gothicageru.png","h8240h8g4.png","hamager2u.png","hikoholmes.png","hikomusi.png","img_-0000-1642450378.png","img_-0000-3139744839.png","img_-0000-447762712.png","img_-0002-2607607172.png","img_-0003-1065042707.png","img_-0004-1065042707.png","img_-0011-959000735.png","img_-0019-3973524258.png","img_-0023-716318130.png","img_-0025-16269871.png","KH.png","kisyokeee.png","kisyoneko.mushi.png","kisyoneko.neko.png","lightningafro2.PNG","magicaldraw_20250904_174643.jpg","moonrat.png","moonrat_origin.png","neceageru.png","pirateage.png","pogo.png","pundldygjkk.png","sageru.png","sf6anti.png","ssf4fuerte.png","ssf4hakan.png","strike.png","tree_yashinoki_long.png","uchuage.png","umariage.png","whichdottiw.png"];
+    // data/charImages.json と完全一致するキャラN→ファイル名マップ
+    const STANDALONE_CHARS = {"1":"00004-159183190.png","2":"00027-104778952.png","3":"00088-37272471.png","4":"00098-1412327967.png","5":"00145-3565940783.png","6":"00180-2373247942.png","7":"00181-100637137.png","8":"00187-150337088.png","9":"00520-1559860186.png","10":"00536-1081971587.png","11":"02f167a6-f29c-4e92-a51d-5d5c4b4bb41e.png","12":"06bbaa60-4404-4049-a877-79388923e5a0.png","13":"0fe214b1-ac41-4d71-9f9c-41fefe05fb66 (1).png","14":"17ba8402c-6aad-4687-b187-444538fbf4e3.png","15":"1e743fb4-fdd4-4795-8439-acbe9187cbdf.png","16":"20250601065914_db8b8f.png","17":"20260102222250_08cba8.png","18":"247805.png","19":"248008.png","20":"248106.png","21":"265631.png","22":"3.png","23":"340.webp","24":"407de.png","25":"47cf257515ce38d88dd97b22f664e02f.png","26":"500cc.png","27":"5853d.png","28":"85a6b.png","29":"8YN0b3v.png","30":"96453884795d2144bc0c47a4bc0dd40c.png","31":"BCO.c3410ddd-15c4-48be-965a-710039e85cce.png","32":"ChatGPT Image 2026年1月4日 01_37_38.png","33":"KH.png","34":"age.png","35":"ageru_dot.png","36":"andono.png","37":"babyageru.png","38":"babyhico.png","39":"babyou.png","40":"baka.png","41":"butterfly.png","42":"content.png","43":"cureageru.png","44":"d9de8fe5ed0a6e3573ea12ff7268909f.png","45":"dowageru.png","46":"feafae.png","47":"fefaefage35.png","48":"fefer246t34.png","49":"ffffdsfsd.png","50":"fgaeea24ty.png","51":"gacho.png","52":"gatitoukaw_diferuw.png","53":"gatitoukaw_hagarenaiw.png","54":"gatitoukaw_hicobabyw.png","55":"gatitoukawomukyuaw.png","56":"gelato_pique.mushi.png","57":"gothicageru.png","58":"h8240h8g4.png","59":"hamager2u.png","60":"hikoholmes.png","61":"hikomusi.png","62":"img_-0000-1642450378.png","63":"img_-0000-3139744839.png","64":"img_-0000-447762712.png","65":"img_-0002-2607607172.png","66":"img_-0003-1065042707.png","67":"img_-0004-1065042707.png","68":"img_-0011-959000735.png","69":"img_-0019-3973524258.png","70":"img_-0023-716318130.png","71":"img_-0025-16269871.png","72":"kisyokeee.png","73":"kisyoneko.mushi.png","74":"kisyoneko.neko.png","75":"lightningafro2.PNG","76":"magicaldraw_20250904_174643.jpg","77":"moonrat.png","78":"moonrat_origin.png","79":"neceageru.png","80":"pirateage.png","81":"pogo.png","82":"pundldygjkk.png","83":"sageru.png","84":"sf6anti.png","85":"ssf4fuerte.png","86":"ssf4hakan.png","87":"strike.png","88":"tree_yashinoki_long.png","89":"uchuage.png","90":"umariage.png","91":"whichdottiw.png"};
 
     const CmdGen = (function() {
       const state = { chara: '', bubble: '', deco: '', color: '', font: '' };
@@ -1124,10 +1125,10 @@
             container.appendChild(chip);
           });
         } else {
-          // スタンドアロン時：STANDALONE_CHARS を キャラ1〜N として画像チップ表示
+          // スタンドアロン時：STANDALONE_CHARS（サーバーと同じキャラN）で画像チップ表示
           container.innerHTML = '';
-          STANDALONE_CHARS.forEach((fname, i) => {
-            const id = i + 1;
+          Object.keys(STANDALONE_CHARS).map(Number).sort((a, b) => a - b).forEach(id => {
+            const fname = STANDALONE_CHARS[id];
             const chip = document.createElement('span');
             chip.className = 'cmdgen-chip';
             chip.dataset.group = 'chara';
@@ -1184,10 +1185,10 @@
           grid.appendChild(card);
         });
       } else {
-        // スタンドアロン時のフォールバック：STANDALONE_CHARS を キャラ1〜N として表示
+        // スタンドアロン時のフォールバック：STANDALONE_CHARS（サーバーと同じキャラN）で表示
         grid.innerHTML = '';
-        STANDALONE_CHARS.forEach((fname, i) => {
-          const id = i + 1;
+        Object.keys(STANDALONE_CHARS).map(Number).sort((a, b) => a - b).forEach(id => {
+          const fname = STANDALONE_CHARS[id];
           const card = document.createElement('div');
           card.className = 'char-card';
           card.innerHTML =
