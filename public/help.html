@@ -12,7 +12,7 @@
       --red: #f87171;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI','Noto Sans JP',sans-serif; min-height: 100vh; padding: 32px 24px 64px; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI','Noto Sans JP',sans-serif; min-height: 100vh; padding: 32px 24px 64px 216px; }
     a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
@@ -170,6 +170,36 @@
     .title-table tr.title-gold   td { background: rgba(253,230,138,0.04); }
     .title-table tr.title-rainbow td { background: rgba(167,139,250,0.06); }
 
+    /* コマンド生成 */
+    .cmdgen-output { background: rgba(125,211,252,0.06); border: 1.5px solid rgba(125,211,252,0.3); border-radius: 10px; padding: 14px 18px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; transition: border-color 0.15s, background 0.15s; min-height: 50px; }
+    .cmdgen-output:hover { border-color: rgba(125,211,252,0.6); background: rgba(125,211,252,0.1); }
+    .cmdgen-output.copied { border-color: rgba(34,197,94,0.6); background: rgba(34,197,94,0.08); }
+    .cmdgen-text { font-family: 'Cascadia Code','Consolas',monospace; font-size: 14px; color: var(--accent); word-break: break-all; flex: 1; }
+    .cmdgen-text.empty { color: var(--muted); font-style: italic; font-family: inherit; font-size: 13px; }
+    .cmdgen-copy-label { font-size: 11px; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+    .cmdgen-copied { font-size: 12px; color: var(--green); text-align: right; height: 18px; margin: 4px 0 12px; transition: opacity 0.3s; }
+    .cmdgen-row { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+    .cmdgen-label { font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; padding-top: 7px; min-width: 76px; }
+    .cmdgen-name-input { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; padding: 6px 10px; width: 220px; outline: none; font-family: inherit; }
+    .cmdgen-name-input:focus { border-color: rgba(125,211,252,0.4); }
+    .cmdgen-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .cmdgen-chip { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 5px 11px; font-size: 12px; cursor: pointer; transition: all 0.12s; user-select: none; color: var(--muted); display: inline-flex; align-items: center; gap: 5px; }
+    .cmdgen-chip:hover { border-color: rgba(125,211,252,0.4); color: var(--text); }
+    .cmdgen-chip.selected { background: rgba(125,211,252,0.12); border-color: rgba(125,211,252,0.5); color: var(--accent); }
+    .cmdgen-swatch { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0; }
+    .cmdgen-chara-img { width: 28px; height: 28px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+    .cmdgen-reset { background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.25); border-radius: 6px; color: var(--red); font-size: 12px; padding: 6px 14px; cursor: pointer; margin-top: 4px; }
+    .cmdgen-reset:hover { background: rgba(248,113,113,0.15); }
+
+    /* サイドバー */
+    .sidebar { position: fixed; top: 0; left: 0; width: 192px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; padding: 12px 0 24px; z-index: 100; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; }
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+    .sidebar-header { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 14px 10px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
+    .sidebar-link { display: block; padding: 6px 14px; font-size: 12px; color: var(--muted); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color 0.12s, background 0.12s; border-left: 2px solid transparent; line-height: 1.4; }
+    .sidebar-link:hover { color: var(--text); background: rgba(255,255,255,0.04); text-decoration: none; }
+    .sidebar-link.active { color: var(--accent); background: rgba(125,211,252,0.07); border-left-color: var(--accent); }
+
     /* MP バー視覚化 */
     .mp-visual { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
     .mp-bar-wrap { flex: 1; min-width: 180px; height: 14px; background: rgba(255,255,255,0.07); border-radius: 7px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
@@ -179,14 +209,124 @@
 </head>
 <body>
 
+  <nav class="sidebar">
+    <div class="sidebar-header">目次</div>
+    <a class="sidebar-link" href="#sec-cmdgen">🔧 コマンド生成</a>
+    <a class="sidebar-link" href="#sec-features">📖 機能解説</a>
+    <a class="sidebar-link" href="#sec-pet">🐾 ペットガチャ</a>
+    <a class="sidebar-link" href="#sec-equip">⚔️ 装備レアリティ</a>
+    <a class="sidebar-link" href="#sec-boss">🐉 ボスバトル</a>
+    <a class="sidebar-link" href="#sec-game">🎮 ゲーム機能</a>
+    <a class="sidebar-link" href="#sec-char">🐱 キャラ設定</a>
+    <a class="sidebar-link" href="#sec-bubble">💬 吹き出し形</a>
+    <a class="sidebar-link" href="#sec-deco">✨ 吹き出し装飾</a>
+    <a class="sidebar-link" href="#sec-color">🎨 文字色</a>
+    <a class="sidebar-link" href="#sec-settings">⚙️ その他設定</a>
+    <a class="sidebar-link" href="#sec-effects">🎆 エフェクト</a>
+    <a class="sidebar-link" href="#sec-motion">🎭 モーション</a>
+    <a class="sidebar-link" href="#sec-style">✏️ コメントスタイル</a>
+    <a class="sidebar-link" href="#sec-font">🔤 フォント一覧</a>
+    <a class="sidebar-link" href="#sec-media">🖼 メディア</a>
+    <a class="sidebar-link" href="#sec-ui">🖱 UIボタン</a>
+    <a class="sidebar-link" href="#sec-titles">⭐ 称号一覧</a>
+    <a class="sidebar-link" href="#sec-examples">💡 組み合わせ例</a>
+  </nav>
+
   <div class="page-header">
     <div class="page-title">🎮 kukuCome コマンド一覧</div>
     <div class="page-sub">コメントで入力するとキャラや吹き出しを変更できます</div>
     <a href="/" class="back-link">← メインに戻る</a>
   </div>
 
+  <!-- ── コマンド生成 ── -->
+  <div class="section" id="sec-cmdgen">
+    <div class="section-title">🔧 コマンド生成</div>
+    <div class="info-box" style="margin-bottom:16px">
+      下の選択肢をクリックして設定をまとめたコマンドを生成し、コメントにペーストするだけで一括設定できます。<br>
+      コマンドテキストをクリックするとクリップボードにコピーされます。
+    </div>
+
+    <div class="cmdgen-output" id="cgOutput" onclick="CmdGen.copy()" title="クリックでコピー">
+      <span class="cmdgen-text empty" id="cgText">（選択してコマンドを生成）</span>
+      <span class="cmdgen-copy-label">📋 クリックでコピー</span>
+    </div>
+    <div class="cmdgen-copied" id="cgCopied" style="opacity:0">✅ コピーしました！</div>
+
+    <div class="cmdgen-row" id="cgCharRow">
+      <span class="cmdgen-label">🐱 キャラ</span>
+      <div class="cmdgen-chips" id="cgCharChips">
+        <span style="font-size:12px;color:var(--muted)">（サーバー起動後にキャラ一覧が表示されます）</span>
+      </div>
+    </div>
+
+    <div class="cmdgen-row">
+      <span class="cmdgen-label">👤 名前</span>
+      <input type="text" id="cgName" class="cmdgen-name-input" placeholder="表示名（空欄でスキップ）" maxlength="20" oninput="CmdGen.build()">
+    </div>
+
+    <div class="cmdgen-row">
+      <span class="cmdgen-label">💬 吹き出し</span>
+      <div class="cmdgen-chips">
+        <span class="cmdgen-chip" data-group="bubble" data-val="丸" onclick="CmdGen.selectChip(this)">丸</span>
+        <span class="cmdgen-chip" data-group="bubble" data-val="四角" onclick="CmdGen.selectChip(this)">四角</span>
+        <span class="cmdgen-chip" data-group="bubble" data-val="雲" onclick="CmdGen.selectChip(this)">雲</span>
+        <span class="cmdgen-chip" data-group="bubble" data-val="棘" onclick="CmdGen.selectChip(this)">棘</span>
+        <span class="cmdgen-chip" data-group="bubble" data-val="ハート" onclick="CmdGen.selectChip(this)">ハート</span>
+        <span class="cmdgen-chip" data-group="bubble" data-val="思考" onclick="CmdGen.selectChip(this)">思考</span>
+        <span class="cmdgen-chip" data-group="bubble" data-val="叫び" onclick="CmdGen.selectChip(this)">叫び</span>
+      </div>
+    </div>
+
+    <div class="cmdgen-row">
+      <span class="cmdgen-label">✨ 装飾</span>
+      <div class="cmdgen-chips">
+        <span class="cmdgen-chip" data-group="deco" data-val="光る" onclick="CmdGen.selectChip(this)">光る</span>
+        <span class="cmdgen-chip" data-group="deco" data-val="虹" onclick="CmdGen.selectChip(this)">虹</span>
+        <span class="cmdgen-chip" data-group="deco" data-val="点線" onclick="CmdGen.selectChip(this)">点線</span>
+        <span class="cmdgen-chip" data-group="deco" data-val="なし" onclick="CmdGen.selectChip(this)">なし（解除）</span>
+      </div>
+    </div>
+
+    <div class="cmdgen-row">
+      <span class="cmdgen-label">🎨 文字色</span>
+      <div class="cmdgen-chips">
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="赤" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#FF4444"></span>赤</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="青" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#4499FF"></span>青</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="緑" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#44CC44"></span>緑</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="黄" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#FFCC00"></span>黄</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="紫" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#CC44CC"></span>紫</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="ピンク" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#FF88BB"></span>ピンク</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="橙" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#FF8800"></span>橙</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="シアン" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#00CCCC"></span>シアン</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="水色" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#87CEEB"></span>水色</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="ライム" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#88FF00"></span>ライム</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="茶" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#A0522D"></span>茶</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="黒" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#333;border-color:#555"></span>黒</span>
+      </div>
+    </div>
+
+    <div class="cmdgen-row">
+      <span class="cmdgen-label">🔤 フォント</span>
+      <div class="cmdgen-chips">
+        <span class="cmdgen-chip" data-group="font" data-val="デフォルト" onclick="CmdGen.selectChip(this)">デフォルト</span>
+        <span class="cmdgen-chip" data-group="font" data-val="メイリオ" style="font-family:Meiryo" onclick="CmdGen.selectChip(this)">メイリオ</span>
+        <span class="cmdgen-chip" data-group="font" data-val="MSゴシック" style="font-family:'MS Gothic'" onclick="CmdGen.selectChip(this)">MSゴシック</span>
+        <span class="cmdgen-chip" data-group="font" data-val="YuGothic" style="font-family:'Yu Gothic'" onclick="CmdGen.selectChip(this)">YuGothic</span>
+        <span class="cmdgen-chip" data-group="font" data-val="NotoSansJP" style="font-family:'Noto Sans JP'" onclick="CmdGen.selectChip(this)">NotoSansJP</span>
+        <span class="cmdgen-chip" data-group="font" data-val="MS明朝" style="font-family:'MS Mincho'" onclick="CmdGen.selectChip(this)">MS明朝</span>
+        <span class="cmdgen-chip" data-group="font" data-val="YuMincho" style="font-family:'Yu Mincho'" onclick="CmdGen.selectChip(this)">YuMincho</span>
+        <span class="cmdgen-chip" data-group="font" data-val="DelaGothicOne" style="font-family:'Dela Gothic One'" onclick="CmdGen.selectChip(this)">DelaGothicOne</span>
+        <span class="cmdgen-chip" data-group="font" data-val="Impact" style="font-family:Impact" onclick="CmdGen.selectChip(this)">Impact</span>
+        <span class="cmdgen-chip" data-group="font" data-val="ComicSans" style="font-family:'Comic Sans MS'" onclick="CmdGen.selectChip(this)">ComicSans</span>
+        <span class="cmdgen-chip" data-group="font" data-val="CascadiaCode" style="font-family:'Cascadia Code'" onclick="CmdGen.selectChip(this)">CascadiaCode</span>
+      </div>
+    </div>
+
+    <button class="cmdgen-reset" onclick="CmdGen.reset()">↺ リセット</button>
+  </div>
+
   <!-- ── 機能解説 ── -->
-  <div class="section">
+  <div class="section" id="sec-features">
     <div class="section-title">📖 機能解説</div>
     <div class="feature-grid">
 
@@ -323,7 +463,7 @@
   </div>
 
   <!-- ── ペットガチャ ── -->
-  <div class="section">
+  <div class="section" id="sec-pet">
     <div class="section-title">🐾 ペットガチャ</div>
 
     <div class="hint-box" style="margin-bottom:16px">
@@ -417,7 +557,7 @@
   </div>
 
   <!-- ── 装備排出確率 ── -->
-  <div class="section">
+  <div class="section" id="sec-equip">
     <div class="section-title">⚔️ 装備レアリティ（ボスHP別）</div>
     <div class="cmd-desc" style="margin-bottom:8px">ボスを倒すと全キャラにランダムな装備が1個配布されます。ボスHPが高いほど強い装備が出やすくなります。同じ種類が当たると合成されて効果が加算（上限+10）。</div>
     <table class="equip-prob-table">
@@ -445,7 +585,7 @@
   </div>
 
   <!-- ── ボスバトル ── -->
-  <div class="section">
+  <div class="section" id="sec-boss">
     <div class="section-title">🐉 ボスバトルコマンド</div>
     <div class="cmd-grid">
 
@@ -475,7 +615,7 @@
   </div>
 
   <!-- ── ゲーム機能 ── -->
-  <div class="section">
+  <div class="section" id="sec-game">
     <div class="section-title">🎮 ゲーム機能</div>
     <div class="cmd-grid">
 
@@ -503,7 +643,7 @@
   </div>
 
   <!-- ── キャラ設定 ── -->
-  <div class="section">
+  <div class="section" id="sec-char">
     <div class="section-title">🐱 キャラ設定（画像割り当て済みキャラ）</div>
     <div id="charGrid" class="char-grid">
       <div class="cmd-desc" style="grid-column:1/-1;color:var(--muted);font-style:italic">「🖼 キャラ画像」ボタンで画像を割り当てると、ここにキャラが表示されます。</div>
@@ -516,7 +656,7 @@
   </div>
 
   <!-- ── 吹き出し ── -->
-  <div class="section">
+  <div class="section" id="sec-bubble">
     <div class="section-title">💬 吹き出しの形（永続）</div>
     <div class="bubble-preview-grid">
       <div class="bubble-preview-card"><div class="bubble-sample bs-round">こんにちは</div><div class="bubble-label">丸（デフォルト）</div><div class="bubble-cmd">吹き出し:丸</div></div>
@@ -530,7 +670,7 @@
   </div>
 
   <!-- ── 吹き出し装飾 ── -->
-  <div class="section">
+  <div class="section" id="sec-deco">
     <div class="section-title">✨ 吹き出し装飾（永続）</div>
     <div class="cmd-grid">
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code purple">飾り:光る</span></div><div class="cmd-desc">吹き出しが水色にグロー発光する</div><div class="cmd-variants"><span class="variant">飾り:光る</span><span class="variant">飾り:グロー</span></div></div>
@@ -541,7 +681,7 @@
   </div>
 
   <!-- ── 文字色 ── -->
-  <div class="section">
+  <div class="section" id="sec-color">
     <div class="section-title">🎨 文字色（永続）</div>
     <div class="color-table">
       <div class="color-row"><div class="color-swatch" style="background:#FF4444"></div><div><div class="color-name">赤</div><div class="color-hex">色:赤</div></div></div>
@@ -561,7 +701,7 @@
   </div>
 
   <!-- ── その他設定（永続） ── -->
-  <div class="section">
+  <div class="section" id="sec-settings">
     <div class="section-title">⚙️ その他の設定（永続）</div>
     <div class="cmd-grid">
 
@@ -610,7 +750,7 @@
   </div>
 
   <!-- ── エフェクト ── -->
-  <div class="section">
+  <div class="section" id="sec-effects">
     <div class="section-title">🎆 エフェクト（一回限り）</div>
     <div class="cmd-grid">
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code orange">花火</span></div><div class="cmd-desc">カラフルな粒子がキャラの位置から四方に飛び散る</div></div>
@@ -625,7 +765,7 @@
   </div>
 
   <!-- ── モーション ── -->
-  <div class="section">
+  <div class="section" id="sec-motion">
     <div class="section-title">🎭 モーション（10秒で自動停止）</div>
     <div class="cmd-grid">
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code green">はずむ</span><span class="cmd-code green">hikonori</span></div><div class="cmd-desc">音楽に乗るようにキャラが上下にバウンスする</div></div>
@@ -640,7 +780,7 @@
   </div>
 
   <!-- ── コメント単位スタイル ── -->
-  <div class="section">
+  <div class="section" id="sec-style">
     <div class="section-title">✨ コメント単位スタイル（そのコメントのみ・永続しない）</div>
     <div class="cmd-grid">
       <div class="cmd-card">
@@ -665,7 +805,7 @@
   </div>
 
   <!-- ── フォント一覧 ── -->
-  <div class="section">
+  <div class="section" id="sec-font">
     <div class="section-title">🔤 フォント一覧（Windows 標準＋インストール済み）</div>
     <div class="font-table">
       <div class="font-group-label">日本語ゴシック系</div>
@@ -700,7 +840,7 @@
   </div>
 
   <!-- ── メディアコメント ── -->
-  <div class="section">
+  <div class="section" id="sec-media">
     <div class="section-title">🖼 メディアコメント（自動対応）</div>
     <div class="cmd-grid">
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code orange">お絵描きコメント</span></div><div class="cmd-desc">visualchat タイプのコメント。描いた絵が吹き出しに画像で表示されます</div></div>
@@ -712,7 +852,7 @@
   </div>
 
   <!-- ── UI操作 ── -->
-  <div class="section">
+  <div class="section" id="sec-ui">
     <div class="section-title">🖱 UIボタン・操作</div>
     <div class="btn-table">
       <div class="btn-row"><div class="btn-label">▶ 開始</div><div class="btn-desc2">APIキーとハッシュを使ってコメント取得を開始</div></div>
@@ -743,7 +883,7 @@
   </div>
 
   <!-- ── 称号一覧 ── -->
-  <div class="section">
+  <div class="section" id="sec-titles">
     <div class="section-title">⭐ 称号一覧（全100種）</div>
     <div class="info-box" style="margin-bottom:12px">
       各条件を達成すると称号が解除されます。<b>コメント「称号リスト」</b>で取得済み称号を確認でき、
@@ -876,7 +1016,7 @@
   </div>
 
   <!-- ── 組み合わせ例 ── -->
-  <div class="section">
+  <div class="section" id="sec-examples">
     <div class="section-title">💡 組み合わせ例</div>
     <div class="cmd-grid">
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">色:赤 こんにちは！</span></div><div class="cmd-desc">色を赤に変えつつ「こんにちは！」と表示</div></div>
@@ -898,6 +1038,109 @@
   </div>
 
   <script>
+    const CmdGen = (function() {
+      const state = { chara: '', bubble: '', deco: '', color: '', font: '' };
+      function build() {
+        const parts = [];
+        if (state.chara) parts.push('キャラ' + state.chara);
+        const nameEl = document.getElementById('cgName');
+        const name = nameEl ? nameEl.value.trim() : '';
+        if (name) parts.push('名前:' + name);
+        if (state.bubble) parts.push('吹き出し:' + state.bubble);
+        if (state.deco && state.deco !== 'なし') parts.push('飾り:' + state.deco);
+        if (state.color) parts.push('色:' + state.color);
+        if (state.font && state.font !== 'デフォルト') parts.push('フォント:' + state.font);
+        const textEl = document.getElementById('cgText');
+        if (!textEl) return;
+        if (parts.length === 0) {
+          textEl.textContent = '（選択してコマンドを生成）';
+          textEl.className = 'cmdgen-text empty';
+        } else {
+          textEl.textContent = parts.join(' ');
+          textEl.className = 'cmdgen-text';
+        }
+        document.getElementById('cgOutput').classList.remove('copied');
+      }
+      function selectChip(el) {
+        const group = el.dataset.group;
+        const val = el.dataset.val;
+        if (state[group] === val) {
+          state[group] = '';
+          el.classList.remove('selected');
+        } else {
+          document.querySelectorAll(`.cmdgen-chip[data-group="${group}"]`).forEach(c => c.classList.remove('selected'));
+          state[group] = val;
+          el.classList.add('selected');
+        }
+        build();
+      }
+      function copy() {
+        const textEl = document.getElementById('cgText');
+        if (!textEl || textEl.classList.contains('empty')) return;
+        const text = textEl.textContent;
+        (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
+          .catch(() => { const ta = Object.assign(document.createElement('textarea'), {value: text}); document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); });
+        document.getElementById('cgOutput').classList.add('copied');
+        const msg = document.getElementById('cgCopied');
+        if (msg) { msg.style.opacity = '1'; clearTimeout(msg._t); msg._t = setTimeout(() => msg.style.opacity = '0', 1800); }
+      }
+      function reset() {
+        Object.keys(state).forEach(k => state[k] = '');
+        document.querySelectorAll('.cmdgen-chip').forEach(c => c.classList.remove('selected'));
+        const nameEl = document.getElementById('cgName'); if (nameEl) nameEl.value = '';
+        const msg = document.getElementById('cgCopied'); if (msg) msg.style.opacity = '0';
+        document.getElementById('cgOutput').classList.remove('copied');
+        build();
+      }
+      function renderCharChips() {
+        const container = document.getElementById('cgCharChips');
+        if (!container) return;
+        let images = {}, aliases = {};
+        try { images  = JSON.parse(localStorage.getItem('charImages')  || '{}'); } catch {}
+        try { aliases = JSON.parse(localStorage.getItem('charAliases') || '{}'); } catch {}
+        const ids = Object.keys(images).map(Number).filter(id => id >= 1 && id <= 500 && images[id]);
+        ids.sort((a, b) => a - b);
+        if (ids.length === 0) {
+          container.innerHTML = '<span style="font-size:12px;color:var(--muted)">（サーバー起動後にキャラ一覧が表示されます）</span>';
+          return;
+        }
+        container.innerHTML = '';
+        ids.forEach(id => {
+          const fname = images[id];
+          const alias = Object.keys(aliases).find(k => aliases[k] === id);
+          const label = `キャラ${id}`;
+          const chip = document.createElement('span');
+          chip.className = 'cmdgen-chip';
+          chip.dataset.group = 'chara';
+          chip.dataset.val = String(id);
+          chip.onclick = function() { CmdGen.selectChip(this); };
+          chip.innerHTML = `<img class="cmdgen-chara-img" src="/chara/${encodeURIComponent(fname)}" alt="キャラ${id}" onerror="this.style.display='none'">${label}`;
+          container.appendChild(chip);
+        });
+      }
+      return { build, selectChip, copy, reset, renderCharChips };
+    })();
+    CmdGen.renderCharChips();
+
+    (function initSidebar() {
+      const links = document.querySelectorAll('.sidebar-link');
+      const ids = [...links].map(a => a.getAttribute('href').slice(1));
+      const sections = ids.map(id => document.getElementById(id)).filter(Boolean);
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            links.forEach(a => a.classList.remove('active'));
+            const link = document.querySelector(`.sidebar-link[href="#${entry.target.id}"]`);
+            if (link) {
+              link.classList.add('active');
+              link.scrollIntoView({ block: 'nearest' });
+            }
+          }
+        });
+      }, { rootMargin: '-10% 0px -80% 0px' });
+      sections.forEach(s => observer.observe(s));
+    })();
+
     (function renderCharGrid() {
       const grid = document.getElementById('charGrid');
       let images = {}, aliases = {};

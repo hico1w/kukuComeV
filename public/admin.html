@@ -423,15 +423,155 @@
   </div>
 </div>
 
+<!-- 音量設定 -->
+<div class="section">
+  <div class="section-title">🔈 音量設定</div>
+  <div class="size-row">
+    <span class="size-label">効果音</span>
+    <input type="range" id="seVolumeSlider" min="0" max="1" step="0.05" value="1" class="size-slider"
+           oninput="document.getElementById('seVolumeVal').textContent=Math.round(this.value*100)+'%';sendVolumeText('seVolume',this.value)">
+    <span id="seVolumeVal" class="size-val">100%</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">ボイス</span>
+    <input type="range" id="voiceVolumeSlider" min="0" max="1" step="0.05" value="1" class="size-slider"
+           oninput="document.getElementById('voiceVolumeVal').textContent=Math.round(this.value*100)+'%';sendVolumeText('voiceVolume',this.value)">
+    <span id="voiceVolumeVal" class="size-val">100%</span>
+  </div>
+</div>
+
+<!-- TTS設定 -->
+<div class="section">
+  <div class="section-title">🔊 TTS設定</div>
+  <div class="size-row">
+    <span class="size-label">モデル</span>
+    <input id="ttsModelInput" type="text" placeholder="例: ayaka-jp" class="admin-text-input"
+           oninput="sendTTSText('ttsModel',this.value)">
+  </div>
+  <div class="size-row">
+    <span class="size-label">ボイス</span>
+    <input id="ttsVoiceInput" type="text" value="ja-JP-NanamiNeural-Female" class="admin-text-input"
+           oninput="sendTTSText('ttsVoice',this.value)">
+  </div>
+  <div class="size-row">
+    <span class="size-label">ピッチ</span>
+    <input type="range" id="ttsF0UpKeySlider" min="-24" max="24" step="1" value="0" class="size-slider"
+           oninput="document.getElementById('ttsF0UpKeyVal').textContent=this.value;sendTTSText('ttsF0UpKey',this.value)">
+    <span id="ttsF0UpKeyVal" class="size-val">0</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">IndexRate</span>
+    <input type="range" id="ttsIndexRateSlider" min="0" max="1" step="0.05" value="0.75" class="size-slider"
+           oninput="document.getElementById('ttsIndexRateVal').textContent=this.value;sendTTSText('ttsIndexRate',this.value)">
+    <span id="ttsIndexRateVal" class="size-val">0.75</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">Protect</span>
+    <input type="range" id="ttsProtectSlider" min="0" max="0.5" step="0.01" value="0.33" class="size-slider"
+           oninput="document.getElementById('ttsProtectVal').textContent=this.value;sendTTSText('ttsProtect',this.value)">
+    <span id="ttsProtectVal" class="size-val">0.33</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">Speed</span>
+    <input type="range" id="ttsSpeedSlider" min="-100" max="100" step="5" value="0" class="size-slider"
+           oninput="document.getElementById('ttsSpeedVal').textContent=this.value;sendTTSText('ttsSpeed',this.value)">
+    <span id="ttsSpeedVal" class="size-val">0</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">音量</span>
+    <input type="range" id="ttsVolumeSlider" min="0" max="1" step="0.05" value="1" class="size-slider"
+           oninput="document.getElementById('ttsVolumeVal').textContent=Math.round(this.value*100)+'%';sendTTSText('ttsVolume',this.value)">
+    <span id="ttsVolumeVal" class="size-val">100%</span>
+  </div>
+</div>
+
+<!-- AI設定 -->
+<div class="section">
+  <div class="section-title">🤖 AI設定（Ollama）</div>
+  <div class="size-row">
+    <span class="size-label">モデル</span>
+    <input id="aiModelInput" type="text" value="gemma3:12b" class="admin-text-input"
+           oninput="sendAIText('aiModel',this.value)">
+  </div>
+  <div class="size-row" style="align-items:flex-start">
+    <span class="size-label" style="padding-top:4px">ルール</span>
+    <textarea id="aiSystemInput" rows="5" class="admin-text-input"
+              style="flex:1;resize:vertical;font-size:11px;line-height:1.4"
+              oninput="sendAIText('aiSystem',this.value)"
+              placeholder="例: あなたは配信のコメントに返答するアシスタントです。50文字以内の日本語で返答してください。"></textarea>
+  </div>
+</div>
+
+<!-- SD生成設定 -->
+<div class="section">
+  <div class="section-title">🎨 SD生成設定</div>
+  <div class="size-row">
+    <span class="size-label">幅</span>
+    <input id="sdWidthInput" type="number" min="256" max="2048" step="64" value="1600"
+           style="width:70px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:2px 6px"
+           onchange="sendSDText('sdWidth',this.value)">
+    <span class="size-label" style="margin-left:8px">高さ</span>
+    <input id="sdHeightInput" type="number" min="256" max="2048" step="64" value="1000"
+           style="width:70px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:2px 6px"
+           onchange="sendSDText('sdHeight',this.value)">
+  </div>
+  <div class="size-row">
+    <span class="size-label">Steps</span>
+    <input type="range" id="sdStepsSlider" min="1" max="50" value="20" class="size-slider"
+           oninput="document.getElementById('sdStepsVal').textContent=this.value;sendSDText('sdSteps',this.value)">
+    <span id="sdStepsVal" class="size-val">20</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">表示サイズ</span>
+    <input type="range" id="sdPopWidthSlider" min="100" max="800" step="10" value="480" class="size-slider"
+           oninput="document.getElementById('sdPopWidthVal').textContent=this.value+'px';sendSDText('sdPopWidth',this.value)">
+    <span id="sdPopWidthVal" class="size-val">480px</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">表示時間</span>
+    <input type="range" id="sdDisplayTimeSlider" min="5" max="120" step="5" value="10" class="size-slider"
+           oninput="document.getElementById('sdDisplayTimeVal').textContent=this.value+'秒';sendSDText('sdDisplayTime',this.value)">
+    <span id="sdDisplayTimeVal" class="size-val">10秒</span>
+  </div>
+  <div class="size-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+    <span class="size-label">ポジティブ（常時付加）</span>
+    <input id="sdPositiveSuffixInput" type="text" value="masterpiece, best quality"
+           style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:4px 8px;box-sizing:border-box;font-size:12px"
+           onchange="sendSDText('sdPositiveSuffix',this.value)">
+  </div>
+  <div class="size-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+    <span class="size-label">ネガティブ</span>
+    <textarea id="sdNegativeInput" rows="3"
+           style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:4px 8px;box-sizing:border-box;font-size:11px;resize:vertical"
+           onchange="sendSDText('sdNegative',this.value)"></textarea>
+  </div>
+  <div class="size-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+    <span class="size-label">モザイクキーワード（カンマ区切り）</span>
+    <input id="sdMosaicKeywordsInput" type="text" placeholder="例: 水着, 裸"
+           style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:4px 8px;box-sizing:border-box;font-size:12px"
+           onchange="sendSDText('sdMosaicKeywords',this.value)">
+  </div>
+</div>
+
+<!-- サーバー管理 -->
+<div class="section">
+  <div class="section-title">🖥 サーバー管理</div>
+  <div id="srvList" style="display:flex;flex-direction:column;gap:6px"></div>
+</div>
+
 <!-- システム -->
 <div class="section">
   <div class="section-title">🔧 システム</div>
   <div class="btn-row">
+    <button id="adminFiveMinBtn" onclick="cmd('fiveMinBtn')" style="background:#312e81;color:#a5b4fc">🤖 5分モード</button>
     <button onclick="cmd('compactBtn')">📦 コンパクト</button>
     <button onclick="cmd('stopAllBtn')">⏹ 全停止</button>
     <button onclick="cmd('clearStage')" class="btn-red">🗑 リセット</button>
+  </div>
+  <div class="btn-row" style="margin-top:6px">
     <button onclick="cmd('debugBtn')" class="btn-debug">🐛 DEBUG</button>
     <button onclick="cmd('debugMpBtn')" class="btn-debug">💧 全員MP+30</button>
+    <button onclick="openNovel()" class="btn-novel">📖 ノベル起動</button>
   </div>
 </div>
 
@@ -716,6 +856,101 @@
       document.getElementById('adminBgImageBtn').style.display  = s.bgImageUrl ? 'none' : '';
       document.getElementById('adminBgClearBtn').style.display  = s.bgImageUrl ? ''     : 'none';
     }
+    const ttsFields = ['ttsModel','ttsVoice','ttsF0UpKey','ttsIndexRate','ttsProtect','ttsSpeed','ttsVolume'];
+    const ttsElMap  = { ttsModel:'ttsModelInput', ttsVoice:'ttsVoiceInput', ttsF0UpKey:'ttsF0UpKeySlider',
+                        ttsIndexRate:'ttsIndexRateSlider', ttsProtect:'ttsProtectSlider', ttsSpeed:'ttsSpeedSlider',
+                        ttsVolume:'ttsVolumeSlider' };
+    const ttsValMap = { ttsF0UpKey:'ttsF0UpKeyVal', ttsIndexRate:'ttsIndexRateVal', ttsProtect:'ttsProtectVal', ttsSpeed:'ttsSpeedVal',
+                        ttsVolume:'ttsVolumeVal' };
+    ttsFields.forEach(key => {
+      if (s[key] !== undefined) {
+        const el = document.getElementById(ttsElMap[key]);
+        if (el) el.value = s[key];
+        if (ttsValMap[key]) { const v = document.getElementById(ttsValMap[key]); if (v) v.textContent = key === 'ttsVolume' ? Math.round(s[key] * 100) + '%' : s[key]; }
+      }
+    });
+    const sdFields = ['sdWidth','sdHeight','sdSteps','sdPopWidth','sdPositiveSuffix','sdNegative','sdDisplayTime','sdMosaicKeywords'];
+    const sdElMap = { sdWidth:'sdWidthInput', sdHeight:'sdHeightInput', sdSteps:'sdStepsSlider',
+                      sdPopWidth:'sdPopWidthSlider',
+                      sdPositiveSuffix:'sdPositiveSuffixInput', sdNegative:'sdNegativeInput',
+                      sdDisplayTime:'sdDisplayTimeSlider', sdMosaicKeywords:'sdMosaicKeywordsInput' };
+    sdFields.forEach(key => {
+      if (s[key] !== undefined) {
+        const el = document.getElementById(sdElMap[key]);
+        if (el) el.value = s[key];
+      }
+    });
+    if (s.sdSteps !== undefined)       document.getElementById('sdStepsVal').textContent       = s.sdSteps;
+    if (s.sdDisplayTime !== undefined) document.getElementById('sdDisplayTimeVal').textContent = s.sdDisplayTime + '秒';
+    const setVol = (key, sliderId, valId) => {
+      if (s[key] !== undefined) {
+        const el = document.getElementById(sliderId); if (el) el.value = s[key];
+        const v  = document.getElementById(valId);   if (v)  v.textContent = Math.round(s[key] * 100) + '%';
+      }
+    };
+    setVol('seVolume',    'seVolumeSlider',    'seVolumeVal');
+    setVol('voiceVolume', 'voiceVolumeSlider', 'voiceVolumeVal');
+    if (s.aiModel  !== undefined) { const el = document.getElementById('aiModelInput');  if (el) el.value = s.aiModel; }
+    if (s.aiSystem !== undefined) { const el = document.getElementById('aiSystemInput'); if (el) el.value = s.aiSystem; }
+    if (s.fiveMinMode !== undefined) {
+      const btn = document.getElementById('adminFiveMinBtn');
+      if (btn) {
+        btn.textContent = s.fiveMinMode ? '🤖 5分モード（今起動中）' : '🤖 5分モード';
+        btn.style.background = s.fiveMinMode ? '#4338ca' : '#312e81';
+        btn.style.color = s.fiveMinMode ? '#e0e7ff' : '#a5b4fc';
+      }
+    }
+  }
+
+  function sendSDText(key, value) {
+    adminSend({ type: 'sdText', key, value });
+  }
+
+  function sendTTSText(key, value) {
+    adminSend({ type: 'ttsText', key, value });
+  }
+
+  function sendAIText(key, value) {
+    adminSend({ type: 'aiText', key, value });
+  }
+
+  function sendVolumeText(key, value) {
+    adminSend({ type: 'volumeText', key, value });
+  }
+
+  // ── サーバー管理 ──────────────────────────────────────────────
+  const SRV_LABELS = { tts: 'TTS (RVC)', ollama: 'Ollama' };
+
+  async function srvRefresh() {
+    try {
+      const status = await fetch('/api/srv/status').then(r => r.json());
+      const list = document.getElementById('srvList');
+      if (!list) return;
+      list.innerHTML = '';
+      for (const [name, running] of Object.entries(status)) {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px';
+        row.innerHTML = `
+          <span style="width:8px;height:8px;border-radius:50%;background:${running ? '#4ade80' : '#f87171'};flex-shrink:0"></span>
+          <span style="flex:1;font-size:12px;color:#e2e8f0">${SRV_LABELS[name] || name}</span>
+          <button onclick="srvAction('${name}','start')" style="padding:2px 8px;font-size:11px;background:#166534;color:#86efac;border:1px solid #166534;border-radius:4px;cursor:pointer" ${running ? 'disabled' : ''}>起動</button>
+          <button onclick="srvAction('${name}','stop')"  style="padding:2px 8px;font-size:11px;background:#7f1d1d;color:#fca5a5;border:1px solid #7f1d1d;border-radius:4px;cursor:pointer" ${running ? '' : 'disabled'}>停止</button>
+        `;
+        list.appendChild(row);
+      }
+    } catch {}
+  }
+
+  async function srvAction(name, action) {
+    await fetch(`/api/srv/${action}/${name}`, { method: 'POST' });
+    setTimeout(srvRefresh, 1500);
+  }
+
+  srvRefresh();
+  setInterval(srvRefresh, 5000);
+
+  function openNovel() {
+    adminSend({ type: 'openNovel' });
   }
 </script>
 </body>

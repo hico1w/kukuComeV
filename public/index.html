@@ -5,6 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>kukuCome</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .cmdgen-output { background: rgba(125,211,252,0.06); border: 1.5px solid rgba(125,211,252,0.3); border-radius: 10px; padding: 12px 16px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px; transition: border-color .15s, background .15s; min-height: 46px; }
+    .cmdgen-output:hover { border-color: rgba(125,211,252,.6); background: rgba(125,211,252,.1); }
+    .cmdgen-output.copied { border-color: rgba(34,197,94,.6); background: rgba(34,197,94,.08); }
+    .cmdgen-text { font-family: 'Cascadia Code','Consolas',monospace; font-size: 13px; color: #7dd3fc; word-break: break-all; flex: 1; }
+    .cmdgen-text.empty { color: #64748b; font-style: italic; font-family: inherit; font-size: 12px; }
+    .cmdgen-copy-label { font-size: 11px; color: #64748b; white-space: nowrap; flex-shrink: 0; }
+    .cmdgen-copied { font-size: 12px; color: #22c55e; text-align: right; height: 16px; margin: 3px 0 10px; transition: opacity .3s; }
+    .cmdgen-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+    .cmdgen-label { font-size: 11px; font-weight: 700; color: #64748b; white-space: nowrap; padding-top: 7px; min-width: 70px; }
+    .cmdgen-name-input { background: #161b22; border: 1px solid rgba(255,255,255,.1); border-radius: 6px; color: #e2e8f0; font-size: 12px; padding: 5px 9px; width: 180px; outline: none; font-family: inherit; }
+    .cmdgen-name-input:focus { border-color: rgba(125,211,252,.4); }
+    .cmdgen-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+    .cmdgen-chip { background: #161b22; border: 1px solid rgba(255,255,255,.1); border-radius: 6px; padding: 4px 9px; font-size: 11px; cursor: pointer; transition: all .12s; user-select: none; color: #64748b; display: inline-flex; align-items: center; gap: 4px; }
+    .cmdgen-chip:hover { border-color: rgba(125,211,252,.4); color: #e2e8f0; }
+    .cmdgen-chip.selected { background: rgba(125,211,252,.12); border-color: rgba(125,211,252,.5); color: #7dd3fc; }
+    .cmdgen-swatch { width: 11px; height: 11px; border-radius: 50%; border: 1px solid rgba(255,255,255,.2); flex-shrink: 0; }
+    .cmdgen-reset { background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.25); border-radius: 6px; color: #f87171; font-size: 11px; padding: 5px 12px; cursor: pointer; margin-top: 4px; }
+    .cmdgen-reset:hover { background: rgba(248,113,113,.15); }
+    .cmdgen-panel { padding: 4px 0; }
+  </style>
 </head>
 <body>
 
@@ -243,7 +264,110 @@
         </div>
 
         <div class="admin-group">
+          <div class="admin-group-title">🔈 音量設定</div>
+          <div class="size-row">
+            <span class="size-label">効果音</span>
+            <input id="seVolumeSlider" type="range" min="0" max="1" step="0.05" value="1" class="size-slider">
+            <span id="seVolumeVal" class="size-val">100%</span>
+          </div>
+          <div class="size-row">
+            <span class="size-label">ボイス</span>
+            <input id="voiceVolumeSlider" type="range" min="0" max="1" step="0.05" value="1" class="size-slider">
+            <span id="voiceVolumeVal" class="size-val">100%</span>
+          </div>
+        </div>
+
+        <div class="admin-group">
+          <div class="admin-group-title">🔊 TTS設定</div>
+          <div class="size-row">
+            <span class="size-label">モデル</span>
+            <input id="ttsModelInput" type="text" placeholder="例: ayaka-jp" class="admin-text-input" style="flex:1">
+          </div>
+          <div class="size-row">
+            <span class="size-label">ボイス</span>
+            <input id="ttsVoiceInput" type="text" value="ja-JP-NanamiNeural-Female" class="admin-text-input" style="flex:1">
+          </div>
+          <div class="size-row">
+            <span class="size-label">ピッチ</span>
+            <input id="ttsF0UpKeySlider" type="range" min="-24" max="24" step="1" value="0" class="size-slider">
+            <span id="ttsF0UpKeyVal" class="size-val">0</span>
+          </div>
+          <div class="size-row">
+            <span class="size-label">IndexRate</span>
+            <input id="ttsIndexRateSlider" type="range" min="0" max="1" step="0.05" value="0.75" class="size-slider">
+            <span id="ttsIndexRateVal" class="size-val">0.75</span>
+          </div>
+          <div class="size-row">
+            <span class="size-label">Protect</span>
+            <input id="ttsProtectSlider" type="range" min="0" max="0.5" step="0.01" value="0.33" class="size-slider">
+            <span id="ttsProtectVal" class="size-val">0.33</span>
+          </div>
+          <div class="size-row">
+            <span class="size-label">Speed</span>
+            <input id="ttsSpeedSlider" type="range" min="-100" max="100" step="5" value="0" class="size-slider">
+            <span id="ttsSpeedVal" class="size-val">0</span>
+          </div>
+          <div class="size-row">
+            <span class="size-label">音量</span>
+            <input id="ttsVolumeSlider" type="range" min="0" max="1" step="0.05" value="1" class="size-slider">
+            <span id="ttsVolumeVal" class="size-val">100%</span>
+          </div>
+        </div>
+
+        <div class="admin-group">
+          <div class="admin-group-title">🤖 AI設定（Ollama）</div>
+          <div class="size-row">
+            <span class="size-label">モデル</span>
+            <input id="aiModelInput" type="text" value="gemma3:12b" class="admin-text-input" style="flex:1">
+          </div>
+          <div class="size-row" style="align-items:flex-start">
+            <span class="size-label" style="padding-top:4px">ルール</span>
+            <textarea id="aiSystemInput" rows="4" class="admin-text-input"
+                      style="flex:1;resize:vertical;font-size:11px;line-height:1.4"
+                      placeholder="例: あなたは配信のコメントに返答するアシスタントです。50文字以内の日本語で返答してください。"></textarea>
+          </div>
+        </div>
+
+        <div class="admin-group">
+          <div class="admin-group-title">🎨 SD生成設定</div>
+          <div class="size-row">
+            <span class="size-label">幅</span>
+            <input id="sdWidthInput" type="number" min="256" max="2048" step="64" value="1600" class="size-slider" style="width:70px">
+            <span class="size-label" style="margin-left:8px">高さ</span>
+            <input id="sdHeightInput" type="number" min="256" max="2048" step="64" value="1000" class="size-slider" style="width:70px">
+          </div>
+          <div class="size-row">
+            <span class="size-label">Steps</span>
+            <input id="sdStepsSlider" type="range" min="1" max="50" value="20" class="size-slider">
+            <span id="sdStepsVal" class="size-val">20</span>
+          </div>
+          <div class="size-row">
+            <span class="size-label">表示サイズ</span>
+            <input id="sdPopWidthSlider" type="range" min="100" max="800" step="10" value="480" class="size-slider">
+            <span id="sdPopWidthVal" class="size-val">480px</span>
+          </div>
+          <div class="size-row">
+            <span class="size-label">表示時間</span>
+            <input id="sdDisplayTimeSlider" type="range" min="5" max="120" step="5" value="10" class="size-slider">
+            <span id="sdDisplayTimeVal" class="size-val">10秒</span>
+          </div>
+          <div class="size-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+            <span class="size-label">ポジティブ（常時付加）</span>
+            <input id="sdPositiveSuffixInput" type="text" value="masterpiece, best quality" class="admin-text-input">
+          </div>
+          <div class="size-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+            <span class="size-label">ネガティブ</span>
+            <textarea id="sdNegativeInput" class="admin-textarea" rows="3"></textarea>
+          </div>
+          <div class="size-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+            <span class="size-label">モザイクキーワード（カンマ区切り）</span>
+            <input id="sdMosaicKeywordsInput" type="text" placeholder="例: 水着, 裸" class="admin-text-input">
+          </div>
+        </div>
+
+        <div class="admin-group">
           <div class="admin-group-title">🔧 システム</div>
+          <button id="fiveMinBtn"     class="btn-five-min">🤖 5分モード</button>
           <button id="compactBtn"     class="btn-compact">📦 コンパクト</button>
           <button id="stopAllBtn"    class="btn-stop-all">⏹ 全停止</button>
           <button id="clearStage"    class="btn-clear">🗑 リセット</button>
@@ -267,6 +391,87 @@
       <div class="hint-title">👆 開始ボタンを押してください</div>
       <div class="hint-subtitle">視聴者がコメントでコマンドを入力してキャラクターを操作できます</div>
 
+      <div class="hint-tabs">
+        <button class="hint-tab active"  onclick="switchHintTab(0)">🔧 コマンド生成</button>
+        <button class="hint-tab"         onclick="switchHintTab(1)">🎮 基本コマンド</button>
+        <button class="hint-tab"         onclick="switchHintTab(2)">⚔️ ゲーム</button>
+        <button class="hint-tab"         onclick="switchHintTab(3)">🤖 AI・生成</button>
+        <button class="hint-tab"         onclick="switchHintTab(4)">📋 仕様</button>
+        <button class="hint-tab"         onclick="switchHintTab(5)">🐱 キャラ一覧</button>
+      </div>
+
+      <!-- ── Tab 0: コマンド生成 ── -->
+      <div class="hint-tab-content active">
+      <div class="cmdgen-panel">
+        <div class="cmdgen-output" id="cgOutput" onclick="CmdGen.copy()" title="クリックでコピー">
+          <span class="cmdgen-text empty" id="cgText">（選択してコマンドを生成）</span>
+          <span class="cmdgen-copy-label">📋 クリックでコピー</span>
+        </div>
+        <div class="cmdgen-copied" id="cgCopied" style="opacity:0">✅ コピーしました！</div>
+        <div class="cmdgen-row">
+          <span class="cmdgen-label">👤 名前</span>
+          <input type="text" id="cgName" class="cmdgen-name-input" placeholder="表示名（空欄でスキップ）" maxlength="20" oninput="CmdGen.build()">
+        </div>
+        <div class="cmdgen-row">
+          <span class="cmdgen-label">💬 吹き出し</span>
+          <div class="cmdgen-chips">
+            <span class="cmdgen-chip" data-group="bubble" data-val="丸" onclick="CmdGen.selectChip(this)">丸</span>
+            <span class="cmdgen-chip" data-group="bubble" data-val="四角" onclick="CmdGen.selectChip(this)">四角</span>
+            <span class="cmdgen-chip" data-group="bubble" data-val="雲" onclick="CmdGen.selectChip(this)">雲</span>
+            <span class="cmdgen-chip" data-group="bubble" data-val="棘" onclick="CmdGen.selectChip(this)">棘</span>
+            <span class="cmdgen-chip" data-group="bubble" data-val="ハート" onclick="CmdGen.selectChip(this)">ハート</span>
+            <span class="cmdgen-chip" data-group="bubble" data-val="思考" onclick="CmdGen.selectChip(this)">思考</span>
+            <span class="cmdgen-chip" data-group="bubble" data-val="叫び" onclick="CmdGen.selectChip(this)">叫び</span>
+          </div>
+        </div>
+        <div class="cmdgen-row">
+          <span class="cmdgen-label">✨ 装飾</span>
+          <div class="cmdgen-chips">
+            <span class="cmdgen-chip" data-group="deco" data-val="光る" onclick="CmdGen.selectChip(this)">光る</span>
+            <span class="cmdgen-chip" data-group="deco" data-val="虹" onclick="CmdGen.selectChip(this)">虹</span>
+            <span class="cmdgen-chip" data-group="deco" data-val="点線" onclick="CmdGen.selectChip(this)">点線</span>
+            <span class="cmdgen-chip" data-group="deco" data-val="なし" onclick="CmdGen.selectChip(this)">なし（解除）</span>
+          </div>
+        </div>
+        <div class="cmdgen-row">
+          <span class="cmdgen-label">🎨 文字色</span>
+          <div class="cmdgen-chips">
+            <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="赤" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#FF4444"></span>赤</span>
+            <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="青" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#4499FF"></span>青</span>
+            <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="緑" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#44CC44"></span>緑</span>
+            <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="黄" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#FFCC00"></span>黄</span>
+            <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="紫" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#CC44CC"></span>紫</span>
+            <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="ピンク" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#FF88BB"></span>ピンク</span>
+            <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="橙" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#FF8800"></span>橙</span>
+            <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="シアン" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#00CCCC"></span>シアン</span>
+            <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="水色" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#87CEEB"></span>水色</span>
+            <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="ライム" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#88FF00"></span>ライム</span>
+            <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="茶" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#A0522D"></span>茶</span>
+            <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="黒" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#333;border-color:#555"></span>黒</span>
+          </div>
+        </div>
+        <div class="cmdgen-row">
+          <span class="cmdgen-label">🔤 フォント</span>
+          <div class="cmdgen-chips">
+            <span class="cmdgen-chip" data-group="font" data-val="デフォルト" onclick="CmdGen.selectChip(this)">デフォルト</span>
+            <span class="cmdgen-chip" data-group="font" data-val="メイリオ" style="font-family:Meiryo" onclick="CmdGen.selectChip(this)">メイリオ</span>
+            <span class="cmdgen-chip" data-group="font" data-val="MSゴシック" style="font-family:'MS Gothic'" onclick="CmdGen.selectChip(this)">MSゴシック</span>
+            <span class="cmdgen-chip" data-group="font" data-val="YuGothic" style="font-family:'Yu Gothic'" onclick="CmdGen.selectChip(this)">YuGothic</span>
+            <span class="cmdgen-chip" data-group="font" data-val="NotoSansJP" style="font-family:'Noto Sans JP'" onclick="CmdGen.selectChip(this)">NotoSansJP</span>
+            <span class="cmdgen-chip" data-group="font" data-val="MS明朝" style="font-family:'MS Mincho'" onclick="CmdGen.selectChip(this)">MS明朝</span>
+            <span class="cmdgen-chip" data-group="font" data-val="YuMincho" style="font-family:'Yu Mincho'" onclick="CmdGen.selectChip(this)">YuMincho</span>
+            <span class="cmdgen-chip" data-group="font" data-val="DelaGothicOne" style="font-family:'Dela Gothic One'" onclick="CmdGen.selectChip(this)">DelaGothicOne</span>
+            <span class="cmdgen-chip" data-group="font" data-val="Impact" style="font-family:Impact" onclick="CmdGen.selectChip(this)">Impact</span>
+            <span class="cmdgen-chip" data-group="font" data-val="ComicSans" style="font-family:'Comic Sans MS'" onclick="CmdGen.selectChip(this)">ComicSans</span>
+            <span class="cmdgen-chip" data-group="font" data-val="CascadiaCode" style="font-family:'Cascadia Code'" onclick="CmdGen.selectChip(this)">CascadiaCode</span>
+          </div>
+        </div>
+        <button class="cmdgen-reset" onclick="CmdGen.reset()">↺ リセット</button>
+      </div>
+      </div><!-- /tab 0 コマンド生成 -->
+
+      <!-- ── Tab 1: 基本コマンド ── -->
+      <div class="hint-tab-content">
       <div class="hint-grid">
 
         <!-- キャラクター -->
@@ -276,7 +481,7 @@
             <dt>キャラ1〜500</dt><dd>指定番号のキャラで登場</dd>
             <dt>キャラ（番号なし）</dt><dd>ランダムキャラで登場</dd>
             <dt>名前：〇〇</dt><dd>表示名を変更（1〜20文字）</dd>
-            <dt>色：赤/青/緑…</dt><dd>キャラカラーを変更</dd>
+            <dt>色：赤/青/緑/黄/紫/黒/ピンク/橙…</dt><dd>キャラカラーを変更</dd>
             <dt>大きさ：大/中/小</dt><dd>キャラサイズを変更</dd>
           </dl>
         </div>
@@ -291,7 +496,7 @@
             <dt>震える</dt><dd>震えモーション</dd>
             <dt>ぐにゃぐにゃ</dt><dd>ウェーブモーション</dd>
             <dt>止まれ</dt><dd>動きを止める</dd>
-            <dt>移動：速い/普通/遅い</dt><dd>自動移動速度を変更</dd>
+            <dt>移動：速い/普通/遅い/止まれ</dt><dd>自動移動速度を変更</dd>
             <dt>上/下/左/右：数値</dt><dd>指定方向へ移動（px）</dd>
           </dl>
         </div>
@@ -310,6 +515,43 @@
           </dl>
         </div>
 
+        <!-- エフェクト -->
+        <div class="hint-card">
+          <div class="hint-card-title">🎆 エフェクト</div>
+          <dl class="hint-dl">
+            <dt>花火</dt><dd>花火エフェクト</dd>
+            <dt>紙吹雪</dt><dd>紙吹雪エフェクト</dd>
+            <dt>流れ星</dt><dd>流れ星エフェクト</dd>
+            <dt>ハートシャワー</dt><dd>ハートシャワー</dd>
+          </dl>
+        </div>
+
+        <!-- AFK -->
+        <div class="hint-card">
+          <div class="hint-card-title">💤 AFK・放置</div>
+          <dl class="hint-dl">
+            <dt>AFK</dt><dd>「💤 AFK」を表示し続ける</dd>
+            <dt>放置：テキスト</dt><dd>任意テキストを表示し続ける</dd>
+          </dl>
+          <div class="hint-note">次のコメントで自動解除。透明度・グレーアウトは管理パネルで調整可能。</div>
+        </div>
+
+        <!-- 射コマンド -->
+        <div class="hint-card">
+          <div class="hint-card-title">🚀 射コマンド</div>
+          <dl class="hint-dl">
+            <dt>〇〇射</dt><dd>コメント文字を1文字ずつ物理的に射出</dd>
+          </dl>
+          <div class="hint-note">射出強さ・反発係数・重力・文字サイズは管理パネルで調整可能。</div>
+        </div>
+
+      </div>
+      </div><!-- /tab 0 -->
+
+      <!-- ── Tab 1: ゲーム ── -->
+      <div class="hint-tab-content">
+      <div class="hint-grid">
+
         <!-- スロット -->
         <div class="hint-card">
           <div class="hint-card-title">🎰 スロット（1MP/回）</div>
@@ -326,6 +568,7 @@
             <tr><td>💎×3 ダイヤ</td><td>1%</td><td>+60</td></tr>
             <tr><td>7️⃣×3 JACKPOT</td><td>0.5%</td><td>+200</td></tr>
           </table>
+          <div class="hint-note">確率は管理パネルで変更可能。</div>
         </div>
 
         <!-- ペットガチャ -->
@@ -352,58 +595,298 @@
             <dt>ボス召喚：数値</dt><dd>HP指定でボス召喚</dd>
             <dt>（任意コメント）</dt><dd>ボス戦中は文字数×ATKでダメージ</dd>
             <dt>回復</dt><dd>2MP消費、全体HP+2回復</dd>
-            <dt>開ける</dt><dd>宝箱を開ける（装備・MPドロップ）</dd>
           </dl>
-          <div class="hint-note">倒すと全員に装備ドロップ。装備はATK/DEFを強化。</div>
+          <div class="hint-note">倒すと全員に装備ドロップ。HP倍率・ATK係数・反撃率は管理パネルで調整可能。</div>
         </div>
 
-        <!-- AFK・放置 -->
+        <!-- 宝箱 -->
         <div class="hint-card">
-          <div class="hint-card-title">💤 AFK・放置</div>
+          <div class="hint-card-title">🎁 宝箱</div>
           <dl class="hint-dl">
-            <dt>AFK</dt><dd>「💤 AFK」を表示し続ける</dd>
-            <dt>放置：テキスト</dt><dd>任意テキストを表示し続ける</dd>
+            <dt>開ける</dt><dd>出現中の宝箱を開ける（早い者勝ち）</dd>
           </dl>
-          <div class="hint-note">次のチャット送信で自動解除。透明度・グレーアウト強度は管理パネルで調整可能。</div>
+          <div class="hint-note">5分ごとにランダム位置に出現。レア以上の装備確定ドロップ＋HP+30。2分で自然消滅。</div>
         </div>
 
-        <!-- エフェクト -->
+        <!-- バトルロイヤル -->
         <div class="hint-card">
-          <div class="hint-card-title">🎆 エフェクト・その他</div>
+          <div class="hint-card-title">👑 バトルロイヤル</div>
           <dl class="hint-dl">
-            <dt>花火</dt><dd>花火エフェクト</dd>
-            <dt>紙吹雪</dt><dd>紙吹雪エフェクト</dd>
-            <dt>流れ星</dt><dd>流れ星エフェクト</dd>
-            <dt>ハートシャワー</dt><dd>ハートシャワー</dd>
-            <dt>ステータス確認</dt><dd>自分のステータスをポップアップ表示</dd>
+            <dt>参加</dt><dd>バトルロイヤルに参加エントリー</dd>
+            <dt>（任意コメント）</dt><dd>コメントで攻撃。最後の1人が優勝</dd>
           </dl>
+          <div class="hint-note">管理パネルから開始。仮想HP倍率・自動開始間隔を設定可能。</div>
         </div>
 
-        <!-- ゲームモード -->
+        <!-- クイズ・Wordle・早押し -->
         <div class="hint-card">
-          <div class="hint-card-title">📝 ゲームモード（管理者が開始）</div>
+          <div class="hint-card-title">📝 クイズ / Wordle / 早押し</div>
           <dl class="hint-dl">
-            <dt>Wordle</dt><dd>カタカナ5文字で回答（最大6回）</dd>
+            <dt>Wordle</dt><dd>カタカナ5文字で回答（最大6回試行）</dd>
             <dt>クイズ</dt><dd>答えをコメントで送信（30秒以内）</dd>
-            <dt>早押し</dt><dd>問題に合わせたキーワードをコメント</dd>
-            <dt>バトルロイヤル</dt><dd>「参加」でエントリー、コメントで攻撃</dd>
+            <dt>早押し（白）</dt><dd>正解ワードでHP+10回復</dd>
+            <dt>早押し（赤）</dt><dd>正解ワードで攻撃力1.5倍バフ</dd>
           </dl>
+          <div class="hint-note">いずれも管理パネルから開始。</div>
         </div>
 
-        <!-- 自動機能 -->
+        <!-- ステータス -->
         <div class="hint-card">
-          <div class="hint-card-title">⚙️ 自動機能・仕様</div>
+          <div class="hint-card-title">📊 ステータス確認</div>
           <dl class="hint-dl">
-            <dt>コメントごと</dt><dd>EXP+1（一定量でレベルアップ）</dd>
-            <dt>レベルアップ</dt><dd>ATK・最大HP強化</dd>
-            <dt>初コメ</dt><dd>自動で太字表示</dd>
-            <dt>MPの上限</dt><dd>なし（スロット・回復・ペットガチャで消費）</dd>
-            <dt>コンボ</dt><dd>同コメ連続でダメージボーナス</dd>
-            <dt>長コメ</dt><dd>15文字以上でカウント（称号に影響）</dd>
+            <dt>ステータス確認</dt><dd>自分のステータスをポップアップ表示＋コメント投稿</dd>
           </dl>
+          <div class="hint-note">Lv / HP / MP / ATK / EXP / 装備 / ペット / 称号などを一覧表示。</div>
         </div>
 
       </div>
+      </div><!-- /tab 1 -->
+
+      <!-- ── Tab 2: AI・生成 ── -->
+      <div class="hint-tab-content">
+      <div class="hint-grid">
+
+        <!-- AI返答 -->
+        <div class="hint-card">
+          <div class="hint-card-title">🤖 AI返答（Ollama）</div>
+          <dl class="hint-dl">
+            <dt>ai：質問内容</dt><dd>Ollamaが返答を生成してキャラの吹き出しに表示</dd>
+            <dt>AI：〇〇 / ＡＩ：〇〇</dt><dd>全角コロン・大文字でも可</dd>
+          </dl>
+          <div class="hint-note">モデル・ルール（system prompt）は管理パネルのAI設定で変更可能。デフォルト: gemma3:12b</div>
+        </div>
+
+        <!-- 5分モード -->
+        <div class="hint-card">
+          <div class="hint-card-title">🤖 5分モード（AI自動返答）</div>
+          <dl class="hint-dl">
+            <dt>（管理パネルで ON/OFF）</dt><dd>ON中は全コメントにAIが自動返答してコメント投稿</dd>
+          </dl>
+          <div class="hint-note">返答は &gt;&gt;コメント番号 形式で投稿。自分（master）のコメントはスキップ。ループ防止あり。</div>
+        </div>
+
+        <!-- SD生成 -->
+        <div class="hint-card">
+          <div class="hint-card-title">🎨 AI画像生成（Stable Diffusion）</div>
+          <dl class="hint-dl">
+            <dt>〇〇出して</dt><dd>プロンプトとして画像生成</dd>
+            <dt>〇〇出ろ</dt><dd>同上</dd>
+            <dt>〇〇生成</dt><dd>同上</dd>
+            <dt>〇〇 gen</dt><dd>同上（英語プロンプト可）</dd>
+          </dl>
+          <div class="hint-note">日本語プロンプトは自動翻訳。モザイクキーワードに一致する場合は自動モザイク。Stable Diffusion（localhost:7860）が必要。</div>
+        </div>
+
+        <!-- TTS -->
+        <div class="hint-card">
+          <div class="hint-card-title">🔊 TTS音声合成（RVC）</div>
+          <dl class="hint-dl">
+            <dt>tts：テキスト</dt><dd>指定テキストを音声合成で読み上げ</dd>
+            <dt>TTS: / tts:</dt><dd>半角コロンでも可</dd>
+          </dl>
+          <div class="hint-note">RVCサーバー（localhost:7870）が必要。モデル・ピッチ・速度・音量は管理パネルのTTS設定で変更。5分モード時はAI返答も自動読み上げ。</div>
+        </div>
+
+        <!-- ノベル -->
+        <div class="hint-card">
+          <div class="hint-card-title">📖 ノベル</div>
+          <dl class="hint-dl">
+            <dt>ノベル起動</dt><dd>ノベルゲーム（localhost:3001）をモーダルで表示</dd>
+          </dl>
+          <div class="hint-note">管理パネルの「📖 ノベル起動」ボタンからも起動可能。</div>
+        </div>
+
+      </div>
+      </div><!-- /tab 2 -->
+
+      <!-- ── Tab 3: 仕様 ── -->
+      <div class="hint-tab-content">
+      <div class="hint-grid">
+
+        <!-- EXP・レベル -->
+        <div class="hint-card">
+          <div class="hint-card-title">📈 EXP・レベルシステム</div>
+          <dl class="hint-dl">
+            <dt>コメント1回</dt><dd>EXP+1</dd>
+            <dt>レベルアップ</dt><dd>ATK・最大HP強化</dd>
+            <dt>初コメ</dt><dd>自動で太字表示</dd>
+            <dt>コンボ</dt><dd>同コメ5秒以内に2人以上→ダメージ倍率UP</dd>
+            <dt>長コメ</dt><dd>15文字以上でカウント（称号条件に影響）</dd>
+          </dl>
+        </div>
+
+        <!-- MP -->
+        <div class="hint-card">
+          <div class="hint-card-title">💧 MPシステム</div>
+          <dl class="hint-dl">
+            <dt>コメント1回</dt><dd>MP+1（ペット能力により追加あり）</dd>
+            <dt>スロット</dt><dd>消費 1MP</dd>
+            <dt>回復</dt><dd>消費 2MP（全体HP+2）</dd>
+            <dt>ペットガチャ</dt><dd>消費 10MP</dd>
+            <dt>上限</dt><dd>なし</dd>
+          </dl>
+        </div>
+
+        <!-- 装備 -->
+        <div class="hint-card">
+          <div class="hint-card-title">⚔️ 装備システム</div>
+          <dl class="hint-dl">
+            <dt>入手方法</dt><dd>ボス撃破・宝箱</dd>
+            <dt>種類</dt><dd>ATK強化 / HP強化</dd>
+            <dt>レアリティ</dt><dd>コモン〜神話（5段階）</dd>
+            <dt>最大装備数</dt><dd>3スロット</dd>
+          </dl>
+          <div class="hint-note">装備はステータス確認コマンドで確認可能。</div>
+        </div>
+
+        <!-- ペット -->
+        <div class="hint-card">
+          <div class="hint-card-title">🐾 ペット能力（自動発動）</div>
+          <dl class="hint-dl">
+            <dt>アシスト</dt><dd>追加1回攻撃（ATK×25%）</dd>
+            <dt>回復ペット</dt><dd>攻撃時HP+2</dd>
+            <dt>MP補給/吸収/達人</dt><dd>攻撃時MP+1〜3</dd>
+            <dt>吸血/大吸血</dt><dd>ダメージの25〜60%HP回収</dd>
+            <dt>不死鳥</dt><dd>死亡時1度HP50%で復活</dd>
+            <dt>バーサーク</dt><dd>HP30%以下でダメージ×3</dd>
+          </dl>
+        </div>
+
+        <!-- 称号 -->
+        <div class="hint-card">
+          <div class="hint-card-title">🏷 称号システム</div>
+          <dl class="hint-dl">
+            <dt>取得条件</dt><dd>コメント数・ダメージ・早押し等の実績達成</dd>
+            <dt>効果</dt><dd>ATK / HP / EXP倍率 / ダメージ倍率 / クリティカル率</dd>
+            <dt>確認</dt><dd>ステータス確認コマンド</dd>
+          </dl>
+        </div>
+
+        <!-- 音量・演出 -->
+        <div class="hint-card">
+          <div class="hint-card-title">🔈 音量・演出設定</div>
+          <dl class="hint-dl">
+            <dt>効果音音量</dt><dd>ガチャ・スロット・戦闘音など全SE</dd>
+            <dt>ボイス音量</dt><dd>視聴者のボイスコメント</dd>
+            <dt>TTS音量</dt><dd>音声合成の音量</dd>
+            <dt>コンパクトモード</dt><dd>効果音OFF・一部演出OFF</dd>
+          </dl>
+          <div class="hint-note">いずれも管理パネルの音量設定で変更可能。</div>
+        </div>
+
+        <!-- サーバー -->
+        <div class="hint-card">
+          <div class="hint-card-title">🖥 必要サーバー</div>
+          <dl class="hint-dl">
+            <dt>localhost:3000</dt><dd>kukuCome本体（node server.js）</dd>
+            <dt>localhost:7860</dt><dd>Stable Diffusion（SD画像生成）</dd>
+            <dt>localhost:7870</dt><dd>RVC TTS（音声合成）</dd>
+            <dt>localhost:11434</dt><dd>Ollama（AI返答・5分モード）</dd>
+            <dt>localhost:3001</dt><dd>kukuNove（ノベルゲーム）</dd>
+          </dl>
+          <div class="hint-note">admin.htmlのサーバー管理パネルからTTS・Ollamaの起動/停止が可能。</div>
+        </div>
+
+      </div>
+      </div><!-- /tab 3 -->
+
+      <!-- ── Tab 4: キャラ一覧 ── -->
+      <div class="hint-tab-content">
+        <div class="hint-note" style="margin-bottom:8px">現在キャラ91体。「キャラN」コマンドで指定。</div>
+        <div class="hint-chara-grid">
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐱</span><span class="hint-chara-name">キャラ1</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐶</span><span class="hint-chara-name">キャラ2</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐸</span><span class="hint-chara-name">キャラ3</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐻</span><span class="hint-chara-name">キャラ4</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦊</span><span class="hint-chara-name">キャラ5</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐰</span><span class="hint-chara-name">キャラ6</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐼</span><span class="hint-chara-name">キャラ7</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐯</span><span class="hint-chara-name">キャラ8</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦁</span><span class="hint-chara-name">キャラ9</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐨</span><span class="hint-chara-name">キャラ10</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦆</span><span class="hint-chara-name">キャラ11</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐧</span><span class="hint-chara-name">キャラ12</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐺</span><span class="hint-chara-name">キャラ13</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦋</span><span class="hint-chara-name">キャラ14</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐝</span><span class="hint-chara-name">キャラ15</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐢</span><span class="hint-chara-name">キャラ16</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦀</span><span class="hint-chara-name">キャラ17</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐙</span><span class="hint-chara-name">キャラ18</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦑</span><span class="hint-chara-name">キャラ19</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐠</span><span class="hint-chara-name">キャラ20</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐬</span><span class="hint-chara-name">キャラ21</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐳</span><span class="hint-chara-name">キャラ22</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦈</span><span class="hint-chara-name">キャラ23</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐊</span><span class="hint-chara-name">キャラ24</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦎</span><span class="hint-chara-name">キャラ25</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦕</span><span class="hint-chara-name">キャラ26</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦜</span><span class="hint-chara-name">キャラ27</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦩</span><span class="hint-chara-name">キャラ28</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦚</span><span class="hint-chara-name">キャラ29</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🌸</span><span class="hint-chara-name">キャラ30</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">⭐</span><span class="hint-chara-name">キャラ31</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🌈</span><span class="hint-chara-name">キャラ32</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🌙</span><span class="hint-chara-name">キャラ33</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">☀️</span><span class="hint-chara-name">キャラ34</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🔥</span><span class="hint-chara-name">キャラ35</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">💎</span><span class="hint-chara-name">キャラ36</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🌊</span><span class="hint-chara-name">キャラ37</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🍀</span><span class="hint-chara-name">キャラ38</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🎵</span><span class="hint-chara-name">キャラ39</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🎮</span><span class="hint-chara-name">キャラ40</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🏆</span><span class="hint-chara-name">キャラ41</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🎭</span><span class="hint-chara-name">キャラ42</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🎨</span><span class="hint-chara-name">キャラ43</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🎪</span><span class="hint-chara-name">キャラ44</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🌺</span><span class="hint-chara-name">キャラ45</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🍭</span><span class="hint-chara-name">キャラ46</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦄</span><span class="hint-chara-name">キャラ47</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐲</span><span class="hint-chara-name">キャラ48</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🌻</span><span class="hint-chara-name">キャラ49</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🎯</span><span class="hint-chara-name">キャラ50</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐱</span><span class="hint-chara-name">キャラ51</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐶</span><span class="hint-chara-name">キャラ52</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐸</span><span class="hint-chara-name">キャラ53</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐻</span><span class="hint-chara-name">キャラ54</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦊</span><span class="hint-chara-name">キャラ55</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐰</span><span class="hint-chara-name">キャラ56</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐼</span><span class="hint-chara-name">キャラ57</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐯</span><span class="hint-chara-name">キャラ58</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦁</span><span class="hint-chara-name">キャラ59</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐨</span><span class="hint-chara-name">キャラ60</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦆</span><span class="hint-chara-name">キャラ61</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐧</span><span class="hint-chara-name">キャラ62</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐺</span><span class="hint-chara-name">キャラ63</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦋</span><span class="hint-chara-name">キャラ64</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐝</span><span class="hint-chara-name">キャラ65</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐢</span><span class="hint-chara-name">キャラ66</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦀</span><span class="hint-chara-name">キャラ67</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐙</span><span class="hint-chara-name">キャラ68</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦑</span><span class="hint-chara-name">キャラ69</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐠</span><span class="hint-chara-name">キャラ70</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐬</span><span class="hint-chara-name">キャラ71</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐳</span><span class="hint-chara-name">キャラ72</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦈</span><span class="hint-chara-name">キャラ73</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🐊</span><span class="hint-chara-name">キャラ74</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦎</span><span class="hint-chara-name">キャラ75</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦕</span><span class="hint-chara-name">キャラ76</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦜</span><span class="hint-chara-name">キャラ77</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦩</span><span class="hint-chara-name">キャラ78</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🦚</span><span class="hint-chara-name">キャラ79</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🌸</span><span class="hint-chara-name">キャラ80</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">⭐</span><span class="hint-chara-name">キャラ81</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🌈</span><span class="hint-chara-name">キャラ82</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🌙</span><span class="hint-chara-name">キャラ83</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">☀️</span><span class="hint-chara-name">キャラ84</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🔥</span><span class="hint-chara-name">キャラ85</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">💎</span><span class="hint-chara-name">キャラ86</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🌊</span><span class="hint-chara-name">キャラ87</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🍀</span><span class="hint-chara-name">キャラ88</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🎵</span><span class="hint-chara-name">キャラ89</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🎮</span><span class="hint-chara-name">キャラ90</span></div>
+          <div class="hint-chara-item"><span class="hint-chara-emoji">🏆</span><span class="hint-chara-name">キャラ91</span></div>
+        </div>
+      </div><!-- /tab 4 -->
 
       <div class="hint-footer">
         <a href="/help.html" target="_blank" style="color:#334155;text-decoration:underline;pointer-events:auto">❓ コマンド詳細・フォント一覧はこちら</a>
@@ -415,6 +898,17 @@
   <div id="commentLog" class="hidden">
     <div class="log-header">💬 コメントログ</div>
     <div id="commentList"></div>
+  </div>
+
+  <!-- ノベルモーダル -->
+  <div id="novelModal" class="novel-overlay hidden" onclick="if(event.target===this)closeNovelModal()">
+    <div class="novel-modal">
+      <div class="novel-modal-header">
+        <span>📖 ノベル</span>
+        <button class="modal-close" onclick="closeNovelModal()">✕</button>
+      </div>
+      <iframe id="novelFrame" src="about:blank" class="novel-modal-frame" allowtransparency="true"></iframe>
+    </div>
   </div>
 
   <!-- キャラ画像設定モーダル -->
@@ -439,5 +933,64 @@
   </div>
 
   <script src="app.js"></script>
+  <script>
+    const CmdGen = (function() {
+      const state = { bubble: '', deco: '', color: '', font: '' };
+      function build() {
+        const parts = [];
+        const nameEl = document.getElementById('cgName');
+        const name = nameEl ? nameEl.value.trim() : '';
+        if (name) parts.push('名前:' + name);
+        if (state.bubble) parts.push('吹き出し:' + state.bubble);
+        if (state.deco && state.deco !== 'なし') parts.push('飾り:' + state.deco);
+        if (state.color) parts.push('色:' + state.color);
+        if (state.font && state.font !== 'デフォルト') parts.push('フォント:' + state.font);
+        const textEl = document.getElementById('cgText');
+        if (!textEl) return;
+        if (parts.length === 0) {
+          textEl.textContent = '（選択してコマンドを生成）';
+          textEl.className = 'cmdgen-text empty';
+        } else {
+          textEl.textContent = parts.join(' ');
+          textEl.className = 'cmdgen-text';
+        }
+        document.getElementById('cgOutput').classList.remove('copied');
+      }
+      function selectChip(el) {
+        const group = el.dataset.group, val = el.dataset.val;
+        if (state[group] === val) {
+          state[group] = ''; el.classList.remove('selected');
+        } else {
+          document.querySelectorAll(`.cmdgen-chip[data-group="${group}"]`).forEach(c => c.classList.remove('selected'));
+          state[group] = val; el.classList.add('selected');
+        }
+        build();
+      }
+      function copy() {
+        const textEl = document.getElementById('cgText');
+        if (!textEl || textEl.classList.contains('empty')) return;
+        const text = textEl.textContent;
+        (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
+          .catch(() => { const ta = Object.assign(document.createElement('textarea'), {value: text}); document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); });
+        document.getElementById('cgOutput').classList.add('copied');
+        const msg = document.getElementById('cgCopied');
+        if (msg) { msg.style.opacity = '1'; clearTimeout(msg._t); msg._t = setTimeout(() => msg.style.opacity = '0', 1800); }
+      }
+      function reset() {
+        Object.keys(state).forEach(k => state[k] = '');
+        document.querySelectorAll('.cmdgen-chip').forEach(c => c.classList.remove('selected'));
+        const nameEl = document.getElementById('cgName'); if (nameEl) nameEl.value = '';
+        const msg = document.getElementById('cgCopied'); if (msg) msg.style.opacity = '0';
+        document.getElementById('cgOutput').classList.remove('copied');
+        build();
+      }
+      return { build, selectChip, copy, reset };
+    })();
+
+    function switchHintTab(idx) {
+      document.querySelectorAll('.hint-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+      document.querySelectorAll('.hint-tab-content').forEach((c, i) => c.classList.toggle('active', i === idx));
+    }
+  </script>
 </body>
 </html>

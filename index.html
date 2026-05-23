@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -12,13 +12,14 @@
       --red: #f87171;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI','Noto Sans JP',sans-serif; min-height: 100vh; padding: 32px 24px 64px; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI','Noto Sans JP',sans-serif; min-height: 100vh; padding: 32px 24px 64px 216px; }
     a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
     .page-header { display: flex; align-items: baseline; gap: 16px; margin-bottom: 32px; border-bottom: 1px solid var(--border); padding-bottom: 20px; flex-wrap: wrap; }
     .page-title  { font-size: 22px; font-weight: 700; color: var(--accent); }
     .page-sub    { font-size: 13px; color: var(--muted); }
+    .back-link   { margin-left: auto; font-size: 13px; }
 
     .section { margin-bottom: 36px; }
     .section-title {
@@ -49,6 +50,13 @@
     .color-swatch { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.15); }
     .color-name  { font-weight: 600; }
     .color-hex   { font-family: monospace; font-size: 11px; color: var(--muted); }
+
+    .char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+    .char-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 8px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .char-img   { width: 64px; height: 64px; object-fit: contain; border-radius: 6px; }
+    .char-emoji { font-size: 36px; line-height: 1; }
+    .char-cmd   { font-family: monospace; font-size: 11px; background: rgba(125,211,252,0.1); color: var(--accent); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(125,211,252,0.2); }
+    .char-alias { font-size: 10px; color: var(--muted); }
 
     .hint-box   { background: rgba(34,197,94,0.08);    border: 1px solid rgba(34,197,94,0.2);    border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #86efac; line-height: 1.8; margin-top: 8px; }
     .hint-box b { color: #4ade80; }
@@ -83,12 +91,14 @@
     .font-row { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 8px 12px; }
     .font-cmd  { font-family: 'Cascadia Code','Consolas',monospace; font-size: 12px; color: var(--accent); background: rgba(125,211,252,0.1); border: 1px solid rgba(125,211,252,0.2); padding: 2px 7px; border-radius: 4px; white-space: nowrap; flex-shrink: 0; }
     .font-sample { font-size: 14px; color: var(--text); }
+    .font-name-css { font-size: 10px; color: var(--muted); font-family: monospace; }
     .font-group-label { grid-column: 1 / -1; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 8px; }
 
     .ui-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
     .ui-card  { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
     .ui-key   { font-size: 13px; font-weight: 600; color: var(--yellow); }
 
+    /* 機能解説カード */
     .feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
     .feature-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; }
     .feature-card-title { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
@@ -106,7 +116,7 @@
     .equip-badge.myth   { border-color: rgba(248,113,113,0.5);  color: #fca5a5; animation: mythGlow 0.5s linear infinite; }
     @keyframes mythGlow { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.5)} }
 
-    /* ペット */
+    /* ── ペット系 ── */
     .pet-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
     .pet-table th { background: rgba(255,255,255,0.05); color: var(--muted); font-weight: 700; padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
     .pet-table td { padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: top; line-height: 1.5; }
@@ -118,6 +128,7 @@
     .rb-legend { background: rgba(192,132,252,0.15); color: #c084fc;  border: 1px solid rgba(192,132,252,0.3); }
     .rb-myth   { background: rgba(251,191,36,0.15);  color: #fbbf24;  border: 1px solid rgba(251,191,36,0.3); animation: mythGlow 1s infinite; }
 
+    /* ガチャ確率 */
     .gacha-rate-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
     .gacha-rate-card { flex: 1; min-width: 110px; border-radius: 10px; padding: 14px 10px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; border: 1px solid; }
     .gacha-rate-card .rate-pct { font-size: 24px; font-weight: 900; }
@@ -129,36 +140,193 @@
     .gr-legend { border-color: rgba(192,132,252,0.3); background: rgba(192,132,252,0.07); color: #c084fc; }
     .gr-myth   { border-color: rgba(251,191,36,0.3);  background: rgba(251,191,36,0.07);  color: #fbbf24; }
 
+    /* 装備確率 */
     .equip-prob-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
     .equip-prob-table th { background: rgba(255,255,255,0.05); color: var(--muted); padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--border); font-weight: 700; }
     .equip-prob-table td { padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px; }
     .equip-prob-table tr:hover td { background: rgba(255,255,255,0.02); }
 
+    /* ボタン説明テーブル */
     .btn-table { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
     .btn-row { display: flex; align-items: flex-start; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
     .btn-label { font-size: 12px; font-weight: 700; white-space: nowrap; background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 4px; flex-shrink: 0; }
     .btn-desc2 { font-size: 12px; color: var(--muted); line-height: 1.5; }
 
+    /* 称号テーブル */
+    .title-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+    .title-table th { background: rgba(255,255,255,0.05); color: var(--muted); font-weight: 700; padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+    .title-table td { padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; line-height: 1.5; }
+    .title-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .title-table .group-row td { background: rgba(255,255,255,0.04); color: var(--muted); font-weight: 700; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 10px; }
+    .title-id   { font-family: monospace; font-size: 11px; color: var(--muted); width: 42px; }
+    .title-name { font-weight: 700; white-space: nowrap; }
+    .title-cond { color: var(--muted); }
+    .title-abil { font-weight: 600; color: #93c5fd; white-space: nowrap; }
+    .title-table tr.title-gold .title-name { color: #fde68a; }
+    .title-table tr.title-rainbow .title-name {
+      background: linear-gradient(90deg,#f472b6,#a78bfa,#38bdf8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .title-table tr.title-gold   td { background: rgba(253,230,138,0.04); }
+    .title-table tr.title-rainbow td { background: rgba(167,139,250,0.06); }
+
+    /* コマンド生成 */
+    .cmdgen-output { background: rgba(125,211,252,0.06); border: 1.5px solid rgba(125,211,252,0.3); border-radius: 10px; padding: 14px 18px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; transition: border-color 0.15s, background 0.15s; min-height: 50px; }
+    .cmdgen-output:hover { border-color: rgba(125,211,252,0.6); background: rgba(125,211,252,0.1); }
+    .cmdgen-output.copied { border-color: rgba(34,197,94,0.6); background: rgba(34,197,94,0.08); }
+    .cmdgen-text { font-family: 'Cascadia Code','Consolas',monospace; font-size: 14px; color: var(--accent); word-break: break-all; flex: 1; }
+    .cmdgen-text.empty { color: var(--muted); font-style: italic; font-family: inherit; font-size: 13px; }
+    .cmdgen-copy-label { font-size: 11px; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+    .cmdgen-copied { font-size: 12px; color: var(--green); text-align: right; height: 18px; margin: 4px 0 12px; transition: opacity 0.3s; }
+    .cmdgen-row { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+    .cmdgen-label { font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; padding-top: 7px; min-width: 76px; }
+    .cmdgen-name-input { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; padding: 6px 10px; width: 220px; outline: none; font-family: inherit; }
+    .cmdgen-name-input:focus { border-color: rgba(125,211,252,0.4); }
+    .cmdgen-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .cmdgen-chip { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 5px 11px; font-size: 12px; cursor: pointer; transition: all 0.12s; user-select: none; color: var(--muted); display: inline-flex; align-items: center; gap: 5px; }
+    .cmdgen-chip:hover { border-color: rgba(125,211,252,0.4); color: var(--text); }
+    .cmdgen-chip.selected { background: rgba(125,211,252,0.12); border-color: rgba(125,211,252,0.5); color: var(--accent); }
+    .cmdgen-swatch { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0; }
+    .cmdgen-chara-img { width: 28px; height: 28px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+    .cmdgen-chara-num { background: var(--surface); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #e2e8f0; font-size: 13px; padding: 6px 10px; width: 110px; outline: none; font-family: inherit; }
+    .cmdgen-chara-num:focus { border-color: rgba(125,211,252,0.4); }
+    .cmdgen-reset { background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.25); border-radius: 6px; color: var(--red); font-size: 12px; padding: 6px 14px; cursor: pointer; margin-top: 4px; }
+    .cmdgen-reset:hover { background: rgba(248,113,113,0.15); }
+
+    /* サイドバー */
+    .sidebar { position: fixed; top: 0; left: 0; width: 192px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; padding: 12px 0 24px; z-index: 100; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; }
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+    .sidebar-header { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 14px 10px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
+    .sidebar-link { display: block; padding: 6px 14px; font-size: 12px; color: var(--muted); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color 0.12s, background 0.12s; border-left: 2px solid transparent; line-height: 1.4; }
+    .sidebar-link:hover { color: var(--text); background: rgba(255,255,255,0.04); text-decoration: none; }
+    .sidebar-link.active { color: var(--accent); background: rgba(125,211,252,0.07); border-left-color: var(--accent); }
+
+    /* MP バー視覚化 */
     .mp-visual { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
     .mp-bar-wrap { flex: 1; min-width: 180px; height: 14px; background: rgba(255,255,255,0.07); border-radius: 7px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
     .mp-bar { height: 100%; border-radius: 7px; background: linear-gradient(90deg,#3b82f6,#7dd3fc); }
     .mp-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
-
-    .chara-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
-    .chara-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-    .chara-card img { width: 80px; height: 80px; object-fit: contain; border-radius: 6px; }
-    .chara-slot-name { font-size: 11px; font-weight: 700; color: var(--accent); }
   </style>
 </head>
 <body>
 
+  <nav class="sidebar">
+    <div class="sidebar-header">目次</div>
+    <a class="sidebar-link" href="#sec-cmdgen">🔧 コマンド生成</a>
+    <a class="sidebar-link" href="#sec-features">📖 機能解説</a>
+    <a class="sidebar-link" href="#sec-pet">🐾 ペットガチャ</a>
+    <a class="sidebar-link" href="#sec-equip">⚔️ 装備レアリティ</a>
+    <a class="sidebar-link" href="#sec-boss">🐉 ボスバトル</a>
+    <a class="sidebar-link" href="#sec-game">🎮 ゲーム機能</a>
+    <a class="sidebar-link" href="#sec-char">🐱 キャラ設定</a>
+    <a class="sidebar-link" href="#sec-bubble">💬 吹き出し形</a>
+    <a class="sidebar-link" href="#sec-deco">✨ 吹き出し装飾</a>
+    <a class="sidebar-link" href="#sec-color">🎨 文字色</a>
+    <a class="sidebar-link" href="#sec-settings">⚙️ その他設定</a>
+    <a class="sidebar-link" href="#sec-effects">🎆 エフェクト</a>
+    <a class="sidebar-link" href="#sec-motion">🎭 モーション</a>
+    <a class="sidebar-link" href="#sec-style">✏️ コメントスタイル</a>
+    <a class="sidebar-link" href="#sec-font">🔤 フォント一覧</a>
+    <a class="sidebar-link" href="#sec-media">🖼 メディア</a>
+    <a class="sidebar-link" href="#sec-ui">🖱 UIボタン</a>
+    <a class="sidebar-link" href="#sec-titles">⭐ 称号一覧</a>
+    <a class="sidebar-link" href="#sec-examples">💡 組み合わせ例</a>
+  </nav>
+
   <div class="page-header">
     <div class="page-title">🎮 kukuCome コマンド一覧</div>
-    <div class="page-sub">kukuLIVE コメントビジュアライザー — 視聴者がコメントで入力するコマンドの一覧　v1.75.0</div>
+    <div class="page-sub">コメントで入力するとキャラや吹き出しを変更できます</div>
+    <span class="back-link" style="color:#334155;font-size:12px">📄 スタンドアロン版</span>
+  </div>
+
+  <!-- ── コマンド生成 ── -->
+  <div class="section" id="sec-cmdgen">
+    <div class="section-title">🔧 コマンド生成</div>
+    <div class="info-box" style="margin-bottom:16px">
+      下の選択肢をクリックして設定をまとめたコマンドを生成し、コメントにペーストするだけで一括設定できます。<br>
+      コマンドテキストをクリックするとクリップボードにコピーされます。
+    </div>
+
+    <div class="cmdgen-output" id="cgOutput" onclick="CmdGen.copy()" title="クリックでコピー">
+      <span class="cmdgen-text empty" id="cgText">（選択してコマンドを生成）</span>
+      <span class="cmdgen-copy-label">📋 クリックでコピー</span>
+    </div>
+    <div class="cmdgen-copied" id="cgCopied" style="opacity:0">✅ コピーしました！</div>
+
+    <div class="cmdgen-row" id="cgCharRow">
+      <span class="cmdgen-label">🐱 キャラ</span>
+      <div id="cgCharChips" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"></div>
+    </div>
+
+    <div class="cmdgen-row">
+      <span class="cmdgen-label">👤 名前</span>
+      <input type="text" id="cgName" class="cmdgen-name-input" placeholder="表示名（空欄でスキップ）" maxlength="20" oninput="CmdGen.build()">
+    </div>
+
+    <div class="cmdgen-row">
+      <span class="cmdgen-label">💬 吹き出し</span>
+      <div class="cmdgen-chips">
+        <span class="cmdgen-chip" data-group="bubble" data-val="丸" onclick="CmdGen.selectChip(this)">丸</span>
+        <span class="cmdgen-chip" data-group="bubble" data-val="四角" onclick="CmdGen.selectChip(this)">四角</span>
+        <span class="cmdgen-chip" data-group="bubble" data-val="雲" onclick="CmdGen.selectChip(this)">雲</span>
+        <span class="cmdgen-chip" data-group="bubble" data-val="棘" onclick="CmdGen.selectChip(this)">棘</span>
+        <span class="cmdgen-chip" data-group="bubble" data-val="ハート" onclick="CmdGen.selectChip(this)">ハート</span>
+        <span class="cmdgen-chip" data-group="bubble" data-val="思考" onclick="CmdGen.selectChip(this)">思考</span>
+        <span class="cmdgen-chip" data-group="bubble" data-val="叫び" onclick="CmdGen.selectChip(this)">叫び</span>
+      </div>
+    </div>
+
+    <div class="cmdgen-row">
+      <span class="cmdgen-label">✨ 装飾</span>
+      <div class="cmdgen-chips">
+        <span class="cmdgen-chip" data-group="deco" data-val="光る" onclick="CmdGen.selectChip(this)">光る</span>
+        <span class="cmdgen-chip" data-group="deco" data-val="虹" onclick="CmdGen.selectChip(this)">虹</span>
+        <span class="cmdgen-chip" data-group="deco" data-val="点線" onclick="CmdGen.selectChip(this)">点線</span>
+        <span class="cmdgen-chip" data-group="deco" data-val="なし" onclick="CmdGen.selectChip(this)">なし（解除）</span>
+      </div>
+    </div>
+
+    <div class="cmdgen-row">
+      <span class="cmdgen-label">🎨 文字色</span>
+      <div class="cmdgen-chips">
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="赤" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#FF4444"></span>赤</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="青" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#4499FF"></span>青</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="緑" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#44CC44"></span>緑</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="黄" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#FFCC00"></span>黄</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="紫" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#CC44CC"></span>紫</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="ピンク" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#FF88BB"></span>ピンク</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="橙" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#FF8800"></span>橙</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="シアン" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#00CCCC"></span>シアン</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="水色" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#87CEEB"></span>水色</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="ライム" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#88FF00"></span>ライム</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="茶" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#A0522D"></span>茶</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="黒" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#333;border-color:#555"></span>黒</span>
+      </div>
+    </div>
+
+    <div class="cmdgen-row">
+      <span class="cmdgen-label">🔤 フォント</span>
+      <div class="cmdgen-chips">
+        <span class="cmdgen-chip" data-group="font" data-val="デフォルト" onclick="CmdGen.selectChip(this)">デフォルト</span>
+        <span class="cmdgen-chip" data-group="font" data-val="メイリオ" style="font-family:Meiryo" onclick="CmdGen.selectChip(this)">メイリオ</span>
+        <span class="cmdgen-chip" data-group="font" data-val="MSゴシック" style="font-family:'MS Gothic'" onclick="CmdGen.selectChip(this)">MSゴシック</span>
+        <span class="cmdgen-chip" data-group="font" data-val="YuGothic" style="font-family:'Yu Gothic'" onclick="CmdGen.selectChip(this)">YuGothic</span>
+        <span class="cmdgen-chip" data-group="font" data-val="NotoSansJP" style="font-family:'Noto Sans JP'" onclick="CmdGen.selectChip(this)">NotoSansJP</span>
+        <span class="cmdgen-chip" data-group="font" data-val="MS明朝" style="font-family:'MS Mincho'" onclick="CmdGen.selectChip(this)">MS明朝</span>
+        <span class="cmdgen-chip" data-group="font" data-val="YuMincho" style="font-family:'Yu Mincho'" onclick="CmdGen.selectChip(this)">YuMincho</span>
+        <span class="cmdgen-chip" data-group="font" data-val="DelaGothicOne" style="font-family:'Dela Gothic One'" onclick="CmdGen.selectChip(this)">DelaGothicOne</span>
+        <span class="cmdgen-chip" data-group="font" data-val="Impact" style="font-family:Impact" onclick="CmdGen.selectChip(this)">Impact</span>
+        <span class="cmdgen-chip" data-group="font" data-val="ComicSans" style="font-family:'Comic Sans MS'" onclick="CmdGen.selectChip(this)">ComicSans</span>
+        <span class="cmdgen-chip" data-group="font" data-val="CascadiaCode" style="font-family:'Cascadia Code'" onclick="CmdGen.selectChip(this)">CascadiaCode</span>
+      </div>
+    </div>
+
+    <button class="cmdgen-reset" onclick="CmdGen.reset()">↺ リセット</button>
   </div>
 
   <!-- ── 機能解説 ── -->
-  <div class="section">
+  <div class="section" id="sec-features">
     <div class="section-title">📖 機能解説</div>
     <div class="feature-grid">
 
@@ -167,9 +335,8 @@
         <div class="feature-card-body">
           <b>ボス召喚</b> コマンドでボスが出現し、<b>視聴者全員のコメントが攻撃</b>になります。<br>
           ボスはHPに応じてサイズが変わります（HP100→小、HP2000→超巨大）。<br>
-          <b>コメントの文字数÷4回の連続ヒット</b>で攻撃（合計ダメージは同じ、0.2秒間隔）。<br>
-          攻撃を受けるたびにランダムなセリフを表示し、<b>反撃（5ダメ）確率は管理パネルで設定可能（デフォルト40%）</b>。<br>
-          ボス撃破で全員にHP+20回復＋<b>宝箱が出現（20秒以内に開封で全キャラに装備配布）</b>。<br>
+          攻撃を受けるたびにランダムなセリフを表示し、<b>20%の確率で全キャラに反撃（5ダメ）</b>。<br>
+          ボス撃破で全員にHP+20回復＋ランダム装備が配布されます。<br>
           ボス戦中は2体目の召喚は不可。次のボスは自動で召喚されます。
         </div>
       </div>
@@ -178,7 +345,6 @@
         <div class="feature-card-title" style="color:#fbbf24">⭐ キャラ育成（レベル・EXP）</div>
         <div class="feature-card-body">
           コメントするたびにEXPが1増え、レベルが上がります。<b>最大レベルは10</b>（合計150コメントで到達）。<br>
-          EXPは<b>ボスの有無・コンパクトモードに関わらず</b>毎コメント付与されます。ボス攻撃時はさらにボーナスあり。<br>
           <b>ATK = 1 + レベル</b>（Lv.5 → ATK6）。レベルアップ時にバナー演出と効果音が鳴ります。
           <div class="lv-bar">
             <span class="lv-badge">Lv.1 3exp</span><span class="lv-badge">Lv.2 10exp</span>
@@ -210,7 +376,7 @@
         <div class="feature-card-title" style="color:#7dd3fc">📊 キャラステータス</div>
         <div class="feature-card-body">
           <b>HP</b>：基本30 ＋ HP系装備ボーナス（鉄壁ペットで+10追加）<br>
-          <b>MP</b>：基本10、上限なし。攻撃するたびに+1（ペットにより追加あり）。スロット・回復・ペットガチャで消費。死亡してもリセットされない。<br>
+          <b>MP</b>：基本10、最大20。攻撃するたびに+1（ペットにより追加あり）。死亡してもリセットされない。<br>
           <b>ATK</b>：1 ＋ レベル ＋ ATK系装備ボーナス<br>
           <b>クリティカル</b>：15%の確率でダメージ×2〜4倍。クリ率はペットで上昇。<br>
           ステータスはキャラの下に常時表示されます。
@@ -233,7 +399,7 @@
           MPが2未満の場合は失敗します。回復中もボスへの攻撃は発動します。
           <div class="mp-visual">
             <div class="mp-bar-wrap"><div class="mp-bar" style="width:100%"></div></div>
-            <div class="mp-label">MP 上限なし</div>
+            <div class="mp-label">MP 20/20（最大）</div>
           </div>
         </div>
       </div>
@@ -244,43 +410,35 @@
           コメントに <b>ペットガチャ</b> と入力すると <b>MP10を消費</b> してペットを1体引けます。<br>
           ペットはキャラクターの右下に常時表示され、様々なバトル効果を発揮します。<br>
           ペットも攻撃モーションを行い（キャラの後に順番に）、ダメージ数字も表示されます。<br>
-          新たにガチャを引くと前のペットは上書きされます。<b>通算20回</b>引くとペット枠が2つに解放されます。<b>ノーマル〜神話</b>の5段階レアリティ。
+          新たにガチャを引くと対象スロットのペットは上書きされます。<b>ノーマル〜神話</b>の5段階レアリティ。<br>
+          <b>ガチャ20回到達で2枠目が解放</b>され、20回目以降は奇数回→1枠目・偶数回→2枠目に交互格納。2体同時所持で称号「二刀の獣使い」が解除されます。
         </div>
       </div>
 
       <div class="feature-card">
         <div class="feature-card-title" style="color:#22c55e">📝 Wordleゲーム</div>
         <div class="feature-card-body">
-          <b>5文字のカタカナ単語</b>を当てるゲームが常時画面に表示されます。<br>
+          <b>5文字のカタカナ単語</b>を当てるゲームが常時画面に表示されます（<code>text/wordle.txt</code> から出題）。<br>
           視聴者が<b>カタカナ5文字</b>をコメントすると自動で推測として判定されます。<br>
           🟩＝正解位置、🟨＝文字が含まれる、⬜＝含まれない。<br>
-          <b>正解した視聴者はHP全回復</b>＋<b>全画面バナー演出＋正解音</b>が鳴ります。正解回数もカウントされます。
+          <b>正解した視聴者はHP全回復</b>＋正解回数がカウントされます。
         </div>
       </div>
 
       <div class="feature-card">
-        <div class="feature-card-title" style="color:#fbbf24">⚡ 早押しゲーム（2種類）</div>
+        <div class="feature-card-title" style="color:#fbbf24">⚡ 早押しゲーム</div>
         <div class="feature-card-body">
-          <b>⚡ 早押しボタン</b>で手動起動、または管理パネル設定の頻度で自動起動します。<br>
-          ニコニコ動画風に<b>右から左へキーワードが流れます</b>。複数問題が同時に出ることもあります。<br>
-          <b>白テロップ</b>：ランダムキーワード（HP+10回復）／<b>赤テロップ</b>：四字熟語（ATK×1.5バフ30秒）<br>
-          頻度・流れる速さは管理パネルの「早押し演出」スライダーで調整可能（1〜60秒）。
-        </div>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-card-title" style="color:#22c55e">🚶 歩きモード（自動移動）</div>
-        <div class="feature-card-body">
-          <b>歩く</b> または <b>歩きゅ</b> コマンドを使うと、キャラが画面左右を自動で歩き続けます。<br>
-          壁に当たると向きを反転し、キャラ画像も左右に反転します。<br>
-          <b>移動:止まれ</b> で通常停止状態に戻ります。
+          <b>⚡ 早押しボタン</b>で手動起動、または<b>配信開始15秒後から20秒ごとに自動起動</b>します。<br>
+          自動起動時はニコニコ動画風に<b>右から左へキーワードが流れます</b>。<br>
+          コメントでキーワードと一致した最初の視聴者が<b>HP+10回復</b>＋早押し正解数がカウントされます。<br>
+          30秒で時間切れになります。
         </div>
       </div>
 
       <div class="feature-card">
         <div class="feature-card-title" style="color:#fbbf24">🎲 キャラのランダム初期設定</div>
         <div class="feature-card-body">
-          各キャラが<b>初めてステージに登場するとき</b>、吹き出しの形・フォント・装飾・文字色・大きさがランダムに設定されます。<br>
+          各キャラが<b>初めてステージに登場するとき</b>、吹き出しの形・フォント・装飾・文字色・大きさ（50〜60px）がランダムに設定されます。<br>
           これらは後からコマンドで上書きできます。コメントの吹き出しはタイプライター演出で表示されます。
         </div>
       </div>
@@ -288,7 +446,7 @@
       <div class="feature-card">
         <div class="feature-card-title" style="color:#fb923c">🔊 戦闘音声</div>
         <div class="feature-card-body">
-          <b>sound/sentou/</b> フォルダに音声ファイルを入れると、ボスへの攻撃時・ボスの反撃時にランダムで再生されます。<br>
+          <b>public/sound/sentou/</b> フォルダに音声ファイルを入れると、ボスへの攻撃時・ボスの反撃時にランダムで再生されます。<br>
           対応形式：wav / mp3 / ogg / m4a / aac / flac
         </div>
       </div>
@@ -296,7 +454,7 @@
       <div class="feature-card">
         <div class="feature-card-title" style="color:#fb923c">📈 ダメージランキング</div>
         <div class="feature-card-body">
-          ボスを撃破すると<b>通算ダメージランキング（全ボス合計）上位5名</b>のランキングが表示されます。<br>
+          ボスを撃破すると<b>そのボスへの合計ダメージ上位5名</b>のランキングが表示されます。<br>
           ランキングパネルはドラッグで移動できます。位置はブラウザに保存されます。
         </div>
       </div>
@@ -305,14 +463,13 @@
   </div>
 
   <!-- ── ペットガチャ ── -->
-  <div class="section">
+  <div class="section" id="sec-pet">
     <div class="section-title">🐾 ペットガチャ</div>
 
     <div class="hint-box" style="margin-bottom:16px">
       <b>ペットガチャ</b>とコメントすると <b>MP10</b> を消費してガチャを1回引けます。<br>
       MPが足りない場合は失敗します。新たに引くと以前のペットは上書きされます。<br>
-      ガチャ開始時に<b>ドラムロール</b>が流れ、結果表示でレアリティに応じた効果音が鳴ります。<br>
-      <b>ステータス確認</b>とコメントすると現在のペット情報を含むモーダルが5秒間表示され、<b>ライブチャットにもステータスを投稿</b>します。
+      <b>ステータス確認</b>とコメントすると現在のペット情報を含むモーダルが5秒間表示されます。
     </div>
 
     <div class="cmd-grid" style="margin-bottom:16px">
@@ -322,22 +479,48 @@
       </div>
       <div class="cmd-card">
         <div class="cmd-row"><span class="cmd-code">ステータス確認</span></div>
-        <div class="cmd-desc">ペット・装備・HP/MP/ATK・各種記録を含むモーダルを5秒間表示。<b>ライブチャットにもステータスを投稿</b>します（APIキー入力時のみ）</div>
+        <div class="cmd-desc">ペット・装備・HP/MP/ATK・各種記録を含むモーダルを5秒間表示</div>
       </div>
     </div>
 
     <div style="font-size:13px;color:var(--muted);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em">📊 レアリティ排出確率</div>
     <div class="gacha-rate-row">
-      <div class="gacha-rate-card gr-normal"><div class="rate-pct">50%</div><div class="rate-name">ノーマル</div><div class="rate-count">8種</div></div>
-      <div class="gacha-rate-card gr-rare"><div class="rate-pct">25%</div><div class="rate-name">レア</div><div class="rate-count">8種</div></div>
-      <div class="gacha-rate-card gr-epic"><div class="rate-pct">15%</div><div class="rate-name">エピック</div><div class="rate-count">7種</div></div>
-      <div class="gacha-rate-card gr-legend"><div class="rate-pct">5%</div><div class="rate-name">伝説</div><div class="rate-count">4種</div></div>
-      <div class="gacha-rate-card gr-myth"><div class="rate-pct">5%</div><div class="rate-name">神話</div><div class="rate-count">3種</div></div>
+      <div class="gacha-rate-card gr-normal">
+        <div class="rate-pct">50%</div>
+        <div class="rate-name">ノーマル</div>
+        <div class="rate-count">8種</div>
+      </div>
+      <div class="gacha-rate-card gr-rare">
+        <div class="rate-pct">25%</div>
+        <div class="rate-name">レア</div>
+        <div class="rate-count">8種</div>
+      </div>
+      <div class="gacha-rate-card gr-epic">
+        <div class="rate-pct">15%</div>
+        <div class="rate-name">エピック</div>
+        <div class="rate-count">7種</div>
+      </div>
+      <div class="gacha-rate-card gr-legend">
+        <div class="rate-pct">5%</div>
+        <div class="rate-name">伝説</div>
+        <div class="rate-count">4種</div>
+      </div>
+      <div class="gacha-rate-card gr-myth">
+        <div class="rate-pct">5%</div>
+        <div class="rate-name">神話</div>
+        <div class="rate-count">3種</div>
+      </div>
     </div>
 
     <div style="font-size:13px;color:var(--muted);font-weight:700;margin:16px 0 8px;text-transform:uppercase;letter-spacing:0.06em">📋 ペット能力一覧（全30種）</div>
     <table class="pet-table">
-      <thead><tr><th>レアリティ</th><th>能力名</th><th>効果</th></tr></thead>
+      <thead>
+        <tr>
+          <th>レアリティ</th>
+          <th>能力名</th>
+          <th>効果</th>
+        </tr>
+      </thead>
       <tbody>
         <tr><td><span class="rb rb-normal">ノーマル</span></td><td><b>アシスト</b></td><td>攻撃時に追加1回攻撃（ATK×25%）</td></tr>
         <tr><td><span class="rb rb-normal">ノーマル</span></td><td><b>回復ペット</b></td><td>攻撃するたびHP+2回復</td></tr>
@@ -373,13 +556,18 @@
     </table>
   </div>
 
-  <!-- ── 装備レアリティ ── -->
-  <div class="section">
+  <!-- ── 装備排出確率 ── -->
+  <div class="section" id="sec-equip">
     <div class="section-title">⚔️ 装備レアリティ（ボスHP別）</div>
-    <div class="cmd-desc" style="margin-bottom:8px">ボスを倒すと全キャラにランダムな装備が1個配布されます。ボスHPが高いほど強い装備が出やすくなります。同じ種類が当たると合成（上限+10）。</div>
+    <div class="cmd-desc" style="margin-bottom:8px">ボスを倒すと全キャラにランダムな装備が1個配布されます。ボスHPが高いほど強い装備が出やすくなります。同じ種類が当たると合成されて効果が加算（上限+10）。</div>
     <table class="equip-prob-table">
       <thead>
-        <tr><th>ボスHP目安</th><th>最大装備値</th><th>レアリティ</th><th>備考</th></tr>
+        <tr>
+          <th>ボスHP目安</th>
+          <th>最大装備値</th>
+          <th>レアリティ</th>
+          <th>備考</th>
+        </tr>
       </thead>
       <tbody>
         <tr><td>HP 100〜299</td><td>+1〜2</td><td><span class="rb rb-normal">ノーマル</span></td><td>2回ロールの高い方</td></tr>
@@ -392,42 +580,45 @@
     </table>
     <div class="info-box">
       装備値のロール方法：<b>1〜上限の値を2回振って高い方</b>を採用します（強ボスほど高い値が出やすい）。<br>
-      レアリティはATK/HP値で決定：+1〜2=ノーマル、+3〜4=レア、+5〜6=エピック、+7〜8=伝説、+9〜10=神話。<br>
-      <b>神話装備</b>は確率が1/10に補正されます（神話相当の値が出ても90%の確率でランクダウン）。
+      レアリティはATK/HP値で決定：+1〜2=ノーマル、+3〜4=レア、+5〜6=エピック、+7〜8=伝説、+9〜10=神話。
     </div>
   </div>
 
   <!-- ── ボスバトル ── -->
-  <div class="section">
+  <div class="section" id="sec-boss">
     <div class="section-title">🐉 ボスバトルコマンド</div>
     <div class="cmd-grid">
+
       <div class="cmd-card">
         <div class="cmd-row"><span class="cmd-code red">ボス召喚</span></div>
-        <div class="cmd-desc">ランダムHP（100〜2000）のボスを召喚。管理パネルの「HP倍率」（1〜100x）が乗算されます。ボス戦中は再使用不可</div>
+        <div class="cmd-desc">ランダムHP（100〜2000）のボスを召喚。ボス戦中は再使用不可</div>
         <div class="cmd-variants"><span class="variant">ボス召喚</span><span class="variant">ボス召喚:500（HP指定・上限2000）</span></div>
       </div>
+
       <div class="cmd-card">
         <div class="cmd-row"><span class="cmd-code red">（通常コメント）</span></div>
         <div class="cmd-desc">ボスが出現中は<b>すべてのコメントが攻撃</b>になります。ダメージ＝ATK×1〜3倍（クリ時×4〜8倍）</div>
       </div>
+
       <div class="cmd-card">
         <div class="cmd-row"><span class="cmd-code green">回復</span></div>
         <div class="cmd-desc">コメントに「回復」を含めると <b>MP2消費</b> して全キャラHP+2回復。ボス戦中も攻撃は発動</div>
       </div>
+
     </div>
     <div class="danger-box">
-      ボスは攻撃を受けるたびに <b>反撃（ダメージ5）</b> することがあります。反撃率は管理パネルで0〜100%に設定可能（デフォルト40%）。<br>
-      コメント文字数÷4回の連続ヒットで攻撃（1ヒットごとに攻撃モーション・ダメージ表示・効果音が発生）。<br>
-      ボスを倒すと全員 <b>HP+20 回復</b>＋<b>宝箱が出現</b>（20秒以内に開封でランダム装備が全キャラに配布）。<br>
-      ボスのサイズはHP100→約120px、HP2000→約420pxとHP比例して大きくなります。<br>
-      ボスHPと反撃率は管理パネル「ボス設定」で変更できます（HP倍率1〜100x）。
+      ボスは攻撃を受けるたびに <b>20%の確率で全キャラに反撃（ダメージ5）</b> します。<br>
+      ボスを倒すと全員 <b>HP+20 回復</b>＋ランダム装備が全キャラに配布されます。<br>
+      <b>ボス画像は public/chara/ にある画像からランダム選択</b>されます。<br>
+      ボスのサイズはHP100→約120px、HP2000→約420pxとHP比例して大きくなります。
     </div>
   </div>
 
   <!-- ── ゲーム機能 ── -->
-  <div class="section">
+  <div class="section" id="sec-game">
     <div class="section-title">🎮 ゲーム機能</div>
     <div class="cmd-grid">
+
       <div class="cmd-card">
         <div class="cmd-row"><span class="cmd-code yellow">📝 Wordleボタン</span></div>
         <div class="cmd-desc">5文字カタカナ当てゲームのパネルを表示/非表示。視聴者がカタカナ5文字をコメントすると自動判定</div>
@@ -437,95 +628,35 @@
           <span class="variant">⬜ = 含まれない</span>
         </div>
       </div>
+
       <div class="cmd-card">
         <div class="cmd-row"><span class="cmd-code yellow">⚡ 早押しボタン</span></div>
-        <div class="cmd-desc">早押しを手動起動。自動起動頻度は管理パネル「頻度スライダー」で設定（1〜60秒）。<br>
-        <b>白</b>：<code>text/sinjakome.txt</code>からランダム出題→正解でHP+10<br>
-        <b>赤</b>：<code>text/yojijukugo.txt</code>から四字熟語出題→正解でATK×1.5（30秒）</div>
+        <div class="cmd-desc">キーワードを表示して早押し開始（30秒制限）。自動起動は配信開始15秒後から20秒間隔で発生（ニコニコ風テロップで表示）</div>
       </div>
-      <div class="cmd-card">
-        <div class="cmd-row"><span class="cmd-code yellow">❓ クイズボタン</span></div>
-        <div class="cmd-desc">クイズを1問出題（<code>text/quiz.txt</code> から出題）。30秒以内に答えをコメントすると正解判定。正解者はHP+20回復＋正解音が鳴る。<br>
-        答えの判定はひらがな・カタカナ・全角半角を統一して部分一致（2文字以上）で判定。</div>
-      </div>
-      <div class="cmd-card">
-        <div class="cmd-row"><span class="cmd-code yellow">👑 バトルロイヤルボタン</span></div>
-        <div class="cmd-desc">バトルロイヤルを開始。30秒の参加受付後に自動でスタート。<br>
-        コメントするたびにランダムな相手へ攻撃。HPが0になると脱落。最後の1人が優勝。<br>
-        バトロワ中はボス召喚コマンド無効。終了後に自動でボス召喚。</div>
-        <div class="cmd-variants">
-          <span class="variant">参加（コメント）→ エントリー</span>
-        </div>
-      </div>
+
     </div>
     <div class="info-box">
-      <b>Wordle</b>：<code>text/wordle.txt</code> の単語から出題（1行1単語、5文字のカタカナ）。正解で<b>HP全回復＋全画面バナー</b>。<br>
-      <b>早押し</b>：コメントとキーワードが完全一致した最初の人が勝者。複数問題が同時表示されることがあります。<br>
-      <b>クイズ</b>：<code>text/quiz.txt</code> の形式は「問題文,答え」（1行1問）。<br>
-      <b>流れる速さ</b>は管理パネル「速度スライダー」で調整可（1〜60秒）。
+      <b>Wordle</b>：<code>public/text/wordle.txt</code> の単語から出題（1行1単語、5文字のカタカナ）。正解でHP全回復。<br>
+      <b>早押し</b>：wordleと同じ単語プールから出題。コメントとキーワードが完全一致した最初の人が勝者。HP+10回復。<br>
+      早押しパネルは画面のランダムな位置に表示されます。自動起動中は視聴者のコメントで解答可能。
     </div>
   </div>
 
-  <!-- ── スロット ── -->
-  <div class="section">
-    <div class="section-title">🎰 スロットマシン</div>
-    <div class="cmd-grid">
-      <div class="cmd-card">
-        <div class="cmd-row"><span class="cmd-code purple">スロット</span></div>
-        <div class="cmd-desc"><b>MP1消費</b>してスロットを1回回す。3リールが順番に停止し、役が揃うとMP報酬を獲得。</div>
-      </div>
-      <div class="cmd-card">
-        <div class="cmd-row"><span class="cmd-code purple">スロット開始</span></div>
-        <div class="cmd-desc">自動連続スロットを開始（1回ごとにMP1消費）。MPがなくなると自動停止。</div>
-      </div>
-      <div class="cmd-card">
-        <div class="cmd-row"><span class="cmd-code purple">スロット停止</span></div>
-        <div class="cmd-desc">自動スロットを停止する。</div>
-      </div>
+  <!-- ── キャラ設定 ── -->
+  <div class="section" id="sec-char">
+    <div class="section-title">🐱 キャラ設定（画像割り当て済みキャラ）</div>
+    <div id="charGrid" class="char-grid">
+      <div class="cmd-desc" style="grid-column:1/-1;color:var(--muted);font-style:italic">「🖼 キャラ画像」ボタンで画像を割り当てると、ここにキャラが表示されます。</div>
     </div>
-    <table class="equip-prob-table" style="margin-top:12px">
-      <thead><tr><th>役</th><th>デフォルト確率</th><th>報酬MP</th><th>備考</th></tr></thead>
-      <tbody>
-        <tr><td>🍒×3 チェリー</td><td>20%</td><td>+5</td><td></td></tr>
-        <tr><td>🔔×3 ベル</td><td>10%</td><td>+10</td><td></td></tr>
-        <tr><td>⭐×3 スター</td><td>5%</td><td>+25</td><td></td></tr>
-        <tr><td>💎×3 ダイヤ</td><td>1%</td><td>+60</td><td></td></tr>
-        <tr><td>7️⃣×3 JACKPOT</td><td>0.5%</td><td>+200</td><td>全キャラに花火演出</td></tr>
-        <tr><td>ハズレ</td><td>63.5%</td><td>0</td><td></td></tr>
-      </tbody>
-    </table>
-    <div class="info-box" style="margin-top:8px">
-      各役の当選確率は管理パネル「🎰 スロット確率」セクションのスライダーで変更可能。<br>
-      リールアニメーションは演出のみ。当選結果は事前に確率テーブルから決定される（<b>結果先行方式</b>）。
-    </div>
-  </div>
-
-  <!-- ── AFK・放置 ── -->
-  <div class="section">
-    <div class="section-title">💤 AFK・放置</div>
-    <div class="cmd-grid">
-      <div class="cmd-card">
-        <div class="cmd-row"><span class="cmd-code">AFK</span></div>
-        <div class="cmd-desc">キャラクターの上に「💤 AFK」を表示し続ける。次のチャットを送信すると自動解除。</div>
-      </div>
-      <div class="cmd-card">
-        <div class="cmd-row"><span class="cmd-code">放置:テキスト</span></div>
-        <div class="cmd-desc">任意のテキストを「💤 テキスト」として表示し続ける。次のチャットで自動解除。全角コロン（：）も可。</div>
-        <div class="cmd-variants">
-          <span class="variant">放置:洗濯</span>
-          <span class="variant">放置:お風呂</span>
-          <span class="variant">放置：ご飯</span>
-        </div>
-      </div>
-    </div>
-    <div class="info-box" style="margin-top:8px">
-      AFK・放置中のキャラはグレーアウト表示になります。<br>
-      透明度・グレースケール・明るさは管理パネル「📐 サイズ調整」の「💤 AFK」スライダーで個別調整可能。
+    <div class="hint-box">
+      <b>キャラ1〜500</b> まで使用可能。「🖼 キャラ画像」ボタンから画像を割り当て可能（PNG / JPG / GIF / WebP / SVG）。<br>
+      <b>エイリアス設定</b>：設定画面でエイリアスを設定すると、その文字列コメントでキャラが変わります。<br>
+      例：キャラ1に「猫」と設定 → 視聴者が「猫」とコメントするとキャラ1が登場。
     </div>
   </div>
 
   <!-- ── 吹き出し ── -->
-  <div class="section">
+  <div class="section" id="sec-bubble">
     <div class="section-title">💬 吹き出しの形（永続）</div>
     <div class="bubble-preview-grid">
       <div class="bubble-preview-card"><div class="bubble-sample bs-round">こんにちは</div><div class="bubble-label">丸（デフォルト）</div><div class="bubble-cmd">吹き出し:丸</div></div>
@@ -539,7 +670,7 @@
   </div>
 
   <!-- ── 吹き出し装飾 ── -->
-  <div class="section">
+  <div class="section" id="sec-deco">
     <div class="section-title">✨ 吹き出し装飾（永続）</div>
     <div class="cmd-grid">
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code purple">飾り:光る</span></div><div class="cmd-desc">吹き出しが水色にグロー発光する</div><div class="cmd-variants"><span class="variant">飾り:光る</span><span class="variant">飾り:グロー</span></div></div>
@@ -550,21 +681,35 @@
   </div>
 
   <!-- ── 文字色 ── -->
-  <div class="section">
+  <div class="section" id="sec-color">
     <div class="section-title">🎨 文字色（永続）</div>
     <div class="color-table">
+      <div class="color-row"><div class="color-swatch" style="background:#FF4444"></div><div><div class="color-name">赤</div><div class="color-hex">色:赤</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#4499FF"></div><div><div class="color-name">青</div><div class="color-hex">色:青</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#44CC44"></div><div><div class="color-name">緑</div><div class="color-hex">色:緑</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFCC00"></div><div><div class="color-name">黄</div><div class="color-hex">色:黄</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#CC44CC"></div><div><div class="color-name">紫</div><div class="color-hex">色:紫</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF88BB"></div><div><div class="color-name">ピンク</div><div class="color-hex">色:ピンク</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF8800"></div><div><div class="color-name">橙</div><div class="color-hex">色:橙</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#00CCCC"></div><div><div class="color-name">シアン</div><div class="color-hex">色:シアン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#87CEEB"></div><div><div class="color-name">水色</div><div class="color-hex">色:水色</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#88FF00"></div><div><div class="color-name">ライム</div><div class="color-hex">色:ライム</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#A0522D"></div><div><div class="color-name">茶</div><div class="color-hex">色:茶</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#222222;border-color:#555"></div><div><div class="color-name">黒</div><div class="color-hex">色:黒</div></div></div>
     </div>
     <div class="hint-box" style="margin-top:10px">カラーコード直接指定も可能：<b>色:#FF6600</b></div>
   </div>
 
-  <!-- ── その他設定 ── -->
-  <div class="section">
+  <!-- ── その他設定（永続） ── -->
+  <div class="section" id="sec-settings">
     <div class="section-title">⚙️ その他の設定（永続）</div>
     <div class="cmd-grid">
+
       <div class="cmd-card">
         <div class="cmd-row"><span class="cmd-code pink">名前:たろう</span></div>
-        <div class="cmd-desc">表示名を変更。デフォルトは <code>text/names.txt</code> からランダム。重複名はブロックされます。最大20文字</div>
+        <div class="cmd-desc">表示名を変更。デフォルトは icon_name または「名無し」。最大20文字</div>
       </div>
+
       <div class="cmd-card">
         <div class="cmd-row"><span class="cmd-code green">移動:速い</span></div>
         <div class="cmd-desc">キャラがランダムに動き回る速度を設定</div>
@@ -573,18 +718,17 @@
           <span class="variant">移動:遅い</span><span class="variant">移動:止まれ（デフォルト）</span>
         </div>
       </div>
-      <div class="cmd-card">
-        <div class="cmd-row"><span class="cmd-code green">歩く</span><span class="cmd-code green">歩きゅ</span></div>
-        <div class="cmd-desc">キャラが画面を左右に自動で歩き続けます。壁に当たると反転し、キャラ画像も左右反転します。<b>移動:止まれ</b> で停止</div>
-      </div>
+
       <div class="cmd-card">
         <div class="cmd-row"><span class="cmd-code green">上:100</span></div>
-        <div class="cmd-desc">現在地から指定ピクセル分だけ方向移動。複数指定すると順番に実行</div>
+        <div class="cmd-desc">現在地から指定ピクセル分だけ方向移動。複数指定すると<b>順番に</b>実行</div>
         <div class="cmd-variants">
           <span class="variant">上:100</span><span class="variant">下:50</span>
           <span class="variant">左:200</span><span class="variant">右:150</span>
         </div>
+        <div class="cmd-desc" style="margin-top:4px">例: <code>左:100 右:200</code> → 左に100px後に右200px</div>
       </div>
+
       <div class="cmd-card">
         <div class="cmd-row"><span class="cmd-code purple">大きさ:大</span></div>
         <div class="cmd-desc">キャラの表示サイズを変更</div>
@@ -592,6 +736,7 @@
           <span class="variant">大きさ:大</span><span class="variant">大きさ:中（デフォルト）</span><span class="variant">大きさ:小</span>
         </div>
       </div>
+
       <div class="cmd-card">
         <div class="cmd-row"><span class="cmd-code purple">フォント:YuGothic</span></div>
         <div class="cmd-desc">吹き出しのフォントを変更。フォント一覧セクション参照</div>
@@ -600,11 +745,12 @@
           <span class="variant">フォント:デフォルト（リセット）</span>
         </div>
       </div>
+
     </div>
   </div>
 
   <!-- ── エフェクト ── -->
-  <div class="section">
+  <div class="section" id="sec-effects">
     <div class="section-title">🎆 エフェクト（一回限り）</div>
     <div class="cmd-grid">
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code orange">花火</span></div><div class="cmd-desc">カラフルな粒子がキャラの位置から四方に飛び散る</div></div>
@@ -619,7 +765,7 @@
   </div>
 
   <!-- ── モーション ── -->
-  <div class="section">
+  <div class="section" id="sec-motion">
     <div class="section-title">🎭 モーション（10秒で自動停止）</div>
     <div class="cmd-grid">
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code green">はずむ</span><span class="cmd-code green">hikonori</span></div><div class="cmd-desc">音楽に乗るようにキャラが上下にバウンスする</div></div>
@@ -627,11 +773,14 @@
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code green">震える</span></div><div class="cmd-desc">キャラが小刻みに震える</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code green">ぐにゃぐにゃ</span></div><div class="cmd-desc">キャラがぐにゃぐにゃと波打つように動く</div></div>
     </div>
-    <div class="warn-box">すべてのモーションは <b>10秒後に自動停止</b> します。</div>
+    <div class="warn-box">
+      すべてのモーションは <b>10秒後に自動停止</b> します。<br>
+      新しいモーションコマンドを入力すると直前のモーションが解除されて切り替わります。
+    </div>
   </div>
 
   <!-- ── コメント単位スタイル ── -->
-  <div class="section">
+  <div class="section" id="sec-style">
     <div class="section-title">✨ コメント単位スタイル（そのコメントのみ・永続しない）</div>
     <div class="cmd-grid">
       <div class="cmd-card">
@@ -646,22 +795,30 @@
       <div class="cmd-card">
         <div class="cmd-row"><span class="cmd-code pink">太字</span><span class="cmd-code pink">斜体</span></div>
         <div class="cmd-desc">そのコメントだけ太字・斜体。組み合わせも可</div>
+        <div class="cmd-variants">
+          <span class="variant">太字 こんにちは！</span>
+          <span class="variant">斜体 Hello</span>
+          <span class="variant">太字 斜体 強調！</span>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- ── フォント一覧 ── -->
-  <div class="section">
+  <div class="section" id="sec-font">
     <div class="section-title">🔤 フォント一覧（Windows 標準＋インストール済み）</div>
     <div class="font-table">
       <div class="font-group-label">日本語ゴシック系</div>
       <div class="font-row"><span class="font-cmd">フォント:メイリオ</span><div><div class="font-sample" style="font-family:Meiryo">あいうえお ABC</div></div></div>
       <div class="font-row"><span class="font-cmd">フォント:MSゴシック</span><div><div class="font-sample" style="font-family:'MS Gothic'">あいうえお ABC</div></div></div>
       <div class="font-row"><span class="font-cmd">フォント:MSPゴシック</span><div><div class="font-sample" style="font-family:'MS PGothic'">あいうえお ABC</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:BIZUDゴシック</span><div><div class="font-sample" style="font-family:'BIZ UDGothic'">あいうえお ABC</div></div></div>
       <div class="font-row"><span class="font-cmd">フォント:YuGothic</span><div><div class="font-sample" style="font-family:'Yu Gothic'">あいうえお ABC</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:YuGothicUI</span><div><div class="font-sample" style="font-family:'Yu Gothic UI'">あいうえお ABC</div></div></div>
       <div class="font-row"><span class="font-cmd">フォント:NotoSansJP</span><div><div class="font-sample" style="font-family:'Noto Sans JP'">あいうえお ABC</div></div></div>
       <div class="font-group-label">日本語明朝系</div>
       <div class="font-row"><span class="font-cmd">フォント:MS明朝</span><div><div class="font-sample" style="font-family:'MS Mincho'">あいうえお ABC</div></div></div>
+      <div class="font-row"><span class="font-cmd">フォント:MSP明朝</span><div><div class="font-sample" style="font-family:'MS PMincho'">あいうえお ABC</div></div></div>
       <div class="font-row"><span class="font-cmd">フォント:YuMincho</span><div><div class="font-sample" style="font-family:'Yu Mincho'">あいうえお ABC</div></div></div>
       <div class="font-row"><span class="font-cmd">フォント:NotoSerifJP</span><div><div class="font-sample" style="font-family:'Noto Serif JP'">あいうえお ABC</div></div></div>
       <div class="font-group-label">デザイン系</div>
@@ -683,7 +840,7 @@
   </div>
 
   <!-- ── メディアコメント ── -->
-  <div class="section">
+  <div class="section" id="sec-media">
     <div class="section-title">🖼 メディアコメント（自動対応）</div>
     <div class="cmd-grid">
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code orange">お絵描きコメント</span></div><div class="cmd-desc">visualchat タイプのコメント。描いた絵が吹き出しに画像で表示されます</div></div>
@@ -694,126 +851,353 @@
     </div>
   </div>
 
-  <!-- ── キャラ一覧 ── -->
-  <div class="section">
-    <div class="section-title">🖼 キャラ一覧（使用可能な画像ファイル）</div>
-    <div class="chara-grid">
-      <div class="chara-card"><img src="chara/00004-159183190.png" loading="lazy" alt="00004-159183190.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ1</div></div>
-      <div class="chara-card"><img src="chara/00027-104778952.png" loading="lazy" alt="00027-104778952.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ2</div></div>
-      <div class="chara-card"><img src="chara/00088-37272471.png" loading="lazy" alt="00088-37272471.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ3</div></div>
-      <div class="chara-card"><img src="chara/00098-1412327967.png" loading="lazy" alt="00098-1412327967.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ4</div></div>
-      <div class="chara-card"><img src="chara/00145-3565940783.png" loading="lazy" alt="00145-3565940783.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ5</div></div>
-      <div class="chara-card"><img src="chara/00180-2373247942.png" loading="lazy" alt="00180-2373247942.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ6</div></div>
-      <div class="chara-card"><img src="chara/00181-100637137.png" loading="lazy" alt="00181-100637137.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ7</div></div>
-      <div class="chara-card"><img src="chara/00187-150337088.png" loading="lazy" alt="00187-150337088.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ8</div></div>
-      <div class="chara-card"><img src="chara/00520-1559860186.png" loading="lazy" alt="00520-1559860186.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ9</div></div>
-      <div class="chara-card"><img src="chara/00536-1081971587.png" loading="lazy" alt="00536-1081971587.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ10</div></div>
-      <div class="chara-card"><img src="chara/02f167a6-f29c-4e92-a51d-5d5c4b4bb41e.png" loading="lazy" alt="02f167a6-f29c-4e92-a51d-5d5c4b4bb41e.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ11</div></div>
-      <div class="chara-card"><img src="chara/06bbaa60-4404-4049-a877-79388923e5a0.png" loading="lazy" alt="06bbaa60-4404-4049-a877-79388923e5a0.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ12</div></div>
-      <div class="chara-card"><img src="chara/0fe214b1-ac41-4d71-9f9c-41fefe05fb66%20(1).png" loading="lazy" alt="0fe214b1-ac41-4d71-9f9c-41fefe05fb66 (1).png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ13</div></div>
-      <div class="chara-card"><img src="chara/17ba8402c-6aad-4687-b187-444538fbf4e3.png" loading="lazy" alt="17ba8402c-6aad-4687-b187-444538fbf4e3.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ14</div></div>
-      <div class="chara-card"><img src="chara/1e743fb4-fdd4-4795-8439-acbe9187cbdf.png" loading="lazy" alt="1e743fb4-fdd4-4795-8439-acbe9187cbdf.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ15</div></div>
-      <div class="chara-card"><img src="chara/20250601065914_db8b8f.png" loading="lazy" alt="20250601065914_db8b8f.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ16</div></div>
-      <div class="chara-card"><img src="chara/20260102222250_08cba8.png" loading="lazy" alt="20260102222250_08cba8.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ17</div></div>
-      <div class="chara-card"><img src="chara/247805.png" loading="lazy" alt="247805.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ18</div></div>
-      <div class="chara-card"><img src="chara/248008.png" loading="lazy" alt="248008.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ19</div></div>
-      <div class="chara-card"><img src="chara/248106.png" loading="lazy" alt="248106.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ20</div></div>
-      <div class="chara-card"><img src="chara/265631.png" loading="lazy" alt="265631.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ21</div></div>
-      <div class="chara-card"><img src="chara/3.png" loading="lazy" alt="3.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ22</div></div>
-      <div class="chara-card"><img src="chara/340.webp" loading="lazy" alt="340.webp" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ23</div></div>
-      <div class="chara-card"><img src="chara/407de.png" loading="lazy" alt="407de.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ24</div></div>
-      <div class="chara-card"><img src="chara/47cf257515ce38d88dd97b22f664e02f.png" loading="lazy" alt="47cf257515ce38d88dd97b22f664e02f.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ25</div></div>
-      <div class="chara-card"><img src="chara/500cc.png" loading="lazy" alt="500cc.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ26</div></div>
-      <div class="chara-card"><img src="chara/5853d.png" loading="lazy" alt="5853d.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ27</div></div>
-      <div class="chara-card"><img src="chara/85a6b.png" loading="lazy" alt="85a6b.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ28</div></div>
-      <div class="chara-card"><img src="chara/8YN0b3v.png" loading="lazy" alt="8YN0b3v.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ29</div></div>
-      <div class="chara-card"><img src="chara/96453884795d2144bc0c47a4bc0dd40c.png" loading="lazy" alt="96453884795d2144bc0c47a4bc0dd40c.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ30</div></div>
-      <div class="chara-card"><img src="chara/ageru_dot.png" loading="lazy" alt="ageru_dot.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ34</div></div>
-      <div class="chara-card"><img src="chara/andono.png" loading="lazy" alt="andono.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ35</div></div>
-      <div class="chara-card"><img src="chara/babyageru.png" loading="lazy" alt="babyageru.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ36</div></div>
-      <div class="chara-card"><img src="chara/babyhico.png" loading="lazy" alt="babyhico.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ37</div></div>
-      <div class="chara-card"><img src="chara/babyou.png" loading="lazy" alt="babyou.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ38</div></div>
-      <div class="chara-card"><img src="chara/baka.png" loading="lazy" alt="baka.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ39</div></div>
-      <div class="chara-card"><img src="chara/BCO.c3410ddd-15c4-48be-965a-710039e85cce.png" loading="lazy" alt="BCO.c3410ddd-15c4-48be-965a-710039e85cce.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ31</div></div>
-      <div class="chara-card"><img src="chara/butterfly.png" loading="lazy" alt="butterfly.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ40</div></div>
-      <div class="chara-card"><img src="chara/ChatGPT%20Image%202026%E5%B9%B41%E6%9C%884%E6%97%A5%2001_37_38.png" loading="lazy" alt="ChatGPT Image 2026年1月4日 01_37_38.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ32</div></div>
-      <div class="chara-card"><img src="chara/content.png" loading="lazy" alt="content.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ41</div></div>
-      <div class="chara-card"><img src="chara/cureageru.png" loading="lazy" alt="cureageru.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ42</div></div>
-      <div class="chara-card"><img src="chara/d9de8fe5ed0a6e3573ea12ff7268909f.png" loading="lazy" alt="d9de8fe5ed0a6e3573ea12ff7268909f.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ43</div></div>
-      <div class="chara-card"><img src="chara/dowageru.png" loading="lazy" alt="dowageru.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ44</div></div>
-      <div class="chara-card"><img src="chara/feafae.png" loading="lazy" alt="feafae.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ45</div></div>
-      <div class="chara-card"><img src="chara/fefaefage35.png" loading="lazy" alt="fefaefage35.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ46</div></div>
-      <div class="chara-card"><img src="chara/fefer246t34.png" loading="lazy" alt="fefer246t34.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ47</div></div>
-      <div class="chara-card"><img src="chara/ffffdsfsd.png" loading="lazy" alt="ffffdsfsd.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ48</div></div>
-      <div class="chara-card"><img src="chara/fgaeea24ty.png" loading="lazy" alt="fgaeea24ty.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ49</div></div>
-      <div class="chara-card"><img src="chara/gacho.png" loading="lazy" alt="gacho.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ50</div></div>
-      <div class="chara-card"><img src="chara/gatitoukaw_diferuw.png" loading="lazy" alt="gatitoukaw_diferuw.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ51</div></div>
-      <div class="chara-card"><img src="chara/gatitoukaw_hagarenaiw.png" loading="lazy" alt="gatitoukaw_hagarenaiw.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ52</div></div>
-      <div class="chara-card"><img src="chara/gatitoukaw_hicobabyw.png" loading="lazy" alt="gatitoukaw_hicobabyw.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ53</div></div>
-      <div class="chara-card"><img src="chara/gatitoukawomukyuaw.png" loading="lazy" alt="gatitoukawomukyuaw.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ54</div></div>
-      <div class="chara-card"><img src="chara/gelato_pique.mushi.png" loading="lazy" alt="gelato_pique.mushi.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ55</div></div>
-      <div class="chara-card"><img src="chara/gothicageru.png" loading="lazy" alt="gothicageru.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ56</div></div>
-      <div class="chara-card"><img src="chara/h8240h8g4.png" loading="lazy" alt="h8240h8g4.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ57</div></div>
-      <div class="chara-card"><img src="chara/hamager2u.png" loading="lazy" alt="hamager2u.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ58</div></div>
-      <div class="chara-card"><img src="chara/hikoholmes.png" loading="lazy" alt="hikoholmes.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ59</div></div>
-      <div class="chara-card"><img src="chara/hikomusi.png" loading="lazy" alt="hikomusi.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ60</div></div>
-      <div class="chara-card"><img src="chara/img_-0000-1642450378.png" loading="lazy" alt="img_-0000-1642450378.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ61</div></div>
-      <div class="chara-card"><img src="chara/img_-0000-3139744839.png" loading="lazy" alt="img_-0000-3139744839.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ62</div></div>
-      <div class="chara-card"><img src="chara/img_-0000-447762712.png" loading="lazy" alt="img_-0000-447762712.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ63</div></div>
-      <div class="chara-card"><img src="chara/img_-0002-2607607172.png" loading="lazy" alt="img_-0002-2607607172.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ64</div></div>
-      <div class="chara-card"><img src="chara/img_-0003-1065042707.png" loading="lazy" alt="img_-0003-1065042707.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ65</div></div>
-      <div class="chara-card"><img src="chara/img_-0004-1065042707.png" loading="lazy" alt="img_-0004-1065042707.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ66</div></div>
-      <div class="chara-card"><img src="chara/img_-0011-959000735.png" loading="lazy" alt="img_-0011-959000735.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ67</div></div>
-      <div class="chara-card"><img src="chara/img_-0019-3973524258.png" loading="lazy" alt="img_-0019-3973524258.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ68</div></div>
-      <div class="chara-card"><img src="chara/img_-0023-716318130.png" loading="lazy" alt="img_-0023-716318130.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ69</div></div>
-      <div class="chara-card"><img src="chara/img_-0025-16269871.png" loading="lazy" alt="img_-0025-16269871.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ70</div></div>
-      <div class="chara-card"><img src="chara/KH.png" loading="lazy" alt="KH.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ33</div></div>
-      <div class="chara-card"><img src="chara/kisyokeee.png" loading="lazy" alt="kisyokeee.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ71</div></div>
-      <div class="chara-card"><img src="chara/kisyoneko.mushi.png" loading="lazy" alt="kisyoneko.mushi.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ72</div></div>
-      <div class="chara-card"><img src="chara/kisyoneko.neko.png" loading="lazy" alt="kisyoneko.neko.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ73</div></div>
-      <div class="chara-card"><img src="chara/lightningafro2.PNG" loading="lazy" alt="lightningafro2.PNG" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ74</div></div>
-      <div class="chara-card"><img src="chara/magicaldraw_20250904_174643.jpg" loading="lazy" alt="magicaldraw_20250904_174643.jpg" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ75</div></div>
-      <div class="chara-card"><img src="chara/moonrat.png" loading="lazy" alt="moonrat.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ76</div></div>
-      <div class="chara-card"><img src="chara/moonrat_origin.png" loading="lazy" alt="moonrat_origin.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ77</div></div>
-      <div class="chara-card"><img src="chara/neceageru.png" loading="lazy" alt="neceageru.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ78</div></div>
-      <div class="chara-card"><img src="chara/pirateage.png" loading="lazy" alt="pirateage.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ79</div></div>
-      <div class="chara-card"><img src="chara/pogo.png" loading="lazy" alt="pogo.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ80</div></div>
-      <div class="chara-card"><img src="chara/pundldygjkk.png" loading="lazy" alt="pundldygjkk.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ81</div></div>
-      <div class="chara-card"><img src="chara/sageru.png" loading="lazy" alt="sageru.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ82</div></div>
-      <div class="chara-card"><img src="chara/sf6anti.png" loading="lazy" alt="sf6anti.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ83</div></div>
-      <div class="chara-card"><img src="chara/ssf4fuerte.png" loading="lazy" alt="ssf4fuerte.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ84</div></div>
-      <div class="chara-card"><img src="chara/ssf4hakan.png" loading="lazy" alt="ssf4hakan.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ85</div></div>
-      <div class="chara-card"><img src="chara/strike.png" loading="lazy" alt="strike.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ86</div></div>
-      <div class="chara-card"><img src="chara/tree_yashinoki_long.png" loading="lazy" alt="tree_yashinoki_long.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ87</div></div>
-      <div class="chara-card"><img src="chara/uchuage.png" loading="lazy" alt="uchuage.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ88</div></div>
-      <div class="chara-card"><img src="chara/umariage.png" loading="lazy" alt="umariage.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ89</div></div>
-      <div class="chara-card"><img src="chara/whichdottiw.png" loading="lazy" alt="whichdottiw.png" onerror="this.closest('.chara-card').style.display='none'"><div class="chara-slot-name">キャラ90</div></div>
+  <!-- ── UI操作 ── -->
+  <div class="section" id="sec-ui">
+    <div class="section-title">🖱 UIボタン・操作</div>
+    <div class="btn-table">
+      <div class="btn-row"><div class="btn-label">▶ 開始</div><div class="btn-desc2">APIキーとハッシュを使ってコメント取得を開始</div></div>
+      <div class="btn-row"><div class="btn-label">■ 停止</div><div class="btn-desc2">コメント取得と自動早押しを停止</div></div>
+      <div class="btn-row"><div class="btn-label">💬 ログ</div><div class="btn-desc2">画面右下にコメントログパネルを表示/非表示</div></div>
+      <div class="btn-row"><div class="btn-label">🖼 キャラ画像</div><div class="btn-desc2">キャラ1〜500に画像を割り当てるモーダルを開く</div></div>
+      <div class="btn-row"><div class="btn-label">🔔 集合</div><div class="btn-desc2">全キャラを画面下部中央に横並びで集合させる</div></div>
+      <div class="btn-row"><div class="btn-label">💀 ボス消去</div><div class="btn-desc2">現在のボスを消去（次のボスは自動召喚されない）</div></div>
+      <div class="btn-row"><div class="btn-label">🔒 移動制限</div><div class="btn-desc2">ON時：移動コマンドと方向移動をすべて無効化</div></div>
+      <div class="btn-row"><div class="btn-label">📝 Wordle</div><div class="btn-desc2">Wordleパネルを表示/終了</div></div>
+      <div class="btn-row"><div class="btn-label">⚡ 早押し</div><div class="btn-desc2">早押しゲームを手動起動/停止</div></div>
+      <div class="btn-row"><div class="btn-label">🐛 DEBUG</div><div class="btn-desc2">ON時：全キャラのATKを強制的に50にする（テスト用）</div></div>
+      <div class="btn-row"><div class="btn-label">⏹ 全停止</div><div class="btn-desc2">全キャラのランダム移動とモーションを即時停止</div></div>
+      <div class="btn-row"><div class="btn-label">🗑 リセット</div><div class="btn-desc2">ステージ上の全キャラを退場＆コメント番号リセット</div></div>
+      <div class="btn-row"><div class="btn-label">📋 OBS URL</div><div class="btn-desc2">OBSブラウザソース用URL（/?obs=1）をコピー。設定バー非表示で自動スタート</div></div>
+      <div class="btn-row"><div class="btn-label">BG色</div><div class="btn-desc2">ステージ背景色をカラーピッカーで変更（デフォルト:#00FF00）。OBSクロマキーに合わせて設定</div></div>
+      <div class="btn-row"><div class="btn-label">🖼 BG画像</div><div class="btn-desc2">背景画像をアップロード（全画面表示）。ファイルはサーバーに保存されブラウザ再起動後も保持</div></div>
+      <div class="btn-row"><div class="btn-label">✕BG</div><div class="btn-desc2">背景画像を削除して背景色に戻す</div></div>
+      <div class="btn-row"><div class="btn-label">移動エリア</div><div class="btn-desc2">ランダム移動の範囲を制限（全体/下半分/上半分/左半分/右半分/左下/右下）</div></div>
+      <div class="btn-row"><div class="btn-label">❓ コマンド</div><div class="btn-desc2">このページを新しいタブで開く</div></div>
     </div>
-    <div class="hint-box" style="margin-top:10px">
-      ファイル名（拡張子なし）が <b>キャラ名</b> として使用されます。<b>キャラN</b> または <b>エイリアス</b> コマンドでキャラを割り当てます。
+    <div class="info-box" style="margin-top:12px">
+      <b>ドラッグ操作</b>：キャラをマウスでつかんで自由に移動できます（効果音あり）。<br>
+      <b>🗑 ゴミ箱</b>：キャラをゴミ箱に重ねてドロップするとキャラが消えます。ゴミ箱もドラッグで移動可（位置保存）。<br>
+      <b>ボスもドラッグ</b>で移動できます。<br>
+      <b>ランキングパネル・Wordleパネル</b>もドラッグで移動でき、位置はブラウザに保存されます。
     </div>
   </div>
 
+  <!-- ── 称号一覧 ── -->
+  <div class="section" id="sec-titles">
+    <div class="section-title">⭐ 称号一覧（全100種）</div>
+    <div class="info-box" style="margin-bottom:12px">
+      各条件を達成すると称号が解除されます。<b>コメント「称号リスト」</b>で取得済み称号を確認でき、
+      <b>「称号:称号名」</b>で任意の称号をキャラ名の左に表示できます。称号の効果はバトルに反映されます。<br>
+      <span style="color:#fde68a">★ 金色</span>は高難易度称号、<span style="background:linear-gradient(90deg,#f472b6,#a78bfa,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:700">★ レインボー</span>は最高難易度称号です。
+    </div>
+    <table class="title-table">
+      <thead><tr><th class="title-id">No.</th><th>称号名</th><th>解除条件</th><th>効果</th></tr></thead>
+      <tbody>
+        <tr class="group-row"><td colspan="4">💬 コメント系</td></tr>
+        <tr><td class="title-id">T01</td><td class="title-name">初コメント</td><td class="title-cond">初めてコメント</td><td class="title-abil">ATK+1</td></tr>
+        <tr><td class="title-id">T02</td><td class="title-name">常連</td><td class="title-cond">コメント10回</td><td class="title-abil">HP+5</td></tr>
+        <tr><td class="title-id">T03</td><td class="title-name">古参</td><td class="title-cond">コメント50回</td><td class="title-abil">ATK+2</td></tr>
+        <tr><td class="title-id">T04</td><td class="title-name">コメ廃</td><td class="title-cond">コメント100回</td><td class="title-abil">ATK+2 HP+5</td></tr>
+        <tr><td class="title-id">T05</td><td class="title-name">神コメンター</td><td class="title-cond">コメント200回</td><td class="title-abil">EXP×1.2</td></tr>
+        <tr class="group-row"><td colspan="4">⚔️ レベル系</td></tr>
+        <tr><td class="title-id">T06</td><td class="title-name">見習い戦士</td><td class="title-cond">ボスに初攻撃</td><td class="title-abil">ATK+1</td></tr>
+        <tr><td class="title-id">T07</td><td class="title-name">武者修行中</td><td class="title-cond">Lv.3到達</td><td class="title-abil">HP+10</td></tr>
+        <tr><td class="title-id">T08</td><td class="title-name">戦士</td><td class="title-cond">Lv.5到達</td><td class="title-abil">ATK+2</td></tr>
+        <tr><td class="title-id">T09</td><td class="title-name">勇者</td><td class="title-cond">Lv.7到達</td><td class="title-abil">ダメージ×1.05</td></tr>
+        <tr><td class="title-id">T10</td><td class="title-name">英雄</td><td class="title-cond">Lv.10（最高レベル）</td><td class="title-abil">ダメージ×1.1 クリ+5%</td></tr>
+        <tr class="group-row"><td colspan="4">🐉 戦闘・討伐系</td></tr>
+        <tr><td class="title-id">T11</td><td class="title-name">討伐者</td><td class="title-cond">ボス撃破参加1回</td><td class="title-abil">ATK+1</td></tr>
+        <tr><td class="title-id">T12</td><td class="title-name">猛者</td><td class="title-cond">ボス撃破参加5回</td><td class="title-abil">ダメージ×1.05</td></tr>
+        <tr><td class="title-id">T13</td><td class="title-name">剛の者</td><td class="title-cond">ボス撃破参加10回</td><td class="title-abil">ATK+3</td></tr>
+        <tr><td class="title-id">T14</td><td class="title-name">ボスキラー</td><td class="title-cond">ボスにトドメ1回</td><td class="title-abil">クリ+10%</td></tr>
+        <tr><td class="title-id">T15</td><td class="title-name">刺客</td><td class="title-cond">ボスにトドメ3回</td><td class="title-abil">ダメージ×1.1</td></tr>
+        <tr><td class="title-id">T16</td><td class="title-name">ダメ500</td><td class="title-cond">合計ダメージ500以上</td><td class="title-abil">ATK+2</td></tr>
+        <tr><td class="title-id">T17</td><td class="title-name">ダメ2000</td><td class="title-cond">合計ダメージ2000以上</td><td class="title-abil">ダメージ×1.1</td></tr>
+        <tr><td class="title-id">T18</td><td class="title-name">ダメ10000</td><td class="title-cond">合計ダメージ10000以上</td><td class="title-abil">ダメ×1.2 ATK+5</td></tr>
+        <tr><td class="title-id">T19</td><td class="title-name">コンボマスター</td><td class="title-cond">コンボ発動3回</td><td class="title-abil">クリ+5%</td></tr>
+        <tr><td class="title-id">T20</td><td class="title-name">コンボ王</td><td class="title-cond">コンボ発動10回</td><td class="title-abil">ダメ×1.1 クリ+5%</td></tr>
+        <tr class="group-row"><td colspan="4">💀 生存系</td></tr>
+        <tr><td class="title-id">T21</td><td class="title-name">生還者</td><td class="title-cond">死亡1回以上で生存中</td><td class="title-abil">被ダメ軽減5%</td></tr>
+        <tr><td class="title-id">T22</td><td class="title-name">九死に一生</td><td class="title-cond">HP1以下で生き残った</td><td class="title-abil">HP+15</td></tr>
+        <tr><td class="title-id">T23</td><td class="title-name">不屈の魂</td><td class="title-cond">5回死亡</td><td class="title-abil">被ダメ軽減10%</td></tr>
+        <tr><td class="title-id">T24</td><td class="title-name">不死鳳</td><td class="title-cond">10回死亡</td><td class="title-abil">HP+20 被ダメ軽減10%</td></tr>
+        <tr><td class="title-id">T25</td><td class="title-name">鉄人</td><td class="title-cond">20コメ以上 &amp; 一度も死なず</td><td class="title-abil">HP+30</td></tr>
+        <tr class="group-row"><td colspan="4">⚙️ 装備・ペット系</td></tr>
+        <tr><td class="title-id">T26</td><td class="title-name">装備持ち</td><td class="title-cond">装備1個以上</td><td class="title-abil">ATK+1</td></tr>
+        <tr><td class="title-id">T27</td><td class="title-name">装備コレクター</td><td class="title-cond">装備3個以上</td><td class="title-abil">ATK+2 HP+5</td></tr>
+        <tr><td class="title-id">T28</td><td class="title-name">重装備</td><td class="title-cond">装備5個以上</td><td class="title-abil">HP+20 被ダメ軽減5%</td></tr>
+        <tr><td class="title-id">T29</td><td class="title-name">神装備</td><td class="title-cond">装備8個以上</td><td class="title-abil">ATK+5 HP+20 ダメ×1.1</td></tr>
+        <tr><td class="title-id">T30</td><td class="title-name">ペット使い</td><td class="title-cond">ペット所持</td><td class="title-abil">EXP×1.1</td></tr>
+        <tr><td class="title-id">T31</td><td class="title-name">ペットマスター</td><td class="title-cond">レアペット以上所持</td><td class="title-abil">EXP×1.2 ATK+2</td></tr>
+        <tr><td class="title-id">T32</td><td class="title-name">神獣使い</td><td class="title-cond">神話ペット所持</td><td class="title-abil">ダメ×1.15 クリ+10%</td></tr>
+        <tr class="group-row"><td colspan="4">💚 回復・MP系</td></tr>
+        <tr><td class="title-id">T33</td><td class="title-name">回復使い</td><td class="title-cond">回復コマンド3回使用</td><td class="title-abil">HP+10</td></tr>
+        <tr><td class="title-id">T34</td><td class="title-name">天使</td><td class="title-cond">回復コマンド10回使用</td><td class="title-abil">HP+20 被ダメ軽減5%</td></tr>
+        <tr><td class="title-id">T35</td><td class="title-name">聖女</td><td class="title-cond">MP満タン発動3回</td><td class="title-abil">HP+15 EXP×1.1</td></tr>
+        <tr class="group-row"><td colspan="4">⚡ 早押し系</td></tr>
+        <tr><td class="title-id">T36</td><td class="title-name">早押し見習い</td><td class="title-cond">早押し正解3回</td><td class="title-abil">ATK+1</td></tr>
+        <tr><td class="title-id">T37</td><td class="title-name">早押し名人</td><td class="title-cond">早押し正解10回</td><td class="title-abil">ATK+2 クリ+5%</td></tr>
+        <tr><td class="title-id">T38</td><td class="title-name">早押し達人</td><td class="title-cond">早押し正解30回</td><td class="title-abil">ダメ×1.1</td></tr>
+        <tr><td class="title-id">T39</td><td class="title-name">回復の鬼</td><td class="title-cond">白ストリーム早押し5回</td><td class="title-abil">HP+15</td></tr>
+        <tr><td class="title-id">T40</td><td class="title-name">炎の戦士</td><td class="title-cond">赤ストリーム早押し5回</td><td class="title-abil">ダメ×1.1</td></tr>
+        <tr class="group-row"><td colspan="4">📝 Wordle系</td></tr>
+        <tr><td class="title-id">T41</td><td class="title-name">言葉遊び</td><td class="title-cond">Wordle正解1回</td><td class="title-abil">EXP×1.1</td></tr>
+        <tr><td class="title-id">T42</td><td class="title-name">言葉の達人</td><td class="title-cond">Wordle正解5回</td><td class="title-abil">ATK+2 EXP×1.1</td></tr>
+        <tr><td class="title-id">T43</td><td class="title-name">謎解き王</td><td class="title-cond">Wordle正解15回</td><td class="title-abil">ダメ×1.1 EXP×1.2</td></tr>
+        <tr class="group-row"><td colspan="4">📦 宝箱系</td></tr>
+        <tr><td class="title-id">T44</td><td class="title-name">宝探し</td><td class="title-cond">宝箱を開ける</td><td class="title-abil">HP+10</td></tr>
+        <tr><td class="title-id">T45</td><td class="title-name">宝箱ハンター</td><td class="title-cond">宝箱3回開ける</td><td class="title-abil">ATK+3 HP+10</td></tr>
+        <tr><td class="title-id">T46</td><td class="title-name">財宝の王</td><td class="title-cond">宝箱7回開ける</td><td class="title-abil">ダメ×1.1 HP+20</td></tr>
+        <tr class="group-row"><td colspan="4">📈 EXP系</td></tr>
+        <tr><td class="title-id">T47</td><td class="title-name">経験豊富</td><td class="title-cond">総EXP 50以上</td><td class="title-abil">EXP×1.1</td></tr>
+        <tr><td class="title-id">T48</td><td class="title-name">百戦練磨</td><td class="title-cond">総EXP 200以上</td><td class="title-abil">ATK+3 EXP×1.1</td></tr>
+        <tr><td class="title-id">T49</td><td class="title-name">千戦の剣士</td><td class="title-cond">総EXP 500以上</td><td class="title-abil">ダメ×1.1 EXP×1.2</td></tr>
+        <tr class="group-row"><td colspan="4">🕐 時間系</td></tr>
+        <tr><td class="title-id">T50</td><td class="title-name">夜更かし</td><td class="title-cond">深夜0〜4時にコメント</td><td class="title-abil">ATK+2</td></tr>
+        <tr><td class="title-id">T51</td><td class="title-name">早起き鳥</td><td class="title-cond">朝5〜7時にコメント</td><td class="title-abil">HP+10 EXP×1.1</td></tr>
+        <tr><td class="title-id">T52</td><td class="title-name">朝型人間</td><td class="title-cond">朝7〜10時にコメント</td><td class="title-abil">EXP×1.1</td></tr>
+        <tr><td class="title-id">T53</td><td class="title-name">昼間組</td><td class="title-cond">昼12〜14時にコメント</td><td class="title-abil">ATK+1</td></tr>
+        <tr><td class="title-id">T54</td><td class="title-name">夜型人間</td><td class="title-cond">夜22時以降にコメント</td><td class="title-abil">ATK+2 HP+5</td></tr>
+        <tr><td class="title-id">T55</td><td class="title-name">深夜の番人</td><td class="title-cond">深夜2〜4時にコメント</td><td class="title-abil">ダメ×1.1</td></tr>
+        <tr><td class="title-id">T56</td><td class="title-name">週末戦士</td><td class="title-cond">土日にコメント</td><td class="title-abil">HP+10 EXP×1.1</td></tr>
+        <tr><td class="title-id">T57</td><td class="title-name">平日戦士</td><td class="title-cond">月〜金にコメント</td><td class="title-abil">ATK+1 EXP×1.1</td></tr>
+        <tr class="group-row"><td colspan="4">🎨 カスタマイズ系</td></tr>
+        <tr><td class="title-id">T58</td><td class="title-name">命名者</td><td class="title-cond">名前を設定した</td><td class="title-abil">ATK+1</td></tr>
+        <tr><td class="title-id">T59</td><td class="title-name">おしゃれさん</td><td class="title-cond">吹き出しをカスタマイズ</td><td class="title-abil">HP+5</td></tr>
+        <tr><td class="title-id">T60</td><td class="title-name">移動王</td><td class="title-cond">移動設定5回変更</td><td class="title-abil">ATK+1</td></tr>
+        <tr class="group-row"><td colspan="4">📊 ステータス系</td></tr>
+        <tr><td class="title-id">T61</td><td class="title-name">バランス型</td><td class="title-cond">ATK装備とHP装備を両方所持</td><td class="title-abil">ATK+2 HP+10</td></tr>
+        <tr class="title-gold"><td class="title-id">T62</td><td class="title-name">完全体</td><td class="title-cond">Lv.10 &amp; 装備5個以上 &amp; ペット所持</td><td class="title-abil">全能力強化 ダメ×1.2</td></tr>
+        <tr><td class="title-id">T63</td><td class="title-name">攻撃の鬼</td><td class="title-cond">ATK合計20以上</td><td class="title-abil">クリ+10%</td></tr>
+        <tr><td class="title-id">T64</td><td class="title-name">鉄壁の守護者</td><td class="title-cond">最大HP80以上</td><td class="title-abil">被ダメ軽減15%</td></tr>
+        <tr><td class="title-id">T65</td><td class="title-name">MPマスター</td><td class="title-cond">MP18以上</td><td class="title-abil">EXP×1.2 HP+5</td></tr>
+        <tr class="group-row"><td colspan="4">🔰 強化討伐系</td></tr>
+        <tr><td class="title-id">T66</td><td class="title-name">ボス5体討伐</td><td class="title-cond">ボス5体撃破参加</td><td class="title-abil">ATK+2</td></tr>
+        <tr><td class="title-id">T67</td><td class="title-name">ボス20体討伐</td><td class="title-cond">ボス20体撃破参加</td><td class="title-abil">ダメ×1.1</td></tr>
+        <tr><td class="title-id">T68</td><td class="title-name">ボス50体討伐</td><td class="title-cond">ボス50体撃破参加</td><td class="title-abil">ダメ×1.2 ATK+5</td></tr>
+        <tr><td class="title-id">T69</td><td class="title-name">ボスハンター</td><td class="title-cond">ボストドメ5回</td><td class="title-abil">クリ+15% ダメ×1.1</td></tr>
+        <tr class="title-gold"><td class="title-id">T70</td><td class="title-name">討伐の帝王</td><td class="title-cond">ボストドメ10回</td><td class="title-abil">ダメ×1.2 ATK+5 クリ+10%</td></tr>
+        <tr class="group-row"><td colspan="4">🏆 上位称号</td></tr>
+        <tr><td class="title-id">T71</td><td class="title-name">500コメ</td><td class="title-cond">コメント500回</td><td class="title-abil">ATK+5 HP+10</td></tr>
+        <tr><td class="title-id">T72</td><td class="title-name">1000コメ</td><td class="title-cond">コメント1000回</td><td class="title-abil">ダメ×1.2 全能力強化</td></tr>
+        <tr><td class="title-id">T73</td><td class="title-name">ダメ30000</td><td class="title-cond">合計ダメージ30000以上</td><td class="title-abil">ダメ×1.3</td></tr>
+        <tr class="title-gold"><td class="title-id">T74</td><td class="title-name">破壊神</td><td class="title-cond">合計ダメージ100000以上</td><td class="title-abil">ダメ×1.5 ATK+10</td></tr>
+        <tr><td class="title-id">T75</td><td class="title-name">コンボ50回</td><td class="title-cond">コンボ発動50回</td><td class="title-abil">ダメ×1.2 クリ+10%</td></tr>
+        <tr><td class="title-id">T76</td><td class="title-name">宝箱15回</td><td class="title-cond">宝箱15回開ける</td><td class="title-abil">HP+30 ダメ×1.1</td></tr>
+        <tr><td class="title-id">T77</td><td class="title-name">早押し100回</td><td class="title-cond">早押し正解100回</td><td class="title-abil">ATK+5 ダメ×1.2</td></tr>
+        <tr><td class="title-id">T78</td><td class="title-name">回復の神</td><td class="title-cond">回復コマンド30回使用</td><td class="title-abil">HP+30 被ダメ軽減15%</td></tr>
+        <tr><td class="title-id">T79</td><td class="title-name">Wordle50回</td><td class="title-cond">Wordle正解50回</td><td class="title-abil">全能力×1.1 EXP×1.3</td></tr>
+        <tr class="title-gold"><td class="title-id">T80</td><td class="title-name">百戦不敗</td><td class="title-cond">死亡0回 &amp; 撃破参加50体</td><td class="title-abil">被ダメ完全回避5%確率</td></tr>
+        <tr><td class="title-id">T81</td><td class="title-name">最高ATK</td><td class="title-cond">ATK合計30以上</td><td class="title-abil">ダメ×1.2 クリ+5%</td></tr>
+        <tr><td class="title-id">T82</td><td class="title-name">最高HP</td><td class="title-cond">最大HP100以上</td><td class="title-abil">被ダメ軽減20%</td></tr>
+        <tr><td class="title-id">T83</td><td class="title-name">ガチャ師</td><td class="title-cond">ペットガチャ5回</td><td class="title-abil">EXP×1.2</td></tr>
+        <tr><td class="title-id">T84</td><td class="title-name">ガチャ廃</td><td class="title-cond">ペットガチャ20回</td><td class="title-abil">EXP×1.3 ATK+3</td></tr>
+        <tr><td class="title-id">T85</td><td class="title-name">逆転の一手</td><td class="title-cond">HP5以下で生き残り3回</td><td class="title-abil">HP+25 被ダメ軽減10%</td></tr>
+        <tr><td class="title-id">T86</td><td class="title-name">全力投球</td><td class="title-cond">15文字以上のコメント</td><td class="title-abil">ATK+2</td></tr>
+        <tr><td class="title-id">T87</td><td class="title-name">弁舌家</td><td class="title-cond">30文字以上のコメント5回</td><td class="title-abil">EXP×1.2 ATK+3</td></tr>
+        <tr><td class="title-id">T88</td><td class="title-name">炎の加護</td><td class="title-cond">赤ストリーム早押し7回</td><td class="title-abil">ダメ×1.15 クリ+5%</td></tr>
+        <tr><td class="title-id">T89</td><td class="title-name">聖なる癒し</td><td class="title-cond">白ストリーム早押し7回</td><td class="title-abil">HP+20 被ダメ軽減10%</td></tr>
+        <tr><td class="title-id">T90</td><td class="title-name">MPの鬼</td><td class="title-cond">MP満タン10回</td><td class="title-abil">EXP×1.2 HP+10</td></tr>
+        <tr class="group-row"><td colspan="4">👑 伝説・最高難易度称号</td></tr>
+        <tr class="title-gold"><td class="title-id">T91</td><td class="title-name">天下無双</td><td class="title-cond">合計ダメ50000 &amp; Lv.10</td><td class="title-abil">ダメ×1.4 ATK+8 クリ+10%</td></tr>
+        <tr class="title-gold"><td class="title-id">T92</td><td class="title-name">無敵の鎧</td><td class="title-cond">HP120以上 &amp; 死亡0回</td><td class="title-abil">被ダメ軽減25% HP+30</td></tr>
+        <tr class="title-gold"><td class="title-id">T93</td><td class="title-name">百戦の覇者</td><td class="title-cond">ボス撃破参加100回</td><td class="title-abil">全ステ×1.15 ダメ×1.3</td></tr>
+        <tr class="title-gold"><td class="title-id">T94</td><td class="title-name">千の剣</td><td class="title-cond">合計ダメ500000以上</td><td class="title-abil">ダメ×2.0</td></tr>
+        <tr><td class="title-id">T95</td><td class="title-name">不死身</td><td class="title-cond">30回死亡</td><td class="title-abil">被ダメ軽減20% HP+40</td></tr>
+        <tr><td class="title-id">T96</td><td class="title-name">奇跡の戦士</td><td class="title-cond">10回以上死亡 &amp; Lv.10</td><td class="title-abil">全能力×1.2</td></tr>
+        <tr><td class="title-id">T97</td><td class="title-name">Wordle王</td><td class="title-cond">Wordle正解100回</td><td class="title-abil">全能力×1.3</td></tr>
+        <tr><td class="title-id">T98</td><td class="title-name">宝の神</td><td class="title-cond">宝箱30回開ける</td><td class="title-abil">ダメ×1.3 HP+50</td></tr>
+        <tr class="title-rainbow"><td class="title-id">T99</td><td class="title-name">最強の称号</td><td class="title-cond">称号50種以上取得</td><td class="title-abil">全能力×1.5 ダメ×1.5</td></tr>
+        <tr class="title-rainbow"><td class="title-id">T100</td><td class="title-name">神</td><td class="title-cond">称号80種以上取得</td><td class="title-abil">全能力×2.0 最強の存在</td></tr>
+        <tr class="group-row"><td colspan="4">🐾 ペット2枠系</td></tr>
+        <tr class="title-gold"><td class="title-id">T101</td><td class="title-name">二刀の獣使い</td><td class="title-cond">ペット2体同時所持（ガチャ20回で2枠目解放）</td><td class="title-abil">ATK+3 EXP×1.2 クリ+5%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
   <!-- ── 組み合わせ例 ── -->
-  <div class="section">
+  <div class="section" id="sec-examples">
     <div class="section-title">💡 組み合わせ例</div>
     <div class="cmd-grid">
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">色:赤 こんにちは！</span></div><div class="cmd-desc">色を赤に変えつつ「こんにちは！」と表示</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">吹き出し:棘 色:紫 うおー！</span></div><div class="cmd-desc">吹き出しを棘形・紫テキストにして表示</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">右:200 下:100 ここにいるよ</span></div><div class="cmd-desc">右に200px→下に100px移動しながらコメント表示</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">文字サイズ:極大 太字 うおおおお！！</span></div><div class="cmd-desc">極大サイズの太字でそのコメントだけ表示</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">花火 紙吹雪 やったー！！</span></div><div class="cmd-desc">花火＋紙吹雪を同時発動しながらコメント表示</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">はずむ 大きさ:大 ノリノリ〜</span></div><div class="cmd-desc">大サイズでバウンス開始しながらコメント表示</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">吹き出し:ハート 飾り:光る 好き！</span></div><div class="cmd-desc">ハート形＋グロー装飾の吹き出しで「好き！」と表示</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">回復 みんないけー！</span></div><div class="cmd-desc">MP2消費で全キャラHP+2回復しながらコメント表示</div></div>
-      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">ペットガチャ</span></div><div class="cmd-desc">MP10消費してペットを引く（単独コマンド）。ドラムロール→結果音</div></div>
-      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">ステータス確認</span></div><div class="cmd-desc">ペット・装備・HP/MP/ATK・各種記録を5秒間表示＋ライブチャット投稿（単独コマンド）</div></div>
-      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">歩く</span></div><div class="cmd-desc">左右自動歩行を開始。移動:止まれ で停止（単独コマンド）</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">ペットガチャ</span></div><div class="cmd-desc">MP10消費してペットを引く（他コマンドと同時使用不可）</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">ステータス確認</span></div><div class="cmd-desc">ペット・装備・HP/MP/ATK・Wordle/早押し正解数を5秒間表示</div></div>
     </div>
     <div class="hint-box">
       コマンドは複数同時使用可。コマンド部分を除いた残りのテキストが吹き出しに表示されます。<br>
-      <b>キャラN / エイリアス / ペットガチャ / ステータス確認 / ボス召喚 / 歩く / 歩きゅ</b> は単独コマンド（他コマンドと同時使用不可）。<br>
+      <b>キャラN / エイリアス / ペットガチャ / ステータス確認 / ボス召喚 は単独コマンド</b>（他コマンドと同時使用不可）。<br>
       設定（色・吹き出し・移動・フォントなど）は <b>ipid ごとに記憶</b>されます。
     </div>
   </div>
+
+  <script>
+    const STANDALONE_CHARS = ["00004-159183190.png","00027-104778952.png","00088-37272471.png","00098-1412327967.png","00145-3565940783.png","00180-2373247942.png","00181-100637137.png","00187-150337088.png","00520-1559860186.png","00536-1081971587.png","02f167a6-f29c-4e92-a51d-5d5c4b4bb41e.png","06bbaa60-4404-4049-a877-79388923e5a0.png","0fe214b1-ac41-4d71-9f9c-41fefe05fb66 (1).png","17ba8402c-6aad-4687-b187-444538fbf4e3.png","1e743fb4-fdd4-4795-8439-acbe9187cbdf.png","20250601065914_db8b8f.png","20260102222250_08cba8.png","247805.png","248008.png","248106.png","265631.png","3.png","340.webp","407de.png","47cf257515ce38d88dd97b22f664e02f.png","500cc.png","5853d.png","85a6b.png","8YN0b3v.png","96453884795d2144bc0c47a4bc0dd40c.png","ageru_dot.png","andono.png","babyageru.png","babyhico.png","babyou.png","baka.png","BCO.c3410ddd-15c4-48be-965a-710039e85cce.png","butterfly.png","ChatGPT Image 2026年1月4日 01_37_38.png","content.png","cureageru.png","d9de8fe5ed0a6e3573ea12ff7268909f.png","dowageru.png","feafae.png","fefaefage35.png","fefer246t34.png","ffffdsfsd.png","fgaeea24ty.png","gacho.png","gatitoukaw_diferuw.png","gatitoukaw_hagarenaiw.png","gatitoukaw_hicobabyw.png","gatitoukawomukyuaw.png","gelato_pique.mushi.png","gothicageru.png","h8240h8g4.png","hamager2u.png","hikoholmes.png","hikomusi.png","img_-0000-1642450378.png","img_-0000-3139744839.png","img_-0000-447762712.png","img_-0002-2607607172.png","img_-0003-1065042707.png","img_-0004-1065042707.png","img_-0011-959000735.png","img_-0019-3973524258.png","img_-0023-716318130.png","img_-0025-16269871.png","KH.png","kisyokeee.png","kisyoneko.mushi.png","kisyoneko.neko.png","lightningafro2.PNG","magicaldraw_20250904_174643.jpg","moonrat.png","moonrat_origin.png","neceageru.png","pirateage.png","pogo.png","pundldygjkk.png","sageru.png","sf6anti.png","ssf4fuerte.png","ssf4hakan.png","strike.png","tree_yashinoki_long.png","uchuage.png","umariage.png","whichdottiw.png"];
+
+    const CmdGen = (function() {
+      const state = { chara: '', bubble: '', deco: '', color: '', font: '' };
+      function build() {
+        const parts = [];
+        if (state.chara) parts.push('キャラ' + state.chara);
+        const nameEl = document.getElementById('cgName');
+        const name = nameEl ? nameEl.value.trim() : '';
+        if (name) parts.push('名前:' + name);
+        if (state.bubble) parts.push('吹き出し:' + state.bubble);
+        if (state.deco && state.deco !== 'なし') parts.push('飾り:' + state.deco);
+        if (state.color) parts.push('色:' + state.color);
+        if (state.font && state.font !== 'デフォルト') parts.push('フォント:' + state.font);
+        const textEl = document.getElementById('cgText');
+        if (!textEl) return;
+        if (parts.length === 0) {
+          textEl.textContent = '（選択してコマンドを生成）';
+          textEl.className = 'cmdgen-text empty';
+        } else {
+          textEl.textContent = parts.join(' ');
+          textEl.className = 'cmdgen-text';
+        }
+        document.getElementById('cgOutput').classList.remove('copied');
+      }
+      function selectChip(el) {
+        const group = el.dataset.group;
+        const val = el.dataset.val;
+        if (state[group] === val) {
+          state[group] = '';
+          el.classList.remove('selected');
+        } else {
+          document.querySelectorAll(`.cmdgen-chip[data-group="${group}"]`).forEach(c => c.classList.remove('selected'));
+          state[group] = val;
+          el.classList.add('selected');
+        }
+        build();
+      }
+      function setChara(val) {
+        const n = parseInt(val);
+        state.chara = (n >= 1 && n <= 500) ? String(n) : '';
+        build();
+      }
+      function copy() {
+        const textEl = document.getElementById('cgText');
+        if (!textEl || textEl.classList.contains('empty')) return;
+        const text = textEl.textContent;
+        (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
+          .catch(() => { const ta = Object.assign(document.createElement('textarea'), {value: text}); document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); });
+        document.getElementById('cgOutput').classList.add('copied');
+        const msg = document.getElementById('cgCopied');
+        if (msg) { msg.style.opacity = '1'; clearTimeout(msg._t); msg._t = setTimeout(() => msg.style.opacity = '0', 1800); }
+      }
+      function reset() {
+        Object.keys(state).forEach(k => state[k] = '');
+        document.querySelectorAll('.cmdgen-chip').forEach(c => c.classList.remove('selected'));
+        const nameEl = document.getElementById('cgName'); if (nameEl) nameEl.value = '';
+        const numEl = document.getElementById('cgCharNum'); if (numEl) numEl.value = '';
+        const msg = document.getElementById('cgCopied'); if (msg) msg.style.opacity = '0';
+        document.getElementById('cgOutput').classList.remove('copied');
+        build();
+      }
+      function renderCharChips() {
+        const container = document.getElementById('cgCharChips');
+        if (!container) return;
+        let images = {}, aliases = {};
+        try { images  = JSON.parse(localStorage.getItem('charImages')  || '{}'); } catch {}
+        try { aliases = JSON.parse(localStorage.getItem('charAliases') || '{}'); } catch {}
+        const ids = Object.keys(images).map(Number).filter(id => id >= 1 && id <= 500 && images[id]);
+        ids.sort((a, b) => a - b);
+        if (ids.length > 0) {
+          // localStorage にキャラ割り当てデータがある場合：画像チップ表示
+          container.innerHTML = '';
+          ids.forEach(id => {
+            const fname = images[id];
+            const alias = Object.keys(aliases).find(k => aliases[k] === id);
+            const label = `キャラ${id}`;
+            const chip = document.createElement('span');
+            chip.className = 'cmdgen-chip';
+            chip.dataset.group = 'chara';
+            chip.dataset.val = String(id);
+            chip.onclick = function() { CmdGen.selectChip(this); };
+            chip.innerHTML = `<img class="cmdgen-chara-img" src="./chara/${encodeURIComponent(fname)}" alt="キャラ${id}" onerror="this.style.display='none'">${label}`;
+            container.appendChild(chip);
+          });
+        } else {
+          // スタンドアロン時：STANDALONE_CHARS を キャラ1〜N として画像チップ表示
+          container.innerHTML = '';
+          STANDALONE_CHARS.forEach((fname, i) => {
+            const id = i + 1;
+            const chip = document.createElement('span');
+            chip.className = 'cmdgen-chip';
+            chip.dataset.group = 'chara';
+            chip.dataset.val = String(id);
+            chip.onclick = function() { CmdGen.selectChip(this); };
+            chip.innerHTML = `<img class="cmdgen-chara-img" src="./chara/${encodeURIComponent(fname)}" alt="キャラ${id}" onerror="this.style.display='none'">キャラ${id}`;
+            container.appendChild(chip);
+          });
+        }
+      }
+      return { build, selectChip, setChara, copy, reset, renderCharChips };
+    })();
+    CmdGen.renderCharChips();
+
+    (function initSidebar() {
+      const links = document.querySelectorAll('.sidebar-link');
+      const ids = [...links].map(a => a.getAttribute('href').slice(1));
+      const sections = ids.map(id => document.getElementById(id)).filter(Boolean);
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            links.forEach(a => a.classList.remove('active'));
+            const link = document.querySelector(`.sidebar-link[href="#${entry.target.id}"]`);
+            if (link) {
+              link.classList.add('active');
+              link.scrollIntoView({ block: 'nearest' });
+            }
+          }
+        });
+      }, { rootMargin: '-10% 0px -80% 0px' });
+      sections.forEach(s => observer.observe(s));
+    })();
+
+    (function renderCharGrid() {
+      const grid = document.getElementById('charGrid');
+      let images = {}, aliases = {};
+      try { images  = JSON.parse(localStorage.getItem('charImages')  || '{}'); } catch {}
+      try { aliases = JSON.parse(localStorage.getItem('charAliases') || '{}'); } catch {}
+      const ids = Object.keys(images).map(Number).filter(id => id >= 1 && id <= 500 && images[id]);
+      ids.sort((a, b) => a - b);
+
+      if (ids.length > 0) {
+        // localStorage にデータがある場合（サーバー経由で使用した実績あり）
+        grid.innerHTML = '';
+        ids.forEach(id => {
+          const fname = images[id];
+          const alias = Object.keys(aliases).find(k => aliases[k] === id) || '';
+          const card  = document.createElement('div');
+          card.className = 'char-card';
+          card.innerHTML =
+            `<img class="char-img" src="./chara/${encodeURIComponent(fname)}" alt="キャラ${id}" onerror="this.style.display='none'">`
+            + `<div class="char-cmd">キャラ${id}</div>`
+            + (alias ? `<div class="char-alias">「${alias}」</div>` : '');
+          grid.appendChild(card);
+        });
+      } else {
+        // スタンドアロン時のフォールバック：STANDALONE_CHARS を キャラ1〜N として表示
+        grid.innerHTML = '';
+        STANDALONE_CHARS.forEach((fname, i) => {
+          const id = i + 1;
+          const card = document.createElement('div');
+          card.className = 'char-card';
+          card.innerHTML =
+            `<img class="char-img" src="./chara/${encodeURIComponent(fname)}" alt="キャラ${id}" onerror="this.parentNode.remove()">`
+            + `<div class="char-cmd">キャラ${id}</div>`;
+          grid.appendChild(card);
+        });
+      }
+    })();
+  </script>
 
 </body>
 </html>

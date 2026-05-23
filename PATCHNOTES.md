@@ -2,6 +2,431 @@
 
 ---
 
+## v2.27.0 — 2026-05-23
+
+### 🐱 コマンド生成キャラチップのラベルを `キャラN` 形式に統一
+- `public/help.html` / `index.html` の `renderCharChips`（localStorage あり分岐）を修正
+- エイリアス設定済みキャラの表示が `エイリアス名(N)` → `キャラN` に統一
+
+---
+
+## v2.26.0 — 2026-05-23
+
+### 📄 index.html（スタンドアロン）キャラ表示をキャラN形式に統一
+- `STANDALONE_CHARS` 定数をスクリプト先頭に定義（allFiles の重複を解消）
+- キャラ一覧（`renderCharGrid` フォールバック）：ファイル名ラベル → `キャラ1`〜`キャラ82` 形式に変更
+- コマンド生成キャラセレクター（`renderCharChips` フォールバック）：番号入力欄 → 画像サムネイルチップ（`キャラ1`〜`キャラ82`）に変更
+- サーバーなしでも `http://localhost:3000/help.html` と同様の見た目でキャラを選択・コマンド生成可能
+
+---
+
+## v2.25.0 — 2026-05-23
+
+### 📄 index.html（スタンドアロン）にキャラ選択機能を反映
+- `public/help.html` の CmdGen キャラセレクター変更を `index.html` に反映
+- CSS: `.cmdgen-chara-img`（28×28px サムネイル）・`.cmdgen-chara-num`（番号入力スタイル）追加
+- HTML: コマンド生成セクションに「🐱 キャラ」行を追加（`#cgCharChips`）
+- `CmdGen` JS 更新：`chara` state 追加・`build()` に `キャラN` 先頭出力・`setChara()` 追加
+- `renderCharChips()` スタンドアロン対応：
+  - localStorage にキャラ割り当てがある → 画像サムネイルチップ表示（`./chara/` パス）
+  - データなし → 番号入力フィールド（1〜500）に切り替え、入力値を `キャラN` 形式で出力
+
+---
+
+## v2.24.0 — 2026-05-23
+
+### 🐱 コマンド生成にキャラ選択機能を追加（public/help.html）
+- `CmdGen` の `state` に `chara` フィールドを追加
+- `build()` でキャラが選択されている場合、先頭に `キャラN` を出力
+- `renderCharChips()` 関数を追加：`localStorage.charImages` からキャラ画像サムネイルをチップとして生成
+  - エイリアスが設定されているキャラは `エイリアス名(N)` 形式で表示
+  - 画像が未割り当ての場合は「サーバー起動後に表示されます」メッセージを表示
+- コマンド生成セクションに「🐱 キャラ」行を追加（名前入力欄の上）
+- CSS: `.cmdgen-chara-img`（28×28px サムネイル）を追加
+
+---
+
+## v2.23.0 — 2026-05-23
+
+### 🖼 index.html キャラ画像をスタンドアロンで表示できるよう修正
+- `renderCharGrid` 関数にフォールバック処理を追加
+- `localStorage` にキャラ割り当てデータがある場合 → 従来どおりキャラ番号付きで表示
+- データがない場合（`file://` 直接起動など） → `chara/` フォルダの全82画像をハードコードリストから表示
+- 読み込み失敗画像は `onerror` で自動非表示（カード自体を削除）
+
+---
+
+## v2.22.0 — 2026-05-23
+
+### 📄 ルート index.html をスタンドアロン版ヘルプページに更新
+- `public/help.html` の内容を完全コピーして `index.html`（ルート）に反映
+- サーバー（localhost:3000）が起動していなくてもダブルクリックで開ける完全スタンドアロン HTML
+- 変更点：
+  - `href="/"` のバックリンクを「📄 スタンドアロン版」表示に変更（サーバー依存のリンクを除去）
+  - キャラ画像パスを `/chara/` → `./public/chara/` に変更（ファイル直接開き時に相対パスで参照）
+- CSS・JS・サイドバー・コマンド生成機能はすべてインライン完結でサーバー不要
+
+---
+
+## v2.21.0 — 2026-05-23
+
+### 🔧 コマンド生成機能を追加（help.html / index.html）
+
+#### public/help.html
+- 「コマンド生成」セクションをサイドバーの先頭・ページ最上部に新設（`id="sec-cmdgen"`）
+- 名前入力・吹き出し7種・装飾4種・文字色12種・フォント11種をクリックで選択
+- 選択内容を組み合わせたコマンド文字列をリアルタイム生成、クリックでクリップボードにコピー
+- コピー完了時に枠が緑色になり「✅ コピーしました！」メッセージを表示
+- `CmdGen` IIFE モジュールとして `build / selectChip / copy / reset` を実装
+
+#### public/index.html
+- `#emptyHint` に「🔧 コマンド生成」タブを先頭（Tab 0）として追加
+- 既存タブのインデックスを 1〜5 にシフト
+- help.html と同一の `CmdGen` ロジックをインライン実装
+- `<head>` に `.cmdgen-*` スタイルを追加（style.css に依存しない独立 CSS）
+
+---
+
+## v2.20.0 — 2026-05-23
+
+### 🗂 public/help.html にサイドバーナビゲーションを追加
+- 左固定サイドバー（幅 192px）を新設し、18セクションへのリンクを配置
+- 各 `<div class="section">` に ID を付与（`sec-features` 〜 `sec-examples`）
+- `IntersectionObserver` でスクロール位置に合わせてアクティブリンクをハイライト
+- body の `padding-left` を 216px に拡大してコンテンツとサイドバーが重ならないよう調整
+- サイドバー自体もスクロール可能でアクティブリンクが自動スクロールで追従
+
+---
+
+## v2.19.0 — 2026-05-22
+
+### 📋 public/index.html をタブ構成に刷新
+- `#emptyHint` をタブナビゲーション付きのレイアウトに全面改訂
+- タブ 5 種: 🎮 基本コマンド / ⚔️ ゲーム / 🤖 AI・生成 / 📋 仕様 / 🐱 キャラ一覧
+- **`switchHintTab(idx)`** 関数を `public/index.html` インラインスクリプトに追加してタブ切替を実装
+- **style.css**: `.hint-tabs`, `.hint-tab`, `.hint-tab-content`, `.hint-chara-grid` 等のスタイルを追加
+- キャラ一覧タブにキャラ1〜50の emoji グリッドを掲載
+- 全コマンド・仕様・AI機能・音量設定を最新内容に更新
+
+### 📖 ルート index.html（コマンドリファレンス）を最新化
+- バージョン番号を v2.19.0 に更新
+- **射コマンド**を「その他の設定」セクションに追加
+- **🤖 AI・生成機能**セクションを新規追加（`ai：`, `tts：`, `gen`, `ノベル起動`, 5分モード解説）
+- 機能解説セクションに「AI返答・5分モード」「TTS（音声読み上げ）」のカードを追加
+- 組み合わせ例に `ai：`, `tts：`, `射` コマンドの例を追加
+
+---
+
+## v2.18.0 — 2026-05-22
+
+### 🎮 オセロゲームを追加 (`/othello`)
+- `public/othello.html` を新規作成 — スタンドアロンのブラウザ完結型オセロゲーム
+- **オンライン対戦**: 6文字ルームコードで2人がリアルタイム対戦（WebSocket）
+- **AI対戦**: 位置重み付きグリーディAI（コーナー優先戦略）
+- **ローカル2人プレイ**: 同一画面で交互に操作
+- **server.js**: WebSocketサーバーを `/ws/game` パスに追加
+  - ルーム管理（`gameRooms` Map）、`_gFlips` / `_gApply` / `_gHasMoves` / `_gInitBoard` を実装
+  - create / join / move / resign メッセージに対応
+  - パス判定・ゲーム終了判定をサーバー側で処理
+- UI: 配置アニメーション・ひっくり返しアニメーション・スコア表示・投了ボタン
+
+---
+
+## v2.17.0 — 2026-05-22
+
+### 🖥 サーバー管理パネルを admin.html に追加
+- TTS (RVC/7870) と Ollama (11434) の起動/停止/状態確認をボタン操作可能に
+- ●緑 = 起動中 / ●赤 = 停止中 を常時表示、5秒ごと自動更新
+- 起動後 1.5 秒後に状態を再取得して反映
+- **server.js**: `/api/srv/status` (GET) ・ `/api/srv/start/:name` (POST) ・ `/api/srv/stop/:name` (POST) を追加
+  - `checkPort()` でポート疎通確認、`spawn()` で起動、`taskkill` で停止
+  - 対象サーバーは `MANAGED_SERVERS` オブジェクトで管理（拡張可能）
+- **admin.html**: 「🖥 サーバー管理」セクション追加、`srvRefresh()` / `srvAction()` を追加
+
+---
+
+## v2.16.0 — 2026-05-22
+
+### 🔈 全効果音の音量を管理パネルから調節可能に
+- 管理パネルに「🔈 音量設定」セクションを新設
+  - **効果音** (`seVolume`): ガチャ・スロット・早押し・戦闘音など `playLocalSound` 全般
+  - **ボイス** (`voiceVolume`): ボイスコメント (`playVoice`)
+  - **TTS音量** (`ttsVolume`): 既存、TTS設定セクションに継続
+- 各設定は localStorage に保存、ページリロード後も維持
+- `playLocalSound` → `Math.min(1, volume * seVolume)` で乗算適用
+- `playVoice` → `Math.min(1, 0.8 * voiceVolume)` で乗算適用
+- **app.js**: `seVolume` / `voiceVolume` 変数・`initVolumeSettings` ・`volumeText` ハンドラ・`getState` 追加
+- **index.html / admin.html**: 音量設定セクション追加、`sendVolumeText()` 追加
+
+---
+
+## v2.15.0 — 2026-05-22
+
+### 🔊 TTS 音量調節を追加
+- TTS設定に「音量」スライダー（0〜100%）を追加
+- 管理パネル（admin.html / index.html）から調整可能、localStorage に保存
+- **app.js**: `ttsVolume` 変数追加・`playTTS` で `audio.volume = ttsVolume` 適用・`initTTSSettings` / `_ttsListeners` / `ttsText` ハンドラに追加
+- **index.html / admin.html**: `ttsVolumeSlider` / `ttsVolumeVal` を TTS設定セクションに追加
+
+---
+
+## v2.14.0 — 2026-05-22
+
+### 🔊 5分モードの返答を TTS で自動読み上げ
+- AI が返答を生成したタイミングで `playTTS()` を呼び出し、音声合成で読み上げ
+- `>>{number}` プレフィックスは読み上げ対象外（テキスト本文のみ読み上げ）
+- TTS モデル未設定の場合は無音でスキップ（既存の `playTTS` の動作）
+- **app.js**: `_doAskAI` に `playTTS(replyText)` を追加
+
+---
+
+## v2.13.0 — 2026-05-22
+
+### 🔧 コメント投稿をサーバー経由に変更（OBS対応）
+- OBS ブラウザソースから `https://live.erinn.biz/` への直接 fetch が "failed to fetch" でブロックされる問題を修正
+- **server.js**: `/api/post-comment` プロキシエンドポイントを追加（サーバー側で erinn.biz へ HTTP リクエスト）
+- **app.js**: `postAIReply` の fetch 先を `https://live.erinn.biz/api/` → `/api/post-comment` に変更
+
+---
+
+## v2.12.0 — 2026-05-22
+
+### 🤖 5分モード デバッグログを視覚ログに表示
+- `_aiLog(text, color)` ヘルパーを追加し、全 5分モードログをアプリの視覚ログに出力
+  - `送信:` → Ollama へ質問を送った
+  - `返答生成:` → 返答テキストが生成された（水色）
+  - `投稿完了:` → kukulu API 送信成功（緑）
+  - `投稿スキップ: apikey なし` → OBS 等で apikey が未設定（赤）
+  - `skip: 自分のコメント` / `skip: AI投稿ループ防止`
+  - `Ollamaエラー:` / `例外:` → エラー詳細（赤）
+- 5分モード開始時に apikey の有無を表示（OBS の設定漏れを即検出）
+- **app.js**: `console.log` をすべて `_aiLog` に置換
+
+---
+
+## v2.11.0 — 2026-05-22
+
+### 🤖 5分モード 安定性改善
+- Ollama へのリクエストを直列キュー（`_aiQueue`）で管理し、並列送信によるエラーを防止
+- スキップ理由を `console.log` で出力（`master本人` / `AI投稿ループ防止`）、原因の特定が容易に
+- AI返答はアプリのログには表示せず、kukulu の API 経由のみでコメント投稿するよう変更
+- **app.js**: `askAIAndPost` をキューラッパーに変更、内部処理を `_doAskAI` に分離
+
+---
+
+## v2.10.0 — 2026-05-22
+
+### 🤖 5分モード改善
+- AI返答の先頭に `>>{cnum}` を付けてどのコメントへの返答か明示（例：`>>484 いいですね！`）
+- `from === 'master'` のコメントはAI返答をスキップ（自コメへの返信防止）
+- **app.js**: `askAIAndPost` に `cnum` 引数を追加し、返答テキストに prefix を付与
+
+---
+
+## v2.09.0 — 2026-05-22
+
+### 🤖 5分モード（AI自動返答）
+- 管理パネルの「🤖 5分モード」ボタンで ON/OFF 切替
+- ON 中にコメントが届くと自動で Ollama に送信し、返答を erinn.biz API でコメント投稿
+- AI 投稿したテキストは 60 秒間 `_aiPostedTexts` に記録し、ループ防止でスキップ
+- ゲーム処理（EXP・コマンド等）は通常通り継続
+- ボタンは ON 時に青く点灯（admin.html / index.html 両方同期）
+- **app.js**: `fiveMinMode` フラグ・`setFiveMinMode()` ・`postAIReply()` ・`askAIAndPost()` を追加、`handleComment` に 5分モードチェックを追加、`getState` に `fiveMinMode` を追加
+- **index.html**: `fiveMinBtn` ボタンを追加
+- **admin.html**: `adminFiveMinBtn` ボタン追加、`applyState` で ON/OFF 状態を反映
+- **style.css**: `.btn-five-min` / `.five-min-active` スタイルを追加
+
+---
+
+## v2.08.0 — 2026-05-22
+
+### 🤖 AI設定を管理パネルから設定可能に
+- 管理パネル（admin.html / index.html）に「🤖 AI設定」セクションを追加
+  - **モデル**: Ollama で使用するモデル名（デフォルト: `gemma3:12b`）
+  - **ルール**: system prompt（AIへの指示・口調・制約など）
+- 設定は localStorage に保存され、ページリロード後も維持
+- 管理パネル↔メインウィンドウ間は `aiText` メッセージタイプで同期
+- **admin.html**: AI設定セクション・`sendAIText()` 関数・`applyState` 対応を追加
+- **index.html**: AI設定 admin-group を追加
+- **app.js**: `aiModel` / `aiSystem` 変数・localStorage 復元・`aiText` ハンドラ・`getState` 対応を追加
+- **server.js**: `/api/ai-reply` の `system` パラメータは既にクライアントから渡す実装済み
+
+---
+
+## v2.07.0 — 2026-05-22
+
+### 🤖 AI返答機能（Ollama）
+- コメントで `ai：質問内容` と送ると、Ollama（gemma3:12b）が返答を生成してキャラの吹き出しに表示
+- `AI：` `ＡＩ：` など大文字・全角コロンにも対応
+- 返答はログにも `🤖 AI質問` / `🤖 AI返答` として記録
+- **server.js**: `/api/ai-reply` POST エンドポイントを追加（Ollama `http://127.0.0.1:11434/api/generate` を呼び出し）
+- **app.js**: `askAI(user, question)` 関数を追加、`handleComment` に `aiMatch` コマンド処理を追加
+- `aiModel` 変数でモデルを切り替え可能（デフォルト: `gemma3:12b`）
+
+---
+
+## v2.06.0 — 2026-05-22
+
+### 🎨 SD生成コマンドに「gen」を追加
+- `gen` （大文字小文字問わず）でも SD画像生成を起動可能に
+- 例：`gen cute cat` → "cute cat" をプロンプトに生成
+- **app.js**: SD生成コマンドの正規表現を `/出ろ|出して|生成|gen/i` に変更
+
+---
+
+## v2.05.0 — 2026-05-22
+
+### 💬 コマンド実行時に吹き出しを表示
+- 射・SD生成・TTS・ノベル起動・開ける の各コマンドで、コマンドテキストをキャラの吹き出しに表示するよう変更
+- ペットガチャ・スロット系はすでに独自の吹き出しあり、AFK/放置は専用UIのため対象外
+- **app.js**: 各コマンド検出ブロックに `ensureCharOnStage(user); showBubble(user, message, {})` を追加
+
+---
+
+## v2.04.0 — 2026-05-22
+
+### 🔊 TTSテスト用コマンド追加
+- コメントで `tts：文章`（全角・半角コロン両対応）と送ると音声合成を再生
+- **app.js**: `handleComment` に TTSコマンド検出を追加
+
+---
+
+## v2.03.0 — 2026-05-22
+
+### 🔊 TTS（RVC音声合成）基盤を追加
+- `localhost:7870` の RVC を使った音声合成システムを実装
+- `playTTS(text)` を呼ぶだけでシステムボイスを再生可能
+- TTS設定（モデル・ボイス・ピッチ・IndexRate・Protect・Speed）を管理パネルから変更可能、localStorage に保存
+- **server.js**: `/api/tts` POST エンドポイント追加（7870/run/predict プロキシ）
+- **app.js**: `playTTS()` 関数追加、TTS設定変数追加、`handleAdminMessage` に `ttsText` ハンドラ追加、`getState` にTTS設定追加
+- **index.html**: 🔊 TTS設定 adminグループ追加
+- **admin.html**: TTS設定セクション・`sendTTSText()` 関数・`applyState` 対応追加
+
+---
+
+## v2.02.0 — 2026-05-21
+
+### 📖 ノベルモーダル追加
+- `localhost:3001` を iframe で表示するモーダルを追加
+- **admin.html**: 「📖 ノベル起動」ボタンを追加（システムセクション）。クリックで index.html 側のモーダルを開く
+- **index.html**: `#novelModal` モーダル追加（iframe で localhost:3001 を表示）
+- **app.js**: `openNovelModal()` / `closeNovelModal()` 関数追加、コメントで「ノベル起動」と送るとモーダルが開く、`handleAdminMessage` に `openNovel` タイプ追加
+- **style.css**: `.novel-modal` / `.novel-modal-header` / `.novel-modal-frame` / `.btn-novel` スタイル追加
+
+---
+
+## v2.01.0 — 2026-05-21
+
+### 🎨 翻訳後プロンプトもモザイク判定に追加
+- 日本語プロンプトが翻訳された場合、翻訳後のワードもモザイクキーワードと照合
+- 例：「裸」→「naked」に翻訳された場合、「naked」がモザイクキーワードに含まれていればモザイク適用
+- **app.js**: `_sdNeedsMosaic(prompt, translatedPrompt, mosaicKeywords)` にシグネチャ変更、`showSDImage` に `translatedPrompt` 引数追加
+
+---
+
+## v2.00.0 — 2026-05-21
+
+### 🌐 SD生成プロンプトの日本語→英語自動翻訳
+- プロンプトに日本語が含まれる場合、`translate.googleapis.com` を使って英語に翻訳してから SD に送信
+- 翻訳失敗時は元のプロンプトでそのまま続行（エラーで生成が止まらない）
+- ログに「翻訳: 元テキスト → 翻訳後テキスト」を紫色で表示
+- **server.js**: `hasJapanese()` / `translateToEnglish()` 関数追加、`/api/sd-generate` に翻訳ステップ追加、レスポンスに `translatedPrompt` を含める
+- **app.js**: 翻訳結果をログに出力するよう `generateSDImage` を修正
+
+---
+
+## v1.99.0 — 2026-05-21
+
+### 🎨 SD Sampling method を Euler a に変更
+- **server.js**: `data[SD_IDX.SAMPLER]` を `'DPM++ 2M'` → `'Euler a'` に変更
+
+---
+
+## v1.98.0 — 2026-05-21
+
+### 🐛 SD表示サイズ・ログ修正（v1.96/v1.97の続き）
+- **表示サイズが admin.html から変更できない問題を修正**: `handleAdminMessage` の `sdText` ハンドラの `elMap` に `sdPopWidth:'sdPopWidthSlider'` が抜けていた。追加と同時に `sdPopWidthVal` ラベル更新も追加
+- **`getState` に `sdPopWidth` を追加**: admin.html 接続時に現在値が反映されるよう修正
+- **SD生成ログを修正**: `{ name: '🎨SD', charDef: null }` → 実際の `user` オブジェクトを使用、`popWidth` もログに出力するよう変更
+- **app.js**: `handleAdminMessage` `elMap`・`sdPopWidthVal` 更新追加、`getState` 修正、`generateSDImage` ログ修正
+
+---
+
+## v1.97.0 — 2026-05-21
+
+### 🐛 SD生成画像の表示サイズが反映されない問題を修正
+- 原因：`style.css` の `.sd-image-popup` に `width: 480px` が固定されていたため、スライダーの値が無視されていた
+- 修正：`showSDImage()` で `el.style.width = popW + 'px'` を設定するよう変更
+- **style.css**: `.sd-image-popup` から固定 `width: 480px` を削除
+- **app.js**: `showSDImage()` に `el.style.width = popW + 'px'` 追加
+
+---
+
+## v1.96.0 — 2026-05-21
+
+### 🎨 SD生成画像の表示サイズを管理パネルから変更可能に
+- 表示幅スライダー（`sdPopWidthSlider`、100〜800px、デフォルト480px）を管理パネルに追加
+- 設定値は localStorage に保存、ページリロード後も維持
+- `_sdReadSettings()` に `popWidth` を追加、`showSDImage()` で `cfg.popWidth` を使用
+- admin.html からも同期変更可能（`sdPopWidthVal` 表示ラベル連動）
+- **app.js**: `_sdReadSettings()` に `popWidth` 追加、`initSDSettings` IIFE で `sdPopWidthSlider` 初期化、イベントリスナー追加、`handleAdminMessage` の `sdText` ハンドラに `sdPopWidth` 対応追加
+- **index.html**: `sdPopWidthSlider` range input 追加（SD生成設定グループ内）
+- **admin.html**: SD設定セクションに `sdPopWidthSlider` 追加、`sdFields` / `sdElMap` / `applyState` に `sdPopWidth` 追加
+
+---
+
+## v1.95.0 — 2026-05-21
+
+### 🎨 SD設定が反映されない問題を修正
+- 設定変更が生成に反映されなかった原因：`change` イベント経由の変数更新が不安定だった
+- 修正：生成時に `_sdReadSettings()` で DOM から直接値を読む方式に変更（変数キャッシュ不要）
+- イベントリスナーを `input` イベントで localStorage 保存のみに統一
+- `handleAdminMessage` の `sdText` ハンドラも DOM + localStorage 直書き方式に変更
+- **デバッグログ**: 生成実行時に実際のプロンプト・サイズ・ステップ数をログセクションに出力
+- **app.js**: `_sdReadSettings()` 関数追加、`generateSDImage` / `showSDImage` を DOM 直読み方式に変更
+
+---
+
+## v1.94.0 — 2026-05-21
+
+### 🎨 SD生成設定を管理パネルから変更可能に
+- 幅・高さ・Steps・表示時間・ポジティブサフィックス・ネガティブプロンプト・モザイクキーワードを管理パネルで設定可能
+- 設定は localStorage に保存、ページリロード後も維持
+- admin.html からも同期変更可能（接続時に現在値を反映）
+- **モザイク機能**: モザイクキーワード（カンマ区切り）をプロンプトが含む場合、生成画像にピクセルモザイクを適用（blockSize=20）
+- **app.js**: `sdWidth/sdHeight/sdSteps/sdPositiveSuffix/sdNegative/sdDisplayTime/sdMosaicKeywords` 変数追加、`_sdNeedsMosaic()` / `_applyMosaic()` 関数追加、`sdText` メッセージハンドラ追加、`getState` に SD設定を追加
+- **index.html**: 🎨 SD生成設定 adminグループ追加
+- **admin.html**: SD設定セクション追加、`sendSDText()` / `applyState` への SD設定反映追加
+- **server.js**: リクエストボディから width/height/steps/positiveSuffix/negative を受け取るよう変更
+- **style.css**: `.admin-text-input` / `.admin-textarea` スタイル追加
+
+---
+
+## v1.93.0 — 2026-05-21
+
+### 🎨 SD生成設定を調整
+- 生成サイズを 512×512 → 1600×1000 に変更
+- プロンプトサフィックスを `anime, high quality, detailed` → `masterpiece, best quality` に変更
+- ポップアップ表示幅を 268px → 480px に拡大（画像サイズに合わせて）
+- **server.js**: `WIDTH/HEIGHT/PROMPT` 定数変更
+- **app.js / style.css**: ポップアップ幅変更
+
+---
+
+## v1.92.0 — 2026-05-21
+
+### 🎨 SD画像生成コマンド追加（出ろ / 出して / 生成）
+- コメントに「出ろ」「出して」「生成」が含まれていたら Stable Diffusion で画像を生成し、ステージ上にポップアップ表示
+- コマンド語を除いた残りのテキストをポジティブプロンプトとして使用（空の場合は `1girl, anime` を使用）
+- 生成中はキャラのふきだしに「🎨 生成中…」を表示
+- 生成完了後、キャラ近くに画像ポップアップを表示（30秒後に自動消去・✕ボタンで手動閉鎖可）
+- SD への接続先: `http://127.0.0.1:7860/sdapi/v1/txt2img`（REST API）
+- **server.js**: `http` モジュール追加、`POST /api/sd-generate` エンドポイント追加
+- **app.js**: `generateSDImage()` / `showSDImage()` 関数追加、`handleComment` にコマンド検出追加
+- **style.css**: `.sd-image-popup` / `.sd-image-header` / `.sd-image-img` スタイル追加
+
+---
+
 ## v1.91.0 — 2026-05-21
 
 ### ⚰️ KO 自動復活時間を 2秒 → 10秒 に変更

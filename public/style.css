@@ -88,10 +88,114 @@ body {
 .btn-toggle-bomb.active { background: #1e3a5f; color: #93c5fd; }
 .btn-toggle-trash       { background: #374151; color: #e2e8f0; }
 .btn-toggle-trash.active{ background: #1e3a5f; color: #93c5fd; }
+.btn-novel              { background: #7c3aed; color: #fff; font-weight: bold; }
 .btn-slot-sound         { background: #0ea5e9; color: #fff; }
 .btn-slot-sound.active  { background: #7f1d1d; color: #fca5a5; }
 .btn-slot-all-start     { background: #16a34a; color: #fff; font-weight: bold; }
 .btn-slot-all-stop      { background: #dc2626; color: #fff; font-weight: bold; }
+
+/* SD 設定テキスト入力 */
+.admin-text-input {
+  width: 100%;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 12px;
+  padding: 4px 8px;
+  box-sizing: border-box;
+}
+.admin-textarea {
+  width: 100%;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 11px;
+  padding: 4px 8px;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+/* SD 画像生成ポップアップ */
+.sd-image-popup {
+  position: absolute;
+  z-index: 80;
+  background: rgba(10,10,20,0.92);
+  border: 2px solid #7c3aed;
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 4px 24px rgba(124,58,237,0.5);
+}
+.sd-image-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.sd-image-user {
+  color: #c4b5fd;
+  font-size: 12px;
+  font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+.sd-image-close {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 2px;
+  line-height: 1;
+}
+.sd-image-close:hover { color: #f87171; }
+.sd-image-img {
+  width: 100%;
+  border-radius: 8px;
+  display: block;
+}
+
+/* ノベルモーダル */
+.novel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0,0,0,0.4);
+  display: grid;
+  place-items: center;
+}
+.novel-overlay.hidden { display: none; }
+.novel-modal {
+  background: #0c0918;
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  width: 80%;
+  max-height: 90%;
+  overflow: hidden;
+  box-shadow: 0 8px 48px rgba(0,0,0,0.8);
+}
+.novel-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  font-size: 14px;
+  color: #e2e8f0;
+  flex-shrink: 0;
+}
+.novel-modal-frame {
+  flex: none;
+  border: none;
+  width: 100%;
+  aspect-ratio: 960 / 540;
+  background: #0c0918;
+}
 
 /* 管理モーダル */
 .admin-modal-overlay {
@@ -438,6 +542,46 @@ body {
   color: rgba(0,0,0,0.4);
   flex-shrink: 0;
 }
+.hint-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 1280px;
+}
+.hint-tab {
+  padding: 5px 14px;
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 20px;
+  background: rgba(255,255,255,0.7);
+  color: #475569;
+  font-size: 12px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.15s;
+}
+.hint-tab.active {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: #1e293b;
+}
+.hint-tab-content { display: none; width: 100%; max-width: 1280px; }
+.hint-tab-content.active { display: block; }
+.hint-chara-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 5px;
+}
+.hint-chara-item {
+  background: rgba(255,255,255,0.84);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 6px;
+  padding: 6px 4px;
+  text-align: center;
+}
+.hint-chara-emoji { font-size: 20px; display: block; margin-bottom: 2px; }
+.hint-chara-name  { color: #475569; font-size: 9px; }
 .hint-commands {
   font-size: 12px;
   color: rgba(0,0,0,0.35);
@@ -2035,6 +2179,8 @@ body {
 a.btn-debug    { text-decoration: none; display: inline-block; }
 .btn-compact   { background: #334155; color: #cbd5e1; }
 .btn-compact.compact-active { background: #1e3a5f; color: #7dd3fc; border: 1px solid #3b82f6; }
+.btn-five-min  { background: #312e81; color: #a5b4fc; }
+.btn-five-min.five-min-active { background: #4338ca; color: #e0e7ff; border: 1px solid #818cf8; }
 
 /* ── 装備アイコン非表示 ── */
 #stage.equip-hidden .char-equip-area { display: none !important; }

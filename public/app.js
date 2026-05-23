@@ -1029,12 +1029,32 @@ function nextBossHp() {
 }
 let moveLocked = false;          // 移動制限モード（方向移動・移動コマンド禁止）
 let debugMode  = false;          // デバッグモード（全キャラATK=50）
-let compactMode = false;         // コンパクトモード
+let compactMode  = false;        // コンパクトモード
+let fiveMinMode  = false;        // 5分モード（AI自動返答）
 let equipHidden  = false;        // 装備アイコン非表示
 let brAutoEnabled = true;        // 自動バトルロイヤル有効フラグ
 let bombHidden   = false;        // 爆弾ボタン非表示
 let trashHidden  = false;        // ゴミ箱非表示
 let slotSoundEnabled = true;    // スロット効果音ON/OFF
+// TTS設定
+let seVolume      = 1.0;  // 効果音マスター音量
+let voiceVolume   = 1.0;  // ボイスコメント音量
+let ttsModel      = '';
+let ttsVoice      = 'ja-JP-NanamiNeural-Female';
+let ttsF0UpKey    = 0;
+let ttsIndexRate  = 0.75;
+let ttsProtect    = 0.33;
+let ttsSpeed      = 0;
+let ttsVolume     = 1.0;
+
+// SD生成設定
+let sdWidth          = 1600;
+let sdHeight         = 1000;
+let sdSteps          = 20;
+let sdPositiveSuffix = 'masterpiece, best quality';
+let sdNegative       = '(worst quality:2),(low quality:2),(normal quality:2),lowres,extra fingers,fewer fingers,monochrome,grayscale,text,watermark,logo,';
+let sdDisplayTime    = 10;
+let sdMosaicKeywords = '';
 let kaiBullets    = [];          // 射コマンド物理弾リスト
 let kaiAnimId     = null;        // 射物理ループ requestAnimationFrame ID
 let kaiSpeed      = 18;          // 射出強さ
@@ -2107,14 +2127,14 @@ function showLevelUpBanner() {
 // ──────────────────────────────────────────────────────────────────
 function playLocalSound(src, volume = 0.8) {
   if (compactMode) return;
-  try { const a = new Audio(src); a.volume = volume; a.play().catch(() => {}); } catch {}
+  try { const a = new Audio(src); a.volume = Math.min(1, volume * seVolume); a.play().catch(() => {}); } catch {}
 }
 
 function playVoice(url) {
   if (!isSafeUrl(url)) return;
   try {
     const audio = new Audio(url);
-    audio.volume = 0.8;
+    audio.volume = Math.min(1, 0.8 * voiceVolume);
     audio.play().catch(() => {});
   } catch {}
 }
@@ -2202,6 +2222,17 @@ function handleComment(comment) {
   const rawMessage = comment.message ?? '';
   const message    = stripPrefix(rawMessage);
 
+  // ── 5分モード：AI自動返答（master本人とAI投稿はスキップ） ──
+  if (fiveMinMode) {
+    if (ipid === 'master') {
+      _aiLog('skip: 自分のコメント');
+    } else if (_aiPostedTexts.has(message)) {
+      _aiLog('skip: AI投稿ループ防止');
+    } else {
+      askAIAndPost(user, message, comment.number);
+    }
+  }
+
   // ── 早押しチェック（他の処理より前に判定）──────
   {
     const trimmedMsg = message.trim();
@@ -2285,12 +2316,45 @@ function handleComment(comment) {
 
   // ── 射コマンド：1文字ずつ物理発射 ───────────────
   if (message.includes('射')) {
+    ensureCharOnStage(user); showBubble(user, message, {});
     launchBullets(user, message);
+    return;
+  }
+
+  // ── 出ろ/出して/生成コマンド：SD画像生成 ──────
+  if (/出ろ|出して|生成|gen/i.test(message)) {
+    ensureCharOnStage(user); showBubble(user, message, {});
+    const prompt = message.replace(/出ろ|出して|生成|gen/gi, '').trim();
+    generateSDImage(user, prompt || '1girl, anime');
+    return;
+  }
+
+  // ── TTSコマンド ──────────────────────────────
+  const ttsMatch = message.trim().match(/^tts[：:](.+)$/);
+  if (ttsMatch) {
+    ensureCharOnStage(user); showBubble(user, message, {});
+    playTTS(ttsMatch[1].trim());
+    return;
+  }
+
+  // ── ノベル起動コマンド ────────────────────────
+  if (message.trim() === 'ノベル起動') {
+    ensureCharOnStage(user); showBubble(user, message, {});
+    openNovelModal();
+    return;
+  }
+
+  // ── AI返答コマンド（ai：質問） ────────────────
+  const aiMatch = message.trim().match(/^(?:ai|AI|ＡＩ)[：:](.+)$/i);
+  if (aiMatch) {
+    ensureCharOnStage(user); showBubble(user, message, {});
+    askAI(user, aiMatch[1].trim());
     return;
   }
 
   // ── 宝箱を開ける ─────────────────────────────
   if (message.trim() === '開ける') {
+    ensureCharOnStage(user); showBubble(user, message, {});
     openTreasureChest(user);
     return;
   }
@@ -2902,6 +2966,7 @@ async function openModal() {
 document.getElementById('gatherBtn').addEventListener('click', gatherCharacters);
 document.getElementById('gatherBottomBtn').addEventListener('click', gatherCharactersBottom);
 document.getElementById('compactBtn').addEventListener('click', () => setCompactMode(!compactMode));
+document.getElementById('fiveMinBtn').addEventListener('click', () => setFiveMinMode(!fiveMinMode));
 
 document.getElementById('hayaoshiBtn').addEventListener('click', startHayaoshi);
 
@@ -3229,6 +3294,231 @@ function _kaiBossTarget() {
   const sr = stage.getBoundingClientRect();
   const bx = br.left - sr.left, by = br.top - sr.top;
   return { cx: bx + br.width * 0.5, cy: by + br.height * 0.45, r: Math.min(br.width, br.height) * 0.45, by, bx };
+}
+
+// ── TTS（RVC音声合成） ────────────────────────────────────────────
+let _ttsAudio = null;
+async function playTTS(text) {
+  if (!ttsModel) return;
+  try {
+    const res = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text, model: ttsModel, voice: ttsVoice,
+        f0_up_key: ttsF0UpKey, index_rate: ttsIndexRate,
+        protect: ttsProtect, speed: ttsSpeed,
+      }),
+    });
+    const data = await res.json();
+    if (data.error) { console.warn('[TTS]', data.error); return; }
+    if (_ttsAudio) { _ttsAudio.pause(); _ttsAudio = null; }
+    const audio = new Audio(data.url);
+    audio.volume = ttsVolume;
+    _ttsAudio = audio;
+    audio.play().catch(() => {});
+    audio.onended = () => { if (_ttsAudio === audio) _ttsAudio = null; };
+  } catch (e) {
+    console.warn('[TTS]', e.message);
+  }
+}
+
+// ── AI返答（Ollama） ─────────────────────────────────────────────
+let aiModel  = localStorage.getItem('aiModel')  || 'gemma3:12b';
+let aiSystem = localStorage.getItem('aiSystem') || '';
+const _aiPostedTexts = new Set();
+let _aiQueue = Promise.resolve();
+
+function _aiLog(text, color) {
+  addToLog({ charDef: null, name: '🤖AI' }, text, color || '#818cf8');
+}
+
+function setFiveMinMode(on) {
+  fiveMinMode = on;
+  const btn = document.getElementById('fiveMinBtn');
+  if (btn) {
+    btn.textContent = on ? '🤖 5分モード（今起動中）' : '🤖 5分モード';
+    btn.classList.toggle('five-min-active', on);
+  }
+  _aiLog(on ? `5分モード 開始 (apikey:${apikey ? 'あり' : 'なし'})` : '5分モード 終了');
+}
+
+async function postAIReply(text) {
+  if (!apikey) { _aiLog('投稿スキップ: apikey なし', '#f87171'); return; }
+  _aiPostedTexts.add(text);
+  setTimeout(() => _aiPostedTexts.delete(text), 60000);
+  fetch('/api/post-comment', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ apikey, comment: text, icon: '0' }),
+  })
+    .then(r => r.json())
+    .then(j => _aiLog(`投稿完了: ${text}`, '#6ee7b7'))
+    .catch(e => _aiLog(`投稿エラー: ${e.message}`, '#f87171'));
+}
+
+function askAIAndPost(user, question, number) {
+  _aiQueue = _aiQueue.then(() => _doAskAI(user, question, number)).catch(() => {});
+}
+
+async function _doAskAI(user, question, number) {
+  const systemPrompt = aiSystem.trim() ||
+    'あなたは配信のコメントに返答するアシスタントです。必ず50文字以内の日本語で返答してください。';
+  _aiLog(`送信: ${question}`);
+  try {
+    const res = await fetch('/api/ai-reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: question, model: aiModel, system: systemPrompt }),
+    });
+    const data = await res.json();
+    if (data.error) { _aiLog(`Ollamaエラー: ${data.error}`, '#f87171'); return; }
+    const replyText = data.reply.trim();
+    const prefix = number ? `>>${number} ` : '';
+    const reply = prefix + replyText;
+    _aiLog(`返答生成: ${reply}`, '#a5b4fc');
+    postAIReply(reply);
+    playTTS(replyText);
+  } catch (e) {
+    _aiLog(`例外: ${e.message}`, '#f87171');
+  }
+}
+
+(function initAISettings() {
+  const mEl = document.getElementById('aiModelInput');
+  const sEl = document.getElementById('aiSystemInput');
+  if (mEl) mEl.value = aiModel;
+  if (sEl) sEl.value = aiSystem;
+})();
+
+async function askAI(user, question) {
+  addToLog(user, `🤖 AI質問: ${question}`, '#818cf8');
+  const systemPrompt = aiSystem.trim() ||
+    'あなたは配信のコメントに返答するアシスタントです。必ず50文字以内の日本語で返答してください。';
+  try {
+    const res = await fetch('/api/ai-reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: question, model: aiModel, system: systemPrompt }),
+    });
+    const data = await res.json();
+    if (data.error) { console.warn('[AI]', data.error); return; }
+    const reply = data.reply.trim();
+    showBubble(user, reply, {});
+    addToLog(user, `🤖 AI返答: ${reply}`, '#818cf8');
+  } catch (e) {
+    console.warn('[AI]', e.message);
+  }
+}
+
+// ── Stable Diffusion 画像生成 ────────────────────────────────────
+function _sdReadSettings() {
+  return {
+    width:          parseInt(document.getElementById('sdWidthInput')?.value)        || 1600,
+    height:         parseInt(document.getElementById('sdHeightInput')?.value)       || 1000,
+    steps:          parseInt(document.getElementById('sdStepsSlider')?.value)       || 20,
+    popWidth:       parseInt(document.getElementById('sdPopWidthSlider')?.value)    || 480,
+    positiveSuffix: document.getElementById('sdPositiveSuffixInput')?.value         ?? '',
+    negative:       document.getElementById('sdNegativeInput')?.value               ?? '',
+    displayTime:    parseInt(document.getElementById('sdDisplayTimeSlider')?.value) || 10,
+    mosaicKeywords: document.getElementById('sdMosaicKeywordsInput')?.value         ?? '',
+  };
+}
+
+async function generateSDImage(user, prompt) {
+  ensureCharOnStage(user);
+  const cfg = _sdReadSettings();
+  const fullPrompt = prompt + (cfg.positiveSuffix ? ', ' + cfg.positiveSuffix : '');
+  showBubble(user, '🎨 生成中…', { color: '#a855f7' });
+  addToLog(user,
+    `🎨SD prompt: ${fullPrompt} | ${cfg.width}x${cfg.height} steps:${cfg.steps} popW:${cfg.popWidth}`,
+    '#a855f7');
+  try {
+    const res  = await fetch('/api/sd-generate', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        prompt,
+        width:          cfg.width,
+        height:         cfg.height,
+        steps:          cfg.steps,
+        positiveSuffix: cfg.positiveSuffix,
+        negative:       cfg.negative,
+      }),
+    });
+    const data = await res.json();
+    if (data.error) {
+      console.error('[SD]', data.error);
+      showBubble(user, '❌ ' + data.error.slice(0, 40), {});
+      addToLog(user, '🎨SD ❌ ' + data.error.slice(0, 80), '#ef4444');
+      return;
+    }
+    if (data.translatedPrompt && data.translatedPrompt !== prompt) {
+      addToLog(user, `🎨SD 翻訳: ${prompt} → ${data.translatedPrompt}`, '#c084fc');
+    }
+    showSDImage(user, data.image, prompt, data.translatedPrompt || prompt, cfg);
+  } catch (e) {
+    console.error('[SD fetch]', e);
+    showBubble(user, '❌ 通信エラー', {});
+  }
+}
+
+function _sdNeedsMosaic(prompt, translatedPrompt, mosaicKeywords) {
+  if (!mosaicKeywords.trim()) return false;
+  const keywords = mosaicKeywords.split(',').map(k => k.trim()).filter(Boolean);
+  return keywords.some(k => prompt.includes(k) || translatedPrompt.includes(k));
+}
+
+function _applyMosaic(imgEl) {
+  const doIt = () => {
+    const w = imgEl.naturalWidth, h = imgEl.naturalHeight;
+    if (!w || !h) return;
+    const blockSize = 20;
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(imgEl, 0, 0, Math.ceil(w / blockSize), Math.ceil(h / blockSize));
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(canvas, 0, 0, Math.ceil(w / blockSize), Math.ceil(h / blockSize), 0, 0, w, h);
+    imgEl.src = canvas.toDataURL('image/png');
+  };
+  if (imgEl.complete && imgEl.naturalWidth) doIt();
+  else imgEl.addEventListener('load', doIt, { once: true });
+}
+
+function openNovelModal() {
+  const modal = document.getElementById('novelModal');
+  const frame = document.getElementById('novelFrame');
+  if (frame.src === 'about:blank' || frame.src === '') frame.src = 'http://localhost:3001/';
+  modal.classList.remove('hidden');
+}
+function closeNovelModal() {
+  document.getElementById('novelModal').classList.add('hidden');
+}
+
+function showSDImage(user, dataUrl, prompt, translatedPrompt, cfg) {
+  const el = document.createElement('div');
+  el.className = 'sd-image-popup';
+  const { x: cx, y: cy } = getCharCenter(user);
+  const sw = stage.clientWidth, sh = stage.clientHeight;
+  const popW = Math.min(cfg.popWidth, sw - 16);
+  const imgH = Math.round(popW * (cfg.height / cfg.width));
+  const popH = imgH + 40;
+  const left = Math.min(Math.max(8, cx - popW / 2), sw - popW - 8);
+  const top  = Math.min(Math.max(8, cy - popH - 10), sh - popH - 8);
+  el.style.left  = left + 'px';
+  el.style.top   = top  + 'px';
+  el.style.width = popW + 'px';
+  el.innerHTML =
+    `<div class="sd-image-header">` +
+      `<span class="sd-image-user">${escapeHtml(user.name || '名無し')}</span>` +
+      `<button class="sd-image-close">✕</button>` +
+    `</div>` +
+    `<img src="${dataUrl}" alt="${escapeHtml(prompt)}" class="sd-image-img">`;
+  el.querySelector('.sd-image-close').addEventListener('click', () => el.remove());
+  if (_sdNeedsMosaic(prompt, translatedPrompt, cfg.mosaicKeywords)) _applyMosaic(el.querySelector('.sd-image-img'));
+  stage.appendChild(el);
+  setTimeout(() => { if (el.isConnected) el.remove(); }, cfg.displayTime * 1000);
 }
 
 function launchBullets(user, text) {
@@ -4632,6 +4922,108 @@ document.getElementById('slotAllStopBtn').addEventListener('click', () => {
   Object.values(users).filter(u => u.el).forEach(u => { u.slotAutoMode = false; });
 });
 
+// ── 音量設定 init & listeners ─────────────────────────────────────
+(function initVolumeSettings() {
+  const load = (key, def) => { const v = localStorage.getItem(key); return v !== null ? parseFloat(v) : def; };
+  seVolume    = load('seVolume',    1.0);
+  voiceVolume = load('voiceVolume', 1.0);
+  const set = (id, val, labelId) => {
+    const el = document.getElementById(id); if (el) el.value = val;
+    const lbl = document.getElementById(labelId); if (lbl) lbl.textContent = Math.round(val * 100) + '%';
+  };
+  set('seVolumeSlider',    seVolume,    'seVolumeVal');
+  set('voiceVolumeSlider', voiceVolume, 'voiceVolumeVal');
+})();
+
+document.getElementById('seVolumeSlider')?.addEventListener('input', e => {
+  seVolume = parseFloat(e.target.value);
+  localStorage.setItem('seVolume', seVolume);
+  document.getElementById('seVolumeVal').textContent = Math.round(seVolume * 100) + '%';
+});
+document.getElementById('voiceVolumeSlider')?.addEventListener('input', e => {
+  voiceVolume = parseFloat(e.target.value);
+  localStorage.setItem('voiceVolume', voiceVolume);
+  document.getElementById('voiceVolumeVal').textContent = Math.round(voiceVolume * 100) + '%';
+});
+
+// ── TTS設定 init & listeners ────────────────────────────────────
+(function initTTSSettings() {
+  const load = (key, def) => { const v = localStorage.getItem(key); return v !== null ? v : def; };
+  ttsModel     = load('ttsModel',     '');
+  ttsVoice     = load('ttsVoice',     'ja-JP-NanamiNeural-Female');
+  ttsF0UpKey   = parseFloat(load('ttsF0UpKey',   0));
+  ttsIndexRate = parseFloat(load('ttsIndexRate', 0.75));
+  ttsProtect   = parseFloat(load('ttsProtect',   0.33));
+  ttsSpeed     = parseInt(load('ttsSpeed',       0));
+  ttsVolume    = parseFloat(load('ttsVolume',    1.0));
+  const ids = ['ttsModelInput','ttsVoiceInput','ttsF0UpKeySlider','ttsIndexRateSlider','ttsProtectSlider','ttsSpeedSlider','ttsVolumeSlider'];
+  const vals = [ttsModel, ttsVoice, ttsF0UpKey, ttsIndexRate, ttsProtect, ttsSpeed, ttsVolume];
+  ids.forEach((id, i) => { const el = document.getElementById(id); if (el) el.value = vals[i]; });
+  const show = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  show('ttsF0UpKeyVal',   ttsF0UpKey);
+  show('ttsIndexRateVal', ttsIndexRate);
+  show('ttsProtectVal',   ttsProtect);
+  show('ttsSpeedVal',     ttsSpeed);
+  show('ttsVolumeVal',    Math.round(ttsVolume * 100) + '%');
+})();
+
+const _ttsListeners = [
+  ['ttsModelInput',      'input',  e => { ttsModel     = e.target.value; localStorage.setItem('ttsModel',     ttsModel); }],
+  ['ttsVoiceInput',      'input',  e => { ttsVoice     = e.target.value; localStorage.setItem('ttsVoice',     ttsVoice); }],
+  ['ttsF0UpKeySlider',   'input',  e => { ttsF0UpKey   = parseFloat(e.target.value); localStorage.setItem('ttsF0UpKey',   ttsF0UpKey);   document.getElementById('ttsF0UpKeyVal').textContent   = ttsF0UpKey; }],
+  ['ttsIndexRateSlider', 'input',  e => { ttsIndexRate = parseFloat(e.target.value); localStorage.setItem('ttsIndexRate', ttsIndexRate); document.getElementById('ttsIndexRateVal').textContent = ttsIndexRate; }],
+  ['ttsProtectSlider',   'input',  e => { ttsProtect   = parseFloat(e.target.value); localStorage.setItem('ttsProtect',   ttsProtect);   document.getElementById('ttsProtectVal').textContent   = ttsProtect; }],
+  ['ttsSpeedSlider',     'input',  e => { ttsSpeed     = parseInt(e.target.value);   localStorage.setItem('ttsSpeed',     ttsSpeed);     document.getElementById('ttsSpeedVal').textContent     = ttsSpeed; }],
+  ['ttsVolumeSlider',    'input',  e => { ttsVolume    = parseFloat(e.target.value); localStorage.setItem('ttsVolume',    ttsVolume);    document.getElementById('ttsVolumeVal').textContent    = Math.round(ttsVolume * 100) + '%'; }],
+];
+_ttsListeners.forEach(([id, ev, fn]) => document.getElementById(id)?.addEventListener(ev, fn));
+
+// ── SD生成設定 init & listeners ────────────────────────────────
+(function initSDSettings() {
+  const load = (key, def) => { const v = localStorage.getItem(key); return v !== null ? v : def; };
+  sdWidth          = parseInt(load('sdWidth',  1600));
+  sdHeight         = parseInt(load('sdHeight', 1000));
+  sdSteps          = parseInt(load('sdSteps',  20));
+  sdPositiveSuffix = load('sdPositiveSuffix', 'masterpiece, best quality');
+  sdNegative       = load('sdNegative', sdNegative);
+  sdDisplayTime    = parseInt(load('sdDisplayTime', 10));
+  sdMosaicKeywords = load('sdMosaicKeywords', '');
+
+  const sdPopWidth = parseInt(load('sdPopWidth', 480));
+  document.getElementById('sdWidthInput').value           = sdWidth;
+  document.getElementById('sdHeightInput').value          = sdHeight;
+  document.getElementById('sdStepsSlider').value          = sdSteps;
+  document.getElementById('sdStepsVal').textContent       = sdSteps;
+  document.getElementById('sdPopWidthSlider').value       = sdPopWidth;
+  document.getElementById('sdPopWidthVal').textContent    = sdPopWidth + 'px';
+  document.getElementById('sdPositiveSuffixInput').value  = sdPositiveSuffix;
+  document.getElementById('sdNegativeInput').value        = sdNegative;
+  document.getElementById('sdDisplayTimeSlider').value    = sdDisplayTime;
+  document.getElementById('sdDisplayTimeVal').textContent = sdDisplayTime + '秒';
+  document.getElementById('sdMosaicKeywordsInput').value  = sdMosaicKeywords;
+})();
+
+// SD設定: DOM が信頼できる値の源。変更のたびに localStorage へ保存。
+document.getElementById('sdWidthInput').addEventListener('input',  e => localStorage.setItem('sdWidth', e.target.value));
+document.getElementById('sdWidthInput').addEventListener('change', e => localStorage.setItem('sdWidth', e.target.value));
+document.getElementById('sdHeightInput').addEventListener('input',  e => localStorage.setItem('sdHeight', e.target.value));
+document.getElementById('sdHeightInput').addEventListener('change', e => localStorage.setItem('sdHeight', e.target.value));
+document.getElementById('sdStepsSlider').addEventListener('input', e => {
+  document.getElementById('sdStepsVal').textContent = e.target.value;
+  localStorage.setItem('sdSteps', e.target.value);
+});
+document.getElementById('sdPopWidthSlider').addEventListener('input', e => {
+  document.getElementById('sdPopWidthVal').textContent = e.target.value + 'px';
+  localStorage.setItem('sdPopWidth', e.target.value);
+});
+document.getElementById('sdDisplayTimeSlider').addEventListener('input', e => {
+  document.getElementById('sdDisplayTimeVal').textContent = e.target.value + '秒';
+  localStorage.setItem('sdDisplayTime', e.target.value);
+});
+document.getElementById('sdPositiveSuffixInput').addEventListener('input',  e => localStorage.setItem('sdPositiveSuffix', e.target.value));
+document.getElementById('sdNegativeInput').addEventListener('input',        e => localStorage.setItem('sdNegative', e.target.value));
+document.getElementById('sdMosaicKeywordsInput').addEventListener('input',  e => localStorage.setItem('sdMosaicKeywords', e.target.value));
+
 document.getElementById('brAutoBtn').addEventListener('click', () => {
   brAutoEnabled = !brAutoEnabled;
   document.getElementById('brAutoBtn').classList.toggle('active', !brAutoEnabled);
@@ -5319,6 +5711,7 @@ _debugBC.onmessage = (e) => {
 function handleAdminMessage(d, replyFn) {
   if (d.type === 'click' && d.id) {
     document.getElementById(d.id)?.click();
+    if (d.id === 'fiveMinBtn') replyFn({ type: 'state', data: { fiveMinMode } });
   } else if (d.type === 'slider' && d.id) {
     const el = document.getElementById(d.id);
     if (el) { el.value = d.value; el.dispatchEvent(new Event('input')); }
@@ -5339,9 +5732,88 @@ function handleAdminMessage(d, replyFn) {
     state.bgColor    = document.getElementById('bgColor')?.value;
     state.moveArea   = document.getElementById('moveAreaSelect')?.value;
     state.bgImageUrl = localStorage.getItem('bgImageUrl') || '';
+    state.ttsModel     = ttsModel;
+    state.ttsVoice     = ttsVoice;
+    state.ttsF0UpKey   = ttsF0UpKey;
+    state.ttsIndexRate = ttsIndexRate;
+    state.ttsProtect   = ttsProtect;
+    state.ttsSpeed     = ttsSpeed;
+    state.sdWidth          = sdWidth;
+    state.sdHeight         = sdHeight;
+    state.sdSteps          = sdSteps;
+    state.sdPopWidth       = parseInt(document.getElementById('sdPopWidthSlider')?.value) || 480;
+    state.sdPositiveSuffix = sdPositiveSuffix;
+    state.sdNegative       = sdNegative;
+    state.sdDisplayTime    = sdDisplayTime;
+    state.sdMosaicKeywords = sdMosaicKeywords;
+    state.seVolume    = seVolume;
+    state.voiceVolume = voiceVolume;
+    state.aiModel    = aiModel;
+    state.aiSystem   = aiSystem;
+    state.fiveMinMode = fiveMinMode;
     replyFn({ type: d.type === 'ping' ? 'pong' : 'state', data: state });
+  } else if (d.type === 'volumeText') {
+    const elMap = { seVolume:'seVolumeSlider', voiceVolume:'voiceVolumeSlider' };
+    const elId = elMap[d.key];
+    if (elId) {
+      const el = document.getElementById(elId);
+      if (el) el.value = d.value;
+      localStorage.setItem(d.key, d.value);
+      if (d.key === 'seVolume')    { seVolume    = parseFloat(d.value); const v = document.getElementById('seVolumeVal');    if (v) v.textContent = Math.round(seVolume    * 100) + '%'; }
+      if (d.key === 'voiceVolume') { voiceVolume = parseFloat(d.value); const v = document.getElementById('voiceVolumeVal'); if (v) v.textContent = Math.round(voiceVolume * 100) + '%'; }
+    }
+  } else if (d.type === 'ttsText') {
+    const elMap = { ttsModel:'ttsModelInput', ttsVoice:'ttsVoiceInput', ttsF0UpKey:'ttsF0UpKeySlider',
+                    ttsIndexRate:'ttsIndexRateSlider', ttsProtect:'ttsProtectSlider', ttsSpeed:'ttsSpeedSlider',
+                    ttsVolume:'ttsVolumeSlider' };
+    const valMap = { ttsF0UpKey:'ttsF0UpKeyVal', ttsIndexRate:'ttsIndexRateVal', ttsProtect:'ttsProtectVal', ttsSpeed:'ttsSpeedVal',
+                     ttsVolume:'ttsVolumeVal' };
+    const elId = elMap[d.key];
+    if (elId) {
+      const el = document.getElementById(elId);
+      if (el) {
+        el.value = d.value;
+        localStorage.setItem(d.key, d.value);
+        if (d.key === 'ttsModel')     ttsModel     = d.value;
+        if (d.key === 'ttsVoice')     ttsVoice     = d.value;
+        if (d.key === 'ttsF0UpKey')   ttsF0UpKey   = parseFloat(d.value);
+        if (d.key === 'ttsIndexRate') ttsIndexRate = parseFloat(d.value);
+        if (d.key === 'ttsProtect')   ttsProtect   = parseFloat(d.value);
+        if (d.key === 'ttsSpeed')     ttsSpeed     = parseInt(d.value);
+        if (d.key === 'ttsVolume')    ttsVolume    = parseFloat(d.value);
+        if (valMap[d.key]) { const v = document.getElementById(valMap[d.key]); if (v) v.textContent = d.value; }
+      }
+    }
+  } else if (d.type === 'aiText') {
+    const elMap = { aiModel: 'aiModelInput', aiSystem: 'aiSystemInput' };
+    const elId = elMap[d.key];
+    if (elId) {
+      const el = document.getElementById(elId);
+      if (el) el.value = d.value;
+      localStorage.setItem(d.key, d.value);
+      if (d.key === 'aiModel')  aiModel  = d.value;
+      if (d.key === 'aiSystem') aiSystem = d.value;
+    }
+  } else if (d.type === 'sdText') {
+    const elMap = { sdWidth:'sdWidthInput', sdHeight:'sdHeightInput', sdSteps:'sdStepsSlider',
+                    sdPopWidth:'sdPopWidthSlider',
+                    sdPositiveSuffix:'sdPositiveSuffixInput', sdNegative:'sdNegativeInput',
+                    sdDisplayTime:'sdDisplayTimeSlider', sdMosaicKeywords:'sdMosaicKeywordsInput' };
+    const elId = elMap[d.key];
+    if (elId) {
+      const el = document.getElementById(elId);
+      if (el) {
+        el.value = d.value;
+        localStorage.setItem(d.key, d.value);
+        if (d.key === 'sdSteps')       document.getElementById('sdStepsVal').textContent       = d.value;
+        if (d.key === 'sdDisplayTime') document.getElementById('sdDisplayTimeVal').textContent = d.value + '秒';
+        if (d.key === 'sdPopWidth')    document.getElementById('sdPopWidthVal').textContent    = d.value + 'px';
+      }
+    }
   } else if (d.type === 'processComment') {
     if (d.comment) handleComment(d.comment);
+  } else if (d.type === 'openNovel') {
+    openNovelModal();
   } else if (d.type === 'getUsers') {
     const list = Object.values(users).filter(u => u.el).map(u => ({ ipid: u.ipid, name: u.name || '名無し' }));
     replyFn({ type: 'users', data: list });
