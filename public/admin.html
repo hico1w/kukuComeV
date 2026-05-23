@@ -551,6 +551,12 @@
            style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:4px 8px;box-sizing:border-box;font-size:12px"
            onchange="sendSDText('sdMosaicKeywords',this.value)">
   </div>
+  <div class="size-row">
+    <span class="size-label">モザイクの粗さ</span>
+    <input type="range" id="sdMosaicBlockSlider" min="5" max="80" step="5" value="20" class="size-slider"
+           oninput="document.getElementById('sdMosaicBlockVal').textContent=this.value+'px';sendSDText('sdMosaicBlock',this.value)">
+    <span id="sdMosaicBlockVal" class="size-val">20px</span>
+  </div>
 </div>
 
 <!-- サーバー管理 -->

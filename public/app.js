@@ -1055,6 +1055,7 @@ let sdPositiveSuffix = 'masterpiece, best quality';
 let sdNegative       = '(worst quality:2),(low quality:2),(normal quality:2),lowres,extra fingers,fewer fingers,monochrome,grayscale,text,watermark,logo,';
 let sdDisplayTime    = 10;
 let sdMosaicKeywords = '';
+let sdMosaicBlock    = 20;
 let kaiBullets    = [];          // 射コマンド物理弾リスト
 let kaiAnimId     = null;        // 射物理ループ requestAnimationFrame ID
 let kaiSpeed      = 18;          // 射出強さ
@@ -3422,6 +3423,7 @@ function _sdReadSettings() {
     negative:       document.getElementById('sdNegativeInput')?.value               ?? '',
     displayTime:    parseInt(document.getElementById('sdDisplayTimeSlider')?.value) || 10,
     mosaicKeywords: document.getElementById('sdMosaicKeywordsInput')?.value         ?? '',
+    mosaicBlock:    parseInt(document.getElementById('sdMosaicBlockSlider')?.value) || 20,
   };
 }
 
@@ -3469,11 +3471,11 @@ function _sdNeedsMosaic(prompt, translatedPrompt, mosaicKeywords) {
   return keywords.some(k => prompt.includes(k) || translatedPrompt.includes(k));
 }
 
-function _applyMosaic(imgEl) {
+function _applyMosaic(imgEl, blockSize) {
+  blockSize = Math.max(1, parseInt(blockSize) || 20);
   const doIt = () => {
     const w = imgEl.naturalWidth, h = imgEl.naturalHeight;
     if (!w || !h) return;
-    const blockSize = 20;
     const canvas = document.createElement('canvas');
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext('2d');
@@ -3516,7 +3518,7 @@ function showSDImage(user, dataUrl, prompt, translatedPrompt, cfg) {
     `</div>` +
     `<img src="${dataUrl}" alt="${escapeHtml(prompt)}" class="sd-image-img">`;
   el.querySelector('.sd-image-close').addEventListener('click', () => el.remove());
-  if (_sdNeedsMosaic(prompt, translatedPrompt, cfg.mosaicKeywords)) _applyMosaic(el.querySelector('.sd-image-img'));
+  if (_sdNeedsMosaic(prompt, translatedPrompt, cfg.mosaicKeywords)) _applyMosaic(el.querySelector('.sd-image-img'), cfg.mosaicBlock);
   stage.appendChild(el);
   setTimeout(() => { if (el.isConnected) el.remove(); }, cfg.displayTime * 1000);
 }
@@ -4988,6 +4990,7 @@ _ttsListeners.forEach(([id, ev, fn]) => document.getElementById(id)?.addEventLis
   sdNegative       = load('sdNegative', sdNegative);
   sdDisplayTime    = parseInt(load('sdDisplayTime', 10));
   sdMosaicKeywords = load('sdMosaicKeywords', '');
+  sdMosaicBlock    = parseInt(load('sdMosaicBlock', 20));
 
   const sdPopWidth = parseInt(load('sdPopWidth', 480));
   document.getElementById('sdWidthInput').value           = sdWidth;
@@ -5001,6 +5004,8 @@ _ttsListeners.forEach(([id, ev, fn]) => document.getElementById(id)?.addEventLis
   document.getElementById('sdDisplayTimeSlider').value    = sdDisplayTime;
   document.getElementById('sdDisplayTimeVal').textContent = sdDisplayTime + '秒';
   document.getElementById('sdMosaicKeywordsInput').value  = sdMosaicKeywords;
+  document.getElementById('sdMosaicBlockSlider').value    = sdMosaicBlock;
+  document.getElementById('sdMosaicBlockVal').textContent = sdMosaicBlock + 'px';
 })();
 
 // SD設定: DOM が信頼できる値の源。変更のたびに localStorage へ保存。
@@ -5023,6 +5028,10 @@ document.getElementById('sdDisplayTimeSlider').addEventListener('input', e => {
 document.getElementById('sdPositiveSuffixInput').addEventListener('input',  e => localStorage.setItem('sdPositiveSuffix', e.target.value));
 document.getElementById('sdNegativeInput').addEventListener('input',        e => localStorage.setItem('sdNegative', e.target.value));
 document.getElementById('sdMosaicKeywordsInput').addEventListener('input',  e => localStorage.setItem('sdMosaicKeywords', e.target.value));
+document.getElementById('sdMosaicBlockSlider').addEventListener('input', e => {
+  document.getElementById('sdMosaicBlockVal').textContent = e.target.value + 'px';
+  localStorage.setItem('sdMosaicBlock', e.target.value);
+});
 
 document.getElementById('brAutoBtn').addEventListener('click', () => {
   brAutoEnabled = !brAutoEnabled;
@@ -5746,6 +5755,7 @@ function handleAdminMessage(d, replyFn) {
     state.sdNegative       = sdNegative;
     state.sdDisplayTime    = sdDisplayTime;
     state.sdMosaicKeywords = sdMosaicKeywords;
+    state.sdMosaicBlock    = sdMosaicBlock;
     state.seVolume    = seVolume;
     state.voiceVolume = voiceVolume;
     state.aiModel    = aiModel;
@@ -5798,7 +5808,8 @@ function handleAdminMessage(d, replyFn) {
     const elMap = { sdWidth:'sdWidthInput', sdHeight:'sdHeightInput', sdSteps:'sdStepsSlider',
                     sdPopWidth:'sdPopWidthSlider',
                     sdPositiveSuffix:'sdPositiveSuffixInput', sdNegative:'sdNegativeInput',
-                    sdDisplayTime:'sdDisplayTimeSlider', sdMosaicKeywords:'sdMosaicKeywordsInput' };
+                    sdDisplayTime:'sdDisplayTimeSlider', sdMosaicKeywords:'sdMosaicKeywordsInput',
+                    sdMosaicBlock:'sdMosaicBlockSlider' };
     const elId = elMap[d.key];
     if (elId) {
       const el = document.getElementById(elId);
@@ -5808,6 +5819,7 @@ function handleAdminMessage(d, replyFn) {
         if (d.key === 'sdSteps')       document.getElementById('sdStepsVal').textContent       = d.value;
         if (d.key === 'sdDisplayTime') document.getElementById('sdDisplayTimeVal').textContent = d.value + '秒';
         if (d.key === 'sdPopWidth')    document.getElementById('sdPopWidthVal').textContent    = d.value + 'px';
+        if (d.key === 'sdMosaicBlock') document.getElementById('sdMosaicBlockVal').textContent = d.value + 'px';
       }
     }
   } else if (d.type === 'processComment') {

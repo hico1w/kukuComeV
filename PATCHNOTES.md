@@ -2,6 +2,19 @@
 
 ---
 
+## v2.29.0 — 2026-05-23
+
+### 🟫 モザイクの粗さ調整スライダーを管理パネルに追加
+- `admin.html`: モザイクキーワード入力欄の直下に「モザイクの粗さ」スライダー追加
+  - ID: `sdMosaicBlockSlider`、範囲: 5〜80px、ステップ: 5、デフォルト: 20px
+- `app.js`:
+  - `_applyMosaic(imgEl, blockSize)` — blockSize パラメータ化（旧ハードコード `20` → 可変）
+  - `_sdReadSettings()` に `mosaicBlock` フィールド追加
+  - `showSDImage()` の `_applyMosaic` 呼び出しに `cfg.mosaicBlock` を渡すよう変更
+  - 初期化・localStorage 保存・state sync・sdText elMap に `sdMosaicBlock` を追加
+
+---
+
 ## v2.28.0 — 2026-05-23
 
 ### 🐱 index.html スタンドアロン版キャラN番号をサーバーと完全一致に修正
