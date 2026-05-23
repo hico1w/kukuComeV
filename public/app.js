@@ -2445,15 +2445,12 @@ function handleComment(comment) {
     return;
   }
 
-  // ── キャラN またはエイリアス ─────────────────
-  const charM = message.match(/^キャラ(\d{1,3})$/);
-  const aliasId = !charM && Object.prototype.hasOwnProperty.call(charAliases, message)
+  // ── エイリアス（単独コマンドのみ） ─────────────
+  const aliasId = Object.prototype.hasOwnProperty.call(charAliases, message)
     ? charAliases[message] : null;
-  const charChangeId = charM ? parseInt(charM[1]) : aliasId;
-  if (charChangeId != null) {
-    const id = charChangeId;
+  if (aliasId != null) {
+    const id = aliasId;
     if (id < 1 || id > 500) return;
-    // 他のユーザーが使用中かチェック
     const usedIds = getUsedCharIds(user);
     if (usedIds.has(id)) {
       ensureCharOnStage(user);
@@ -2461,11 +2458,8 @@ function handleComment(comment) {
       return;
     }
     user.charDef = getCharDef(id);
-    if (!user.el) {
-      createCharacter(user);
-    } else {
-      applyAvatarStyle(user);
-    }
+    if (!user.el) createCharacter(user);
+    else applyAvatarStyle(user);
     updateNameDisplay(user);
     addToLog(user, `[キャラ${id}に変更]`, '#64748b');
     return;
@@ -2491,6 +2485,26 @@ function handleComment(comment) {
 
   // ── インラインコマンド ───────────────────────
   let display = message;
+
+  // キャラN（他コマンドと併用可）
+  const charM = display.match(/キャラ(\d{1,3})/);
+  if (charM) {
+    const id = parseInt(charM[1]);
+    if (id >= 1 && id <= 500) {
+      const usedIds = getUsedCharIds(user);
+      if (usedIds.has(id)) {
+        ensureCharOnStage(user);
+        showBubble(user, `キャラ${id}は他の人が使用中です`, {});
+      } else {
+        user.charDef = getCharDef(id);
+        if (!user.el) createCharacter(user);
+        else applyAvatarStyle(user);
+        updateNameDisplay(user);
+        addToLog(user, `[キャラ${id}に変更]`, '#64748b');
+      }
+    }
+    display = display.replace(charM[0], '').trim();
+  }
 
   const nameM = display.match(/名前[：:]([\S]{1,20})/);
   if (nameM) {
