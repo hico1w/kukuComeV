@@ -3481,8 +3481,9 @@ async function generateSDImage(user, prompt) {
 
 function _sdNeedsMosaic(prompt, translatedPrompt, mosaicKeywords) {
   if (!mosaicKeywords.trim()) return false;
-  const keywords = mosaicKeywords.split(',').map(k => k.trim()).filter(Boolean);
-  return keywords.some(k => prompt.includes(k) || translatedPrompt.includes(k));
+  const keywords = mosaicKeywords.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+  const p = prompt.toLowerCase(), t = translatedPrompt.toLowerCase();
+  return keywords.some(k => p.includes(k) || t.includes(k));
 }
 
 function _applyMosaic(imgEl, blockSize) {
