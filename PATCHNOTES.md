@@ -2,6 +2,18 @@
 
 ---
 
+## v2.31.0 — 2026-05-23
+
+### 💾 管理パネルの設定保存を修正
+- **根本原因①**: `sdMosaicBlockSlider` が `public/index.html` になく、sdText ハンドラーの `if (el)` が通らないため `localStorage.setItem` が呼ばれていなかった
+  - `index.html` にモザイクの粗さスライダー（`sdMosaicBlockSlider` / `sdMosaicBlockVal`）を追加
+- **根本原因②**: sdText ハンドラーが localStorage のみ更新し JS 変数を更新しないため、管理パネル再接続時に `state.sdXxx` が古い値を返していた
+  - sdText ハンドラーで `localStorage.setItem` を `if (el)` の外に移動（要素の有無に依存せず必ず保存）
+  - `sdWidth` / `sdHeight` / `sdSteps` / `sdPositiveSuffix` / `sdNegative` / `sdDisplayTime` / `sdMosaicKeywords` / `sdMosaicBlock` の JS 変数もハンドラー内で更新するよう修正
+- `admin.html`: `sdFields` / `sdElMap` に `sdMosaicBlock` を追加、state 復元時に `sdMosaicBlockVal` テキストも更新
+
+---
+
 ## v2.30.0 — 2026-05-23
 
 ### 🐱 キャラN コマンドを他コマンドと併用可能に変更

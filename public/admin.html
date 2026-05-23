@@ -875,11 +875,12 @@
         if (ttsValMap[key]) { const v = document.getElementById(ttsValMap[key]); if (v) v.textContent = key === 'ttsVolume' ? Math.round(s[key] * 100) + '%' : s[key]; }
       }
     });
-    const sdFields = ['sdWidth','sdHeight','sdSteps','sdPopWidth','sdPositiveSuffix','sdNegative','sdDisplayTime','sdMosaicKeywords'];
+    const sdFields = ['sdWidth','sdHeight','sdSteps','sdPopWidth','sdPositiveSuffix','sdNegative','sdDisplayTime','sdMosaicKeywords','sdMosaicBlock'];
     const sdElMap = { sdWidth:'sdWidthInput', sdHeight:'sdHeightInput', sdSteps:'sdStepsSlider',
                       sdPopWidth:'sdPopWidthSlider',
                       sdPositiveSuffix:'sdPositiveSuffixInput', sdNegative:'sdNegativeInput',
-                      sdDisplayTime:'sdDisplayTimeSlider', sdMosaicKeywords:'sdMosaicKeywordsInput' };
+                      sdDisplayTime:'sdDisplayTimeSlider', sdMosaicKeywords:'sdMosaicKeywordsInput',
+                      sdMosaicBlock:'sdMosaicBlockSlider' };
     sdFields.forEach(key => {
       if (s[key] !== undefined) {
         const el = document.getElementById(sdElMap[key]);
@@ -888,6 +889,7 @@
     });
     if (s.sdSteps !== undefined)       document.getElementById('sdStepsVal').textContent       = s.sdSteps;
     if (s.sdDisplayTime !== undefined) document.getElementById('sdDisplayTimeVal').textContent = s.sdDisplayTime + '秒';
+    if (s.sdMosaicBlock !== undefined) document.getElementById('sdMosaicBlockVal').textContent = s.sdMosaicBlock + 'px';
     const setVol = (key, sliderId, valId) => {
       if (s[key] !== undefined) {
         const el = document.getElementById(sliderId); if (el) el.value = s[key];

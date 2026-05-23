@@ -5826,10 +5826,18 @@ function handleAdminMessage(d, replyFn) {
                     sdMosaicBlock:'sdMosaicBlockSlider' };
     const elId = elMap[d.key];
     if (elId) {
+      localStorage.setItem(d.key, d.value);
+      if (d.key === 'sdWidth')          sdWidth          = parseInt(d.value)   || sdWidth;
+      if (d.key === 'sdHeight')         sdHeight         = parseInt(d.value)   || sdHeight;
+      if (d.key === 'sdSteps')          sdSteps          = parseInt(d.value)   || sdSteps;
+      if (d.key === 'sdPositiveSuffix') sdPositiveSuffix = d.value;
+      if (d.key === 'sdNegative')       sdNegative       = d.value;
+      if (d.key === 'sdDisplayTime')    sdDisplayTime    = parseInt(d.value)   || sdDisplayTime;
+      if (d.key === 'sdMosaicKeywords') sdMosaicKeywords = d.value;
+      if (d.key === 'sdMosaicBlock')    sdMosaicBlock    = parseInt(d.value)   || sdMosaicBlock;
       const el = document.getElementById(elId);
       if (el) {
         el.value = d.value;
-        localStorage.setItem(d.key, d.value);
         if (d.key === 'sdSteps')       document.getElementById('sdStepsVal').textContent       = d.value;
         if (d.key === 'sdDisplayTime') document.getElementById('sdDisplayTimeVal').textContent = d.value + '秒';
         if (d.key === 'sdPopWidth')    document.getElementById('sdPopWidthVal').textContent    = d.value + 'px';
