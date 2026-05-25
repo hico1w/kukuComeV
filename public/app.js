@@ -6194,15 +6194,25 @@ function easeInOut(p) {
 }
 
 function getHorseX(horse, t, trackW) {
-  const n = raceState.horses.length;
-  const r = horse.finalRank;
-  const finishT = RACE_TOTAL_SEC * (0.82 + (r-1) * (0.16 / Math.max(n-1, 1)));
-  if (t >= finishT) return trackW;
+  const finishT = horse.finishT;
+  if (!finishT || t >= finishT) return trackW;
   const p = t / finishT;
-  const base = easeInOut(p);
-  const decay = p < 0.65 ? 1 : 1 - (p-0.65)/0.35;
-  const drama = (Math.sin(t*3.7 + horse.dramaSeed) * 0.5 + 0.5) * 0.05 * decay;
-  return Math.max(0, Math.min(trackW * 0.99, (base + drama) * trackW));
+  // Piecewise easeInOut through waypoints based on pace style
+  // pace=0: frontrunner (fast early, slow late)  pace=1: closer (slow early, explosive finish)
+  const pace = horse.pace ?? 0.5;
+  const w1 = 0.68 - pace * 0.56; // waypoint at p=0.40 (0.68→0.12)
+  const w2 = 0.90 - pace * 0.42; // waypoint at p=0.75 (0.90→0.48)
+  let base;
+  if (p < 0.40) {
+    base = easeInOut(p / 0.40) * w1;
+  } else if (p < 0.75) {
+    base = w1 + easeInOut((p - 0.40) / 0.35) * (w2 - w1);
+  } else {
+    base = w2 + easeInOut((p - 0.75) / 0.25) * (1.0 - w2);
+  }
+  // Forward-only tiny jitter (fades near finish to avoid overshooting)
+  const jitter = (Math.sin(t * 3.7 + horse.dramaSeed) * 0.5 + 0.5) * 0.015 * (1 - p * p);
+  return Math.max(0, Math.min(trackW * 0.99, (base + jitter) * trackW));
 }
 
 function startRace(numHorses, betSeconds) {
@@ -6211,14 +6221,18 @@ function startRace(numHorses, betSeconds) {
   if (active.length < 2) { addSystemLog('⚠️ 競馬：参加キャラが2体以上必要です', '#f87171'); return; }
   const count = Math.min(numHorses || 5, active.length, 8);
   const shuffled = [...active].sort(() => Math.random() - 0.5).slice(0, count);
+  const PACE_STYLES = ['front', 'front', 'steady', 'steady', 'back', 'back', 'steady'];
   const horses = shuffled.map((u, i) => {
     const cond = RACE_CONDITIONS[Math.floor(Math.random() * RACE_CONDITIONS.length)];
+    const paceStyle = PACE_STYLES[Math.floor(Math.random() * PACE_STYLES.length)];
+    const pace = paceStyle === 'front' ? Math.random() * 0.3 : paceStyle === 'back' ? 0.7 + Math.random() * 0.3 : 0.35 + Math.random() * 0.3;
     return {
       no: i+1,
       ipid: u.ipid,
       name: u.name || '名無し',
       imgFile: charImages[u.charDef?.id] || 'kisyokeee.png',
       finalRank: null,
+      finishT: null,
       dramaSeed: Math.random() * Math.PI * 2,
       finished: false,
       finishTime: null,
@@ -6227,6 +6241,8 @@ function startRace(numHorses, betSeconds) {
       condEmoji: cond.emoji,
       condCls:   cond.cls,
       condWeight: cond.weight,
+      pace,
+      paceStyle,
     };
   });
   raceState = {
@@ -6243,6 +6259,7 @@ function startRace(numHorses, betSeconds) {
     payouts: null,
     resultOrder: null,
     _betTimerId: null,
+    gapFactor: 0.5 + Math.random() * 2.5, // 0.5x=接戦 〜 3.0x=大差
   };
   renderRacePanel();
   raceState._betTimerId = setInterval(() => {
@@ -6269,11 +6286,16 @@ function beginRacing() {
     for (let i = 0; i < pool.length; i++) { r -= pool[i].condWeight; if (r <= 0) { chosen = i; break; } }
     order.push(...pool.splice(chosen, 1));
   }
-  order.forEach((h, i) => { h.finalRank = i + 1; });
+  const nn = raceState.horses.length;
+  order.forEach((h, i) => {
+    h.finalRank = i + 1;
+    h.finishT = RACE_TOTAL_SEC * (0.82 + (i / Math.max(nn - 1, 1)) * 0.16 * raceState.gapFactor);
+  });
   raceState.phase = 'racing';
   raceState.raceStartTime = null;
   renderRacePanel();
-  addSystemLog('🏇 レーススタート！', '#f59e0b');
+  const gapMsg = raceState.gapFactor >= 2.2 ? '大差レースの予感…！' : raceState.gapFactor <= 0.85 ? '超接戦になりそう…！' : 'レーススタート！';
+  addSystemLog(`🏇 ${gapMsg}`, '#f59e0b');
   const panel = document.getElementById('racePanel');
   // Countdown overlay 3→2→1→GO! then start animation
   // trackW is measured after countdown so CSS width transition (0.3s) is guaranteed complete
@@ -6335,7 +6357,7 @@ function raceAnimFrame(ts) {
       }
     }
   });
-  if (allDone || t > RACE_TOTAL_SEC + 3) { raceState.phase = 'finished'; setTimeout(finishRace, 1200); return; }
+  if (allDone || t > RACE_TOTAL_SEC * 2 + 5) { raceState.phase = 'finished'; setTimeout(finishRace, 1200); return; }
   requestAnimationFrame(raceAnimFrame);
 }
 
@@ -6449,6 +6471,7 @@ function renderRacePanel() {
         <img class="race-horse-avatar" src="/chara/${encodeURIComponent(h.imgFile)}" alt="">
         <span class="race-horse-name">${escapeHtml(h.name)}</span>
         <span class="race-cond ${h.condCls}">${h.condEmoji} ${h.condLabel}</span>
+        <span class="race-pace">${h.paceStyle === 'front' ? '逃🔴' : h.paceStyle === 'back' ? '追🔵' : '差🟡'}</span>
         <span class="race-horse-odds">${amt}MP (${odds})</span>
       </div>`;
     }).join('');
