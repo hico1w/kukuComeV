@@ -6201,7 +6201,7 @@ function getHorseX(horse, t, trackW) {
   const p = t / finishT;
   const base = easeInOut(p);
   const decay = p < 0.65 ? 1 : 1 - (p-0.65)/0.35;
-  const drama = Math.sin(t*3.7 + horse.dramaSeed) * 0.07 * decay;
+  const drama = (Math.sin(t*3.7 + horse.dramaSeed) * 0.5 + 0.5) * 0.05 * decay;
   return Math.max(0, Math.min(trackW * 0.99, (base + drama) * trackW));
 }
 
