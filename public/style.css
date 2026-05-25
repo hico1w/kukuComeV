@@ -1225,7 +1225,7 @@ body {
   filter: drop-shadow(0 0 14px rgba(239,68,68,0.8));
   animation: bossFloat 2.2s ease-in-out infinite;
 }
-.boss-avatar img { width: 100%; height: 100%; object-fit: contain; }
+.boss-avatar img { width: 100%; height: 100%; object-fit: contain; transform: scaleX(-1); }
 @keyframes bossFloat {
   0%,100% { transform: translateY(0); }
   50%      { transform: translateY(-14px); }
