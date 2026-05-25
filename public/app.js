@@ -6275,9 +6275,8 @@ function beginRacing() {
   renderRacePanel();
   addSystemLog('🏇 レーススタート！', '#f59e0b');
   const panel = document.getElementById('racePanel');
-  const firstTrack = panel?.querySelector('.race-lane-track');
-  raceState.trackW = firstTrack ? Math.max(200, firstTrack.offsetWidth - 44) : 460;
   // Countdown overlay 3→2→1→GO! then start animation
+  // trackW is measured after countdown so CSS width transition (0.3s) is guaranteed complete
   if (panel) {
     const cdEl = document.createElement('div');
     cdEl.className = 'race-countdown';
@@ -6295,6 +6294,9 @@ function beginRacing() {
         cdEl.classList.add('race-countdown-go');
         setTimeout(() => {
           cdEl.remove();
+          // Measure track width here — panel has fully expanded by now
+          const firstTrack = panel.querySelector('.race-lane-track');
+          raceState.trackW = firstTrack ? Math.max(200, firstTrack.offsetWidth - 44) : 460;
           requestAnimationFrame(ts => { raceState.raceStartTime = ts; requestAnimationFrame(raceAnimFrame); });
         }, 650);
       }
