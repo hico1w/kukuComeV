@@ -2,6 +2,214 @@
 
 ---
 
+## v2.55.0 — 2026-05-25
+
+### 📄 index.html / public/help.html を最新化
+- **STANDALONE_CHARS** を `data/charImages.json` と完全同期（91→98キャラ、追加分反映）
+- **MP記述更新**: 「基本10、最大20」→「初期30。出してで20・ペットガチャで10・回復で2消費」
+- **AI画像生成（出してコマンド）** 機能解説カード追加（MP20消費、Discord自動送信）
+- **出してコマンド** をその他設定セクションに追加（MP20消費）
+- **反転コマンド** をその他設定セクションに追加（左右反転トグル）
+- スクリプトのキャラパスを `./chara/` → `/chara/` に統一（help.htmlと一致）
+- `renderCharChips` / `renderCharGrid`: localStorage空時に STANDALONE_CHARS へフォールバック（簡略化）
+
+---
+
+## v2.54.0 — 2026-05-25
+
+### 📦 コンパクトモード時にMPランキングを自動非表示
+- `setCompactMode(on)`: MPランキングパネル（`#mpRankingPanel`）をON時に非表示、OFF時に復元
+- 次のBRタイマー（`#brTimerPanel`）は既存コードで対応済み（変更なし）
+
+---
+
+## v2.53.0 — 2026-05-25
+
+### 💰 管理パネルから個別MP付与機能を追加
+- 管理パネルに「💰 MP付与」セクションを追加（キャラ個別サイズの下）
+- キャラ選択ドロップダウン（`giveMpUserSelect`）＋付与量入力（`giveMpAmount`）＋「付与」ボタン
+- `giveMp` メッセージで `handleAdminMessage` が対象ユーザーの `u.mp` を加算
+- 付与後にキャラの吹き出しで「MP +N！（現在 N MP）」を表示
+
+---
+
+## v2.52.0 — 2026-05-24
+
+### 🐛 反転コマンドの動作修正
+- CSSアニメーション（breathe/bouncing/spinning）が `.avatar` の `transform` を上書きしていた問題を修正
+- `applyAvatarStyle`: `.avatar` div への `transform` 適用をやめ、内部 `<img>` 要素の `style` 属性に `scaleX(-1)` を適用するよう変更
+
+---
+
+## v2.51.0 — 2026-05-24
+
+### 🔄 反転コマンドを追加
+- コメントに「反転」が含まれるとキャラ画像を左右反転（トグル）
+- `user.flipped` フラグを追加、`applyAvatarStyle` で `transform: scaleX(-1)` を適用
+- 他コマンドと併用可能なインラインコマンドとして実装
+
+---
+
+## v2.50.0 — 2026-05-24
+
+### 📊 ステータスモーダルに icon_name を表示
+- `handleComment`: `comment.icon_name` を匿名・非匿名問わず `user.iconName` に常時保存
+- `showStatusModal`: キャラ名の下に `user.iconName` をグレーで表示（`.sm-icon-name`）
+
+---
+
+## v2.49.0 — 2026-05-24
+
+### 🔍 管理パネルからキャラ個別サイズ変更機能を追加
+- `user.sizeScale` (デフォルト1.0) を追加。`applyAvatarStyle` / `renderPetBadge` の計算に組み込み
+- `handleAdminMessage` に `charIndivSize` ハンドラーを追加（`users[ipid].sizeScale` を更新し即時反映）
+- `getUsers` 返却データに `sizeScale` を追加
+- `admin.html` に「🔍 キャラ個別サイズ」セクションを追加
+  - ユーザー選択ドロップダウン（↺ で更新、選択時に現在の倍率をスライダーに反映）
+  - サイズスライダー（20%〜300%、step 5%）リアルタイム送信
+  - ↺ でリセット（100%）
+
+---
+
+## v2.48.0 — 2026-05-24
+
+### 🎰 スロット役ごとのMP獲得量を管理パネルから設定可能に
+- `SLOT_OUTCOMES` の MP 値を起動時に `localStorage` から読み込むよう変更（デフォルト: チェリー5/ベル10/スター25/ダイヤ60/JACKPOT200）
+- `handleAdminMessage` に `slotMp` ハンドラーを追加
+- `getState` に各スロット MP 値を追加（再接続時に復元）
+- `admin.html` スロット確率セクションの各役行に MP 入力欄（数値入力）を追加
+
+---
+
+## v2.47.0 — 2026-05-24
+
+### 💧 出してコマンドのMP消費を20に変更
+- SD画像生成コマンドのMP消費: 10 → 20
+
+---
+
+## v2.46.0 — 2026-05-24
+
+### 💬 出してコマンドMP不足時にコメント通知を追加
+- MP不足で生成できなかった場合、`postAIReply` で「キャラ名 MPが足りません（現在MP/10）」をコメント投稿
+
+---
+
+## v2.45.0 — 2026-05-24
+
+### 🔤 吹き出しの `&gt;` などHTMLエンティティが文字コードのまま表示される問題を修正
+- `decodeHtml()` 関数を追加（`textarea.innerHTML` を利用したブラウザ標準デコード）
+- `handleComment` でメッセージを受け取った直後に `decodeHtml()` を適用
+- 原因: `live.erinn.biz` API が `>` → `&gt;` などHTMLエンコードして返すが、`typewriter` が `textContent` で描画するためデコードされなかった
+
+---
+
+## v2.44.0 — 2026-05-24
+
+### 🤖 5分モード開始時に起動メッセージを自動投稿
+- `setFiveMinMode(true)` 時に `postAIReply('配信者不在のためCLAIRを起動します')` を呼び出し
+
+---
+
+## v2.43.0 — 2026-05-24
+
+### 🤖 5分モードAIの会話セッション継続に対応
+- `server.js /api/ai-reply`: `messages` 配列が送られた場合は Ollama `/api/chat` を使用（会話履歴対応）。`prompt` のみの場合は従来の `/api/generate` にフォールバック（後方互換）
+- `app.js`: `_aiConvHistory` 配列を追加。5分モード開始時にリセット
+- `_doAskAI`: `messages: [..._aiConvHistory, {role:'user', content:'名前: コメント'}]` を送信し、返答後に履歴へ追加
+- 履歴は最大20往復（40件）まで保持し古いものから削除してトークンオーバーフローを防止
+
+---
+
+## v2.42.0 — 2026-05-23
+
+### ✕ MPランキング・ダメージランキングに閉じるボタンを追加
+- 各パネルのヘッダー右端に ✕ ボタンを追加
+- クリックで `rankingState`/`mpRankingState` を null にしてパネルを削除（インターバルによる再表示も停止）
+
+---
+
+## v2.41.0 — 2026-05-23
+
+### 💧 出してコマンドのMP消費を10に変更
+- SD画像生成コマンドのMP消費: 3 → 10
+
+---
+
+## v2.40.0 — 2026-05-23
+
+### 💧 キャラ生成時の初期MPを30に変更
+- ユーザー初期化時の `mp: 10` → `mp: 30`
+
+---
+
+## v2.39.0 — 2026-05-23
+
+### 💧 出してコマンドにMP消費を追加
+- SD画像生成コマンド（出ろ/出して/生成/gen）: 実行時にMP3消費
+- MP < 3 の場合は吹き出しに「MPが足りなくて画像生成できません」を表示して処理中断
+
+---
+
+## v2.38.0 — 2026-05-23
+
+### 💬 Discord送信メッセージにキャラ名を追加
+- `generateSDImage`: リクエスト body に `charName: user.name` を追加
+- `server.js /api/sd-generate`: `charName` を受け取り `sendToDiscord` に渡す
+- `sendToDiscord`: 第4引数に `charName` を追加。メッセージ形式を変更:
+  - キャラ名あり: `🎨 キャラ名\n**プロンプト** → 翻訳`
+  - キャラ名なし: `🎨 **プロンプト**`（従来通り）
+
+---
+
+## v2.37.0 — 2026-05-23
+
+### 💬 SD生成画像をDiscordに自動送信する機能を追加
+- `server.js`: Discord Webhook 設定を `data/discord.json` に保存
+- `server.js`: `sendToDiscord(imageDataUrl, prompt, translatedPrompt)` 関数を追加（Node.js 標準 `https` モジュールのみ使用、依存追加なし）
+  - `multipart/form-data` でファイル添付として送信
+  - 翻訳された場合は `🎨 **元プロンプト** → 翻訳後` 形式でメッセージ付き
+  - `username: 'kukuCome SD'` でボット名表示
+- `GET /api/discord-config`、`POST /api/discord-config` エンドポイントを追加
+- `/api/sd-generate`: 画像生成完了後に `sendToDiscord` をバックグラウンド呼び出し（レスポンスはブロックしない）
+- `admin.html`: 「💬 Discord 連携」セクションを追加（Webhook URL 入力 → 即時保存）、ページロード時に設定を復元
+
+---
+
+## v2.36.0 — 2026-05-23
+
+### 🔄 ダメージランキング・MPランキングのリアルタイム更新
+- `renderRankingPanel()`: `rankingState.entries`（スナップショット）を廃止し、毎回 `rankingState.dmgMap` からソートして描画
+- `renderMpRankingPanel()`: `mpRankingState.entries` を廃止し、毎回 `users` から再集計・ソートして描画
+- `setInterval` (1秒) を追加: `rankingState`/`mpRankingState` が存在する間、両パネルを毎秒再描画
+
+---
+
+## v2.35.0 — 2026-05-23
+
+### 🎭 ランダムキャラ除外設定を追加
+- `charExcludeIds` (Set) 変数を追加。`localStorage.charExcludeIds`（カンマ区切り）から起動時にロード
+- `ensureCharOnStage()`: ランダム選択プールから `charExcludeIds` に含まれるキャラを除外
+- `handleAdminMessage` に `charExclude` ハンドラー追加（`charExcludeIds` を更新 + localStorage 保存）
+- `getState` に `charExcludeIds` を追加（管理パネル再接続時に復元）
+- `admin.html` に「🎭 キャラ設定」セクションを追加: ランダム除外キャラ番号をカンマ区切りで入力
+
+---
+
+## v2.34.0 — 2026-05-23
+
+### 💎 所持MPランキング実装（ダメージランキングと同時表示対応）
+- `showMpRanking()` 追加: ステージ上全ユーザーを `user.mp` 降順ソートし上位5名を表示
+- `renderMpRankingPanel()` 追加: `#mpRankingPanel` を独立した DOM 要素として生成（ダメージランキングと別パネル）
+- `mpRankingState` / `mpRankingDragState` を独立した変数として追加
+- `mousemove` / `mouseup` ハンドラーに `mpRankingDragState` のドラッグ処理を追加
+- パネル位置を `mpRankingPanelX` / `mpRankingPanelY` として localStorage に保存
+- `handleAdminMessage` に `showMpRanking` ハンドラー追加
+- `admin.html` ゲーム操作セクションに「💎 MPランキング」ボタンを追加
+- `style.css` に `#mpRankingPanel`（シアン枠）・`.ranking-header-mp`・`.ranking-mp` を追加
+
+---
+
 ## v2.33.0 — 2026-05-23
 
 ### 🔍 モザイクキーワード検知を大文字・小文字区別なしに変更

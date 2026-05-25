@@ -155,13 +155,92 @@ app.get('/api/images', (req, res) => {
   }
 });
 
+// Discord Webhook 連携
+const DISCORD_CONFIG_PATH = path.join(__dirname, 'data', 'discord.json');
+
+function loadDiscordConfig() {
+  try { return JSON.parse(fs.readFileSync(DISCORD_CONFIG_PATH, 'utf-8')); }
+  catch { return { webhookUrl: '' }; }
+}
+
+function saveDiscordConfig(cfg) {
+  fs.writeFileSync(DISCORD_CONFIG_PATH, JSON.stringify(cfg, null, 2));
+}
+
+app.get('/api/discord-config', (req, res) => {
+  res.json(loadDiscordConfig());
+});
+
+app.post('/api/discord-config', (req, res) => {
+  const { webhookUrl } = req.body || {};
+  saveDiscordConfig({ webhookUrl: webhookUrl || '' });
+  res.json({ ok: true });
+});
+
+async function sendToDiscord(imageDataUrl, prompt, translatedPrompt, charName) {
+  const { webhookUrl } = loadDiscordConfig();
+  if (!webhookUrl) return;
+
+  const base64 = imageDataUrl.replace(/^data:image\/\w+;base64,/, '');
+  const imgBuf  = Buffer.from(base64, 'base64');
+  const boundary = 'kukuComeBoundary' + Date.now() + Math.random().toString(36).slice(2);
+
+  const promptLine = (translatedPrompt && translatedPrompt !== prompt)
+    ? `**${prompt}** → ${translatedPrompt}`
+    : `**${prompt}**`;
+  const content = charName
+    ? `🎨 ${charName}\n${promptLine}`
+    : `🎨 ${promptLine}`;
+
+  const payloadJson = JSON.stringify({ content, username: 'kukuCome SD' });
+
+  const head = Buffer.from(
+    `--${boundary}\r\nContent-Disposition: form-data; name="payload_json"\r\nContent-Type: application/json\r\n\r\n${payloadJson}\r\n` +
+    `--${boundary}\r\nContent-Disposition: form-data; name="files[0]"; filename="sd_output.png"\r\nContent-Type: image/png\r\n\r\n`
+  );
+  const tail = Buffer.from(`\r\n--${boundary}--\r\n`);
+  const body = Buffer.concat([head, imgBuf, tail]);
+
+  let parsedUrl;
+  try { parsedUrl = new URL(webhookUrl); } catch { console.error('[Discord] invalid webhook URL'); return; }
+
+  const lib = parsedUrl.protocol === 'https:' ? https : http;
+
+  return new Promise(resolve => {
+    const req = lib.request({
+      hostname: parsedUrl.hostname,
+      port:     parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+      path:     parsedUrl.pathname + parsedUrl.search,
+      method:   'POST',
+      headers: {
+        'Content-Type':   `multipart/form-data; boundary=${boundary}`,
+        'Content-Length': body.length,
+      },
+    }, response => {
+      let raw = '';
+      response.on('data', c => raw += c);
+      response.on('end', () => {
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          console.error('[Discord] webhook error:', response.statusCode, raw.slice(0, 200));
+        } else {
+          console.log('[Discord] sent OK');
+        }
+        resolve();
+      });
+    });
+    req.on('error', err => { console.error('[Discord] webhook error:', err.message); resolve(); });
+    req.write(body);
+    req.end();
+  });
+}
+
 // Stable Diffusion 画像生成プロキシ（Gradio WebSocket queue API）
 const SD_DEFAULTS_PATH = 'C:/Users/swift/AppData/Local/Temp/sd_defaults.json';
 const SD_IDX = { PROMPT:1, NEGATIVE:2, BATCH_COUNT:4, BATCH_SIZE:5, CFG:6, HEIGHT:7, WIDTH:8, HIRES_FIX:9, OVERRIDE:22, SCRIPT:23, STEPS:24, SAMPLER:25 };
 const SD_NEGATIVE = '(worst quality:2),(low quality:2),(normal quality:2),lowres,extra fingers,fewer fingers,monochrome,grayscale,text,watermark,logo,';
 
 app.post('/api/sd-generate', async (req, res) => {
-  const { prompt, width, height, steps, positiveSuffix, negative } = req.body || {};
+  const { prompt, charName, width, height, steps, positiveSuffix, negative } = req.body || {};
   if (!prompt) return res.status(400).json({ error: 'prompt is required' });
 
   let fn_index, defaults;
@@ -226,6 +305,7 @@ app.post('/api/sd-generate', async (req, res) => {
       console.log('[SD] imageInfo keys:', Object.keys(imageInfo));
 
       if (imageInfo.data && imageInfo.data.startsWith('data:')) {
+        sendToDiscord(imageInfo.data, prompt, translatedPrompt, charName).catch(() => {});
         return res.json({ image: imageInfo.data, translatedPrompt });
       }
       if (imageInfo.name) {
@@ -237,7 +317,9 @@ app.post('/api/sd-generate', async (req, res) => {
           imgRes.on('end', () => {
             const b64 = Buffer.concat(chunks).toString('base64');
             console.log('[SD] success, b64 length:', b64.length);
-            res.json({ image: 'data:image/png;base64,' + b64, translatedPrompt });
+            const imageDataUrl = 'data:image/png;base64,' + b64;
+            sendToDiscord(imageDataUrl, prompt, translatedPrompt, charName).catch(() => {});
+            res.json({ image: imageDataUrl, translatedPrompt });
           });
         }).on('error', err => {
           if (!res.headersSent) res.status(500).json({ error: '画像ダウンロード失敗: ' + err.message });
@@ -367,38 +449,57 @@ app.post('/api/post-comment', async (req, res) => {
 
 // AI返答（Ollama）
 app.post('/api/ai-reply', (req, res) => {
-  const { prompt, model = 'gemma3:12b', system } = req.body || {};
-  if (!prompt) return res.status(400).json({ error: 'prompt is required' });
+  const { prompt, messages, model = 'gemma3:12b', system } = req.body || {};
+  const systemText = system || 'あなたは配信のコメントに返答するアシスタントです。必ず50文字以内の日本語で返答してください。';
 
-  const body = JSON.stringify({
-    model,
-    prompt,
-    system: system || 'あなたは配信のコメントに返答するアシスタントです。必ず50文字以内の日本語で返答してください。',
-    stream: false,
-  });
-
-  const opts = {
-    hostname: '127.0.0.1', port: 11434,
-    path: '/api/generate', method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
-  };
-
-  const req2 = http.request(opts, res2 => {
-    let raw = '';
-    res2.on('data', c => raw += c);
-    res2.on('end', () => {
-      try {
-        const json = JSON.parse(raw);
-        if (!json.response) return res.status(500).json({ error: 'No response from Ollama' });
-        res.json({ reply: json.response.trim() });
-      } catch (e) {
-        res.status(500).json({ error: e.message });
-      }
+  if (messages) {
+    // /api/chat — 会話履歴あり
+    const chatMessages = [{ role: 'system', content: systemText }, ...messages];
+    const body = JSON.stringify({ model, messages: chatMessages, stream: false });
+    const opts = {
+      hostname: '127.0.0.1', port: 11434,
+      path: '/api/chat', method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+    };
+    const req2 = http.request(opts, res2 => {
+      let raw = '';
+      res2.on('data', c => raw += c);
+      res2.on('end', () => {
+        try {
+          const json = JSON.parse(raw);
+          const reply = json.message?.content?.trim();
+          if (!reply) return res.status(500).json({ error: 'No response from Ollama' });
+          res.json({ reply });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+      });
     });
-  });
-  req2.on('error', e => res.status(500).json({ error: e.message }));
-  req2.write(body);
-  req2.end();
+    req2.on('error', e => res.status(500).json({ error: e.message }));
+    req2.write(body);
+    req2.end();
+  } else {
+    // /api/generate — 後方互換（単発）
+    if (!prompt) return res.status(400).json({ error: 'prompt is required' });
+    const body = JSON.stringify({ model, prompt, system: systemText, stream: false });
+    const opts = {
+      hostname: '127.0.0.1', port: 11434,
+      path: '/api/generate', method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+    };
+    const req2 = http.request(opts, res2 => {
+      let raw = '';
+      res2.on('data', c => raw += c);
+      res2.on('end', () => {
+        try {
+          const json = JSON.parse(raw);
+          if (!json.response) return res.status(500).json({ error: 'No response from Ollama' });
+          res.json({ reply: json.response.trim() });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+      });
+    });
+    req2.on('error', e => res.status(500).json({ error: e.message }));
+    req2.write(body);
+    req2.end();
+  }
 });
 
 app.get('/api/time', (req, res) => {

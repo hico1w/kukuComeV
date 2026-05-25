@@ -352,6 +352,7 @@ function getUser(ipid) {
       motion:      null,
       nameManual:  false,
       size:        80,
+      sizeScale:   1.0,
       font:        '',
       x: randX({ size: 80 }),
       y: randY({ size: 80 }),
@@ -360,7 +361,7 @@ function getUser(ipid) {
       level:          1,
       hp:             30,
       maxHp:          30,
-      mp:             10,
+      mp:             30,
       atk:            2,
       ko:             false,
       koTimer:        null,
@@ -435,7 +436,7 @@ function ensureCharOnStage(user) {
   if (user.el) return;
   if (!user.charDef) {
     const used = getUsedCharIds(user);
-    const allIds = Object.keys(charImages).map(Number).filter(id => id >= 1 && id <= 500);
+    const allIds = Object.keys(charImages).map(Number).filter(id => id >= 1 && id <= 500 && !charExcludeIds.has(id));
     const freeIds = allIds.filter(id => !used.has(id));
     const pool = freeIds.length > 0 ? freeIds : allIds; // 全枠埋まっていたら重複許容
     user.charDef = pool.length > 0
@@ -519,16 +520,18 @@ function applyAvatarStyle(user) {
   const a = document.getElementById('a-' + user.ipid);
   if (!a || !user.charDef) return;
   const lvScale = 1 + ((user.level || 1) - 1) * 0.06;
-  const px = Math.round(user.size * 1.5 * lvScale * charSizeScale * (user.brWinnerScale || 1));
+  const px = Math.round(user.size * 1.5 * lvScale * charSizeScale * (user.sizeScale || 1) * (user.brWinnerScale || 1));
   a.style.width  = px + 'px';
   a.style.height = px + 'px';
+  a.style.transform = '';
   const imgFile = charImages[user.charDef.id] || 'kisyokeee.png';
-  a.innerHTML      = `<img src="/chara/${encodeURIComponent(imgFile)}" alt="${escapeHtml(user.name)}">`;
+  const flipStyle = user.flipped ? ' style="transform:scaleX(-1)"' : '';
+  a.innerHTML      = `<img src="/chara/${encodeURIComponent(imgFile)}" alt="${escapeHtml(user.name)}"${flipStyle}>`;
   a.style.fontSize = '0';
 }
 
 function renderPetBadge(user) {
-  const petSize = Math.max(20, Math.round(user.size * 0.75 * charSizeScale * (user.brWinnerScale || 1)));
+  const petSize = Math.max(20, Math.round(user.size * 0.75 * charSizeScale * (user.sizeScale || 1) * (user.brWinnerScale || 1)));
   const slot = document.getElementById('p-' + user.ipid);
   if (slot) {
     if (!user.pet) { slot.className = 'char-pet'; slot.innerHTML = ''; }
@@ -778,6 +781,10 @@ function setCompactMode(on) {
   // ダメランパネル
   const rankingPanel = document.getElementById('rankingPanel');
   if (rankingPanel) rankingPanel.style.display = on ? 'none' : '';
+
+  // MPランキングパネル
+  const mpRankingPanel = document.getElementById('mpRankingPanel');
+  if (mpRankingPanel) mpRankingPanel.style.display = on ? 'none' : '';
 
   // Wordleパネル
   const wordlePanel = document.getElementById('wordlePanel');
@@ -1056,6 +1063,7 @@ let sdNegative       = '(worst quality:2),(low quality:2),(normal quality:2),low
 let sdDisplayTime    = 10;
 let sdMosaicKeywords = '';
 let sdMosaicBlock    = 20;
+let charExcludeIds   = new Set();
 let kaiBullets    = [];          // 射コマンド物理弾リスト
 let kaiAnimId     = null;        // 射物理ループ requestAnimationFrame ID
 let kaiSpeed      = 18;          // 射出強さ
@@ -1063,8 +1071,10 @@ let kaiRestitution = 0.65;       // 反発係数
 let kaiGravity    = 0.35;        // 重力加速度
 let kaiBulletSize = 32;          // 弾文字サイズ(px)
 let bossDamageMap = {};          // ipid → { name, totalDmg }
-let rankingState     = null;
-let rankingDragState = null;
+let rankingState       = null;
+let rankingDragState   = null;
+let mpRankingState     = null;
+let mpRankingDragState = null;
 let bossDragState = null;
 let bossLastPos   = null; // 最後にD&Dした位置
 // Lv1〜10 累計攻撃数（合計150）
@@ -2172,8 +2182,9 @@ function handleComment(comment) {
   if (brState?.active && user.brOut) return;
 
   // icon_name が匿名でなければ実名を使用、匿名ならnames.txtのランダム名を維持
-  if (comment.icon_name && !user.nameManual) {
-    if (!comment.icon_name.includes('匿名')) {
+  if (comment.icon_name) {
+    user.iconName = comment.icon_name; // 匿名含め常に保存
+    if (!user.nameManual && !comment.icon_name.includes('匿名')) {
       user.name = comment.icon_name;
       updateNameDisplay(user);
     }
@@ -2220,7 +2231,7 @@ function handleComment(comment) {
     }
   }
 
-  const rawMessage = comment.message ?? '';
+  const rawMessage = decodeHtml(comment.message ?? '');
   const message    = stripPrefix(rawMessage);
 
   // ── 5分モード：AI自動返答（master本人とAI投稿はスキップ） ──
@@ -2324,7 +2335,14 @@ function handleComment(comment) {
 
   // ── 出ろ/出して/生成コマンド：SD画像生成 ──────
   if (/出ろ|出して|生成|gen/i.test(message)) {
-    ensureCharOnStage(user); showBubble(user, message, {});
+    ensureCharOnStage(user);
+    if ((user.mp ?? 0) < 20) {
+      showBubble(user, 'MPが足りなくて画像生成できません', {});
+      postAIReply(`${user.name || '名無し'} MPが足りません（${user.mp ?? 0}/20）`);
+      return;
+    }
+    user.mp -= 20;
+    showBubble(user, message, {});
     const prompt = message.replace(/出ろ|出して|生成|gen/gi, '').trim();
     generateSDImage(user, prompt || '1girl, anime');
     return;
@@ -2571,6 +2589,12 @@ function handleComment(comment) {
     applyMotion(user, 'spinning');
     display = display.replace(/回転/g, '').trim();
   }
+  if (/反転/.test(display)) {
+    ensureCharOnStage(user);
+    user.flipped = !user.flipped;
+    applyAvatarStyle(user);
+    display = display.replace(/反転/g, '').trim();
+  }
   if (/震える/.test(display)) {
     ensureCharOnStage(user);
     applyMotion(user, 'trembling');
@@ -2744,6 +2768,11 @@ function addToLog(user, text, color) {
 
 function escapeHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function decodeHtml(s) {
+  const t = document.createElement('textarea');
+  t.innerHTML = String(s);
+  return t.value;
 }
 function escapeAttr(s) {
   return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -3343,6 +3372,7 @@ let aiModel  = localStorage.getItem('aiModel')  || 'gemma3:12b';
 let aiSystem = localStorage.getItem('aiSystem') || '';
 const _aiPostedTexts = new Set();
 let _aiQueue = Promise.resolve();
+let _aiConvHistory = []; // 5分モードの会話履歴 [{role:'user',content:...},{role:'assistant',content:...},...]
 
 function _aiLog(text, color) {
   addToLog({ charDef: null, name: '🤖AI' }, text, color || '#818cf8');
@@ -3350,12 +3380,14 @@ function _aiLog(text, color) {
 
 function setFiveMinMode(on) {
   fiveMinMode = on;
+  if (on) _aiConvHistory = []; // セッション開始時に履歴リセット
   const btn = document.getElementById('fiveMinBtn');
   if (btn) {
     btn.textContent = on ? '🤖 5分モード（今起動中）' : '🤖 5分モード';
     btn.classList.toggle('five-min-active', on);
   }
   _aiLog(on ? `5分モード 開始 (apikey:${apikey ? 'あり' : 'なし'})` : '5分モード 終了');
+  if (on) postAIReply('配信者不在のためCLAIRを起動します');
 }
 
 async function postAIReply(text) {
@@ -3379,16 +3411,23 @@ function askAIAndPost(user, question, number) {
 async function _doAskAI(user, question, number) {
   const systemPrompt = aiSystem.trim() ||
     'あなたは配信のコメントに返答するアシスタントです。必ず50文字以内の日本語で返答してください。';
-  _aiLog(`送信: ${question}`);
+  const userName = user.name || '視聴者';
+  const userContent = `${userName}: ${question}`;
+  _aiLog(`送信: ${userContent}`);
+  const messages = [..._aiConvHistory, { role: 'user', content: userContent }];
   try {
     const res = await fetch('/api/ai-reply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: question, model: aiModel, system: systemPrompt }),
+      body: JSON.stringify({ messages, model: aiModel, system: systemPrompt }),
     });
     const data = await res.json();
     if (data.error) { _aiLog(`Ollamaエラー: ${data.error}`, '#f87171'); return; }
     const replyText = data.reply.trim();
+    // 履歴に追加（最大40件=20往復で古いものを削除）
+    _aiConvHistory.push({ role: 'user', content: userContent });
+    _aiConvHistory.push({ role: 'assistant', content: replyText });
+    if (_aiConvHistory.length > 40) _aiConvHistory.splice(0, 2);
     const prefix = number ? `>>${number} ` : '';
     const reply = prefix + replyText;
     _aiLog(`返答生成: ${reply}`, '#a5b4fc');
@@ -3455,6 +3494,7 @@ async function generateSDImage(user, prompt) {
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
         prompt,
+        charName:       user.name || '',
         width:          cfg.width,
         height:         cfg.height,
         steps:          cfg.steps,
@@ -3819,6 +3859,18 @@ document.addEventListener('mousemove', e => {
     }
     return;
   }
+  if (mpRankingDragState) {
+    const panel = document.getElementById('mpRankingPanel');
+    if (panel && mpRankingState) {
+      const { ox, oy, sx, sy } = mpRankingDragState;
+      const sr = stage.getBoundingClientRect();
+      mpRankingState.panelX = Math.max(0, Math.min(sr.width  - panel.offsetWidth,  ox + (e.clientX - sx)));
+      mpRankingState.panelY = Math.max(0, Math.min(sr.height - panel.offsetHeight, oy + (e.clientY - sy)));
+      panel.style.left = mpRankingState.panelX + 'px';
+      panel.style.top  = mpRankingState.panelY + 'px';
+    }
+    return;
+  }
 
   if (wordleDragState) {
     const panel = document.getElementById('wordlePanel');
@@ -3913,6 +3965,14 @@ document.addEventListener('mouseup', () => {
       localStorage.setItem('rankingPanelY', Math.round(rankingState.panelY));
     }
     rankingDragState = null;
+    return;
+  }
+  if (mpRankingDragState) {
+    if (mpRankingState) {
+      localStorage.setItem('mpRankingPanelX', Math.round(mpRankingState.panelX));
+      localStorage.setItem('mpRankingPanelY', Math.round(mpRankingState.panelY));
+    }
+    mpRankingDragState = null;
     return;
   }
 
@@ -4203,6 +4263,7 @@ function showStatusModal(user, autoClose = true) {
             <div class="sm-left">
               <img class="sm-avatar" src="/chara/${encodeURIComponent(imgFile)}" alt="${escapeHtml(user.name)}">
               <div class="sm-name">${escapeHtml(user.name)}</div>
+              ${user.iconName ? `<div class="sm-icon-name">${escapeHtml(user.iconName)}</div>` : ''}
               <div class="sm-lv">Lv. ${lv}</div>
             </div>
             <div class="sm-right">
@@ -4250,16 +4311,61 @@ function showStatusModal(user, autoClose = true) {
 // ── ダメージランキング ─────────────────────────────────────────────
 function showDamageRanking(dmgMap) {
   if (compactMode) return;
-  const entries = Object.values(dmgMap)
-    .sort((a, b) => b.totalDmg - a.totalDmg)
-    .slice(0, 5);
-  if (!entries.length) return;
+  if (!Object.keys(dmgMap).length) return;
   rankingState = {
-    panelX:  parseInt(localStorage.getItem('rankingPanelX')) || (stage.clientWidth - 220),
-    panelY:  parseInt(localStorage.getItem('rankingPanelY')) || 10,
-    entries,
+    dmgMap,
+    panelX: parseInt(localStorage.getItem('rankingPanelX')) || (stage.clientWidth - 220),
+    panelY: parseInt(localStorage.getItem('rankingPanelY')) || 10,
   };
   renderRankingPanel();
+}
+
+function showMpRanking() {
+  if (compactMode) return;
+  const active = Object.values(users).filter(u => u.el);
+  if (!active.length) return;
+  mpRankingState = {
+    panelX: parseInt(localStorage.getItem('mpRankingPanelX')) || Math.max(0, stage.clientWidth - 450),
+    panelY: parseInt(localStorage.getItem('mpRankingPanelY')) || 10,
+  };
+  renderMpRankingPanel();
+}
+
+function renderMpRankingPanel() {
+  let panel = document.getElementById('mpRankingPanel');
+  if (!mpRankingState) { if (panel) panel.remove(); return; }
+
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'mpRankingPanel';
+    stage.appendChild(panel);
+    panel.addEventListener('mousedown', e => {
+      if (e.button !== 0 || dragState || trashDragState || bossDragState || wordleDragState) return;
+      const r = panel.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+      mpRankingDragState = { ox: r.left - sr.left, oy: r.top - sr.top, sx: e.clientX, sy: e.clientY };
+      e.preventDefault(); e.stopPropagation();
+    });
+  }
+
+  panel.style.left = mpRankingState.panelX + 'px';
+  panel.style.top  = mpRankingState.panelY + 'px';
+
+  const entries = Object.values(users)
+    .filter(u => u.el)
+    .map(u => ({ name: u.name || u.ipid, mp: u.mp ?? 0 }))
+    .sort((a, b) => b.mp - a.mp)
+    .slice(0, 5);
+
+  const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+  let html = '<div class="ranking-header ranking-header-mp">💎 MPランキング<span class="ranking-close" onclick="mpRankingState=null;document.getElementById(\'mpRankingPanel\')?.remove()">✕</span></div>';
+  entries.forEach((entry, i) => {
+    html += `<div class="ranking-row">
+      <span class="ranking-medal">${medals[i]}</span>
+      <span class="ranking-name">${escapeHtml(entry.name)}</span>
+      <span class="ranking-mp">${(entry.mp ?? 0).toLocaleString()} MP</span>
+    </div>`;
+  });
+  panel.innerHTML = html;
 }
 
 function renderRankingPanel() {
@@ -4281,9 +4387,13 @@ function renderRankingPanel() {
   panel.style.left = rankingState.panelX + 'px';
   panel.style.top  = rankingState.panelY + 'px';
 
+  const entries = Object.values(rankingState.dmgMap)
+    .sort((a, b) => b.totalDmg - a.totalDmg)
+    .slice(0, 5);
+
   const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
-  let html = '<div class="ranking-header">⚔️ ダメージランキング</div>';
-  rankingState.entries.forEach((entry, i) => {
+  let html = '<div class="ranking-header">⚔️ ダメージランキング<span class="ranking-close" onclick="rankingState=null;document.getElementById(\'rankingPanel\')?.remove()">✕</span></div>';
+  entries.forEach((entry, i) => {
     html += `<div class="ranking-row">
       <span class="ranking-medal">${medals[i]}</span>
       <span class="ranking-name">${escapeHtml(entry.name)}</span>
@@ -4292,6 +4402,11 @@ function renderRankingPanel() {
   });
   panel.innerHTML = html;
 }
+
+setInterval(() => {
+  if (rankingState)   renderRankingPanel();
+  if (mpRankingState) renderMpRankingPanel();
+}, 1000);
 
 // ── テキストプール読み込み ────────────────────────────────────────
 (async function loadTextPools() {
@@ -4679,12 +4794,14 @@ function handleQuizAnswer(user, message) {
 const SLOT_ICONS = ['🍒', '🔔', '⭐', '💎', '7️⃣'];
 
 // 結果先行方式: 当選確率を直接指定（%）、残りはハズレ
-const SLOT_OUTCOMES = [
-  { icon: '7️⃣', pct:  0.5, label: '🎰 JACKPOT！！！', mp: 200, jackpot: true, sound: SOUND_SLOT_777    },
-  { icon: '💎', pct:  1.0, label: '💎 ダイヤ！！',    mp:  60,               sound: SOUND_SLOT_PIRORI },
-  { icon: '⭐', pct:  5.0, label: '⭐ スター！',      mp:  25,               sound: SOUND_SLOT_PIRORI },
-  { icon: '🔔', pct: 10.0, label: '🔔 ベル！',        mp:  10,               sound: SOUND_SLOT_PIRORI },
-  { icon: '🍒', pct: 20.0, label: '🍒 チェリー！',    mp:   5,               sound: SOUND_SLOT_CHERRY },
+const SLOT_MP_DEFAULTS = { slotMpJackpot: 200, slotMpDiamond: 60, slotMpStar: 25, slotMpBell: 10, slotMpCherry: 5 };
+function _loadSlotMp(key) { const v = parseInt(localStorage.getItem(key)); return (!isNaN(v) && v >= 0) ? v : SLOT_MP_DEFAULTS[key]; }
+let SLOT_OUTCOMES = [
+  { icon: '7️⃣', pct:  0.5, label: '🎰 JACKPOT！！！', mp: _loadSlotMp('slotMpJackpot'), jackpot: true, sound: SOUND_SLOT_777    },
+  { icon: '💎', pct:  1.0, label: '💎 ダイヤ！！',    mp: _loadSlotMp('slotMpDiamond'),               sound: SOUND_SLOT_PIRORI },
+  { icon: '⭐', pct:  5.0, label: '⭐ スター！',      mp: _loadSlotMp('slotMpStar'),                   sound: SOUND_SLOT_PIRORI },
+  { icon: '🔔', pct: 10.0, label: '🔔 ベル！',        mp: _loadSlotMp('slotMpBell'),                   sound: SOUND_SLOT_PIRORI },
+  { icon: '🍒', pct: 20.0, label: '🍒 チェリー！',    mp: _loadSlotMp('slotMpCherry'),                 sound: SOUND_SLOT_CHERRY },
 ]; // ハズレ = 63.5%
 
 function rollSlotOutcome() {
@@ -5006,6 +5123,7 @@ _ttsListeners.forEach(([id, ev, fn]) => document.getElementById(id)?.addEventLis
   sdDisplayTime    = parseInt(load('sdDisplayTime', 10));
   sdMosaicKeywords = load('sdMosaicKeywords', '');
   sdMosaicBlock    = parseInt(load('sdMosaicBlock', 20));
+  charExcludeIds   = new Set((localStorage.getItem('charExcludeIds') || '').split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0));
 
   const sdPopWidth = parseInt(load('sdPopWidth', 480));
   document.getElementById('sdWidthInput').value           = sdWidth;
@@ -5771,6 +5889,12 @@ function handleAdminMessage(d, replyFn) {
     state.sdDisplayTime    = sdDisplayTime;
     state.sdMosaicKeywords = sdMosaicKeywords;
     state.sdMosaicBlock    = sdMosaicBlock;
+    state.charExcludeIds   = localStorage.getItem('charExcludeIds') || '';
+    state.slotMpJackpot = SLOT_OUTCOMES[0].mp;
+    state.slotMpDiamond = SLOT_OUTCOMES[1].mp;
+    state.slotMpStar    = SLOT_OUTCOMES[2].mp;
+    state.slotMpBell    = SLOT_OUTCOMES[3].mp;
+    state.slotMpCherry  = SLOT_OUTCOMES[4].mp;
     state.seVolume    = seVolume;
     state.voiceVolume = voiceVolume;
     state.aiModel    = aiModel;
@@ -5850,7 +5974,7 @@ function handleAdminMessage(d, replyFn) {
   } else if (d.type === 'openNovel') {
     openNovelModal();
   } else if (d.type === 'getUsers') {
-    const list = Object.values(users).filter(u => u.el).map(u => ({ ipid: u.ipid, name: u.name || '名無し' }));
+    const list = Object.values(users).filter(u => u.el).map(u => ({ ipid: u.ipid, name: u.name || '名無し', sizeScale: u.sizeScale || 1.0 }));
     replyFn({ type: 'users', data: list });
   } else if (d.type === 'addAtkAll') {
     const val = parseInt(d.value) || 0;
@@ -5892,6 +6016,30 @@ function handleAdminMessage(d, replyFn) {
     Object.values(users).filter(u => u.el).forEach(u => applyMotion(u, 'bouncing'));
   } else if (d.type === 'allSpin') {
     Object.values(users).filter(u => u.el).forEach(u => applyMotion(u, 'spinning'));
+  } else if (d.type === 'showMpRanking') {
+    showMpRanking();
+  } else if (d.type === 'charIndivSize') {
+    const u = users[d.ipid];
+    if (u) { u.sizeScale = parseFloat(d.scale) || 1.0; applyAvatarStyle(u); renderPetBadge(u); }
+  } else if (d.type === 'slotMp') {
+    const keyMap = { slotMpJackpot: 0, slotMpDiamond: 1, slotMpStar: 2, slotMpBell: 3, slotMpCherry: 4 };
+    const idx = keyMap[d.key];
+    if (idx !== undefined) {
+      const val = parseInt(d.value);
+      if (!isNaN(val) && val >= 0) {
+        SLOT_OUTCOMES[idx].mp = val;
+        localStorage.setItem(d.key, val);
+      }
+    }
+  } else if (d.type === 'giveMp') {
+    const u = users[d.ipid];
+    if (u) {
+      u.mp = (u.mp ?? 0) + (parseInt(d.amount) || 0);
+      showBubble(u, `MP +${parseInt(d.amount) || 0}！（現在 ${u.mp} MP）`, {});
+    }
+  } else if (d.type === 'charExclude') {
+    localStorage.setItem('charExcludeIds', d.value);
+    charExcludeIds = new Set((d.value || '').split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0));
   } else if (d.type === 'distributeRandomEquips') {
     Object.values(users).filter(u => u.el).forEach(u => {
       if (!u.equips) u.equips = [];

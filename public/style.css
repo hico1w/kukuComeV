@@ -1873,7 +1873,33 @@ body {
   flex: 1; font-size: 12px; color: #e2e8f0; font-weight: 600;
   overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 100px;
 }
-.ranking-dmg   { font-size: 12px; color: #fbbf24; font-weight: 700; flex-shrink: 0; }
+.ranking-close {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  font-size: 11px; color: #64748b; cursor: pointer; line-height: 1;
+}
+.ranking-close:hover { color: #e2e8f0; }
+.ranking-header { position: relative; }
+.ranking-dmg { font-size: 12px; color: #fbbf24; font-weight: 700; flex-shrink: 0; }
+.ranking-mp  { font-size: 12px; color: #67e8f9; font-weight: 700; flex-shrink: 0; }
+#mpRankingPanel {
+  position: absolute;
+  background: rgba(10, 12, 20, 0.92);
+  border: 2px solid rgba(103, 232, 249, 0.45);
+  border-radius: 10px;
+  padding: 10px 14px 12px;
+  z-index: 65;
+  cursor: grab;
+  user-select: none;
+  min-width: 200px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+}
+#mpRankingPanel:active { cursor: grabbing; }
+.ranking-header-mp {
+  font-size: 12px; font-weight: 800; color: #67e8f9;
+  text-align: center; margin-bottom: 8px;
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 8px rgba(103,232,249,0.5);
+}
 
 /* ── 早押しパネル ── */
 #hayaoshiPanel {
@@ -2034,6 +2060,12 @@ body {
   font-weight: 800;
   color: #f1f5f9;
   text-align: center;
+}
+.sm-icon-name {
+  font-size: 11px;
+  color: #94a3b8;
+  text-align: center;
+  margin-top: 2px;
 }
 .sm-lv {
   font-size: 13px;
