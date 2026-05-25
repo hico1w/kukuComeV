@@ -150,6 +150,7 @@ function applyBgImage(url) {
   applyBgColor(savedColor);
   const savedUrl = localStorage.getItem('bgImageUrl');
   if (savedUrl) applyBgImage(savedUrl);
+  applyCharFontSizes();
 })();
 
 bgColorInput.addEventListener('input', () => {
@@ -216,6 +217,16 @@ let serverHour = 12;
 let serverDay  = 1;
 let charSizeScale = 1.0;
 let bossSizeScale = 1.0;
+let charFontSizes = JSON.parse(localStorage.getItem('charFontSizes') || 'null') || { name:11, stats:10, lv:9, title:9, bubble:13 };
+
+function applyCharFontSizes() {
+  const r = document.documentElement.style;
+  r.setProperty('--fs-char-name',  charFontSizes.name   + 'px');
+  r.setProperty('--fs-char-stats', charFontSizes.stats  + 'px');
+  r.setProperty('--fs-char-lv',    charFontSizes.lv     + 'px');
+  r.setProperty('--fs-title-tag',  charFontSizes.title  + 'px');
+  r.setProperty('--fs-bubble',     charFontSizes.bubble + 'px');
+}
 let apikey    = '';
 let hash      = '';
 let petGachaDrumAudio = null;
@@ -6047,6 +6058,10 @@ function handleAdminMessage(d, replyFn) {
       u.mp = (u.mp ?? 0) + (parseInt(d.amount) || 0);
       showBubble(u, `MP +${parseInt(d.amount) || 0}！（現在 ${u.mp} MP）`, {});
     }
+  } else if (d.type === 'charFontSizes') {
+    Object.assign(charFontSizes, d.sizes);
+    localStorage.setItem('charFontSizes', JSON.stringify(charFontSizes));
+    applyCharFontSizes();
   } else if (d.type === 'wordleRows') {
     const v = parseInt(d.value);
     if (!isNaN(v) && v >= 1 && v <= 50) {

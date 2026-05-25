@@ -411,6 +411,42 @@
   </div>
 </div>
 
+<!-- 文字サイズ -->
+<div class="section">
+  <div class="section-title">🔤 文字サイズ</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 10px;align-items:center">
+    <span style="color:#94a3b8;font-size:11px">名前</span>
+    <div style="display:flex;align-items:center;gap:4px">
+      <input type="number" id="fs-name" value="11" min="6" max="30" style="width:44px;background:#0f1117;border:1px solid #374151;color:#e2e8f0;border-radius:4px;padding:2px 4px;font-size:12px">
+      <span style="color:#64748b;font-size:11px">px</span>
+    </div>
+    <span style="color:#94a3b8;font-size:11px">ステータス</span>
+    <div style="display:flex;align-items:center;gap:4px">
+      <input type="number" id="fs-stats" value="10" min="6" max="30" style="width:44px;background:#0f1117;border:1px solid #374151;color:#e2e8f0;border-radius:4px;padding:2px 4px;font-size:12px">
+      <span style="color:#64748b;font-size:11px">px</span>
+    </div>
+    <span style="color:#94a3b8;font-size:11px">LV</span>
+    <div style="display:flex;align-items:center;gap:4px">
+      <input type="number" id="fs-lv" value="9" min="6" max="30" style="width:44px;background:#0f1117;border:1px solid #374151;color:#e2e8f0;border-radius:4px;padding:2px 4px;font-size:12px">
+      <span style="color:#64748b;font-size:11px">px</span>
+    </div>
+    <span style="color:#94a3b8;font-size:11px">称号</span>
+    <div style="display:flex;align-items:center;gap:4px">
+      <input type="number" id="fs-title" value="9" min="6" max="30" style="width:44px;background:#0f1117;border:1px solid #374151;color:#e2e8f0;border-radius:4px;padding:2px 4px;font-size:12px">
+      <span style="color:#64748b;font-size:11px">px</span>
+    </div>
+    <span style="color:#94a3b8;font-size:11px">吹き出し</span>
+    <div style="display:flex;align-items:center;gap:4px">
+      <input type="number" id="fs-bubble" value="13" min="6" max="40" style="width:44px;background:#0f1117;border:1px solid #374151;color:#e2e8f0;border-radius:4px;padding:2px 4px;font-size:12px">
+      <span style="color:#64748b;font-size:11px">px</span>
+    </div>
+  </div>
+  <div style="display:flex;gap:6px;margin-top:8px">
+    <button onclick="sendFontSizes()">適用</button>
+    <button onclick="resetFontSizes()">↺ リセット</button>
+  </div>
+</div>
+
 <!-- キャラ個別サイズ -->
 <div class="section">
   <div class="section-title">🔍 キャラ個別サイズ</div>
@@ -1009,6 +1045,26 @@
     const v = parseInt(document.getElementById('wordleRowsInput').value);
     if (isNaN(v) || v < 1 || v > 50) { alert('1〜50の整数で入力してください'); return; }
     adminSend({ type: 'wordleRows', value: v });
+  }
+
+  const _fsDefaults = { name:11, stats:10, lv:9, title:9, bubble:13 };
+  function sendFontSizes() {
+    const sizes = {
+      name:   parseInt(document.getElementById('fs-name').value)   || _fsDefaults.name,
+      stats:  parseInt(document.getElementById('fs-stats').value)  || _fsDefaults.stats,
+      lv:     parseInt(document.getElementById('fs-lv').value)     || _fsDefaults.lv,
+      title:  parseInt(document.getElementById('fs-title').value)  || _fsDefaults.title,
+      bubble: parseInt(document.getElementById('fs-bubble').value) || _fsDefaults.bubble,
+    };
+    adminSend({ type: 'charFontSizes', sizes });
+  }
+  function resetFontSizes() {
+    document.getElementById('fs-name').value   = _fsDefaults.name;
+    document.getElementById('fs-stats').value  = _fsDefaults.stats;
+    document.getElementById('fs-lv').value     = _fsDefaults.lv;
+    document.getElementById('fs-title').value  = _fsDefaults.title;
+    document.getElementById('fs-bubble').value = _fsDefaults.bubble;
+    adminSend({ type: 'charFontSizes', sizes: { ..._fsDefaults } });
   }
 
   function sendGiveMp() {
