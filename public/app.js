@@ -6431,6 +6431,7 @@ function renderRacePanel() {
   }
   panel.style.left = raceState.panelX + 'px';
   panel.style.top  = raceState.panelY + 'px';
+  panel.classList.toggle('is-racing', raceState.phase === 'racing');
   const { phase, horses, pool, betRemaining, bets, payouts } = raceState;
   const totalPool = pool + raceJackpot;
 
