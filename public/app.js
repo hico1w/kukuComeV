@@ -6181,6 +6181,14 @@ let raceJackpot   = parseInt(localStorage.getItem('raceJackpot')) || 0;
 let raceDragState = null;
 const RACE_TOTAL_SEC = 10;
 
+const RACE_CONDITIONS = [
+  { label: '絶好調', emoji: '🔥', cls: 'cond-great',  weight: 5 },
+  { label: '好調',   emoji: '✨', cls: 'cond-good',   weight: 4 },
+  { label: '普通',   emoji: '😐', cls: 'cond-normal', weight: 3 },
+  { label: 'やや不調', emoji: '😓', cls: 'cond-bad',  weight: 2 },
+  { label: '不調',   emoji: '💤', cls: 'cond-worst',  weight: 1 },
+];
+
 function easeInOut(p) {
   return p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p+2, 2)/2;
 }
@@ -6203,16 +6211,24 @@ function startRace(numHorses, betSeconds) {
   if (active.length < 2) { addSystemLog('⚠️ 競馬：参加キャラが2体以上必要です', '#f87171'); return; }
   const count = Math.min(numHorses || 5, active.length, 8);
   const shuffled = [...active].sort(() => Math.random() - 0.5).slice(0, count);
-  const horses = shuffled.map((u, i) => ({
-    no: i+1,
-    ipid: u.ipid,
-    name: u.name || '名無し',
-    imgFile: charImages[u.charDef?.id] || 'kisyokeee.png',
-    finalRank: null,
-    dramaSeed: Math.random() * Math.PI * 2,
-    finished: false,
-    finishTime: null,
-  }));
+  const horses = shuffled.map((u, i) => {
+    const cond = RACE_CONDITIONS[Math.floor(Math.random() * RACE_CONDITIONS.length)];
+    return {
+      no: i+1,
+      ipid: u.ipid,
+      name: u.name || '名無し',
+      imgFile: charImages[u.charDef?.id] || 'kisyokeee.png',
+      finalRank: null,
+      dramaSeed: Math.random() * Math.PI * 2,
+      finished: false,
+      finishTime: null,
+      laneIdx: i,
+      condLabel: cond.label,
+      condEmoji: cond.emoji,
+      condCls:   cond.cls,
+      condWeight: cond.weight,
+    };
+  });
   raceState = {
     phase: 'betting',
     horses,
@@ -6244,20 +6260,48 @@ function startRace(numHorses, betSeconds) {
 function beginRacing() {
   if (!raceState || raceState.phase !== 'betting') return;
   if (raceState._betTimerId) { clearInterval(raceState._betTimerId); raceState._betTimerId = null; }
-  const order = [...raceState.horses].sort(() => Math.random() - 0.5);
-  order.forEach((h, i) => { h.finalRank = i+1; });
+  // Weighted shuffle: better condition = higher chance of top finish
+  const pool = [...raceState.horses];
+  const order = [];
+  while (pool.length > 0) {
+    const total = pool.reduce((s, h) => s + h.condWeight, 0);
+    let r = Math.random() * total, chosen = pool.length - 1;
+    for (let i = 0; i < pool.length; i++) { r -= pool[i].condWeight; if (r <= 0) { chosen = i; break; } }
+    order.push(...pool.splice(chosen, 1));
+  }
+  order.forEach((h, i) => { h.finalRank = i + 1; });
   raceState.phase = 'racing';
   raceState.raceStartTime = null;
   renderRacePanel();
   addSystemLog('🏇 レーススタート！', '#f59e0b');
-  requestAnimationFrame(ts => {
-    raceState.raceStartTime = ts;
-    // Get track width after DOM render
-    const panel = document.getElementById('racePanel');
-    const firstTrack = panel?.querySelector('.race-lane-track');
-    raceState.trackW = firstTrack ? Math.max(200, firstTrack.offsetWidth - 44) : 460;
-    requestAnimationFrame(raceAnimFrame);
-  });
+  const panel = document.getElementById('racePanel');
+  const firstTrack = panel?.querySelector('.race-lane-track');
+  raceState.trackW = firstTrack ? Math.max(200, firstTrack.offsetWidth - 44) : 460;
+  // Countdown overlay 3→2→1→GO! then start animation
+  if (panel) {
+    const cdEl = document.createElement('div');
+    cdEl.className = 'race-countdown';
+    cdEl.textContent = '3';
+    panel.appendChild(cdEl);
+    let cdCount = 3;
+    const cdTick = setInterval(() => {
+      cdCount--;
+      if (cdCount > 0) {
+        cdEl.textContent = String(cdCount);
+        cdEl.style.animation = 'none'; void cdEl.offsetWidth; cdEl.style.animation = '';
+      } else {
+        clearInterval(cdTick);
+        cdEl.textContent = 'GO!';
+        cdEl.classList.add('race-countdown-go');
+        setTimeout(() => {
+          cdEl.remove();
+          requestAnimationFrame(ts => { raceState.raceStartTime = ts; requestAnimationFrame(raceAnimFrame); });
+        }, 650);
+      }
+    }, 900);
+  } else {
+    requestAnimationFrame(ts => { raceState.raceStartTime = ts; requestAnimationFrame(raceAnimFrame); });
+  }
 }
 
 function raceAnimFrame(ts) {
@@ -6401,6 +6445,7 @@ function renderRacePanel() {
         <span class="race-no">${h.no}番</span>
         <img class="race-horse-avatar" src="/chara/${encodeURIComponent(h.imgFile)}" alt="">
         <span class="race-horse-name">${escapeHtml(h.name)}</span>
+        <span class="race-cond ${h.condCls}">${h.condEmoji} ${h.condLabel}</span>
         <span class="race-horse-odds">${amt}MP (${odds})</span>
       </div>`;
     }).join('');
@@ -6414,23 +6459,36 @@ function renderRacePanel() {
       <div class="race-hint">単勝「馬券 2 10」　馬単「馬券 1-2 10」　3連単「馬券 2-1-3 10」</div>`;
 
   } else if (phase === 'racing') {
-    const lanes = horses.map(h => `
-      <div class="race-lane">
-        <span class="race-lane-no">${h.no}</span>
+    const n = horses.length;
+    // Sort by laneIdx so top lane is farthest (smallest), bottom is closest (biggest)
+    const byLane = [...horses].sort((a, b) => a.laneIdx - b.laneIdx);
+    const lanes = byLane.map(h => {
+      const depthT = n <= 1 ? 0.5 : h.laneIdx / (n - 1);
+      const laneH    = Math.round(46 + depthT * 32);
+      const imgSize  = Math.round(28 + depthT * 22);
+      const nameSz   = Math.round(7  + depthT * 4);
+      const noSz     = Math.round(9  + depthT * 4);
+      const g = Math.round(38 + depthT * 22);
+      const bgCss = `rgba(${8+Math.round(depthT*14)},${g+22},${8+Math.round(depthT*8)},0.97)`;
+      const hopDur = (0.38 - depthT * 0.10).toFixed(2);
+      return `
+      <div class="race-lane" style="height:${laneH}px;background:${bgCss}">
+        <span class="race-lane-no" style="font-size:${noSz}px">${h.no}</span>
         <div class="race-lane-track">
           <div class="race-horse-run" id="rh-${h.no}" style="left:0">
-            <img src="/chara/${encodeURIComponent(h.imgFile)}" alt="">
-            <span class="race-horse-run-name">${escapeHtml(h.name)}</span>
+            <img src="/chara/${encodeURIComponent(h.imgFile)}" alt="" style="width:${imgSize}px;height:${imgSize}px;animation-duration:${hopDur}s">
+            <span class="race-horse-run-name" style="font-size:${nameSz}px">${escapeHtml(h.name)}</span>
           </div>
-          <span class="race-rank-badge" id="rb-${h.no}" style="display:none"></span>
+          <span class="race-rank-badge" id="rb-${h.no}" style="display:none;font-size:${Math.round(14+depthT*10)}px"></span>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
     panel.innerHTML = `
       <div class="race-header">
         <span class="race-title">🏇 レース中！</span>
         <span class="race-pool">💰 プール: ${totalPool}MP</span>
       </div>
-      <div class="race-track-inner">
+      <div class="race-track-inner" style="position:relative">
         ${lanes}
         <div class="race-finish-line"></div>
         <span class="race-finish-label">GOAL</span>
