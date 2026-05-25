@@ -2602,3 +2602,174 @@ body.compact-mode .title-tag         { display: none !important; }
 }
 @keyframes brElimIn  { from{opacity:0;transform:translate(-50%,-50%) scale(0.6)} to{opacity:1;transform:translate(-50%,-50%) scale(1)} }
 @keyframes brElimOut { from{opacity:1} to{opacity:0} }
+
+/* ── 競馬レース ─────────────────────────────────────── */
+.race-panel {
+  position: absolute;
+  background: rgba(10,12,20,0.97);
+  border: 2px solid #f59e0b;
+  border-radius: 12px;
+  padding: 10px 12px;
+  min-width: 540px;
+  z-index: 200;
+  user-select: none;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+  cursor: grab;
+}
+.race-panel:active { cursor: grabbing; }
+.race-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(245,158,11,0.3);
+  padding-bottom: 6px;
+}
+.race-title  { font-size: 15px; font-weight: 800; color: #f59e0b; }
+.race-pool   { font-size: 11px; color: #94a3b8; margin-left: auto; }
+.race-timer  { font-size: 14px; font-weight: 700; color: #4ade80; min-width: 36px; text-align: right; }
+.race-timer-urgent { color: #f87171; animation: pulse 0.5s ease-in-out infinite; }
+
+/* ベット受付フェーズ */
+.race-horse-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  margin-bottom: 3px;
+  background: rgba(255,255,255,0.04);
+}
+.race-no           { font-size: 13px; font-weight: 700; color: #f59e0b; width: 30px; flex-shrink: 0; }
+.race-horse-avatar { width: 36px; height: 36px; object-fit: contain; flex-shrink: 0; }
+.race-horse-name   { flex: 1; font-size: 12px; color: #e2e8f0; font-weight: 600; }
+.race-horse-odds   { font-size: 11px; color: #94a3b8; white-space: nowrap; }
+.race-hint {
+  margin-top: 8px;
+  font-size: 10px;
+  color: #475569;
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* レーストラック */
+.race-track-inner {
+  position: relative;
+  background: linear-gradient(to bottom, #14301a, #1a4a22, #14301a);
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 4px 0;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.race-lane {
+  display: flex;
+  align-items: center;
+  position: relative;
+  height: 56px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding: 0 4px;
+}
+.race-lane:last-child { border-bottom: none; }
+.race-lane-no {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f59e0b;
+  width: 20px;
+  flex-shrink: 0;
+  text-align: center;
+  z-index: 1;
+}
+.race-lane-track {
+  position: relative;
+  flex: 1;
+  height: 100%;
+}
+.race-horse-run {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 40px;
+  pointer-events: none;
+}
+.race-horse-run img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  animation: raceHop 0.35s ease-in-out infinite;
+  image-rendering: pixelated;
+}
+.race-horse-run-name {
+  font-size: 8px;
+  color: #fff;
+  white-space: nowrap;
+  text-shadow: 0 0 4px #000, 0 0 2px #000;
+  max-width: 54px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
+}
+.race-finish-line {
+  position: absolute;
+  right: 42px;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: repeating-linear-gradient(
+    to bottom,
+    #fff 0px, #fff 6px,
+    #000 6px, #000 12px
+  );
+  opacity: 0.85;
+  pointer-events: none;
+}
+.race-finish-label {
+  position: absolute;
+  right: 46px;
+  top: 4px;
+  font-size: 8px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 3px #000;
+  writing-mode: vertical-rl;
+  letter-spacing: 1px;
+}
+.race-rank-badge {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 20px;
+  line-height: 1;
+  animation: rankPop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes raceHop {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+@keyframes rankPop {
+  from { transform: translateY(-50%) scale(0.3); opacity: 0; }
+  to   { transform: translateY(-50%) scale(1);   opacity: 1; }
+}
+
+/* 結果フェーズ */
+.race-result-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  margin-bottom: 4px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 6px;
+}
+.race-result-medal { font-size: 22px; width: 28px; flex-shrink: 0; }
+.race-payout { font-size: 13px; font-weight: 700; color: #4ade80; margin-left: auto; white-space: nowrap; }
+.race-jackpot-msg {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fbbf24;
+  padding: 8px 0 4px;
+}

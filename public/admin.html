@@ -215,6 +215,23 @@
   </div>
 </div>
 
+<!-- 競馬 -->
+<div class="section">
+  <div class="section-title">🏇 競馬</div>
+  <div class="btn-row" style="align-items:center;flex-wrap:wrap;gap:5px">
+    <span style="color:#94a3b8;font-size:11px">馬数</span>
+    <input type="number" id="raceNumHorses" value="5" min="2" max="8" style="width:42px;background:#0f1117;border:1px solid #374151;color:#e2e8f0;border-radius:4px;padding:2px 4px;font-size:12px">
+    <span style="color:#94a3b8;font-size:11px">受付秒</span>
+    <input type="number" id="raceBetSeconds" value="60" min="10" max="300" style="width:50px;background:#0f1117;border:1px solid #374151;color:#e2e8f0;border-radius:4px;padding:2px 4px;font-size:12px">
+    <button onclick="sendRaceStart()" class="btn-amber">🏇 スタート</button>
+    <button onclick="adminSend({type:'raceBegin'})">🚦 レース開始</button>
+    <button onclick="adminSend({type:'raceCancel'})" class="btn-red">✕ キャンセル</button>
+  </div>
+  <div style="margin-top:4px;font-size:10px;color:#475569">
+    💰 ジャックポット: <span id="raceJackpotDisp">0</span>MP
+  </div>
+</div>
+
 <!-- バトルロイヤル -->
 <div class="section">
   <div class="section-title">👑 バトルロイヤル</div>
@@ -1040,6 +1057,12 @@
 
   function charSizeRefreshUsers() { adminSend({ type: 'getUsers' }); }
   function giveMpRefreshUsers() { adminSend({ type: 'getUsers' }); }
+
+  function sendRaceStart() {
+    const numHorses  = parseInt(document.getElementById('raceNumHorses').value)  || 5;
+    const betSeconds = parseInt(document.getElementById('raceBetSeconds').value) || 60;
+    adminSend({ type: 'raceStart', numHorses, betSeconds });
+  }
 
   function sendWordleRows() {
     const v = parseInt(document.getElementById('wordleRowsInput').value);

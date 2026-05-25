@@ -2245,6 +2245,12 @@ function handleComment(comment) {
   const rawMessage = decodeHtml(comment.message ?? '');
   const message    = stripPrefix(rawMessage);
 
+  // ── 馬券ベット ──
+  if (raceState?.phase === 'betting') {
+    const m = rawMessage.match(/^馬券\s+([\d]+(?:-[\d]+){0,2})\s+(\d+)$/);
+    if (m) { handleRaceBet(user, m[1], parseInt(m[2])); }
+  }
+
   // ── 不在確認ワード自動返答 ──
   const _absentWords = ['これ放置', 'mumyou', '無明', 'いない', 'いにゃい', '寝た？', 'ねた？', 'ほうち', 'ホウチ', 'houti', 'houchi', 'abandoned', 'いる？', 'iru?', 'ねてる'];
   if (_absentWords.some(w => rawMessage.includes(w)) && !_aiPostedTexts.has(message)) {
@@ -3903,6 +3909,18 @@ document.addEventListener('mousemove', e => {
     }
     return;
   }
+  if (raceDragState) {
+    const panel = document.getElementById('racePanel');
+    if (panel && raceState) {
+      const { ox, oy, sx, sy } = raceDragState;
+      const sr = stage.getBoundingClientRect();
+      raceState.panelX = Math.max(0, Math.min(sr.width  - panel.offsetWidth,  ox + (e.clientX - sx)));
+      raceState.panelY = Math.max(0, Math.min(sr.height - panel.offsetHeight, oy + (e.clientY - sy)));
+      panel.style.left = raceState.panelX + 'px';
+      panel.style.top  = raceState.panelY + 'px';
+    }
+    return;
+  }
 
   if (quizDragState) {
     const panel = document.getElementById('quizPanel');
@@ -3999,6 +4017,10 @@ document.addEventListener('mouseup', () => {
       localStorage.setItem('wordlePanelY', Math.round(wordleState.panelY));
     }
     wordleDragState = null;
+    return;
+  }
+  if (raceDragState) {
+    raceDragState = null;
     return;
   }
 
@@ -6058,6 +6080,12 @@ function handleAdminMessage(d, replyFn) {
       u.mp = (u.mp ?? 0) + (parseInt(d.amount) || 0);
       showBubble(u, `MP +${parseInt(d.amount) || 0}！（現在 ${u.mp} MP）`, {});
     }
+  } else if (d.type === 'raceStart') {
+    startRace(parseInt(d.numHorses)||5, parseInt(d.betSeconds)||60);
+  } else if (d.type === 'raceBegin') {
+    beginRacing();
+  } else if (d.type === 'raceCancel') {
+    cancelRace();
   } else if (d.type === 'charFontSizes') {
     Object.assign(charFontSizes, d.sizes);
     localStorage.setItem('charFontSizes', JSON.stringify(charFontSizes));
@@ -6146,6 +6174,286 @@ setInterval(() => {
     startBattleRoyale();
   }
 }, 30 * 60 * 1000);
+
+// ── 競馬 ──────────────────────────────────────────────────────────
+let raceState     = null;
+let raceJackpot   = parseInt(localStorage.getItem('raceJackpot')) || 0;
+let raceDragState = null;
+const RACE_TOTAL_SEC = 10;
+
+function easeInOut(p) {
+  return p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p+2, 2)/2;
+}
+
+function getHorseX(horse, t, trackW) {
+  const n = raceState.horses.length;
+  const r = horse.finalRank;
+  const finishT = RACE_TOTAL_SEC * (0.82 + (r-1) * (0.16 / Math.max(n-1, 1)));
+  if (t >= finishT) return trackW;
+  const p = t / finishT;
+  const base = easeInOut(p);
+  const decay = p < 0.65 ? 1 : 1 - (p-0.65)/0.35;
+  const drama = Math.sin(t*3.7 + horse.dramaSeed) * 0.07 * decay;
+  return Math.max(0, Math.min(trackW * 0.99, (base + drama) * trackW));
+}
+
+function startRace(numHorses, betSeconds) {
+  if (raceState) return;
+  const active = Object.values(users).filter(u => u.el && !u.ko);
+  if (active.length < 2) { addSystemLog('⚠️ 競馬：参加キャラが2体以上必要です', '#f87171'); return; }
+  const count = Math.min(numHorses || 5, active.length, 8);
+  const shuffled = [...active].sort(() => Math.random() - 0.5).slice(0, count);
+  const horses = shuffled.map((u, i) => ({
+    no: i+1,
+    ipid: u.ipid,
+    name: u.name || '名無し',
+    imgFile: charImages[u.charDef?.id] || 'kisyokeee.png',
+    finalRank: null,
+    dramaSeed: Math.random() * Math.PI * 2,
+    finished: false,
+    finishTime: null,
+  }));
+  raceState = {
+    phase: 'betting',
+    horses,
+    bets: {},
+    pool: 0,
+    betSeconds: betSeconds || 60,
+    betRemaining: betSeconds || 60,
+    panelX: 20,
+    panelY: 60,
+    raceStartTime: null,
+    trackW: 0,
+    payouts: null,
+    resultOrder: null,
+    _betTimerId: null,
+  };
+  renderRacePanel();
+  raceState._betTimerId = setInterval(() => {
+    if (!raceState || raceState.phase !== 'betting') { clearInterval(raceState?._betTimerId); return; }
+    raceState.betRemaining--;
+    renderRacePanel();
+    if (raceState.betRemaining <= 0) {
+      clearInterval(raceState._betTimerId);
+      beginRacing();
+    }
+  }, 1000);
+  addSystemLog(`🏇 競馬スタート！受付${raceState.betSeconds}秒。「馬券 2 10」「馬券 1-2 10」「馬券 2-1-3 10」でベット！`, '#f59e0b');
+}
+
+function beginRacing() {
+  if (!raceState || raceState.phase !== 'betting') return;
+  if (raceState._betTimerId) { clearInterval(raceState._betTimerId); raceState._betTimerId = null; }
+  const order = [...raceState.horses].sort(() => Math.random() - 0.5);
+  order.forEach((h, i) => { h.finalRank = i+1; });
+  raceState.phase = 'racing';
+  raceState.raceStartTime = null;
+  renderRacePanel();
+  addSystemLog('🏇 レーススタート！', '#f59e0b');
+  requestAnimationFrame(ts => {
+    raceState.raceStartTime = ts;
+    // Get track width after DOM render
+    const panel = document.getElementById('racePanel');
+    const firstTrack = panel?.querySelector('.race-lane-track');
+    raceState.trackW = firstTrack ? Math.max(200, firstTrack.offsetWidth - 44) : 460;
+    requestAnimationFrame(raceAnimFrame);
+  });
+}
+
+function raceAnimFrame(ts) {
+  if (!raceState || raceState.phase !== 'racing') return;
+  const t = (ts - raceState.raceStartTime) / 1000;
+  const panel = document.getElementById('racePanel');
+  if (!panel) return;
+  let allDone = true;
+  raceState.horses.forEach(h => {
+    const x = getHorseX(h, t, raceState.trackW);
+    const el = document.getElementById('rh-' + h.no);
+    if (el) el.style.left = x + 'px';
+    if (x < raceState.trackW * 0.98) allDone = false;
+    if (!h.finished && x >= raceState.trackW * 0.97) {
+      h.finished = true;
+      h.finishTime = t;
+      const badge = document.getElementById('rb-' + h.no);
+      if (badge) { badge.textContent = ['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣'][h.finalRank-1]||h.finalRank+'着'; badge.style.display='block'; }
+      if (h.finalRank === 1) {
+        try {
+          const ctx = new AudioContext();
+          const osc = ctx.createOscillator(); const g = ctx.createGain();
+          osc.connect(g); g.connect(ctx.destination);
+          [523,659,784,1047].forEach((f,i) => osc.frequency.setValueAtTime(f, ctx.currentTime+i*0.15));
+          g.gain.setValueAtTime(0.25, ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.8);
+          osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.8);
+        } catch {}
+      }
+    }
+  });
+  if (allDone || t > RACE_TOTAL_SEC + 3) { raceState.phase = 'finished'; setTimeout(finishRace, 1200); return; }
+  requestAnimationFrame(raceAnimFrame);
+}
+
+function finishRace() {
+  if (!raceState) return;
+  raceState.phase = 'finished';
+  const resultOrder = [...raceState.horses].sort((a,b) => a.finalRank - b.finalRank).map(h => h.no);
+  raceState.resultOrder = resultOrder;
+  raceState.payouts = calcRacePayoutPure(resultOrder);
+  // Apply payouts / jackpot
+  if (raceState.payouts.length === 0) {
+    raceJackpot = raceState.pool + raceJackpot;
+    localStorage.setItem('raceJackpot', raceJackpot);
+    addSystemLog(`💰 当選者なし！ジャックポット繰越: ${raceJackpot}MP`, '#fbbf24');
+  } else {
+    raceJackpot = 0;
+    localStorage.setItem('raceJackpot', 0);
+    raceState.payouts.forEach(({ ipid, payout }) => {
+      const u = users[ipid];
+      if (u) { u.mp = (u.mp??0) + payout; updateStatsDisplay(u); showBubble(u, `🏆 +${payout}MP！`, {}); }
+    });
+  }
+  const top3 = resultOrder.slice(0,3).map(no => `${no}番${raceState.horses.find(h=>h.no===no)?.name||''}`).join('→');
+  addSystemLog(`🏇 結果: ${top3}`, '#f59e0b');
+  renderRacePanel();
+  setTimeout(() => { document.getElementById('racePanel')?.remove(); raceState = null; }, 8000);
+}
+
+function calcRacePayoutPure(resultOrder) {
+  const totalPool = raceState.pool + raceJackpot;
+  if (totalPool === 0) return [];
+  const winners = [];
+  Object.entries(raceState.bets).forEach(([ipid, bet]) => {
+    let correct = false;
+    if (bet.type === 'tan')         correct = bet.picks[0] === resultOrder[0];
+    else if (bet.type === 'umatan') correct = bet.picks[0] === resultOrder[0] && bet.picks[1] === resultOrder[1];
+    else if (bet.type === 'san')    correct = bet.picks[0] === resultOrder[0] && bet.picks[1] === resultOrder[1] && bet.picks[2] === resultOrder[2];
+    if (correct) {
+      const w = bet.type === 'tan' ? 1 : bet.type === 'umatan' ? 3 : 10;
+      winners.push({ ipid, effectiveBet: bet.mp * w });
+    }
+  });
+  if (winners.length === 0) return [];
+  const totalEff = winners.reduce((s,w) => s+w.effectiveBet, 0);
+  return winners.map(w => ({ ipid: w.ipid, payout: Math.max(1, Math.round(totalPool * w.effectiveBet / totalEff)) }));
+}
+
+function handleRaceBet(user, picksStr, mp) {
+  if (!raceState || raceState.phase !== 'betting') return;
+  if (mp < 1) return;
+  const n = raceState.horses.length;
+  const picks = picksStr.split('-').map(Number);
+  if (picks.some(v => isNaN(v) || v < 1 || v > n)) { showBubble(user, '❌ 馬番が不正', {}); return; }
+  if (new Set(picks).size !== picks.length)          { showBubble(user, '❌ 馬番が重複', {}); return; }
+  const type = picks.length === 1 ? 'tan' : picks.length === 2 ? 'umatan' : picks.length === 3 ? 'san' : null;
+  if (!type) return;
+  if (type !== 'tan' && n < 2) return;
+  if (type === 'san' && n < 3) return;
+  if (raceState.bets[user.ipid]) { showBubble(user, '❌ すでに賭け済みです', {}); return; }
+  if ((user.mp??0) < mp) { showBubble(user, '💸 MPが足りない！', {}); return; }
+  user.mp -= mp;
+  updateStatsDisplay(user);
+  raceState.bets[user.ipid] = { type, picks, mp };
+  raceState.pool += mp;
+  const label = type === 'tan' ? '単勝' : type === 'umatan' ? '馬単' : '3連単';
+  showBubble(user, `🎫 ${label} ${picksStr} に${mp}MP！`, {});
+  renderRacePanel();
+}
+
+function cancelRace() {
+  if (!raceState) return;
+  if (raceState._betTimerId) clearInterval(raceState._betTimerId);
+  Object.entries(raceState.bets).forEach(([ipid, bet]) => {
+    const u = users[ipid]; if (u) { u.mp = (u.mp??0)+bet.mp; updateStatsDisplay(u); }
+  });
+  document.getElementById('racePanel')?.remove();
+  raceState = null;
+  addSystemLog('🏇 競馬キャンセル・賭けMP返金', '#94a3b8');
+}
+
+function renderRacePanel() {
+  if (!raceState) return;
+  let panel = document.getElementById('racePanel');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'racePanel';
+    panel.className = 'race-panel';
+    stage.appendChild(panel);
+    panel.addEventListener('mousedown', e => {
+      if (e.button !== 0 || dragState || trashDragState || bossDragState || wordleDragState || raceDragState) return;
+      const r = panel.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+      raceDragState = { ox: r.left-sr.left, oy: r.top-sr.top, sx: e.clientX, sy: e.clientY };
+      e.preventDefault();
+    });
+  }
+  panel.style.left = raceState.panelX + 'px';
+  panel.style.top  = raceState.panelY + 'px';
+  const { phase, horses, pool, betRemaining, bets, payouts } = raceState;
+  const totalPool = pool + raceJackpot;
+
+  if (phase === 'betting') {
+    const mpByNo = {};
+    Object.values(bets).forEach(b => { mpByNo[b.picks[0]] = (mpByNo[b.picks[0]]||0) + b.mp; });
+    const totalBet = Object.values(mpByNo).reduce((s,v)=>s+v, 0);
+    const rows = horses.map(h => {
+      const amt = mpByNo[h.no]||0;
+      const odds = totalBet>0 && amt>0 ? (totalBet/amt).toFixed(1)+'x' : '-';
+      return `<div class="race-horse-row">
+        <span class="race-no">${h.no}番</span>
+        <img class="race-horse-avatar" src="/chara/${encodeURIComponent(h.imgFile)}" alt="">
+        <span class="race-horse-name">${escapeHtml(h.name)}</span>
+        <span class="race-horse-odds">${amt}MP (${odds})</span>
+      </div>`;
+    }).join('');
+    panel.innerHTML = `
+      <div class="race-header">
+        <span class="race-title">🏇 競馬レース</span>
+        <span class="race-pool">💰JKP:${raceJackpot}MP　プール:${pool}MP</span>
+        <span class="race-timer${betRemaining<=10?' race-timer-urgent':''}">${betRemaining}s</span>
+      </div>
+      ${rows}
+      <div class="race-hint">単勝「馬券 2 10」　馬単「馬券 1-2 10」　3連単「馬券 2-1-3 10」</div>`;
+
+  } else if (phase === 'racing') {
+    const lanes = horses.map(h => `
+      <div class="race-lane">
+        <span class="race-lane-no">${h.no}</span>
+        <div class="race-lane-track">
+          <div class="race-horse-run" id="rh-${h.no}" style="left:0">
+            <img src="/chara/${encodeURIComponent(h.imgFile)}" alt="">
+            <span class="race-horse-run-name">${escapeHtml(h.name)}</span>
+          </div>
+          <span class="race-rank-badge" id="rb-${h.no}" style="display:none"></span>
+        </div>
+      </div>`).join('');
+    panel.innerHTML = `
+      <div class="race-header">
+        <span class="race-title">🏇 レース中！</span>
+        <span class="race-pool">💰 プール: ${totalPool}MP</span>
+      </div>
+      <div class="race-track-inner">
+        ${lanes}
+        <div class="race-finish-line"></div>
+        <span class="race-finish-label">GOAL</span>
+      </div>`;
+
+  } else if (phase === 'finished') {
+    const sorted = [...horses].sort((a,b)=>a.finalRank-b.finalRank);
+    const medals = ['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣'];
+    const rows = sorted.map((h,i) => {
+      const p = (payouts||[]).find(x=>x.ipid===h.ipid);
+      return `<div class="race-result-row">
+        <span class="race-result-medal">${medals[i]||i+1+'着'}</span>
+        <img class="race-horse-avatar" src="/chara/${encodeURIComponent(h.imgFile)}" alt="">
+        <span class="race-horse-name">${escapeHtml(h.name)}</span>
+        ${p ? `<span class="race-payout">+${p.payout}MP</span>` : ''}
+      </div>`;
+    }).join('');
+    const jkpMsg = (!payouts||payouts.length===0) ? `<div class="race-jackpot-msg">💰 当選者なし！次回JKP繰越: ${raceJackpot}MP</div>` : '';
+    panel.innerHTML = `
+      <div class="race-header"><span class="race-title">🏁 レース結果</span></div>
+      ${rows}${jkpMsg}`;
+  }
+}
 
 // ── OBSモード（?obs=1 で設定バーを非表示にして自動スタート） ──
 (function initOBSMode() {
