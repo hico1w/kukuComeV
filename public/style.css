@@ -2618,7 +2618,7 @@ body.compact-mode .title-tag         { display: none !important; }
   transition: min-width 0.3s ease;
 }
 .race-panel.is-racing {
-  width: 85vw;
+  width: 70vw;
 }
 .race-panel:active { cursor: grabbing; }
 .race-header {
