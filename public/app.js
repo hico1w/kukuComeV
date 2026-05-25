@@ -6182,12 +6182,10 @@ let raceDragState = null;
 const RACE_TOTAL_SEC = 20;
 
 const RACE_BUBBLE_PHRASES = [
-  'ふんっ！', 'まだまだ！', 'うおおお！', 'はやい！', 'まてまて！',
-  'ゴールは？', '足が！', 'もうだめ…', '諦めない！', 'ひぃ…',
-  'よっしゃ！', 'ぬかせ！', 'ついてこい！', 'さようなら～', 'おいていくよ！',
-  'くそ、速い！', '見てろ！', '燃えてきた！', 'あと少し！', 'オラオラ！',
-  'にゃー！', '走れー！', '気合だ！', 'ちきしょう！', 'まだいける！',
+  'うおｗ', 'ええてｗ', 'uoooooooo', '', 'まてまて！','ゴールは？', 
   '脚が動かん…', '全力だ！', 'ガチ速い…', 'ここから！', 'うあああ！',
+  'おそｗ','だる','はあ・・・','とんでもねえ速度','あいてうまｗ',
+  '逃げたｗ','よわ','雑魚が','二度と逆らうなよ','ちんぽぽｐ','あとごーるのみ'
 ];
 
 const RACE_CONDITIONS = [
@@ -6326,8 +6324,8 @@ function beginRacing() {
         setTimeout(() => {
           cdEl.remove();
           // Measure track width here — panel has fully expanded by now
-          const firstTrack = panel.querySelector('.race-lane-track');
-          raceState.trackW = firstTrack ? Math.max(200, firstTrack.offsetWidth - 44) : 460;
+          const trackEl = panel.querySelector('.race-track-inner');
+          raceState.trackW = trackEl ? Math.max(200, trackEl.offsetWidth - 82) : 680;
           requestAnimationFrame(ts => { raceState.raceStartTime = ts; requestAnimationFrame(raceAnimFrame); });
         }, 650);
       }
@@ -6378,6 +6376,16 @@ function raceAnimFrame(ts) {
     const el = document.getElementById('rh-' + h.no);
     if (el) el.style.left = x + 'px';
     if (x < raceState.trackW * 0.98) allDone = false;
+  });
+  // z-index: leading horse (rightmost) on top so it visually overtakes others
+  const xMap = {};
+  raceState.horses.forEach(h => { xMap[h.no] = parseFloat(document.getElementById('rh-' + h.no)?.style.left) || 0; });
+  [...raceState.horses].sort((a, b) => xMap[a.no] - xMap[b.no]).forEach((h, i) => {
+    const el = document.getElementById('rh-' + h.no);
+    if (el) el.style.zIndex = i + 2;
+  });
+  raceState.horses.forEach(h => {
+    const x = xMap[h.no];
     if (!h.finished && x >= raceState.trackW * 0.97) {
       h.finished = true;
       h.finishTime = t;
@@ -6525,36 +6533,25 @@ function renderRacePanel() {
 
   } else if (phase === 'racing') {
     const n = horses.length;
-    // Sort by laneIdx so top lane is farthest (smallest), bottom is closest (biggest)
-    const byLane = [...horses].sort((a, b) => a.laneIdx - b.laneIdx);
-    const lanes = byLane.map(h => {
-      const depthT = n <= 1 ? 0.5 : h.laneIdx / (n - 1);
-      const laneH    = Math.round(46 + depthT * 32);
-      const imgSize  = Math.round(28 + depthT * 22);
-      const nameSz   = Math.round(7  + depthT * 4);
-      const noSz     = Math.round(9  + depthT * 4);
-      const g = Math.round(38 + depthT * 22);
-      const bgCss = `rgba(${8+Math.round(depthT*14)},${g+22},${8+Math.round(depthT*8)},0.97)`;
-      const hopDur = (0.38 - depthT * 0.10).toFixed(2);
-      return `
-      <div class="race-lane" style="height:${laneH}px;background:${bgCss}">
-        <span class="race-lane-no" style="font-size:${noSz}px">${h.no}</span>
-        <div class="race-lane-track">
-          <div class="race-horse-run" id="rh-${h.no}" style="left:0">
-            <img src="/chara/${encodeURIComponent(h.imgFile)}" alt="" style="width:${imgSize}px;height:${imgSize}px;animation-duration:${hopDur}s">
-            <span class="race-horse-run-name" style="font-size:${nameSz}px">${escapeHtml(h.name)}</span>
-          </div>
-          <span class="race-rank-badge" id="rb-${h.no}" style="display:none;font-size:${Math.round(14+depthT*10)}px"></span>
-        </div>
-      </div>`;
-    }).join('');
+    const topMargin = 38;
+    const trackH = n <= 1 ? 120 : Math.max(150, topMargin * 2 + (n - 1) * 34);
+    // Assign fixed Y positions spread across track height (sorted by laneIdx)
+    [...horses].sort((a, b) => a.laneIdx - b.laneIdx).forEach((h, i) => {
+      h._trackY = n <= 1 ? trackH / 2 : topMargin + i * (trackH - topMargin * 2) / (n - 1);
+    });
+    const horseEls = horses.map(h => `
+      <div class="race-horse-run" id="rh-${h.no}" style="left:0;top:${Math.round(h._trackY)}px;z-index:2">
+        <img src="/chara/${encodeURIComponent(h.imgFile)}" alt="">
+        <span class="race-horse-run-name">${escapeHtml(h.name)}</span>
+        <span class="race-rank-badge" id="rb-${h.no}" style="display:none"></span>
+      </div>`).join('');
     panel.innerHTML = `
       <div class="race-header">
         <span class="race-title">🏇 レース中！</span>
         <span class="race-pool">💰 プール: ${totalPool}MP</span>
       </div>
-      <div class="race-track-inner" style="position:relative">
-        ${lanes}
+      <div class="race-track-inner race-track-flat" style="height:${trackH}px">
+        ${horseEls}
         <div class="race-finish-line"></div>
         <span class="race-finish-label">GOAL</span>
       </div>`;

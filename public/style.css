@@ -2659,88 +2659,78 @@ body.compact-mode .title-tag         { display: none !important; }
 /* レーストラック */
 .race-track-inner {
   position: relative;
-  background: linear-gradient(to bottom, #14301a, #1a4a22, #14301a);
+  background: linear-gradient(to bottom, #14301a, #1e5426, #14301a);
   border-radius: 8px;
   overflow: hidden;
   padding: 4px 0;
   border: 1px solid rgba(255,255,255,0.08);
 }
-.race-lane {
-  display: flex;
-  align-items: center;
-  position: relative;
-  height: 56px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  padding: 0 4px;
+/* フラットレイアウト（全馬同一トラック） */
+.race-track-inner.race-track-flat {
+  overflow: visible;
+  padding: 0;
 }
-.race-lane:last-child { border-bottom: none; }
-.race-lane-no {
-  font-size: 11px;
-  font-weight: 700;
-  color: #f59e0b;
-  width: 20px;
-  flex-shrink: 0;
-  text-align: center;
-  z-index: 1;
-}
-.race-lane-track {
-  position: relative;
-  flex: 1;
-  height: 100%;
-  overflow: hidden;
-}
-.race-lane-track::before {
+.race-track-inner.race-track-flat::before {
   content: '';
   position: absolute;
   inset: 0;
   background-image: repeating-linear-gradient(
     90deg,
     transparent 0px, transparent 24px,
-    rgba(255,255,255,0.055) 24px, rgba(255,255,255,0.055) 28px
+    rgba(255,255,255,0.06) 24px, rgba(255,255,255,0.06) 28px
   );
   background-size: 28px 100%;
   animation: trackScroll 0.36s linear infinite;
   pointer-events: none;
+  border-radius: 8px;
 }
 .race-horse-run {
   position: absolute;
-  top: 50%;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 40px;
   pointer-events: none;
-  z-index: 2;
 }
 .race-horse-run::after {
   content: '';
   position: absolute;
-  left: -6px;
-  bottom: 6px;
-  width: 10px;
-  height: 7px;
+  left: -8px;
+  bottom: 10px;
+  width: 14px;
+  height: 9px;
   border-radius: 50%;
   background: rgba(180,140,60,0.38);
-  filter: blur(3px);
+  filter: blur(4px);
   animation: dustDrift 0.5s ease-out infinite;
 }
 .race-horse-run img {
-  width: 38px;
-  height: 38px;
+  width: 72px;
+  height: 72px;
   object-fit: contain;
-  animation: raceHop 0.35s ease-in-out infinite;
+  animation: raceHop 0.32s ease-in-out infinite;
   image-rendering: pixelated;
 }
 .race-horse-run-name {
-  font-size: 8px;
+  font-size: 9px;
   color: #fff;
   white-space: nowrap;
   text-shadow: 0 0 4px #000, 0 0 2px #000;
-  max-width: 54px;
+  max-width: 72px;
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1;
+  margin-top: 1px;
+}
+.race-horse-run .race-rank-badge {
+  position: absolute;
+  top: -26px;
+  left: 50%;
+  transform: translateX(-50%);
+  right: auto;
+  font-size: 24px;
+  line-height: 1;
+  animation: rankPop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
 }
 .race-finish-line {
   position: absolute;
@@ -2783,8 +2773,8 @@ body.compact-mode .title-tag         { display: none !important; }
   75%     { transform: translateY(-3px) rotate(4deg) scaleY(1.02); }
 }
 @keyframes rankPop {
-  from { transform: translateY(-50%) scale(0.3); opacity: 0; }
-  to   { transform: translateY(-50%) scale(1);   opacity: 1; }
+  from { transform: translateX(-50%) scale(0.3); opacity: 0; }
+  to   { transform: translateX(-50%) scale(1);   opacity: 1; }
 }
 @keyframes trackScroll {
   from { background-position: 28px 0; }
