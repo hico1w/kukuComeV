@@ -6179,7 +6179,7 @@ setInterval(() => {
 let raceState     = null;
 let raceJackpot   = parseInt(localStorage.getItem('raceJackpot')) || 0;
 let raceDragState = null;
-const RACE_TOTAL_SEC = 10;
+const RACE_TOTAL_SEC = 20;
 
 const RACE_CONDITIONS = [
   { label: '絶好調', emoji: '🔥', cls: 'cond-great',  weight: 5 },
