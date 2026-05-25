@@ -2234,6 +2234,11 @@ function handleComment(comment) {
   const rawMessage = decodeHtml(comment.message ?? '');
   const message    = stripPrefix(rawMessage);
 
+  // ── 「これ放置」自動返答 ──
+  if (rawMessage.includes('これ放置') && !_aiPostedTexts.has(message)) {
+    postAIReply('いますよ');
+  }
+
   // ── 5分モード：AI自動返答（master本人とAI投稿はスキップ） ──
   if (fiveMinMode) {
     if (ipid === 'master') {
