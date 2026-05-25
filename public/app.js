@@ -2235,7 +2235,7 @@ function handleComment(comment) {
   const message    = stripPrefix(rawMessage);
 
   // ── 不在確認ワード自動返答 ──
-  const _absentWords = ['これ放置', 'mumyou', '無明', 'いない', '寝た？', 'ねた？', 'ほうち', 'houti', 'houchi', 'abandoned', 'いる？', 'iru?'];
+  const _absentWords = ['これ放置', 'mumyou', '無明', 'いない', '寝た？', 'ねた？', 'ほうち', 'houti', 'houchi', 'abandoned', 'いる？', 'iru?', 'ねてる'];
   if (_absentWords.some(w => rawMessage.includes(w)) && !_aiPostedTexts.has(message)) {
     postAIReply('いますよ');
   }
