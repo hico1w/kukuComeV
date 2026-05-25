@@ -5811,13 +5811,16 @@ function showTitleUnlock(user, title) {
     '<div class="title-unlock-name">' + escapeHtml(title.name) + '</div>' +
     '<div class="title-unlock-ability">' + escapeHtml(title.abilityDesc) + '</div>';
   document.body.appendChild(popup);
-  const { x, y } = getCharCenter(user);
-  popup.style.left = (x - 80) + 'px';
-  popup.style.top  = (y - 90) + 'px';
+  const sr = stage.getBoundingClientRect();
+  const er = user.el.getBoundingClientRect();
+  const cx = er.left - sr.left + er.width / 2;
+  const cy = er.bottom - sr.top + 4;
+  popup.style.left = (cx - 80) + 'px';
+  popup.style.top  = cy + 'px';
   setTimeout(() => {
     popup.style.transition = 'opacity 0.6s, transform 0.6s';
     popup.style.opacity = '0';
-    popup.style.transform = 'translateY(-30px) scale(0.9)';
+    popup.style.transform = 'translateY(20px) scale(0.9)';
     setTimeout(() => popup.remove(), 700);
   }, 2500);
   addSystemLog('⭐ ' + (user.name||'名無し') + ' 【' + title.name + '】称号解放！ ' + title.abilityDesc, '#fbbf24');
