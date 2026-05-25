@@ -536,9 +536,19 @@ function applyAvatarStyle(user) {
   a.style.height = px + 'px';
   a.style.transform = '';
   const imgFile = charImages[user.charDef.id] || 'kisyokeee.png';
-  const flipStyle = user.flipped ? ' style="transform:scaleX(-1)"' : '';
-  a.innerHTML      = `<img src="/chara/${encodeURIComponent(imgFile)}" alt="${escapeHtml(user.name)}"${flipStyle}>`;
+  a.innerHTML      = `<img src="/chara/${encodeURIComponent(imgFile)}" alt="${escapeHtml(user.name)}">`;
   a.style.fontSize = '0';
+  applyFacingFlip(user);
+}
+
+function applyFacingFlip(user) {
+  const a = document.getElementById('a-' + user.ipid);
+  if (!a) return;
+  const img = a.querySelector('img');
+  if (!img) return;
+  // 右向き XOR 反転フラグ
+  const flip = (!!user.facingRight) !== (!!user.flipped);
+  img.style.transform = flip ? 'scaleX(-1)' : '';
 }
 
 function renderPetBadge(user) {
@@ -620,8 +630,8 @@ function scheduleMove(user) {
       user.el.style.transition = `left ${duration}ms ease-in-out, top ${duration}ms ease-in-out`;
       user.el.style.left = user.x + 'px';
       user.el.style.top  = user.y + 'px';
-      const avatarEl = document.getElementById('a-' + user.ipid);
-      if (avatarEl) avatarEl.style.transform = user.x > oldX ? 'scaleX(-1)' : 'scaleX(1)';
+      user.facingRight = user.x > oldX;
+      applyFacingFlip(user);
     }
     scheduleMove(user);
   }, interval);
@@ -640,8 +650,8 @@ function scheduleWalk(user) {
   user.el.style.transition = `left ${duration}ms linear`;
   user.el.style.left = user.x + 'px';
   // top は変えない（縦移動なし）
-  const avatarEl = document.getElementById('a-' + user.ipid);
-  if (avatarEl) avatarEl.style.transform = dir > 0 ? 'scaleX(-1)' : 'scaleX(1)';
+  user.facingRight = dir > 0;
+  applyFacingFlip(user);
   user.walkTimer = setTimeout(() => scheduleWalk(user), duration + 150);
 }
 

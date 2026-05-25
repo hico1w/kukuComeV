@@ -2,6 +2,17 @@
 
 ---
 
+## v2.83.0 — 2026-05-26
+
+### 歩き方向フリップ再修正
+- `applyAvatarStyle` が `a.style.transform = ''` でリセットしてフリップが消える問題を修正
+- `user.facingRight` に向きを保持し、`applyFacingFlip()` で img に `scaleX(-1)` を適用
+- `applyAvatarStyle` 内でも `applyFacingFlip` を呼び出すことで再描画後も向きを維持
+- `反転` コマンドも `user.flipped` XOR `user.facingRight` で正しく合成
+- `app.js` を変更
+
+---
+
 ## v2.82.0 — 2026-05-26
 
 ### 歩き方向フリップ修正
