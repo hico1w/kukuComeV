@@ -150,7 +150,6 @@ function applyBgImage(url) {
   applyBgColor(savedColor);
   const savedUrl = localStorage.getItem('bgImageUrl');
   if (savedUrl) applyBgImage(savedUrl);
-  applyCharFontSizes();
 })();
 
 bgColorInput.addEventListener('input', () => {
@@ -227,6 +226,7 @@ function applyCharFontSizes() {
   r.setProperty('--fs-title-tag',  charFontSizes.title  + 'px');
   r.setProperty('--fs-bubble',     charFontSizes.bubble + 'px');
 }
+applyCharFontSizes();
 let apikey    = '';
 let hash      = '';
 let petGachaDrumAudio = null;
