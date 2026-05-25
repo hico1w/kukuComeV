@@ -5814,7 +5814,7 @@ function showTitleUnlock(user, title) {
   const sr = stage.getBoundingClientRect();
   const er = user.el.getBoundingClientRect();
   const cx = er.left - sr.left + er.width / 2;
-  const cy = er.bottom - sr.top + 4;
+  const cy = er.bottom - sr.top + 4 - 36;
   popup.style.left = (cx - 80) + 'px';
   popup.style.top  = cy + 'px';
   setTimeout(() => {
