@@ -613,12 +613,15 @@ function scheduleMove(user) {
 
   user.moveTimer = setTimeout(() => {
     if (!users[user.ipid] || user.movement === '止まれ') return;
+    const oldX = user.x;
     user.x = randX(user);
     user.y = randY(user);
     if (user.el) {
       user.el.style.transition = `left ${duration}ms ease-in-out, top ${duration}ms ease-in-out`;
       user.el.style.left = user.x + 'px';
       user.el.style.top  = user.y + 'px';
+      const avatarEl = document.getElementById('a-' + user.ipid);
+      if (avatarEl) avatarEl.style.transform = user.x > oldX ? 'scaleX(-1)' : 'scaleX(1)';
     }
     scheduleMove(user);
   }, interval);
@@ -638,7 +641,7 @@ function scheduleWalk(user) {
   user.el.style.left = user.x + 'px';
   // top は変えない（縦移動なし）
   const avatarEl = document.getElementById('a-' + user.ipid);
-  if (avatarEl) avatarEl.style.transform = dir < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+  if (avatarEl) avatarEl.style.transform = dir > 0 ? 'scaleX(-1)' : 'scaleX(1)';
   user.walkTimer = setTimeout(() => scheduleWalk(user), duration + 150);
 }
 
