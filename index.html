@@ -1139,7 +1139,7 @@
           chip.dataset.group = 'chara';
           chip.dataset.val = String(id);
           chip.onclick = function() { CmdGen.selectChip(this); };
-          chip.innerHTML = `<img class="cmdgen-chara-img" src="/chara/${encodeURIComponent(fname)}" alt="キャラ${id}" onerror="this.style.display='none'">${label}`;
+          chip.innerHTML = `<img class="cmdgen-chara-img" src="./chara/${encodeURIComponent(fname)}" alt="キャラ${id}" onerror="this.style.display='none'">${label}`;
           container.appendChild(chip);
         });
       }
@@ -1182,7 +1182,7 @@
         const card = document.createElement('div');
         card.className = 'char-card';
         card.innerHTML =
-          `<img class="char-img" src="/chara/${encodeURIComponent(fname)}" alt="キャラ${id}" onerror="this.style.display='none'">`
+          `<img class="char-img" src="./chara/${encodeURIComponent(fname)}" alt="キャラ${id}" onerror="this.style.display='none'">`
           + `<div class="char-cmd">キャラ${id}</div>`
           + (alias ? `<div class="char-alias">「${alias}」</div>` : '');
         grid.appendChild(card);
