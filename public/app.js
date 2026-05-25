@@ -4468,9 +4468,10 @@ setInterval(() => {
 })();
 
 // ── Wordle ────────────────────────────────────────────────────────
-let wordleWords   = [];
-let wordleState   = null; // { answer, guesses[], panelX, panelY, winnerName }
-let wordleDragState = null;
+let wordleWords      = [];
+let wordleState      = null; // { answer, guesses[], panelX, panelY, winnerName }
+let wordleDragState  = null;
+let wordleDisplayRows = parseInt(localStorage.getItem('wordleDisplayRows')) || 10;
 
 (async function loadWordleWords() {
   try {
@@ -4522,7 +4523,7 @@ function evaluateWordle(guess, answer) {
 
 function renderWordlePanel() {
   const MAX_GUESSES   = 30;
-  const DISPLAY_ROWS  = 10;  // 最新N行だけ表示
+  const DISPLAY_ROWS  = wordleDisplayRows;  // 最新N行だけ表示（管理パネルから変更可）
   let panel = document.getElementById('wordlePanel');
 
   if (!wordleState) { if (panel) panel.remove(); return; }
@@ -6042,6 +6043,13 @@ function handleAdminMessage(d, replyFn) {
     if (u) {
       u.mp = (u.mp ?? 0) + (parseInt(d.amount) || 0);
       showBubble(u, `MP +${parseInt(d.amount) || 0}！（現在 ${u.mp} MP）`, {});
+    }
+  } else if (d.type === 'wordleRows') {
+    const v = parseInt(d.value);
+    if (!isNaN(v) && v >= 1 && v <= 50) {
+      wordleDisplayRows = v;
+      localStorage.setItem('wordleDisplayRows', v);
+      renderWordlePanel();
     }
   } else if (d.type === 'charExclude') {
     localStorage.setItem('charExcludeIds', d.value);

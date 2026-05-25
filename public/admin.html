@@ -196,6 +196,9 @@
     <button onclick="cmd('dismissBossBtn')" class="btn-red">💀 ボス消去</button>
     <button onclick="cmd('moveLockBtn')">🔒 移動制限</button>
     <button onclick="cmd('wordleBtn')" class="btn-amber">📝 Wordle</button>
+    <input type="number" id="wordleRowsInput" value="10" min="1" max="50" style="width:46px;background:#0f1117;border:1px solid #374151;color:#e2e8f0;border-radius:4px;padding:2px 4px;font-size:12px" title="もじあて表示行数">
+    <span style="color:#94a3b8;font-size:11px">行</span>
+    <button onclick="sendWordleRows()" style="font-size:11px;padding:2px 6px">適用</button>
     <button onclick="cmd('quizBtn')" class="btn-amber">❓ クイズ</button>
     <button onclick="cmd('hayaoshiBtn')" class="btn-amber">⚡ 早押し</button>
     <button onclick="cmd('battleRoyaleBtn')" class="btn-purple">👑 バトルロイヤル</button>
@@ -1001,6 +1004,12 @@
 
   function charSizeRefreshUsers() { adminSend({ type: 'getUsers' }); }
   function giveMpRefreshUsers() { adminSend({ type: 'getUsers' }); }
+
+  function sendWordleRows() {
+    const v = parseInt(document.getElementById('wordleRowsInput').value);
+    if (isNaN(v) || v < 1 || v > 50) { alert('1〜50の整数で入力してください'); return; }
+    adminSend({ type: 'wordleRows', value: v });
+  }
 
   function sendGiveMp() {
     const ipid = document.getElementById('giveMpUserSelect').value;
