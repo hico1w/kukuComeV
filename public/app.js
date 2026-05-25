@@ -6181,6 +6181,15 @@ let raceJackpot   = parseInt(localStorage.getItem('raceJackpot')) || 0;
 let raceDragState = null;
 const RACE_TOTAL_SEC = 20;
 
+const RACE_BUBBLE_PHRASES = [
+  'ふんっ！', 'まだまだ！', 'うおおお！', 'はやい！', 'まてまて！',
+  'ゴールは？', '足が！', 'もうだめ…', '諦めない！', 'ひぃ…',
+  'よっしゃ！', 'ぬかせ！', 'ついてこい！', 'さようなら～', 'おいていくよ！',
+  'くそ、速い！', '見てろ！', '燃えてきた！', 'あと少し！', 'オラオラ！',
+  'にゃー！', '走れー！', '気合だ！', 'ちきしょう！', 'まだいける！',
+  '脚が動かん…', '全力だ！', 'ガチ速い…', 'ここから！', 'うあああ！',
+];
+
 const RACE_CONDITIONS = [
   { label: '絶好調', emoji: '🔥', cls: 'cond-great',  weight: 5 },
   { label: '好調',   emoji: '✨', cls: 'cond-good',   weight: 4 },
@@ -6328,11 +6337,41 @@ function beginRacing() {
   }
 }
 
+function showRaceHorseBubble(horse) {
+  const panel = document.getElementById('racePanel');
+  const horseEl = document.getElementById('rh-' + horse.no);
+  if (!panel || !horseEl) return;
+  // Remove previous bubble for this horse
+  panel.querySelectorAll(`.race-horse-bubble[data-no="${horse.no}"]`).forEach(b => b.remove());
+  const pr = panel.getBoundingClientRect();
+  const hr = horseEl.getBoundingClientRect();
+  const x = hr.left - pr.left + hr.width / 2;
+  const y = hr.top - pr.top;
+  const text = RACE_BUBBLE_PHRASES[Math.floor(Math.random() * RACE_BUBBLE_PHRASES.length)];
+  const b = document.createElement('div');
+  b.className = 'race-horse-bubble';
+  b.dataset.no = horse.no;
+  b.textContent = text;
+  b.style.left = x + 'px';
+  b.style.top  = y + 'px';
+  panel.appendChild(b);
+  setTimeout(() => b.remove(), 2400);
+}
+
 function raceAnimFrame(ts) {
   if (!raceState || raceState.phase !== 'racing') return;
   const t = (ts - raceState.raceStartTime) / 1000;
   const panel = document.getElementById('racePanel');
   if (!panel) return;
+  // Periodic speech bubbles
+  raceState.horses.forEach(h => {
+    if (h.finished) return;
+    if (h._nextSpeakAt === undefined) h._nextSpeakAt = 1.5 + Math.random() * 3;
+    if (t >= h._nextSpeakAt) {
+      h._nextSpeakAt = t + 3 + Math.random() * 5;
+      showRaceHorseBubble(h);
+    }
+  });
   let allDone = true;
   raceState.horses.forEach(h => {
     const x = getHorseX(h, t, raceState.trackW);
