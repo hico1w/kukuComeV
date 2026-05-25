@@ -6533,8 +6533,8 @@ function renderRacePanel() {
 
   } else if (phase === 'racing') {
     const n = horses.length;
-    const topMargin = 38;
-    const trackH = n <= 1 ? 120 : Math.max(150, topMargin * 2 + (n - 1) * 34);
+    const topMargin = 60;
+    const trackH = n <= 1 ? 200 : Math.min(480, Math.max(200, topMargin * 2 + (n - 1) * 58));
     // Assign fixed Y positions spread across track height (sorted by laneIdx)
     [...horses].sort((a, b) => a.laneIdx - b.laneIdx).forEach((h, i) => {
       h._trackY = n <= 1 ? trackH / 2 : topMargin + i * (trackH - topMargin * 2) / (n - 1);
