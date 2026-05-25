@@ -2234,8 +2234,9 @@ function handleComment(comment) {
   const rawMessage = decodeHtml(comment.message ?? '');
   const message    = stripPrefix(rawMessage);
 
-  // ── 「これ放置」自動返答 ──
-  if (rawMessage.includes('これ放置') && !_aiPostedTexts.has(message)) {
+  // ── 不在確認ワード自動返答 ──
+  const _absentWords = ['これ放置', 'mumyou', '無明', 'いない', '寝た？', 'ねた？'];
+  if (_absentWords.some(w => rawMessage.includes(w)) && !_aiPostedTexts.has(message)) {
     postAIReply('いますよ');
   }
 
