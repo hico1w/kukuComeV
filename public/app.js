@@ -6586,19 +6586,38 @@ function renderRacePanel() {
   } else if (phase === 'finished') {
     const sorted = [...horses].sort((a,b)=>a.finalRank-b.finalRank);
     const medals = ['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣'];
-    const rows = sorted.map((h,i) => {
-      const p = (payouts||[]).find(x=>x.ipid===h.ipid);
-      return `<div class="race-result-row">
+    const orderRows = sorted.map((h,i) => `
+      <div class="race-result-row">
         <span class="race-result-medal">${medals[i]||i+1+'着'}</span>
         <img class="race-horse-avatar" src="/chara/${encodeURIComponent(h.imgFile)}" alt="">
         <span class="race-horse-name">${escapeHtml(h.name)}</span>
-        ${p ? `<span class="race-payout">+${p.payout}MP</span>` : ''}
+      </div>`).join('');
+    let payoutHtml = '';
+    if (!payouts || payouts.length === 0) {
+      payoutHtml = `<div class="race-jackpot-msg">💰 当選者なし！次回JKP繰越: ${raceJackpot}MP</div>`;
+    } else {
+      const winRows = [...payouts].sort((a,b)=>b.payout-a.payout).map(p => {
+        const u = users[p.ipid];
+        const name = u?.name || '名無し';
+        const spent = bets.filter(b=>b.ipid===p.ipid).reduce((s,b)=>s+b.mp,0);
+        const profit = p.payout - spent;
+        return `<div class="race-winner-row">
+          <span class="race-winner-name">${escapeHtml(name)}</span>
+          <span class="race-winner-payout">+${p.payout}MP</span>
+          <span class="race-winner-profit">(${profit>=0?'+':''}${profit})</span>
+        </div>`;
+      }).join('');
+      payoutHtml = `<div class="race-payout-section">
+        <div class="race-payout-title">🏆 当選者</div>
+        ${winRows}
       </div>`;
-    }).join('');
-    const jkpMsg = (!payouts||payouts.length===0) ? `<div class="race-jackpot-msg">💰 当選者なし！次回JKP繰越: ${raceJackpot}MP</div>` : '';
+    }
     panel.innerHTML = `
       <div class="race-header"><span class="race-title">🏁 レース結果</span></div>
-      ${rows}${jkpMsg}`;
+      <div class="race-result-cols">
+        <div>${orderRows}</div>
+        <div>${payoutHtml}</div>
+      </div>`;
   }
 }
 

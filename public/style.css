@@ -2874,6 +2874,51 @@ body.compact-mode .title-tag         { display: none !important; }
 }
 
 /* 結果フェーズ */
+.race-result-cols {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.race-result-cols > div { flex: 1; }
+.race-payout-section {
+  background: rgba(251,191,36,0.07);
+  border: 1px solid rgba(251,191,36,0.25);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.race-payout-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fbbf24;
+  margin-bottom: 6px;
+}
+.race-winner-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.race-winner-row:last-child { border-bottom: none; }
+.race-winner-name {
+  flex: 1;
+  font-size: 12px;
+  color: #e2e8f0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.race-winner-payout {
+  font-size: 15px;
+  font-weight: 700;
+  color: #4ade80;
+  white-space: nowrap;
+}
+.race-winner-profit {
+  font-size: 10px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
 .race-result-row {
   display: flex;
   align-items: center;
