@@ -2260,8 +2260,13 @@ function handleComment(comment) {
 
   // ── 馬券ベット ──
   if (raceState?.phase === 'betting') {
-    const m = rawMessage.match(/^馬券\s+([\d]+(?:-[\d]+){0,2})\s+(\d+)$/);
-    if (m) { handleRaceBet(user, m[1], parseInt(m[2])); }
+    const betMsg = message.trim();
+    const m = betMsg.match(/^馬券[\s　]+([\d]+(?:-[\d]+){0,2})[\s　]+(\d+)$/);
+    if (m) {
+      handleRaceBet(user, m[1], parseInt(m[2]));
+    } else if (betMsg.startsWith('馬券')) {
+      addSystemLog(`⚠️ 馬券フォーマット違い: 「${betMsg}」→ 例: 馬券 2 10`, '#f87171');
+    }
   }
 
   // ── 不在確認ワード自動返答 ──
