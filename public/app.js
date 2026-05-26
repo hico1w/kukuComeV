@@ -2260,8 +2260,12 @@ function handleComment(comment) {
 
   // ── 馬券ベット ──
   if (raceState?.phase === 'betting') {
-    const betMsg = message.trim();
-    const m = betMsg.match(/^馬券[\s　]+([\d]+(?:-[\d]+){0,2})[\s　]+(\d+)$/);
+    // 全角→半角に正規化してから判定
+    const betMsg = message.trim()
+      .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+      .replace(/[－−‐]/g, '-')
+      .replace(/　/g, ' ');
+    const m = betMsg.match(/^馬券\s+([\d]+(?:-[\d]+){0,2})\s+(\d+)$/);
     if (m) {
       handleRaceBet(user, m[1], parseInt(m[2]));
     } else if (betMsg.startsWith('馬券')) {
@@ -6559,7 +6563,7 @@ function renderRacePanel() {
     });
     const horseEls = horses.map(h => `
       <div class="race-horse-run" id="rh-${h.no}" style="left:0;top:${Math.round(h._trackY)}px;z-index:2">
-        <img src="/chara/${encodeURIComponent(h.imgFile)}" alt="">
+        <img src="/chara/${encodeURIComponent(h.imgFile)}" alt="" style="transform:scaleX(-1)">
         <span class="race-horse-run-name">${escapeHtml(h.name)}</span>
         <span class="race-rank-badge" id="rb-${h.no}" style="display:none"></span>
       </div>`).join('');
