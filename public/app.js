@@ -6277,7 +6277,7 @@ function startRace(numHorses, betSeconds) {
   raceState = {
     phase: 'betting',
     horses,
-    bets: {},
+    bets: [],
     pool: 0,
     betSeconds: betSeconds || 60,
     betRemaining: betSeconds || 60,
@@ -6458,20 +6458,21 @@ function finishRace() {
 function calcRacePayoutPure(resultOrder) {
   const totalPool = raceState.pool + raceJackpot;
   if (totalPool === 0) return [];
-  const winners = [];
-  Object.entries(raceState.bets).forEach(([ipid, bet]) => {
+  const effMap = {};
+  raceState.bets.forEach(bet => {
     let correct = false;
     if (bet.type === 'tan')         correct = bet.picks[0] === resultOrder[0];
     else if (bet.type === 'umatan') correct = bet.picks[0] === resultOrder[0] && bet.picks[1] === resultOrder[1];
     else if (bet.type === 'san')    correct = bet.picks[0] === resultOrder[0] && bet.picks[1] === resultOrder[1] && bet.picks[2] === resultOrder[2];
     if (correct) {
       const w = bet.type === 'tan' ? 1 : bet.type === 'umatan' ? 3 : 10;
-      winners.push({ ipid, effectiveBet: bet.mp * w });
+      effMap[bet.ipid] = (effMap[bet.ipid] || 0) + bet.mp * w;
     }
   });
+  const winners = Object.entries(effMap);
   if (winners.length === 0) return [];
-  const totalEff = winners.reduce((s,w) => s+w.effectiveBet, 0);
-  return winners.map(w => ({ ipid: w.ipid, payout: Math.max(1, Math.round(totalPool * w.effectiveBet / totalEff)) }));
+  const totalEff = winners.reduce((s,[,e]) => s+e, 0);
+  return winners.map(([ipid, eff]) => ({ ipid, payout: Math.max(1, Math.round(totalPool * eff / totalEff)) }));
 }
 
 function handleRaceBet(user, picksStr, mp) {
@@ -6485,11 +6486,10 @@ function handleRaceBet(user, picksStr, mp) {
   if (!type) return;
   if (type !== 'tan' && n < 2) return;
   if (type === 'san' && n < 3) return;
-  if (raceState.bets[user.ipid]) { showBubble(user, '❌ すでに賭け済みです', {}); return; }
   if ((user.mp??0) < mp) { showBubble(user, '💸 MPが足りない！', {}); return; }
   user.mp -= mp;
   updateStatsDisplay(user);
-  raceState.bets[user.ipid] = { type, picks, mp };
+  raceState.bets.push({ ipid: user.ipid, name: user.name || '名無し', type, picks, mp });
   raceState.pool += mp;
   const label = type === 'tan' ? '単勝' : type === 'umatan' ? '馬単' : '3連単';
   showBubble(user, `🎫 ${label} ${picksStr} に${mp}MP！`, {});
@@ -6499,8 +6499,8 @@ function handleRaceBet(user, picksStr, mp) {
 function cancelRace() {
   if (!raceState) return;
   if (raceState._betTimerId) clearInterval(raceState._betTimerId);
-  Object.entries(raceState.bets).forEach(([ipid, bet]) => {
-    const u = users[ipid]; if (u) { u.mp = (u.mp??0)+bet.mp; updateStatsDisplay(u); }
+  raceState.bets.forEach(bet => {
+    const u = users[bet.ipid]; if (u) { u.mp = (u.mp??0)+bet.mp; updateStatsDisplay(u); }
   });
   document.getElementById('racePanel')?.remove();
   raceState = null;
@@ -6530,7 +6530,7 @@ function renderRacePanel() {
 
   if (phase === 'betting') {
     const mpByNo = {};
-    Object.values(bets).forEach(b => { mpByNo[b.picks[0]] = (mpByNo[b.picks[0]]||0) + b.mp; });
+    bets.forEach(b => { mpByNo[b.picks[0]] = (mpByNo[b.picks[0]]||0) + b.mp; });
     const totalBet = Object.values(mpByNo).reduce((s,v)=>s+v, 0);
     const rows = horses.map(h => {
       const amt = mpByNo[h.no]||0;
@@ -6544,6 +6544,10 @@ function renderRacePanel() {
         <span class="race-horse-odds">${amt}MP (${odds})</span>
       </div>`;
     }).join('');
+    const betTypeLabel = { tan:'単勝', umatan:'馬単', san:'3連単' };
+    const betRows = bets.slice(-12).reverse().map(b =>
+      `<div class="race-bet-item">🎫 <b>${escapeHtml(b.name)}</b> ${betTypeLabel[b.type]} ${b.picks.join('-')}番 ${b.mp}MP</div>`
+    ).join('');
     panel.innerHTML = `
       <div class="race-header">
         <span class="race-title">🏇 競馬レース</span>
@@ -6551,6 +6555,7 @@ function renderRacePanel() {
         <span class="race-timer${betRemaining<=10?' race-timer-urgent':''}">${betRemaining}s</span>
       </div>
       ${rows}
+      ${bets.length > 0 ? `<div class="race-bet-list">${betRows}</div>` : ''}
       <div class="race-hint">単勝「馬券 2 10」　馬単「馬券 1-2 10」　3連単「馬券 2-1-3 10」</div>`;
 
   } else if (phase === 'racing') {

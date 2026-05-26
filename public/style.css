@@ -2851,6 +2851,20 @@ body.compact-mode .title-tag         { display: none !important; }
   72%  { opacity: 1; transform: translate(-50%, -100%) scale(1); }
   100% { opacity: 0; transform: translate(-50%, calc(-100% - 8px)) scale(0.95); }
 }
+.race-bet-list {
+  margin: 6px 0 2px;
+  max-height: 120px;
+  overflow-y: auto;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 5px;
+}
+.race-bet-item {
+  font-size: 11px;
+  color: #cbd5e1;
+  padding: 2px 4px;
+  line-height: 1.5;
+}
+.race-bet-item b { color: #fbbf24; }
 .race-pace {
   font-size: 10px;
   font-weight: 700;
