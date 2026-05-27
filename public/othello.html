@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>オセロ — kukuCome</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f1923;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', 'Hiragino Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      letter-spacing: 6px;
+      color: #6fcf97;
+      margin-bottom: 28px;
+      font-weight: 300;
+    }
+
+    /* ── Screens ─────────────────────────────────────── */
+    .screen { display: none; flex-direction: column; align-items: center; gap: 14px; }
+    .screen.active { display: flex; }
+
+    /* ── Lobby ───────────────────────────────────────── */
+    .lobby-card {
+      background: #1a2a3a;
+      border-radius: 16px;
+      padding: 28px 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 280px;
+    }
+    .lobby-label {
+      font-size: 0.75rem;
+      color: #6fcf97;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .btn {
+      padding: 12px 20px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      font-family: inherit;
+    }
+    .btn:hover  { opacity: 0.85; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn-create { background: #27ae60; color: #fff; }
+    .btn-join   { background: #1a4a2e; color: #6fcf97; border: 1px solid #27ae60; }
+    .btn-ai     { background: #1b2e4a; color: #90caf9; border: 1px solid #1565c0; }
+    .btn-danger { background: #7b2d2d; color: #fff; }
+    .btn-neutral { background: #2a3a4a; color: #aaa; }
+
+    .join-row { display: flex; gap: 8px; }
+    .input-code {
+      flex: 1;
+      padding: 10px 12px;
+      font-size: 1.1rem;
+      font-family: monospace;
+      background: #0f1923;
+      border: 1px solid #27ae60;
+      border-radius: 8px;
+      color: #6fcf97;
+      letter-spacing: 3px;
+      text-align: center;
+      text-transform: uppercase;
+    }
+    .input-code::placeholder { letter-spacing: 0; text-transform: none; color: #444; }
+    .input-code:focus { outline: none; border-color: #6fcf97; }
+
+    /* ── Waiting ─────────────────────────────────────── */
+    .room-code-box {
+      background: #1a2a3a;
+      border-radius: 12px;
+      padding: 20px 40px;
+      font-size: 3rem;
+      font-family: monospace;
+      font-weight: bold;
+      letter-spacing: 10px;
+      color: #6fcf97;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .room-code-box:hover { opacity: 0.8; }
+    .waiting-hint { font-size: 0.85rem; color: #557; }
+
+    /* ── Game ────────────────────────────────────────── */
+    .game-layout { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+
+    .score-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 500px;
+      padding: 0 8px;
+    }
+    .score-side {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .score-side .disc {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+    }
+    .disc-b { background: radial-gradient(circle at 35% 35%, #555, #111); box-shadow: 1px 1px 4px #000; }
+    .disc-w { background: radial-gradient(circle at 35% 35%, #fff, #ccc); box-shadow: 1px 1px 4px #000; }
+    .score-num { min-width: 36px; text-align: center; }
+
+    .turn-pill {
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      background: #1a2a3a;
+      color: #aaa;
+      transition: background 0.2s, color 0.2s;
+    }
+    .turn-pill.my-turn { background: #27ae60; color: #fff; font-weight: bold; }
+
+    /* ── Board ───────────────────────────────────────── */
+    #board {
+      display: grid;
+      grid-template-columns: repeat(8, var(--cell));
+      grid-template-rows:    repeat(8, var(--cell));
+      --cell: 58px;
+      gap: 2px;
+      background: #1a5c2a;
+      padding: 8px;
+      border-radius: 10px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+    }
+    @media (max-width: 520px) {
+      #board { --cell: calc((100vw - 64px) / 8); }
+    }
+
+    .cell {
+      width: var(--cell);
+      height: var(--cell);
+      background: #2d8a42;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      cursor: default;
+      transition: background 0.1s;
+    }
+    .cell.valid { cursor: pointer; }
+    .cell.valid:hover { background: #3aa354; }
+    .cell.valid::after {
+      content: '';
+      width: calc(var(--cell) * 0.3);
+      height: calc(var(--cell) * 0.3);
+      border-radius: 50%;
+      background: rgba(255,255,255,0.22);
+      pointer-events: none;
+    }
+    .cell.last-move { background: #2f9e48; }
+
+    .piece {
+      width: calc(var(--cell) * 0.82);
+      height: calc(var(--cell) * 0.82);
+      border-radius: 50%;
+      position: absolute;
+      transition: transform 0.15s;
+    }
+    .piece.black { background: radial-gradient(circle at 35% 35%, #666, #111); box-shadow: 2px 3px 6px rgba(0,0,0,0.7); }
+    .piece.white { background: radial-gradient(circle at 35% 35%, #fff,  #ccc); box-shadow: 2px 3px 6px rgba(0,0,0,0.4); }
+
+    @keyframes flipPiece {
+      0%   { transform: scaleX(1); }
+      50%  { transform: scaleX(0.05); }
+      100% { transform: scaleX(1); }
+    }
+    .piece.flipping { animation: flipPiece 0.22s ease-in-out; }
+
+    @keyframes placeNew {
+      0%   { transform: scale(0.2); opacity: 0.4; }
+      70%  { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    .piece.placing { animation: placeNew 0.18s ease-out; }
+
+    /* ── Game controls ───────────────────────────────── */
+    .game-controls { display: flex; gap: 10px; }
+
+    /* ── Error / info ────────────────────────────────── */
+    .info-msg {
+      font-size: 0.85rem;
+      color: #f0a040;
+      min-height: 20px;
+      text-align: center;
+    }
+    .err-msg { color: #e05050; }
+
+    /* ── Overlay ─────────────────────────────────────── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+    .overlay.show { display: flex; }
+    .overlay-box {
+      background: #1a2a3a;
+      border-radius: 20px;
+      padding: 40px 56px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 16px 64px rgba(0,0,0,0.8);
+    }
+    .overlay-title { font-size: 1.8rem; font-weight: bold; color: #6fcf97; }
+    .overlay-sub   { font-size: 1rem; color: #aaa; }
+
+    /* ── Back link ───────────────────────────────────── */
+    .back-link {
+      position: fixed;
+      top: 14px;
+      left: 16px;
+      color: #556;
+      font-size: 0.85rem;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: #aaa; }
+
+    .divider { color: #334; font-size: 0.8rem; text-align: center; }
+  </style>
+</head>
+<body>
+
+<a href="/" class="back-link">← kukuCome</a>
+<h1>OTHELLO</h1>
+
+<!-- ── Lobby ──────────────────────────────────────────────── -->
+<div id="screen-lobby" class="screen active">
+  <div class="lobby-card">
+    <span class="lobby-label">オンライン対戦</span>
+    <button class="btn btn-create" onclick="createRoom()">ルームを作成</button>
+    <div class="join-row">
+      <input id="roomInput" class="input-code" placeholder="XXXXXX" maxlength="6"
+             oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+      <button class="btn btn-join" onclick="joinRoom()">参加</button>
+    </div>
+    <div class="divider">— または —</div>
+    <span class="lobby-label">ローカル</span>
+    <button class="btn btn-ai" onclick="startAI()">AI と対戦</button>
+    <button class="btn btn-neutral" style="font-size:0.9rem" onclick="startLocal()">2人でプレイ（同じ画面）</button>
+    <div id="lobby-err" class="info-msg err-msg"></div>
+  </div>
+</div>
+
+<!-- ── Waiting ────────────────────────────────────────────── -->
+<div id="screen-waiting" class="screen">
+  <p style="color:#557;font-size:0.9rem">ルームコードを相手に伝えてください</p>
+  <div class="room-code-box" id="displayRoomId" onclick="copyRoomId()" title="クリックでコピー">------</div>
+  <p class="waiting-hint">接続待機中...</p>
+  <button class="btn btn-neutral" onclick="cancelRoom()">キャンセル</button>
+</div>
+
+<!-- ── Game ───────────────────────────────────────────────── -->
+<div id="screen-game" class="screen">
+  <div class="game-layout">
+    <div class="score-bar">
+      <div class="score-side">
+        <div class="disc disc-b"></div>
+        <div class="score-num" id="score-black">2</div>
+      </div>
+      <div id="turn-pill" class="turn-pill">● の番</div>
+      <div class="score-side" style="flex-direction:row-reverse">
+        <div class="disc disc-w"></div>
+        <div class="score-num" id="score-white">2</div>
+      </div>
+    </div>
+    <div id="board"></div>
+    <div class="game-controls">
+      <button class="btn btn-danger" onclick="resign()">投了</button>
+      <button class="btn btn-neutral" onclick="backToLobby()">ロビー</button>
+    </div>
+    <div id="game-info" class="info-msg"></div>
+  </div>
+</div>
+
+<!-- ── Result overlay ─────────────────────────────────────── -->
+<div id="overlay" class="overlay">
+  <div class="overlay-box">
+    <div class="overlay-title" id="overlay-title"></div>
+    <div class="overlay-sub"   id="overlay-sub"></div>
+    <button class="btn btn-create" onclick="backToLobby()">ロビーへ戻る</button>
+  </div>
+</div>
+
+<script>
+// ═══ Board Logic ═══════════════════════════════════════════════════
+
+function initBoard() {
+  const b = Array(64).fill(null);
+  b[27] = 'white'; b[28] = 'black';
+  b[35] = 'black'; b[36] = 'white';
+  return b;
+}
+
+function getFlips(b, idx, color) {
+  const opp = color === 'black' ? 'white' : 'black';
+  const row = idx >> 3, col = idx & 7;
+  const dirs = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+  const flips = [];
+  for (const [dr, dc] of dirs) {
+    const line = [];
+    let r = row + dr, c = col + dc;
+    while (r >= 0 && r < 8 && c >= 0 && c < 8) {
+      const i = r * 8 + c;
+      if (b[i] === opp)   { line.push(i); r += dr; c += dc; }
+      else if (b[i] === color) { flips.push(...line); break; }
+      else break;
+    }
+  }
+  return flips;
+}
+
+function applyMove(b, idx, color) {
+  if (b[idx] !== null) return null;
+  const flips = getFlips(b, idx, color);
+  if (!flips.length) return null;
+  const nb = [...b];
+  nb[idx] = color;
+  flips.forEach(i => nb[i] = color);
+  return { board: nb, flips };
+}
+
+function validMoves(b, color) {
+  return b.reduce((acc, cell, i) => {
+    if (cell === null && getFlips(b, i, color).length) acc.push(i);
+    return acc;
+  }, []);
+}
+
+function count(b) {
+  return { black: b.filter(c => c === 'black').length, white: b.filter(c => c === 'white').length };
+}
+
+// ═══ AI (weighted greedy) ══════════════════════════════════════════
+
+const WEIGHTS = [
+  120,-20, 20,  5,  5, 20,-20,120,
+  -20,-40, -5, -5, -5, -5,-40,-20,
+   20, -5, 15,  3,  3, 15, -5, 20,
+    5, -5,  3,  3,  3,  3, -5,  5,
+    5, -5,  3,  3,  3,  3, -5,  5,
+   20, -5, 15,  3,  3, 15, -5, 20,
+  -20,-40, -5, -5, -5, -5,-40,-20,
+  120,-20, 20,  5,  5, 20,-20,120,
+];
+
+function aiMove(b, color) {
+  const moves = validMoves(b, color);
+  if (!moves.length) return null;
+  let best = moves[0], bestScore = -Infinity;
+  for (const m of moves) {
+    const flips = getFlips(b, m, color);
+    const score = WEIGHTS[m] + flips.reduce((s, i) => s + WEIGHTS[i], 0);
+    if (score > bestScore) { bestScore = score; best = m; }
+  }
+  return best;
+}
+
+// ═══ State ═════════════════════════════════════════════════════════
+
+let ws         = null;
+let board      = null;
+let myColor    = null;   // 'black' | 'white' | null (local)
+let turn       = null;
+let gameMode   = null;   // 'online' | 'ai' | 'local'
+let lastMove   = -1;
+let aiLock     = false;
+
+// ═══ UI helpers ════════════════════════════════════════════════════
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showOverlay(title, sub) {
+  document.getElementById('overlay-title').textContent = title;
+  document.getElementById('overlay-sub').textContent   = sub;
+  document.getElementById('overlay').classList.add('show');
+}
+
+function hideOverlay() {
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function setInfo(msg, isErr = false) {
+  const el = document.getElementById('game-info');
+  el.textContent = msg;
+  el.className   = 'info-msg' + (isErr ? ' err-msg' : '');
+}
+
+function renderBoard(highlights = []) {
+  const { black, white } = count(board);
+  document.getElementById('score-black').textContent = black;
+  document.getElementById('score-white').textContent = white;
+
+  const isMyTurn = gameMode === 'online' ? turn === myColor
+                 : gameMode === 'ai'     ? turn === 'black'
+                 : true;
+  const pill = document.getElementById('turn-pill');
+  pill.textContent = turn === 'black' ? '● の番' : '○ の番';
+  pill.className = 'turn-pill' + (isMyTurn && turn !== null ? ' my-turn' : '');
+
+  const el = document.getElementById('board');
+  el.innerHTML = '';
+  for (let i = 0; i < 64; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    if (i === lastMove) cell.classList.add('last-move');
+
+    if (board[i]) {
+      const piece = document.createElement('div');
+      piece.className = `piece ${board[i]}`;
+      cell.appendChild(piece);
+    } else if (highlights.includes(i)) {
+      cell.classList.add('valid');
+      cell.addEventListener('click', () => handleClick(i));
+    }
+    el.appendChild(cell);
+  }
+}
+
+function animateMoveOn(placedIdx, flips, color) {
+  const el = document.getElementById('board');
+  const placed = el.children[placedIdx]?.querySelector('.piece');
+  if (placed) { placed.classList.add('placing'); }
+  flips.forEach(i => {
+    const piece = el.children[i]?.querySelector('.piece');
+    if (piece) { piece.classList.add('flipping'); }
+  });
+}
+
+// ═══ Online multiplayer ════════════════════════════════════════════
+
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const sock = new WebSocket(`${proto}://${location.host}/ws/game`);
+  sock.onmessage = e => handleServerMsg(JSON.parse(e.data));
+  sock.onerror   = () => setLobbyErr('接続エラー');
+  return sock;
+}
+
+function createRoom() {
+  clearLobbyErr();
+  ws = connectWS();
+  ws.onopen = () => ws.send(JSON.stringify({ type: 'create' }));
+}
+
+function joinRoom() {
+  const rid = document.getElementById('roomInput').value.trim().toUpperCase();
+  if (!rid) { setLobbyErr('ルームコードを入力してください'); return; }
+  clearLobbyErr();
+  ws = connectWS();
+  ws.onopen = () => ws.send(JSON.stringify({ type: 'join', roomId: rid }));
+}
+
+function cancelRoom() {
+  ws?.close(); ws = null;
+  showScreen('screen-lobby');
+}
+
+function copyRoomId() {
+  const id = document.getElementById('displayRoomId').textContent;
+  navigator.clipboard?.writeText(id);
+  const el = document.getElementById('displayRoomId');
+  el.textContent = 'COPIED!';
+  setTimeout(() => el.textContent = id, 1200);
+}
+
+function handleServerMsg(msg) {
+  if (msg.type === 'created') {
+    myColor = 'black';
+    gameMode = 'online';
+    document.getElementById('displayRoomId').textContent = msg.roomId;
+    showScreen('screen-waiting');
+  }
+  else if (msg.type === 'start') {
+    myColor  = msg.color;
+    gameMode = 'online';
+    board    = msg.board;
+    turn     = msg.turn;
+    lastMove = -1;
+    showScreen('screen-game');
+    renderBoard(turn === myColor ? validMoves(board, myColor) : []);
+    setInfo(myColor === 'black' ? 'あなたは ● 黒' : 'あなたは ○ 白');
+  }
+  else if (msg.type === 'update') {
+    const prev = board;
+    board    = msg.board;
+    turn     = msg.turn;
+    lastMove = msg.lastMove ?? -1;
+    const hi = (turn === myColor && turn !== null) ? validMoves(board, myColor) : [];
+    renderBoard(hi);
+    if (msg.lastMove >= 0) animateMoveOn(msg.lastMove, msg.flips ?? [], msg.movedColor);
+    if (msg.passed) setInfo(`${msg.passedColor === 'black' ? '●' : '○'} はパス`);
+    else            setInfo('');
+  }
+  else if (msg.type === 'gameover') {
+    board    = msg.board;
+    lastMove = -1;
+    renderBoard([]);
+    const title = msg.resigned
+      ? `${msg.winner === 'black' ? '●' : '○'} の勝ち（投了）`
+      : msg.winner === 'draw' ? '引き分け'
+      : `${msg.winner === 'black' ? '●' : '○'} の勝ち`;
+    showOverlay(title, `● ${msg.blacks}  —  ${msg.whites} ○`);
+  }
+  else if (msg.type === 'opponent_left') {
+    showOverlay('相手が退出しました', '');
+  }
+  else if (msg.type === 'error') {
+    setLobbyErr(msg.msg);
+    ws?.close(); ws = null;
+  }
+}
+
+function setLobbyErr(msg)  { document.getElementById('lobby-err').textContent = msg; }
+function clearLobbyErr()   { document.getElementById('lobby-err').textContent = '';  }
+
+// ═══ Click handler ═════════════════════════════════════════════════
+
+function handleClick(idx) {
+  if (gameMode === 'online') {
+    if (turn !== myColor) return;
+    ws?.send(JSON.stringify({ type: 'move', index: idx }));
+  }
+  else {
+    // AI or local — validate client-side
+    if (aiLock) return;
+    const result = applyMove(board, idx, turn);
+    if (!result) return;
+    const moved = turn;
+    const prev  = board;
+    board        = result.board;
+    lastMove     = idx;
+    advanceTurn(moved, result.flips, idx);
+  }
+}
+
+// ═══ Local / AI turn logic ═════════════════════════════════════════
+
+function advanceTurn(justMoved, flips = [], placedIdx = -1) {
+  const opp  = justMoved === 'black' ? 'white' : 'black';
+  const oppV = validMoves(board, opp);
+  const myV  = validMoves(board, justMoved);
+
+  if (!oppV.length && !myV.length) {
+    // game over
+    const { black, white } = count(board);
+    renderBoard([]);
+    animateMoveOn(placedIdx, flips, justMoved);
+    const title = black > white ? '● の勝ち' : white > black ? '○ の勝ち' : '引き分け';
+    setTimeout(() => showOverlay(title, `● ${black}  —  ${white} ○`), 400);
+    return;
+  }
+
+  let passed = false;
+  if (oppV.length) {
+    turn = opp;
+  } else {
+    turn   = justMoved;
+    passed = true;
+    setInfo(`${opp === 'black' ? '●' : '○'} はパス`);
+    setTimeout(() => setInfo(''), 2000);
+  }
+
+  const hi = gameMode === 'ai' && turn === 'black' ? validMoves(board, 'black')
+           : gameMode === 'local'                  ? validMoves(board, turn)
+           : [];
+  renderBoard(hi);
+  animateMoveOn(placedIdx, flips, justMoved);
+
+  if (gameMode === 'ai' && turn === 'white') {
+    aiLock = true;
+    setTimeout(() => {
+      const move   = aiMove(board, 'white');
+      if (move !== null) {
+        const res  = applyMove(board, move, 'white');
+        if (res) {
+          board    = res.board;
+          lastMove = move;
+          aiLock   = false;
+          advanceTurn('white', res.flips, move);
+          return;
+        }
+      }
+      aiLock = false;
+      advanceTurn('white', [], -1);
+    }, 550);
+  }
+}
+
+// ═══ Resign / start ════════════════════════════════════════════════
+
+function resign() {
+  if (!confirm('本当に投了しますか？')) return;
+  if (gameMode === 'online' && ws) {
+    ws.send(JSON.stringify({ type: 'resign' }));
+  } else {
+    const winner = turn === 'black' ? '○' : '●';
+    const { black, white } = count(board);
+    showOverlay(`${winner} の勝ち（投了）`, `● ${black}  —  ${white} ○`);
+  }
+}
+
+function startAI() {
+  myColor  = 'black';
+  gameMode = 'ai';
+  board    = initBoard();
+  turn     = 'black';
+  lastMove = -1;
+  aiLock   = false;
+  showScreen('screen-game');
+  renderBoard(validMoves(board, 'black'));
+  setInfo('あなたは ● 黒');
+}
+
+function startLocal() {
+  myColor  = null;
+  gameMode = 'local';
+  board    = initBoard();
+  turn     = 'black';
+  lastMove = -1;
+  showScreen('screen-game');
+  renderBoard(validMoves(board, 'black'));
+  setInfo('');
+}
+
+function backToLobby() {
+  hideOverlay();
+  ws?.close(); ws = null;
+  board = myColor = turn = gameMode = null;
+  aiLock = false;
+  showScreen('screen-lobby');
+}
+</script>
+</body>
+</html>

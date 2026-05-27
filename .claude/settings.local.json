@@ -9,7 +9,10 @@
       "Bash(git -C \"E:\\\\claude\\\\kukuCome\" diff HEAD -- public/index.html)",
       "Bash(git -C \"E:\\\\claude\\\\kukuCome\" diff HEAD -- public/style.css)",
       "Bash(git -C \"E:\\\\claude\\\\kukuCome\" diff HEAD -- public/help.html)",
-      "Bash(git -C \"E:\\\\claude\\\\kukuCome\" diff HEAD -- public/app.js)"
+      "Bash(git -C \"E:\\\\claude\\\\kukuCome\" diff HEAD -- public/app.js)",
+      "Bash(ls \"E:\\\\claude\\\\kukuNove\\\\kukuNove\" 2>&1)",
+      "Read(//e/claude/kukuNove/kukuNove/**)",
+      "Bash(node --check \"E:\\\\claude\\\\kukuCome\\\\public\\\\app.js\")"
     ]
   }
 }
