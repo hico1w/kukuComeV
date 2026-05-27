@@ -1262,8 +1262,8 @@ let debugMode  = false;          // デバッグモード（全キャラATK=50�
 let compactMode  = false;        // コンパクトモード
 let fiveMinMode  = false;        // 5分モード（AI自動返答）
 let equipHidden        = false;   // 装備アイコン非表示
-let gatherMarginLeft   = 50;      // 下集合左余白(px)
-let gatherMarginRight  = 50;      // 下集合右余白(px)
+let gatherMarginLeft   = parseInt(localStorage.getItem('gatherMarginLeft')  || '50');
+let gatherMarginRight  = parseInt(localStorage.getItem('gatherMarginRight') || '50');
 let brAutoEnabled = true;        // 自動バトルロイヤル有効フラグ
 let bombHidden   = false;        // 爆弾ボタン非表示
 let trashHidden  = false;        // ゴミ箱非表示
@@ -4030,29 +4030,6 @@ document.getElementById('moveAreaSelect').addEventListener('change', e => {
     bossSlider.dispatchEvent(new Event('input'));
   });
 
-  // 下集合余白スライダー
-  const gml = document.getElementById('gatherMarginLeftSlider');
-  const gmr = document.getElementById('gatherMarginRightSlider');
-  if (gml && gmr) {
-    gatherMarginLeft  = parseInt(localStorage.getItem('gatherMarginLeft')  || '50');
-    gatherMarginRight = parseInt(localStorage.getItem('gatherMarginRight') || '50');
-    gml.value = gatherMarginLeft;
-    gmr.value = gatherMarginRight;
-    document.getElementById('gatherMarginLeftVal').textContent  = gatherMarginLeft  + 'px';
-    document.getElementById('gatherMarginRightVal').textContent = gatherMarginRight + 'px';
-    gml.addEventListener('input', () => {
-      gatherMarginLeft = parseInt(gml.value);
-      document.getElementById('gatherMarginLeftVal').textContent = gatherMarginLeft + 'px';
-      localStorage.setItem('gatherMarginLeft', gatherMarginLeft);
-      saveSettingsToServer();
-    });
-    gmr.addEventListener('input', () => {
-      gatherMarginRight = parseInt(gmr.value);
-      document.getElementById('gatherMarginRightVal').textContent = gatherMarginRight + 'px';
-      localStorage.setItem('gatherMarginRight', gatherMarginRight);
-      saveSettingsToServer();
-    });
-  }
 })();
 
 // ── AFK表示スライダー（透明度・グレースケール・明るさ） ──────────
@@ -6714,6 +6691,15 @@ function handleAdminMessage(d, replyFn) {
   } else if (d.type === 'slider' && d.id) {
     const el = document.getElementById(d.id);
     if (el) { el.value = d.value; el.dispatchEvent(new Event('input')); }
+    if (d.id === 'gatherMarginLeftSlider') {
+      gatherMarginLeft = parseInt(d.value) || 0;
+      localStorage.setItem('gatherMarginLeft', gatherMarginLeft);
+      saveSettingsToServer();
+    } else if (d.id === 'gatherMarginRightSlider') {
+      gatherMarginRight = parseInt(d.value) || 0;
+      localStorage.setItem('gatherMarginRight', gatherMarginRight);
+      saveSettingsToServer();
+    }
   } else if (d.type === 'select' && d.id) {
     const el = document.getElementById(d.id);
     if (el) { el.value = d.value; el.dispatchEvent(new Event('change')); }
@@ -6749,6 +6735,8 @@ function handleAdminMessage(d, replyFn) {
     state.charExcludeIds        = localStorage.getItem('charExcludeIds') || '';
     state.taimanDefeatCommand   = taimanDefeatCommand;
     state.taimanCharScale       = taimanCharScale;
+    state.gatherMarginLeft      = gatherMarginLeft;
+    state.gatherMarginRight     = gatherMarginRight;
     state.slotMpJackpot = SLOT_OUTCOMES[0].mp;
     state.slotMpDiamond = SLOT_OUTCOMES[1].mp;
     state.slotMpStar    = SLOT_OUTCOMES[2].mp;
