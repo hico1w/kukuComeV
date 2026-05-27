@@ -51,21 +51,33 @@ const MOVE_DURATION = { '速い': 1800, '普通':  4400, '遅い':  9000, '止�
 const SIZE_MAP      = { '大': 120, '中': 80, '小': 48 };
 const TEXT_SIZE_MAP = { '極大': '32px', '大': '20px', '中': '13px', '小': '10px', '極小': '8px' };
 
-// フォントエイリアス（スペースを含むフォント名の短縮形）
+// フォントエイリアス（スペースを含むフォント名の短縮形 + 日本語ショートカット）
 const FONT_MAP = {
   'デフォルト': '', 'リセット': '',
-  // 日本語ゴシック
+  // ── 日本語短縮エイリアス ──
+  'ゴシック':        '"MS Gothic"',
+  'Pゴシック':       '"MS PGothic"',
+  '明朝':            '"MS Mincho"',
+  'P明朝':           '"MS PMincho"',
+  'メイリオ':        'Meiryo',
+  '游ゴシック':      '"Yu Gothic"',
+  '游明朝':          '"Yu Mincho"',
+  '教科書体':        '"UD Digi Kyokasho N"',
+  'ノトサンズ':      '"Noto Sans JP"',
+  'ノトセリフ':      '"Noto Serif JP"',
+  'デラゴシック':    '"Dela Gothic One"',
+  // ── 日本語ゴシック ──
   'MSゴシック':      '"MS Gothic"',
   'MSPゴシック':     '"MS PGothic"',
   'MSUIゴシック':    '"MS UI Gothic"',
   'BIZUDゴシック':   '"BIZ UDGothic"',
   'BIZUDPゴシック':  '"BIZ UDPGothic"',
-  // 日本語明朝
+  // ── 日本語明朝 ──
   'MS明朝':         '"MS Mincho"',
   'MSP明朝':        '"MS PMincho"',
   'BIZUDMincho':    '"BIZ UDMincho Medium"',
   'BIZUDPMincho':   '"BIZ UDPMincho Medium"',
-  // 游フォント
+  // ── 游フォント ──
   'YuGothic':       '"Yu Gothic"',
   'YuGothicLight':  '"Yu Gothic Light"',
   'YuGothicMedium': '"Yu Gothic Medium"',
@@ -73,18 +85,56 @@ const FONT_MAP = {
   'YuMincho':       '"Yu Mincho"',
   'YuMinchoLight':  '"Yu Mincho Light"',
   'YuMinchoDemi':   '"Yu Mincho Demibold"',
-  // UD教科書体
+  // ── UD教科書体 ──
   'UDデジタルN':    '"UD Digi Kyokasho N"',
   'UDデジタルNK':   '"UD Digi Kyokasho NK"',
   'UDデジタルNP':   '"UD Digi Kyokasho NP"',
-  // Noto
-  'NotoSansJP':     '"Noto Sans JP"',
-  'NotoSansJPBlack':'"Noto Sans JP Black"',
-  'NotoSerifJP':    '"Noto Serif JP"',
-  // その他日本語
+  // ── Noto ──
+  'NotoSansJP':      '"Noto Sans JP"',
+  'NotoSansJPBlack': '"Noto Sans JP Black"',
+  'NotoSansJPLight': '"Noto Sans JP Light"',
+  'NotoSerifJP':     '"Noto Serif JP"',
+  'NotoSerifJPBlack':'"Noto Serif JP Black"',
+  // ── その他日本語 ──
   'DelaGothicOne':  '"Dela Gothic One"',
+  'MeiriyoUI':      '"Meiryo UI"',
   'MeirioUI':       '"Meiryo UI"',
-  // 英語フォント
+  // ── フリーフォント（日本語） ──
+  '851POP':          '"851MkPOP"',
+  'くるんデコ':      '"27_kurundeco"',
+  'おまつり':        'omatsuri',
+  'かずき':          'KazukiReiwa',
+  'かずきライト':    '"KazukiReiwa Light"',
+  'KazukiReiwaLight':'"KazukiReiwa Light"',
+  '鉄瓶ゴシック':   '"07TetsubinGothic"',
+  'ホラー明朝':      '"07ReallyScaryMinchotai"',
+  'みつばち':        'mitubachi',
+  '源界明朝':        'Genkaimincho',
+  '蒼空明朝':        'SoukouMincho',
+  'またたき明朝':    'MatatakinoMincho',
+  '書楽宴':          '"ShokakiUtage-FreeVer."',
+  'すし器':          'sushiki',
+  'すし器かな':      'sushiki_kana_UB',
+  'MOBO':            '"MOBO-ExtraLight"',
+  'コトノル':        '"Kotonoru Muryou-Shiyou Kw-N Black"',
+  'SmartFont':       '"SmartFont UI"',
+  '美しい明朝':      '"02UtsukushiMincho"',
+  // 黒薔薇ゴシック
+  '黒薔薇':         '"kurobara gothic bold"',
+  '黒薔薇ブラック': '"kurobara gothic black"',
+  '黒薔薇ヘビー':   '"kurobara gothic heavy"',
+  '黒薔薇シン':     '"kurobara gothic thin"',
+  'KurobaraBlack':  '"kurobara gothic black"',
+  'KurobaraBold':   '"kurobara gothic bold"',
+  'KurobaraHeavy':  '"kurobara gothic heavy"',
+  'KurobaraThin':   '"kurobara gothic thin"',
+  // fontopo
+  'fontopoBOKU':    '"fontopoBOKU"',
+  'fontopoKEISEN':  '"fontopoKEISEN"',
+  'fontopoSOLID':   '"fontopoSOLID"',
+  'ORIENTAL':       '"FontopoORIENTAL"',
+  'NIKUKYU':        '"FontopoNIKUKYU"',
+  // ── 英語フォント ──
   'ArialBlack':     '"Arial Black"',
   'CascadiaCode':   '"Cascadia Code"',
   'CascadiaMono':   '"Cascadia Mono"',
@@ -3332,8 +3382,15 @@ function handleComment(comment) {
   const sizeM = display.match(/大きさ[：:]([\S]+)/);
   if (sizeM) { const sz = SIZE_MAP[sizeM[1]]; if (sz) { user.size = sz; ensureCharOnStage(user); applyAvatarStyle(user); } display = display.replace(sizeM[0], '').trim(); }
 
-  const fontM = display.match(/フォント[：:]([\S]+)/);
-  if (fontM) { const key = fontM[1]; user.font = Object.prototype.hasOwnProperty.call(FONT_MAP, key) ? FONT_MAP[key] : key; display = display.replace(fontM[0], '').trim(); }
+  // フォント："Font Name" or フォント：エイリアス
+  const fontM = display.match(/フォント[：:](?:"([^"]+)"|(\S+))/);
+  if (fontM) {
+    const raw = fontM[1] || fontM[2]; // quoted or unquoted
+    user.font = Object.prototype.hasOwnProperty.call(FONT_MAP, raw)
+      ? FONT_MAP[raw]
+      : (fontM[1] ? `"${raw}"` : raw); // quoted → wrap in quotes, unquoted → use as-is
+    display = display.replace(fontM[0], '').trim();
+  }
 
   if (/歩く|歩きゅ/.test(display)) {
     ensureCharOnStage(user);
