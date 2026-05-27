@@ -598,6 +598,8 @@ function createCharacter(user) {
   });
 
   if (compactMode) gatherCharactersBottom();
+
+  setTimeout(() => gatherCharactersBottom(), 500);
 }
 
 function applyAvatarStyle(user) {
@@ -2895,7 +2897,7 @@ function handleComment(comment) {
         showBubble(user, 'タイマン中です', {});
         return;
       }
-      const TAIMAN_COOLDOWN = 2 * 60 * 1000;
+      const TAIMAN_COOLDOWN = 5 * 60 * 1000;
       const elapsed = Date.now() - (user.lastTaimanAt ?? 0);
       if (elapsed < TAIMAN_COOLDOWN) {
         const remaining = Math.ceil((TAIMAN_COOLDOWN - elapsed) / 1000);

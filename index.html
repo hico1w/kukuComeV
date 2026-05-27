@@ -236,6 +236,7 @@
     <a class="sidebar-link" href="#sec-ui">🖱 UIボタン</a>
     <a class="sidebar-link" href="#sec-titles">⭐ 称号一覧</a>
     <a class="sidebar-link" href="#sec-examples">💡 組み合わせ例</a>
+    <a class="sidebar-link" href="#sec-cmdref">📋 コマンド一覧</a>
   </nav>
 
   <div class="page-header">
@@ -1063,6 +1064,104 @@
       <b>キャラN / エイリアス / ペットガチャ / ステータス確認 / ボス召喚 は単独コマンド</b>（他コマンドと同時使用不可）。<br>
       設定（色・吹き出し・移動・フォントなど）は <b>ipid ごとに記憶</b>されます。
     </div>
+  </div>
+
+  <!-- ── コマンド一覧 ── -->
+  <div class="section" id="sec-cmdref">
+    <div class="section-title">📋 コマンド一覧</div>
+
+    <div class="hint-box" style="margin-bottom:16px">
+      コマンドはコメントに打ち込むと実行されます。<b>★単独</b> はそのコマンドだけで使用（他コマンドと同時不可）。それ以外はインラインで他コマンドやテキストと組み合わせ可。
+    </div>
+
+    <!-- キャラ操作 -->
+    <div class="section-subtitle" style="font-size:13px;font-weight:700;color:var(--accent);margin:12px 0 6px">🐱 キャラ操作</div>
+    <div class="cmd-grid">
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">キャラN</span></div><div class="cmd-desc">キャラをN番に変更（N=1〜500）。他コマンドと併用可。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">エイリアス名</span></div><div class="cmd-desc">★単独。管理パネルで設定した名前でキャラを呼び出す。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">名前:テキスト</span></div><div class="cmd-desc">表示名を変更（最大20文字）。同名が使われていると拒否。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">大きさ:大／中／小</span></div><div class="cmd-desc">キャラサイズを変更（大=120px・中=80px・小=48px）。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">反転</span></div><div class="cmd-desc">キャラ画像を左右反転（トグル）。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">ランダムキャラ</span></div><div class="cmd-desc">キャラ画像をランダムに変更。自分だけに適用。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code red">ごしありｗ</span></div><div class="cmd-desc">自分のキャラを削除＋セーブデータも消去。</div></div>
+    </div>
+
+    <!-- 移動 -->
+    <div class="section-subtitle" style="font-size:13px;font-weight:700;color:var(--accent);margin:12px 0 6px">🚶 移動</div>
+    <div class="cmd-grid">
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">移動:速い／普通／遅い／止まれ</span></div><div class="cmd-desc">自動移動速度を変更（止まれで停止）。設定は記憶される。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">上:N／下:N／左:N／右:N</span></div><div class="cmd-desc">指定方向へNpx（最大2000）移動。複数同時指定で順番に実行。</div></div>
+    </div>
+
+    <!-- モーション -->
+    <div class="section-subtitle" style="font-size:13px;font-weight:700;color:var(--accent);margin:12px 0 6px">🎭 モーション</div>
+    <div class="cmd-grid">
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code green">歩く</span><span class="cmd-code green" style="margin-left:4px">歩きゅ</span></div><div class="cmd-desc">左右を行き来する歩行モーションを開始。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code green">はずむ</span><span class="cmd-code green" style="margin-left:4px">hikonori</span></div><div class="cmd-desc">上下にバウンスするモーション。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code green">回転</span></div><div class="cmd-desc">くるくる回転するモーション。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code green">震える</span></div><div class="cmd-desc">細かく震えるモーション。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code green">ぐにゃぐにゃ</span></div><div class="cmd-desc">波のようにぐにゃぐにゃ揺れるモーション。</div></div>
+    </div>
+
+    <!-- 吹き出しスタイル -->
+    <div class="section-subtitle" style="font-size:13px;font-weight:700;color:var(--accent);margin:12px 0 6px">💬 吹き出しスタイル（記憶される）</div>
+    <div class="cmd-grid">
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code purple">吹き出し:丸／四角／雲／棘／ハート／思考／叫び</span></div><div class="cmd-desc">吹き出しの形を変更。設定は記憶される。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code purple">飾り:光る／虹／点線／なし</span></div><div class="cmd-desc">吹き出しに装飾を付ける（なし で解除）。設定は記憶される。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code purple">色:赤／青／緑／黄／紫 など</span></div><div class="cmd-desc">吹き出し内テキストの色を変更。設定は記憶される。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code purple">フォント:フォント名</span></div><div class="cmd-desc">吹き出しのフォントを変更。設定は記憶される。</div></div>
+    </div>
+
+    <!-- コメントスタイル（1回限り） -->
+    <div class="section-subtitle" style="font-size:13px;font-weight:700;color:var(--accent);margin:12px 0 6px">✏️ コメントスタイル（そのコメントのみ）</div>
+    <div class="cmd-grid">
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">文字サイズ:極大／大／中／小／極小</span></div><div class="cmd-desc">そのコメントの文字サイズを変更（記憶されない）。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">太字</span></div><div class="cmd-desc">そのコメントを太字で表示（記憶されない）。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">斜体</span></div><div class="cmd-desc">そのコメントを斜体で表示（記憶されない）。</div></div>
+    </div>
+
+    <!-- エフェクト -->
+    <div class="section-subtitle" style="font-size:13px;font-weight:700;color:var(--accent);margin:12px 0 6px">🎆 エフェクト</div>
+    <div class="cmd-grid">
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code orange">花火</span></div><div class="cmd-desc">キャラ周辺で花火エフェクトを発動。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code orange">紙吹雪</span></div><div class="cmd-desc">カラフルな紙吹雪をステージに降らせる。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code orange">流れ星</span></div><div class="cmd-desc">流れ星エフェクトを発動。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code orange">ハートシャワー</span></div><div class="cmd-desc">ハートをシャワーのように降らせる。</div></div>
+    </div>
+
+    <!-- ゲーム -->
+    <div class="section-subtitle" style="font-size:13px;font-weight:700;color:var(--accent);margin:12px 0 6px">🎮 ゲーム・バトル</div>
+    <div class="cmd-grid">
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code purple">ペットガチャ</span></div><div class="cmd-desc">★単独。MP20消費でペットガチャ。20回目でスロット2枠目解放。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">スロット</span></div><div class="cmd-desc">★単独。MP3消費でスロット1回。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">スロット開始</span></div><div class="cmd-desc">★単独。MP3消費で自動連続スロット開始。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">スロット停止</span></div><div class="cmd-desc">★単独。自動スロットを停止。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code red">タイマン:名前</span></div><div class="cmd-desc">★単独。指定した名前のキャラに1v1決闘を申し込む（クールダウン5分）。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code red">ボス召喚</span><span style="color:var(--muted);font-size:11px;margin-left:6px">/ ボス召喚:HP数値</span></div><div class="cmd-desc">★単独。ボスを召喚。HP数値で強さ指定可。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">開ける</span></div><div class="cmd-desc">★単独。宝箱が出現中に開けて中身を取得。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">ステータス確認</span></div><div class="cmd-desc">★単独。HP/MP/ATK/EXP・装備・ペット・称号を5秒間表示。</div></div>
+    </div>
+
+    <!-- 競馬 -->
+    <div class="section-subtitle" style="font-size:13px;font-weight:700;color:var(--accent);margin:12px 0 6px">🐴 競馬</div>
+    <div class="cmd-grid">
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">馬券 N N</span></div><div class="cmd-desc">ベット期間中に「馬券 馬番 賭けMP」でベット（例: 馬券 3 10）。複勝は「馬券 2-5 10」。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">（レース中にN番を含む）</span></div><div class="cmd-desc">レース中にコメントに馬番の数字が含まれると応援になり、その馬がわずかに加速。</div></div>
+    </div>
+
+    <!-- 特殊 -->
+    <div class="section-subtitle" style="font-size:13px;font-weight:700;color:var(--accent);margin:12px 0 6px">⚡ 特殊</div>
+    <div class="cmd-grid">
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">AFK</span><span class="cmd-code pink" style="margin-left:4px">ＡＦＫ</span></div><div class="cmd-desc">AFK（離席）状態を表示。次のコメントで自動解除。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">放置:テキスト</span><span class="cmd-code pink" style="margin-left:4px">無明:テキスト</span></div><div class="cmd-desc">カスタムテキストでAFK状態表示。次コメントで解除。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">射</span></div><div class="cmd-desc">コメントの文字を1文字ずつ物理的に発射。当たったキャラにダメージ。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">出ろ／出して／生成</span></div><div class="cmd-desc">★単独。MP20消費でAI画像生成。テキスト部分がプロンプトになる。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">tts:テキスト</span></div><div class="cmd-desc">★単独。テキストを音声合成（TTS）で読み上げ。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">ai:質問</span><span class="cmd-code pink" style="margin-left:4px">AI:質問</span></div><div class="cmd-desc">★単独。AIに質問してコメントで返答。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">ノベル起動</span></div><div class="cmd-desc">★単独。ノベルモードを起動。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">YouTubeのURL</span></div><div class="cmd-desc">自動。YouTube動画URLを含むコメントでMP+20（同じURLは1回限り）。</div></div>
+    </div>
+
   </div>
 
   <script>
