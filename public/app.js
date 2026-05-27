@@ -2229,13 +2229,20 @@ function endTaiman(winner, loser) {
     loser._taimanDefeated = true;
 
     // 1分間キャラ変更なければランダムキャラ
-    const _loserIpid      = loser.ipid;
-    const _defeatCharImage = loser.charImage;
-    setTimeout(() => {
+    // 同一ユーザーの前回タイマーをキャンセル（連敗時の重複防止）
+    if (loser._taimanDefeatTimer) clearTimeout(loser._taimanDefeatTimer);
+    const _loserIpid       = loser.ipid;
+    const _defeatToken     = loser._taimanDefeatToken = Date.now() + Math.random();
+    loser._taimanDefeatImg = loser.charImage; // キャプチャ時点の charImage を保存
+    loser._taimanDefeatTimer = setTimeout(() => {
       const u = users[_loserIpid];
       if (!u || !u.el) return;
-      if (u.charImage !== _defeatCharImage) return; // すでに変更済み
+      if (u._taimanDefeatToken !== _defeatToken) return; // 後続の敗北で上書き済み
+      if (u.charImage !== u._taimanDefeatImg) return;    // ユーザーが自分で変更済み
       if (availableImages.length === 0) return;
+      delete u._taimanDefeatToken;
+      delete u._taimanDefeatImg;
+      delete u._taimanDefeatTimer;
       u.charImage = availableImages[Math.floor(Math.random() * availableImages.length)];
       applyAvatarStyle(u);
       addToLog(u, `[タイマン敗北1分経過 → ランダムキャラ]`, '#f87171');
@@ -2446,7 +2453,7 @@ function spawnBoss(maxHp) {
     : '🐉';
 
   const bossSize = Math.round(200 * bossSizeScale);
-  const barWidth = Math.min(bossSize, Math.round(stage.clientWidth * 0.6));
+  const barWidth = Math.round(bossSize * 0.6);
 
   const el = document.createElement('div');
   el.id = 'bossEl';
@@ -2855,7 +2862,7 @@ function defeatBoss() {
       updateStatsDisplay(u);
 
       const { x, y } = getCharCenter(u);
-      if (value >= 9) { spawnFireworks(x, y); spawnHeartShower(x, y); showMythDrop(); }
+      if (value >= 9) { spawnFireworks(x, y); spawnHeartShower(x, y); showMythDrop(u); }
       else if (value >= 7) spawnFireworks(x, y);
       else if (value >= 5) spawnHeartShower(x, y);
     }, 1200 + idx * 200);
@@ -2885,33 +2892,40 @@ function defeatBoss() {
 // ──────────────────────────────────────────────────────────────────
 // レベルアップバナー
 // ──────────────────────────────────────────────────────────────────
-function showMythDrop() {
-  const prev = document.getElementById('mythDropOverlay');
+function showMythDrop(user) {
+  if (!user?.el) return;
+  const prev = user.el.querySelector('.myth-drop-panel');
   if (prev) prev.remove();
-  const ov = document.createElement('div');
-  ov.id = 'mythDropOverlay';
-  ov.innerHTML = '<div id="mythDropRays"></div><div id="mythDropText">⚡ 神話ドロップ！！ ⚡<br>✨MYTHIC✨</div>';
-  document.body.appendChild(ov);
 
-  // 星エフェクトを画面全体にばらまく
+  const panel = document.createElement('div');
+  panel.className = 'myth-drop-panel';
+  panel.innerHTML = `
+    <div class="mdp-title">⚡ 神話ドロップ！！ ⚡</div>
+    <div class="mdp-text mdp-reveal">✨ MYTHIC ✨</div>
+  `;
+  user.el.appendChild(panel);
+
+  // 星エフェクトをキャラ周辺に集中
+  const rect = user.el.getBoundingClientRect();
+  const cx = rect.left + rect.width  / 2;
+  const cy = rect.top  + rect.height / 2;
   const stars = ['⭐','🌟','✨','💫','🔥','👑','💎','🎆'];
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 24; i++) {
     setTimeout(() => {
       const s = document.createElement('div');
       s.className = 'myth-star';
       s.textContent = stars[Math.floor(Math.random() * stars.length)];
-      s.style.left = (Math.random() * 100) + 'vw';
-      s.style.top  = (20 + Math.random() * 70) + 'vh';
+      s.style.left = (cx + (Math.random() - 0.5) * 260) + 'px';
+      s.style.top  = (cy + (Math.random() - 0.5) * 160) + 'px';
       s.style.animationDelay    = (Math.random() * 0.4) + 's';
       s.style.animationDuration = (0.8 + Math.random() * 0.8) + 's';
       document.body.appendChild(s);
       s.addEventListener('animationend', () => s.remove(), { once: true });
-    }, i * 60);
+    }, i * 70);
   }
 
   playLocalSound(SOUND_MYTH_DROP);
-
-  setTimeout(() => ov.remove(), 3600);
+  setTimeout(() => panel.remove(), 3800);
 }
 
 function showLevelUpBanner() {
@@ -3233,6 +3247,7 @@ function handleComment(comment) {
 
   // ── ノベル起動コマンド ────────────────────────
   if (message.trim() === 'ノベル起動') {
+    if (user.ipid !== 'master') return;
     ensureCharOnStage(user); showBubble(user, message, {});
     openNovelModal();
     return;
@@ -3393,6 +3408,7 @@ function handleComment(comment) {
       } else {
         user.charDef = getCharDef(id);
         delete user.charImage;
+        delete user._taimanDefeatImg; // 自発変更としてタイマー判定をリセット
         if (!user.el) createCharacter(user);
         else applyAvatarStyle(user);
         updateNameDisplay(user);
@@ -3490,6 +3506,7 @@ function handleComment(comment) {
   if (/ランダムキャラ/.test(display)) {
     if (availableImages.length > 0) {
       user.charImage = availableImages[Math.floor(Math.random() * availableImages.length)];
+      delete user._taimanDefeatImg; // 自発変更としてタイマー判定をリセット
       applyAvatarStyle(user);
       addToLog(user, `[ランダムキャラ → ${user.charImage}]`, '#64748b');
     }
@@ -4914,8 +4931,8 @@ document.addEventListener('mousemove', e => {
     const sr = stage.getBoundingClientRect();
     const bw = bossState.el.offsetWidth  || 190;
     const bh = bossState.el.offsetHeight || 180;
-    const x = Math.max(0, Math.min(sr.width  - bw, ox + (e.clientX - sx)));
-    const y = Math.max(0, Math.min(sr.height - bh, oy + (e.clientY - sy)));
+    const x = ox + (e.clientX - sx);
+    const y = oy + (e.clientY - sy);
     bossState.el.style.left = x + 'px';
     bossState.el.style.top  = y + 'px';
     return;

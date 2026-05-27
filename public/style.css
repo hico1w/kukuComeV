@@ -1674,62 +1674,9 @@ body {
 .stage-shock { animation: stageShock 0.35s ease; }
 
 /* 神話ドロップ演出 */
-@keyframes mythDropBg {
-  0%,100% { background: radial-gradient(ellipse at center, rgba(255,215,0,0.18) 0%, rgba(0,0,0,0.92) 70%); }
-  50%      { background: radial-gradient(ellipse at center, rgba(255,100,255,0.22) 0%, rgba(0,0,0,0.92) 70%); }
-}
-@keyframes mythDropText {
-  0%   { transform: translate(-50%,-50%) scale(0.2) rotate(-15deg); opacity: 0; filter: blur(12px); }
-  20%  { transform: translate(-50%,-50%) scale(1.18) rotate(3deg);  opacity: 1; filter: blur(0); }
-  35%  { transform: translate(-50%,-50%) scale(0.95) rotate(-1deg); }
-  50%  { transform: translate(-50%,-50%) scale(1.05) rotate(0deg);  }
-  80%  { transform: translate(-50%,-50%) scale(1)    rotate(0deg);  opacity: 1; }
-  100% { transform: translate(-50%,-50%) scale(1.1)  rotate(0deg);  opacity: 0; }
-}
-@keyframes mythRay {
-  0%   { transform: translate(-50%,-50%) rotate(0deg)   scale(0); opacity: 0; }
-  15%  { opacity: 0.7; scale: 1; }
-  100% { transform: translate(-50%,-50%) rotate(360deg) scale(1.5); opacity: 0; }
-}
 @keyframes mythStarFloat {
   0%   { transform: translateY(0)   scale(1);   opacity: 1; }
   100% { transform: translateY(-120px) scale(0); opacity: 0; }
-}
-#mythDropOverlay {
-  position: fixed; inset: 0; z-index: 999;
-  display: flex; align-items: center; justify-content: center;
-  pointer-events: none;
-  animation: mythDropBg 0.6s ease infinite;
-}
-#mythDropRays {
-  position: absolute; top: 50%; left: 50%;
-  width: 200vmax; height: 200vmax;
-  background: conic-gradient(
-    rgba(255,215,0,0.15) 0deg, transparent 20deg,
-    rgba(255,100,255,0.12) 40deg, transparent 60deg,
-    rgba(255,215,0,0.15) 80deg, transparent 100deg,
-    rgba(100,200,255,0.12) 120deg, transparent 140deg,
-    rgba(255,215,0,0.15) 160deg, transparent 180deg,
-    rgba(255,100,255,0.12) 200deg, transparent 220deg,
-    rgba(255,215,0,0.15) 240deg, transparent 260deg,
-    rgba(100,200,255,0.12) 280deg, transparent 300deg,
-    rgba(255,215,0,0.15) 320deg, transparent 340deg,
-    rgba(255,100,255,0.12) 360deg
-  );
-  animation: mythRay 3s linear infinite;
-}
-#mythDropText {
-  position: absolute; top: 50%; left: 50%;
-  transform: translate(-50%,-50%);
-  font-size: clamp(48px, 10vw, 100px);
-  font-weight: 900;
-  text-align: center;
-  line-height: 1.1;
-  background: linear-gradient(135deg, #fff 0%, gold 30%, #ff6fff 60%, gold 80%, #fff 100%);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 30px gold) drop-shadow(0 0 60px #ff6fff);
-  animation: mythDropText 3.5s cubic-bezier(0.22,1,0.36,1) forwards;
-  white-space: nowrap;
 }
 .myth-star {
   position: fixed;
@@ -1738,6 +1685,51 @@ body {
   z-index: 1000;
   animation: mythStarFloat 1.2s ease-out forwards;
 }
+/* ── 神話ドロップパネル（キャラごと） ── */
+@keyframes mdpReveal {
+  0%   { transform: scale(0.3) rotate(-12deg); opacity: 0; filter: blur(6px); }
+  55%  { transform: scale(1.12) rotate(2deg);  opacity: 1; filter: blur(0); }
+  75%  { transform: scale(0.96); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes mdpFadeOut {
+  0%   { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-10px) scale(0.95); }
+}
+.myth-drop-panel {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 6, 0, 0.96);
+  border: 2px solid #f59e0b;
+  border-radius: 10px;
+  padding: 7px 14px 9px;
+  text-align: center;
+  pointer-events: none;
+  z-index: 60;
+  min-width: 130px;
+  box-shadow: 0 0 18px rgba(245,158,11,0.55), 0 0 40px rgba(255,100,255,0.2), 0 4px 16px rgba(0,0,0,0.7);
+  white-space: nowrap;
+  animation: mdpFadeOut 0.5s ease 3.2s forwards;
+}
+.mdp-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fbbf24;
+  letter-spacing: 0.05em;
+  margin-bottom: 5px;
+}
+.mdp-text {
+  font-size: 17px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #fff 0%, gold 30%, #ff6fff 60%, gold 80%, #fff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 8px gold) drop-shadow(0 0 16px #ff6fff);
+  line-height: 1.2;
+}
+.mdp-reveal { animation: mdpReveal 0.55s cubic-bezier(0.34,1.56,0.64,1) forwards; }
 
 /* レベルアップバナー */
 @keyframes lvupBanner {
