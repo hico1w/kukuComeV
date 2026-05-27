@@ -123,23 +123,41 @@ app.get('/api/sounds/drag', (req, res) => {
   }
 });
 
-// charImages 永続化（キャラスロット割り当て）
-const CHAR_IMAGES_FILE = path.join(__dirname, 'data', 'charImages.json');
-app.get('/api/char-images', (req, res) => {
-  try {
-    const data = fs.existsSync(CHAR_IMAGES_FILE)
-      ? JSON.parse(fs.readFileSync(CHAR_IMAGES_FILE, 'utf8'))
-      : {};
-    res.json(data);
-  } catch { res.json({}); }
+// ── 汎用JSONファイル永続化ヘルパー ───────────────────────────────────
+function makeDataEndpoints(route, file) {
+  app.get(route, (req, res) => {
+    try { res.json(fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : {}); }
+    catch { res.json({}); }
+  });
+  app.post(route, (req, res) => {
+    try {
+      const dir = path.dirname(file);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(file, JSON.stringify(req.body || {}));
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+}
+
+const DATA = p => path.join(__dirname, 'data', p);
+makeDataEndpoints('/api/char-images',  DATA('charImages.json'));
+makeDataEndpoints('/api/char-aliases', DATA('charAliases.json'));
+makeDataEndpoints('/api/settings',     DATA('settings.json'));
+makeDataEndpoints('/api/char-save',    DATA('charSave.json'));
+
+// キャラセーブ削除
+app.delete('/api/char-save', (req, res) => {
+  try { fs.writeFileSync(DATA('charSave.json'), '{}'); res.json({ ok: true }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
 });
-app.post('/api/char-images', (req, res) => {
+app.delete('/api/char-save/:ipid', (req, res) => {
   try {
-    const dir = path.join(__dirname, 'data');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(CHAR_IMAGES_FILE, JSON.stringify(req.body || {}));
+    const file = DATA('charSave.json');
+    const data = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : {};
+    delete data[req.params.ipid];
+    fs.writeFileSync(file, JSON.stringify(data));
     res.json({ ok: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // chara フォルダの画像一覧

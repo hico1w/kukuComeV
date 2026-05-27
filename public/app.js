@@ -155,6 +155,7 @@ function applyBgImage(url) {
 bgColorInput.addEventListener('input', () => {
   applyBgColor(bgColorInput.value);
   localStorage.setItem('bgColor', bgColorInput.value);
+  saveSettingsToServer();
 });
 
 bgImageBtn.addEventListener('click', () => bgImageInput.click());
@@ -198,6 +199,50 @@ bgClearBtn.addEventListener('click', async () => {
   document.getElementById('apikey').value = k;
   document.getElementById('hash').value   = h;
 })();
+
+// ── サーバー側永続化ヘルパー ─────────────────────────────────────────
+function _loadServerSync(url) {
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url, false); // 同期（localhost専用）
+    xhr.send();
+    if (xhr.status === 200) return JSON.parse(xhr.responseText);
+  } catch {}
+  return {};
+}
+function _saveServer(url, data) {
+  fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).catch(() => {});
+}
+
+// 管理パネル設定をサーバーから取得してlocalStorageに先行反映
+(function preloadServerSettings() {
+  const s = _loadServerSync('/api/settings');
+  Object.entries(s).forEach(([k, v]) => { if (v != null) localStorage.setItem(k, v); });
+})();
+
+let _charSaveData = _loadServerSync('/api/char-save');
+
+const SETTINGS_KEYS = [
+  'charSizeScale','bossSizeScale','moveArea','bossHpScale','bossAtkCoeff','bossCounterRate',
+  'brHpMult','nikoFontSize','nikoOpacity','hayaoshiFreq','hayaoshiSpeed',
+  'slotProbs','slotSoundEnabled','seVolume','voiceVolume',
+  'aiModel','aiSystem','wordleDisplayRows','wordleCellSize','charFontSizes',
+  'bgColor','bgImageUrl','taimanDefeatCommand','taimanCharScale',
+  'slotMpJackpot','slotMpDiamond','slotMpStar','slotMpBell','slotMpCherry',
+  'rankingPanelX','rankingPanelY','mpRankingPanelX','mpRankingPanelY',
+  'wordlePanelX','wordlePanelY','quizPanelX','quizPanelY',
+  'brTimerPanelX','brTimerPanelY','trashX','trashY',
+  'bossX','bossY',
+];
+let _settingsSaveTimer = null;
+function saveSettingsToServer() {
+  clearTimeout(_settingsSaveTimer);
+  _settingsSaveTimer = setTimeout(() => {
+    const data = {};
+    SETTINGS_KEYS.forEach(k => { const v = localStorage.getItem(k); if (v !== null) data[k] = v; });
+    _saveServer('/api/settings', data);
+  }, 2000);
+}
 
 let users     = {};
 let lastCnum  = null;
@@ -335,27 +380,13 @@ function stopRaceFanfare() {
 
 let charImages   = loadCharImages();
 let charAliases  = loadCharAliases();
-// 起動時にlocalStorageの割り当てをサーバーへ同期
-fetch('/api/char-images', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(charImages) }).catch(() => {});
 let slotPage     = 0;
 const SLOT_SIZE  = 20;
 
-function loadCharImages() {
-  try { return JSON.parse(localStorage.getItem('charImages') || '{}'); }
-  catch { return {}; }
-}
-function saveCharImages() {
-  localStorage.setItem('charImages', JSON.stringify(charImages));
-  fetch('/api/char-images', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(charImages) }).catch(() => {});
-}
-
-function loadCharAliases() {
-  try { return JSON.parse(localStorage.getItem('charAliases') || '{}'); }
-  catch { return {}; }
-}
-function saveCharAliases() {
-  localStorage.setItem('charAliases', JSON.stringify(charAliases));
-}
+function loadCharImages()  { return _loadServerSync('/api/char-images');  }
+function saveCharImages()  { _saveServer('/api/char-images', charImages);  }
+function loadCharAliases() { return _loadServerSync('/api/char-aliases'); }
+function saveCharAliases() { _saveServer('/api/char-aliases', charAliases); }
 function getAliasForId(id) {
   return Object.keys(charAliases).find(k => charAliases[k] === id) || '';
 }
@@ -378,6 +409,14 @@ function pickRandomName(excludeIpid) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+const CHAR_SAVE_FIELDS = [
+  'level','exp','hp','maxHp','mp','equips','pet','pet2',
+  'titles','activeTitle','totalDmgDealt','deaths','wordleWins','hayaoshiWins',
+  'commentCount','tc','sizeScale','flipped','lastTaimanAt','charDef',
+  'name','nameManual',
+  'textColor','bubbleShape','bubbleDeco','font',
+];
+
 function getUser(ipid) {
   if (!users[ipid]) {
     users[ipid] = {
@@ -394,7 +433,7 @@ function getUser(ipid) {
       sizeScale:   1.0,
       font:        '',
       x: randX({ size: 80 }),
-      y: randY({ size: 80 }),
+      y: Math.max(0, stage.clientHeight - Math.round(80 * 1.5 * charSizeScale + 58) - 10),
       el:          null,
       exp:            0,
       level:          1,
@@ -437,9 +476,10 @@ function getUser(ipid) {
         lowHpSurvive:  0,
         longComment:   0,
       },
-      lastCommentAt: Date.now(),
-      dormant:       false,
     };
+    // セーブデータがあれば上書き復元
+    const saved = _charSaveData[ipid];
+    if (saved) CHAR_SAVE_FIELDS.forEach(k => { if (saved[k] !== undefined) users[ipid][k] = saved[k]; });
   }
   return users[ipid];
 }
@@ -473,46 +513,8 @@ function getUsedCharIds(excludeUser) {
   return used;
 }
 
-function sleepChar(user) {
-  if (!user.el || user.dormant) return;
-  user.dormant = true;
-  if (user.moveTimer)  { clearTimeout(user.moveTimer);  user.moveTimer  = null; }
-  if (user.walkTimer)  { clearTimeout(user.walkTimer);  user.walkTimer  = null; }
-  user.el.style.transition = 'opacity 1s ease';
-  user.el.style.opacity    = '0';
-  setTimeout(() => { if (user.dormant && user.el) user.el.style.display = 'none'; }, 1000);
-}
-
-function wakeUpChar(user) {
-  if (!user.dormant) return;
-  user.dormant = false;
-  if (user.el) {
-    user.el.style.display    = '';
-    requestAnimationFrame(() => {
-      if (!user.el) return;
-      user.el.style.transition = 'opacity 0.5s ease';
-      user.el.style.opacity    = '';
-      setTimeout(() => { if (user.el) user.el.style.transition = ''; }, 500);
-    });
-    scheduleMove(user);
-  } else {
-    createCharacter(user);
-  }
-}
-
-// 10分間コメントなしのキャラを非表示にするインターバル
-setInterval(() => {
-  const threshold = Date.now() - 10 * 60 * 1000;
-  Object.values(users).forEach(user => {
-    if (user.el && !user.dormant && (user.lastCommentAt ?? 0) < threshold) {
-      sleepChar(user);
-    }
-  });
-}, 60 * 1000);
-
 function ensureCharOnStage(user) {
   if (user.el) {
-    if (user.dormant) wakeUpChar(user);
     return;
   }
   if (!user.charDef) {
@@ -1149,7 +1151,8 @@ let bossCounterRate = 0.40; // 反撃確率（0〜1）
 let bossHpScale    = 1;    // ボスHP倍率（1〜100）
 let bossAtkCoeff   = 20;   // 参加者ATK合計への係数
 let brHpMult       = 200;  // バトルロイヤル仮想HP倍率
-let taimanDefeatCommand = localStorage.getItem('taimanDefeatCommand') || ''; // タイマン敗北時コマンド
+let taimanDefeatCommand = localStorage.getItem('taimanDefeatCommand') || '';
+let taimanCharScale     = parseFloat(localStorage.getItem('taimanCharScale') || '4');
 let nikoFontSize  = 40;  // 早押しコメント文字サイズ(px)
 let nikoOpacity   = 1.0; // 早押しコメント透明度（0〜1）
 function nextBossHp() {
@@ -1199,7 +1202,9 @@ let rankingDragState   = null;
 let mpRankingState     = null;
 let mpRankingDragState = null;
 let bossDragState = null;
-let bossLastPos   = null; // 最後にD&Dした位置
+let bossLastPos   = (localStorage.getItem('bossX') !== null && localStorage.getItem('bossY') !== null)
+  ? { x: parseInt(localStorage.getItem('bossX')), y: parseInt(localStorage.getItem('bossY')) }
+  : null;
 // Lv1〜10 累計攻撃数（合計150）
 const LEVEL_EXP = [0, 3, 10, 22, 40, 65, 90, 115, 133, 150];
 
@@ -1666,7 +1671,7 @@ function startTaiman(challenger, target) {
 
   // 観客を画面の左端・右端に退かす
   const bystanders = Object.values(users).filter(u =>
-    u.el && !u.dormant && u.ipid !== challenger.ipid && u.ipid !== target.ipid
+    u.el && u.ipid !== challenger.ipid && u.ipid !== target.ipid
   );
   const half = Math.ceil(bystanders.length / 2);
   bystanders.forEach((u, i) => {
@@ -1684,16 +1689,16 @@ function startTaiman(challenger, target) {
     setTimeout(() => { if (u.el) u.el.style.transition = ''; }, 800);
   });
 
-  // 戦闘員を4倍に拡大
-  challenger.sizeScale = 4;
-  target.sizeScale = 4;
+  // 戦闘員を拡大
+  challenger.sizeScale = taimanCharScale;
+  target.sizeScale = taimanCharScale;
   applyAvatarStyle(challenger);
   applyAvatarStyle(target);
   renderPetBadge(challenger);
   renderPetBadge(target);
 
   // 左右に配置
-  const charSize = Math.round(challenger.size * 1.5 * charSizeScale * 4);
+  const charSize = Math.round(challenger.size * 1.5 * charSizeScale * taimanCharScale);
   const gap    = 100;
   const leftX  = Math.max(0, Math.round(sw / 2 - charSize - gap / 2));
   const rightX = Math.max(0, Math.min(sw - charSize, Math.round(sw / 2 + gap / 2)));
@@ -2190,10 +2195,7 @@ function spawnBoss(maxHp) {
     ? `<img src="/chara/${encodeURIComponent(bossImg)}" alt="boss">`
     : '🐉';
 
-  // HP に応じてボスサイズを決定（HP 100→120px, HP 2000→420px）
-  const bossSize = Math.round((maxHp > 3000
-    ? Math.round((1 + Math.random() * 3) * 80)
-    : Math.round((80 + Math.min(maxHp - 100, 1900) / 1900 * 200) * 1.5)) * bossSizeScale);
+  const bossSize = Math.round(200 * bossSizeScale);
   const barWidth = Math.min(bossSize, Math.round(stage.clientWidth * 0.6));
 
   const el = document.createElement('div');
@@ -2717,10 +2719,6 @@ function handleComment(comment) {
   const ipid  = comment.ipid || comment.from || 'master';
   const user  = getUser(ipid);
 
-  // アクティブ時刻を更新・休眠中なら復帰
-  user.lastCommentAt = Date.now();
-  if (user.dormant) wakeUpChar(user);
-
   // バトルロイヤル中：脱落済みユーザーは処理スキップ
   if (brState?.active && user.brOut) return;
 
@@ -3191,6 +3189,45 @@ function handleComment(comment) {
     dirMoves.forEach((move, i) => {
       setTimeout(() => { if (user.el) applyDirectionalMove(user, move.dir, move.amt); }, i * 450);
     });
+  }
+
+  if (/ごしありｗ/.test(display)) {
+    const ipid = user.ipid;
+    addToLog(user, '[ごしありｗ → 自キャラ削除]', '#ef4444');
+    if (user.el) {
+      user.el.style.transition = 'transform 0.4s ease-in, opacity 0.4s ease-in';
+      user.el.style.transform  = 'scale(0) rotate(20deg)';
+      user.el.style.opacity    = '0';
+    }
+    setTimeout(() => {
+      if (user.bubbleTimer) clearTimeout(user.bubbleTimer);
+      if (user.motionTimer) clearTimeout(user.motionTimer);
+      if (user.moveTimer)   clearTimeout(user.moveTimer);
+      if (user.walkTimer)   clearTimeout(user.walkTimer);
+      user.el?.remove();
+      delete users[ipid];
+      delete _charSaveData[ipid];
+      fetch(`/api/char-save/${encodeURIComponent(ipid)}`, { method: 'DELETE' }).catch(() => {});
+      if (brState?.active && brState.survivors.has(ipid)) {
+        brState.survivors.delete(ipid);
+        brState.ranking.push(ipid);
+        if (brState.survivors.size <= 1) {
+          const winnerId = [...brState.survivors][0];
+          setTimeout(() => endBattleRoyale(winnerId ? users[winnerId] : null), 800);
+        }
+      }
+    }, 400);
+    return;
+  }
+
+  if (/ランダムキャラ/.test(display)) {
+    if (availableImages.length > 0 && user.charDef) {
+      charImages[user.charDef.id] = availableImages[Math.floor(Math.random() * availableImages.length)];
+      saveCharImages();
+      applyAvatarStyle(user);
+      addToLog(user, `[ランダムキャラ → ${charImages[user.charDef.id]}]`, '#64748b');
+    }
+    display = display.replace(/ランダムキャラ/g, '').trim();
   }
 
   const sizeM = display.match(/大きさ[：:]([\S]+)/);
@@ -3808,6 +3845,7 @@ document.getElementById('stopAllBtn').addEventListener('click', () => {
 document.getElementById('moveAreaSelect').addEventListener('change', e => {
   moveArea = MOVE_AREA_MAP[e.target.value] || MOVE_AREA_MAP['all'];
   localStorage.setItem('moveArea', e.target.value);
+  saveSettingsToServer();
 });
 (function initMoveArea() {
   const saved = localStorage.getItem('moveArea') || 'all';
@@ -3836,12 +3874,14 @@ document.getElementById('moveAreaSelect').addEventListener('change', e => {
     charSizeScale = charSlider.value / 100;
     charVal.textContent = charSlider.value + '%';
     localStorage.setItem('charSizeScale', charSizeScale);
+    saveSettingsToServer();
     Object.values(users).forEach(u => { if (u.el) { applyAvatarStyle(u); renderPetBadge(u); } });
   });
   bossSlider.addEventListener('input', () => {
     bossSizeScale = bossSlider.value / 100;
     bossVal.textContent = bossSlider.value + '%';
     localStorage.setItem('bossSizeScale', bossSizeScale);
+    saveSettingsToServer();
     // ボスが出ている場合はアバターのみリサイズ
     if (bossState?.el) {
       const ba = bossState.el.querySelector('#bossAvatar');
@@ -4339,6 +4379,7 @@ function launchBullets(user, text) {
     bossHpScale = parseFloat(slider.value);
     val.textContent = bossHpScale + 'x';
     localStorage.setItem('bossHpScale', bossHpScale);
+    saveSettingsToServer();
   });
   document.getElementById('bossHpScaleReset').addEventListener('click', () => {
     slider.value = 1;
@@ -4396,6 +4437,7 @@ function launchBullets(user, text) {
     brHpMult = parseInt(slider.value);
     val.textContent = brHpMult + 'x';
     localStorage.setItem('brHpMult', brHpMult);
+    saveSettingsToServer();
   });
   document.getElementById('brHpMultReset').addEventListener('click', () => {
     slider.value = 200;
@@ -4404,6 +4446,23 @@ function launchBullets(user, text) {
 })();
 
 document.getElementById('batchAssign').addEventListener('click', () => {
+  const assigned = new Set(Object.values(charImages));
+  const unassigned = availableImages.filter(f => !assigned.has(f));
+  if (!unassigned.length) { alert('未割当の画像はありません'); return; }
+  const usedIds = new Set(Object.keys(charImages).map(Number));
+  let nextId = 1;
+  unassigned.forEach(fname => {
+    while (usedIds.has(nextId)) nextId++;
+    charImages[nextId] = fname;
+    usedIds.add(nextId);
+    nextId++;
+  });
+  saveCharImages();
+  refreshAllAvatars();
+  renderCharSlots();
+});
+document.getElementById('batchAssignAll').addEventListener('click', () => {
+  if (!confirm('全キャラの画像割り当てをリセットして一括再割り当てしますか？\n既存の割り当てはすべて上書きされます。')) return;
   availableImages.forEach((fname, i) => { charImages[i + 1] = fname; });
   saveCharImages();
   refreshAllAvatars();
@@ -4646,6 +4705,9 @@ document.addEventListener('mouseup', () => {
   if (bossDragState) {
     if (bossState?.el) {
       bossLastPos = { x: parseInt(bossState.el.style.left), y: parseInt(bossState.el.style.top) };
+      localStorage.setItem('bossX', bossLastPos.x);
+      localStorage.setItem('bossY', bossLastPos.y);
+      saveSettingsToServer();
     }
     bossDragState = null;
     return;
@@ -5480,6 +5542,7 @@ function applySlotProbs(probs) {
   SLOT_OUTCOMES[3].pct = probs.bell;
   SLOT_OUTCOMES[4].pct = probs.cherry;
   localStorage.setItem('slotProbs', JSON.stringify(probs));
+  saveSettingsToServer();
   document.querySelectorAll('.slot-miss-rate').forEach(el => {
     const total = probs.cherry + probs.bell + probs.star + probs.diamond + probs.jackpot;
     el.textContent = Math.max(0, 100 - total).toFixed(1) + '%';
@@ -5710,11 +5773,13 @@ document.getElementById('slotAllStopBtn').addEventListener('click', () => {
 document.getElementById('seVolumeSlider')?.addEventListener('input', e => {
   seVolume = parseFloat(e.target.value);
   localStorage.setItem('seVolume', seVolume);
+  saveSettingsToServer();
   document.getElementById('seVolumeVal').textContent = Math.round(seVolume * 100) + '%';
 });
 document.getElementById('voiceVolumeSlider')?.addEventListener('input', e => {
   voiceVolume = parseFloat(e.target.value);
   localStorage.setItem('voiceVolume', voiceVolume);
+  saveSettingsToServer();
   document.getElementById('voiceVolumeVal').textContent = Math.round(voiceVolume * 100) + '%';
 });
 
@@ -6532,6 +6597,7 @@ function handleAdminMessage(d, replyFn) {
     state.sdMosaicBlock    = sdMosaicBlock;
     state.charExcludeIds        = localStorage.getItem('charExcludeIds') || '';
     state.taimanDefeatCommand   = taimanDefeatCommand;
+    state.taimanCharScale       = taimanCharScale;
     state.slotMpJackpot = SLOT_OUTCOMES[0].mp;
     state.slotMpDiamond = SLOT_OUTCOMES[1].mp;
     state.slotMpStar    = SLOT_OUTCOMES[2].mp;
@@ -6688,6 +6754,7 @@ function handleAdminMessage(d, replyFn) {
   } else if (d.type === 'charFontSizes') {
     Object.assign(charFontSizes, d.sizes);
     localStorage.setItem('charFontSizes', JSON.stringify(charFontSizes));
+    saveSettingsToServer();
     applyCharFontSizes();
   } else if (d.type === 'wordleRows') {
     const v = parseInt(d.value);
@@ -6696,9 +6763,16 @@ function handleAdminMessage(d, replyFn) {
       localStorage.setItem('wordleDisplayRows', v);
       renderWordlePanel();
     }
+  } else if (d.type === 'clearCharSave') {
+    _charSaveData = {};
+  } else if (d.type === 'taimanCharScale') {
+    taimanCharScale = parseFloat(d.value) || 4;
+    localStorage.setItem('taimanCharScale', taimanCharScale);
+    saveSettingsToServer();
   } else if (d.type === 'taimanDefeatCmd') {
     taimanDefeatCommand = d.value || '';
     localStorage.setItem('taimanDefeatCommand', taimanDefeatCommand);
+    saveSettingsToServer();
   } else if (d.type === 'charExclude') {
     localStorage.setItem('charExcludeIds', d.value);
     charExcludeIds = new Set((d.value || '').split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0));
@@ -7218,6 +7292,23 @@ function renderRacePanel() {
       </div>`;
   }
 }
+
+// ── サーバー側定期保存 ────────────────────────────────────────────
+setInterval(() => {
+  // キャラセーブ（60秒ごと）
+  const data = {};
+  Object.values(users).forEach(u => {
+    const obj = {};
+    CHAR_SAVE_FIELDS.forEach(k => { if (u[k] !== undefined) obj[k] = u[k]; });
+    data[u.ipid] = obj;
+  });
+  if (Object.keys(data).length) _saveServer('/api/char-save', data);
+}, 60 * 1000);
+
+setInterval(() => {
+  // 管理パネル設定（30秒ごと）
+  saveSettingsToServer();
+}, 30 * 1000);
 
 // ── OBSモード（?obs=1 で設定バーを非表示にして自動スタート） ──
 (function initOBSMode() {

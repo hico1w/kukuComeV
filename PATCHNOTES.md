@@ -2,6 +2,122 @@
 
 ---
 
+## v2.133.0 — 2026-05-27
+
+### 一括割り当てを「未割当のみ」に変更
+- 「🖼 未割当のみ一括割り当て」: 既存の割り当てを維持し、未割当の画像だけを次の空きIDへ追加
+- 「🔄 全リセット&一括割り当て」: 従来通り全IDを上書き（確認ダイアログあり）
+- 画像追加時に既存のキャラコマンド番号がズレなくなった
+
+---
+
+## v2.132.0 — 2026-05-27
+
+### ボス表示位置をD&D後にセーブ
+- ドラッグ終了時に `bossX` / `bossY` を localStorage に保存 → サーバーにも反映
+- 起動時に localStorage から `bossLastPos` を復元し、次回ボス生成時に同じ位置に表示
+- `SETTINGS_KEYS` に `bossX` / `bossY` を追加
+
+---
+
+## v2.131.0 — 2026-05-27
+
+### キャラ生成位置を「下集合」エリアに統一
+- `getUser` の初期 y 座標を `gatherCharactersBottom` と同じ底辺ロジックに変更
+- 新規キャラはステージ下端（`stageH - charH - 10`）に生成されるようになった
+
+---
+
+## v2.130.0 — 2026-05-27
+
+### タイマン時のキャラ倍率を管理パネルから設定可能に
+- `taimanCharScale` 変数を追加（デフォルト4、localStorage/サーバー保存）
+- 管理パネル「タイマン」セクションに「キャラ倍率」スライダー（1〜10x、0.5刻み）追加
+- `startTaiman` の hardcoded `4` を `taimanCharScale` に置き換え
+- `applyState` / `handleAdminMessage` / `getState` に対応追加
+
+---
+
+## v2.129.0 — 2026-05-27
+
+### 「ごしありｗ」コマンド追加
+- コメントに「ごしありｗ」が含まれると自キャラを削除（縮小アニメーション付き）
+- `users[ipid]` と `_charSaveData[ipid]` をメモリから削除
+- `DELETE /api/char-save/:ipid` でサーバーのセーブデータも削除
+- BR中の場合はサバイバーからも除去して終了チェック
+
+---
+
+## v2.128.0 — 2026-05-27
+
+### 「ランダムキャラ」コマンド追加
+- コメントに「ランダムキャラ」が含まれると `availableImages` からランダムに画像を選択して自キャラに適用
+- `charImages[charDef.id]` に保存し `saveCharImages()` でサーバーに永続化
+
+---
+
+## v2.127.0 — 2026-05-27
+
+### 管理パネルにセーブ削除ボタン追加
+- 「💾 セーブ管理」セクションを追加（タイマンセクションの直後）
+- 「🗑 全キャラセーブ削除」ボタン: 確認ダイアログ後に `DELETE /api/char-save` → `data/charSave.json` を `{}` に初期化
+- `server.js`: `DELETE /api/char-save`（全削除）・`DELETE /api/char-save/:ipid`（個別削除）エンドポイント追加
+- `app.js`: `clearCharSave` メッセージ受信時に `_charSaveData` をクリア
+
+---
+
+## v2.126.0 — 2026-05-27
+
+### 吹き出し・フォント・装飾をセーブ対象に追加
+- `CHAR_SAVE_FIELDS` に `textColor`・`bubbleShape`・`bubbleDeco`・`font` を追加
+
+---
+
+## v2.125.0 — 2026-05-27
+
+### キャラ自己設定名をセーブ対象に追加
+- `CHAR_SAVE_FIELDS` に `name` と `nameManual` を追加
+- `nameManual: true` のキャラはリロード後もコメントによる名前上書きをブロック（既存ロジックを活用）
+
+---
+
+## v2.124.0 — 2026-05-27
+
+### サーバー側セーブ機能実装
+- **`server.js`**: `makeDataEndpoints` ヘルパー追加。`/api/char-save`・`/api/settings`・`/api/char-aliases` エンドポイントを追加（`data/charSave.json` / `data/settings.json` / `data/charAliases.json` に保存）
+- **キャラセーブ**: `_charSaveData` グローバル導入。`getUser()` でipid既存データを自動復元。60秒ごとに全キャラを `/api/char-save` へ保存
+- **管理パネル設定**: `saveSettingsToServer()`（2秒デバウンス）追加。起動時にサーバー設定をlocalStorageへ先行反映。30秒ごと+主要スライダー変更時にサーバー保存
+- **charImages/charAliases**: localStorageを廃止しサーバー専用に変更。`loadCharImages`/`loadCharAliases`/`saveCharImages`/`saveCharAliases` をサーバーAPIに統一
+- **保存対象フィールド**: `level`,`exp`,`hp`,`maxHp`,`mp`,`equips`,`pet`,`pet2`,`titles`,`activeTitle`,`totalDmgDealt`,`deaths`,`wordleWins`,`hayaoshiWins`,`commentCount`,`tc`,`sizeScale`,`flipped`,`lastTaimanAt`,`charDef`
+
+---
+
+## v2.123.0 — 2026-05-27
+
+### ボス画像サイズを固定化
+- HP依存のサイズ計算（HP100→120px〜HP2000→420px）を廃止
+- HP3000超のランダムサイズ（80〜320px）を廃止
+- ベースサイズを200pxに固定（管理パネルのボスサイズスライダーは引き続き有効）
+
+---
+
+## v2.122.0 — 2026-05-27
+
+### 10分無コメントによるキャラ非表示処理を撤廃
+- `sleepChar` / `wakeUpChar` 関数を削除
+- 60秒インターバルの非表示チェックを削除
+- `user.dormant` / `user.lastCommentAt` フィールドを削除
+- `ensureCharOnStage` / `handleComment` / タイマン傍観者フィルターの dormant 参照を除去
+
+---
+
+## v2.121.0 — 2026-05-27
+
+### 競馬ベット画面の馬券説明文字サイズ変更
+- `.race-hint` font-size `10px` → `13px`
+
+---
+
 ## v2.120.0 — 2026-05-27
 
 ### ペットガチャ効果説明の文字サイズ変更

@@ -247,12 +247,28 @@
 <!-- タイマン -->
 <div class="section">
   <div class="section-title">⚔️ タイマン</div>
+  <div class="size-row">
+    <span class="size-label">キャラ倍率</span>
+    <input type="range" id="taimanCharScaleSlider" min="1" max="10" step="0.5" value="4" class="size-slider"
+           oninput="syncSlider(this,'taimanCharScaleVal',v=>v+'x'); adminSend({type:'taimanCharScale',value:this.value})">
+    <span class="size-val" id="taimanCharScaleVal">4x</span>
+    <button class="btn-reset" onclick="document.getElementById('taimanCharScaleSlider').value=4; document.getElementById('taimanCharScaleSlider').dispatchEvent(new Event('input'))">↺</button>
+  </div>
   <div class="input-row">
     <span class="input-label">敗北コマンド</span>
     <input type="text" id="taimanDefeatCmdInput" placeholder="例: スロット開始"
            onchange="adminSend({type:'taimanDefeatCmd', value:this.value})">
   </div>
   <div style="font-size:10px;color:#64748b;margin-top:3px">タイマンで負けたキャラが発言するコマンド（空欄で無効）</div>
+</div>
+
+<!-- セーブ管理 -->
+<div class="section">
+  <div class="section-title">💾 セーブ管理</div>
+  <div class="btn-row">
+    <button class="btn-red" onclick="deleteAllSave()">🗑 全キャラセーブ削除</button>
+  </div>
+  <div style="font-size:10px;color:#64748b;margin-top:4px">削除後はページリロードで反映されます</div>
 </div>
 
 <!-- 背景・エリア -->
@@ -836,6 +852,14 @@
   // ── コントロール関数 ─────────────────────────────────────────────
   function cmd(id) { adminSend({ type: 'click', id }); }
 
+  function deleteAllSave() {
+    if (!confirm('全キャラのセーブデータを削除しますか？\nこの操作は取り消せません。')) return;
+    fetch('/api/char-save', { method: 'DELETE' })
+      .then(r => r.json())
+      .then(() => { adminSend({ type: 'clearCharSave' }); alert('セーブデータを削除しました。'); })
+      .catch(() => alert('削除に失敗しました。'));
+  }
+
   function syncSlider(el, valId, fmt) {
     document.getElementById(valId).textContent = fmt(el.value);
     adminSend({ type: 'slider', id: el.id, value: el.value });
@@ -1054,6 +1078,7 @@
     if (s.aiSystem !== undefined) { const el = document.getElementById('aiSystemInput'); if (el) el.value = s.aiSystem; }
     if (s.charExcludeIds !== undefined)      { const el = document.getElementById('charExcludeInput');      if (el) el.value = s.charExcludeIds; }
     if (s.taimanDefeatCommand !== undefined) { const el = document.getElementById('taimanDefeatCmdInput'); if (el) el.value = s.taimanDefeatCommand; }
+    if (s.taimanCharScale !== undefined) { const sl = document.getElementById('taimanCharScaleSlider'); if (sl) { sl.value = s.taimanCharScale; document.getElementById('taimanCharScaleVal').textContent = s.taimanCharScale + 'x'; } }
     ['slotMpJackpot','slotMpDiamond','slotMpStar','slotMpBell','slotMpCherry'].forEach(key => {
       if (s[key] !== undefined) { const el = document.getElementById(key); if (el) el.value = s[key]; }
     });
