@@ -28,11 +28,87 @@ function getCharDef(id) {
 // 定数
 // ──────────────────────────────────────────────────────────────────
 const COLOR_NAMES = {
+  // ── 基本色 (13) ──
   '赤': '#FF4444', '青': '#4499FF', '緑': '#44CC44',
   '黄': '#FFCC00', '紫': '#CC44CC',
   '黒': '#222222', 'ピンク': '#FF88BB', '橙': '#FF8800',
   'オレンジ': '#FF8800', 'シアン': '#00CCCC', 'ライム': '#88FF00',
   '水色': '#87CEEB', '茶': '#A0522D',
+  // ── 白・灰系 (15) ──
+  '白': '#FFFFFF', '灰': '#888888', 'グレー': '#808080',
+  '薄灰': '#D3D3D3', '鼠色': '#696969', 'スレート': '#708090',
+  'チャコール': '#36454F', 'ガンメタル': '#2A3439',
+  '銀': '#C0C0C0', 'シルバー': '#A8A9AD', 'プラチナ': '#E5E4E2',
+  'パール': '#F0EAD6', 'アイボリー': '#FFFFF0',
+  'クリーム': '#FFFDD0', 'オフホワイト': '#FAF9F6',
+  // ── 赤系 (15) ──
+  '深紅': '#C00040', '朱色': '#E34234', '紅': '#CC0033',
+  '真紅': '#8B0000', 'バーガンディ': '#7C0A02', 'スカーレット': '#FF2400',
+  'クリムゾン': '#DC143C', 'マルーン': '#800000', 'ルビー': '#9B111E',
+  'ガーネット': '#733635', 'トマト': '#FF6347', 'ポピー': '#FF4040',
+  'ヒナゲシ': '#FF3B32', 'ヴァーミリオン': '#E44D2E', 'ストロベリー': '#FC5A8D',
+  // ── ピンク系 (16) ──
+  '薄紅': '#FF9EAE', '桃色': '#FFBBCB', '桜色': '#FFB7C5',
+  'ローズ': '#FF007F', 'ホットピンク': '#FF69B4', 'ディープピンク': '#FF1493',
+  'ベビーピンク': '#F4C2C2', 'ラズベリー': '#E30B5C', 'カーネーション': '#FFA6C9',
+  'フラミンゴ': '#FC8EAC', 'ペールピンク': '#FADADD', 'ローズピンク': '#FF66CC',
+  'コットンキャンディ': '#FFBCD9', 'ライトピンク': '#FFB6C1',
+  'ネオンピンク': '#FF6EC7', 'ロータス': '#E8B4B8',
+  // ── オレンジ・コーラル系 (15) ──
+  'コーラル': '#FF7F50', 'サーモン': '#FA8072', '珊瑚': '#FF6B6B',
+  'テラコッタ': '#E2725B', 'レンガ': '#CB4154', 'チェリー': '#DE3163',
+  'クランベリー': '#9C2542', 'バーンオレンジ': '#CC5500', 'ダークオレンジ': '#FF8C00',
+  'ピーチ': '#FFCBA4', 'マンダリン': '#F47B20', 'アプリコット': '#FBCEB1',
+  'ライトオレンジ': '#FFB347', 'ネオンオレンジ': '#FF6700', 'ライトコーラル': '#F08080',
+  // ── 黄色系 (23) ──
+  '山吹': '#FFB300', '向日葵': '#FFC512', 'レモン': '#FFF44F',
+  'バニラ': '#F3E5AB', 'アンバー': '#FFBF00', 'ゴールド': '#FFD700',
+  '金色': '#E6B800', 'カーキ': '#C3B091', 'マスタード': '#FFDB58',
+  'タンジェリン': '#F28500', 'パンプキン': '#FF7518', 'ハニー': '#FEA004',
+  'コーン': '#FBEC5D', 'サフラン': '#F4C430', '菜の花': '#FFD800',
+  'シャンパン': '#F7E7CE', 'バター': '#FFFD74', 'ゴールデン': '#FFC200',
+  'イエロー': '#FFFF00', 'サンシャイン': '#FFD447', 'ミモザ': '#F3DC5C',
+  'ライトイエロー': '#FFFFE0', 'ネオンイエロー': '#DFFF00',
+  // ── 青系 (30) ──
+  '紺': '#003087', '藍': '#1F3A6E', '群青': '#4166F5',
+  '瑠璃色': '#1C4D9B', '蒼': '#27408B', 'ネイビー': '#000080',
+  'ロイヤルブルー': '#4169E1', 'ドジャーブルー': '#1E90FF', 'ターコイズ': '#40E0D0',
+  'ティール': '#008080', 'スカイブルー': '#00BFFF', 'ミッドナイトブルー': '#191970',
+  'スチールブルー': '#4682B4', 'インディゴ': '#4B0082', 'コバルト': '#0047AB',
+  '空色': '#A8D8EA', '紺碧': '#007FFF', 'アクア': '#00FFFF',
+  'ペリウィンクル': '#CCCCFF', 'セルリアン': '#2A52BE', 'アイスブルー': '#99C5C4',
+  'デニム': '#1560BD', 'サファイア': '#0F52BA', 'コーンフラワー': '#6495ED',
+  'パウダーブルー': '#B0E0E6', 'ライトブルー': '#ADD8E6', 'ベビーブルー': '#89CFF0',
+  'ブルーグレー': '#6699CC', 'アクアマリン': '#7FFFD4', 'ネオンブルー': '#4D4DFF',
+  // ── 緑系 (28) ──
+  '黄緑': '#9ACD32', '萌黄': '#AACC44', '若草': '#9DC05D',
+  '深緑': '#006400', '苔色': '#8A9A5B', '抹茶': '#8FBC45',
+  'フォレストグリーン': '#228B22', 'エメラルド': '#50C878', 'ミント': '#98FF98',
+  'オリーブ': '#808000', 'セージ': '#77926F', 'ジェード': '#00A86B',
+  'ハンターグリーン': '#355E3B', '常磐': '#007F5F', 'ネオングリーン': '#39FF14',
+  'ピスタチオ': '#93C572', 'アーミーグリーン': '#4B5320', 'アボカド': '#568203',
+  'スプリンググリーン': '#00FF7F', 'チャートリューズ': '#7FFF00', 'フェルン': '#4F7942',
+  'グラスグリーン': '#67B346', 'グリーンティー': '#D0F0C0', 'シーグリーン': '#2E8B57',
+  'ミリタリーグリーン': '#4A5240', 'ダークグリーン': '#013220',
+  'ライトグリーン': '#90EE90', 'モスグリーン': '#556B2F',
+  // ── 紫系 (21) ──
+  '薄紫': '#D8BFD8', '藤色': '#9B7CB5', '葡萄色': '#6F2DA8',
+  '菫色': '#5C3A7A', 'ラベンダー': '#E6E6FA', 'バイオレット': '#7F00FF',
+  'マゼンタ': '#FF00FF', 'フクシア': '#FF1DCE', 'プラム': '#DDA0DD',
+  'ライラック': '#C8A2C8', 'アメジスト': '#9966CC', 'オーキッド': '#DA70D6',
+  'パープル': '#800080', 'ワイン': '#722F37', 'モーブ': '#E0B0FF',
+  'ダークバイオレット': '#9400D3', 'スレートブルー': '#6A5ACD',
+  'ブルーバイオレット': '#8A2BE2', 'ロイヤルパープル': '#7851A9',
+  'ディープパープル': '#673AB7', 'ナス': '#4B0057',
+  // ── 茶・アース系 (24) ──
+  '栗色': '#954535', '小麦': '#F5DEB3', 'タン': '#D2B48C',
+  'ベージュ': '#F5F5DC', 'チョコ': '#7B3F00', 'コーヒー': '#6F4E37',
+  'セピア': '#704214', 'マホガニー': '#C04000', '朽葉': '#D4955B',
+  '黄土': '#D4A017', 'バフ': '#F0DC82', 'キャメル': '#C19A6B',
+  'チョコレート': '#D2691E', '銅色': '#B87333', 'ブロンズ': '#CD7F32',
+  'クルミ': '#855E42', 'ブラウン': '#A52A2A', 'タウプ': '#483C32',
+  'サンド': '#C2B280', 'ウォームグレー': '#999080', 'バンブー': '#DAC17A',
+  '錆色': '#8E402A', '朱': '#E55B3C', 'ストーングレー': '#928E85',
 };
 const SHAPE_MAP     = { '丸': 'round', '四角': 'square', '雲': 'cloud', '棘': 'spike', 'ハート': 'heart', '思考': 'thought', '叫び': 'shout', '星': 'star-shape', '六角': 'hex', '爆裂': 'burst', '楕円': 'oval', '横長': 'wide' };
 const DECO_MAP      = { '光る': 'glow', 'グロー': 'glow', '虹': 'rainbow', 'レインボー': 'rainbow', '点線': 'dotted', '炎': 'fire', '金': 'gold', '二重': 'double', '点滅': 'blink', '緑': 'glow-green', 'なし': '', 'リセット': '' };
@@ -465,7 +541,7 @@ const CHAR_SAVE_FIELDS = [
   'titles','activeTitle','totalDmgDealt','deaths','wordleWins','hayaoshiWins',
   'commentCount','tc','sizeScale','flipped','lastTaimanAt','charDef',
   'name','nameManual',
-  'textColor','bubbleShape','bubbleDeco','font',
+  'textColor','bubbleShape','bubbleDeco','bubbleBgColor','font',
   'charImage',
 ];
 
@@ -475,9 +551,10 @@ function getUser(ipid) {
       ipid,
       name:        pickRandomName(ipid),
       charDef:     null,
-      textColor:   '#111111',
-      bubbleShape: 'round',
-      bubbleDeco:  '',
+      textColor:     '#111111',
+      bubbleShape:   'round',
+      bubbleDeco:    '',
+      bubbleBgColor: '',
       movement:    '止まれ',
       motion:      null,
       nameManual:  false,
@@ -531,7 +608,13 @@ function getUser(ipid) {
     };
     // セーブデータがあれば上書き復元
     const saved = _charSaveData[ipid];
-    if (saved) CHAR_SAVE_FIELDS.forEach(k => { if (saved[k] !== undefined) users[ipid][k] = saved[k]; });
+    if (saved) {
+      CHAR_SAVE_FIELDS.forEach(k => { if (saved[k] !== undefined) users[ipid][k] = saved[k]; });
+      // 外見データが保存済みならランダム初期化をスキップ
+      if (['textColor','bubbleShape','bubbleDeco','bubbleBgColor','font','charImage'].some(k => saved[k] !== undefined)) {
+        users[ipid].firstAppear = false;
+      }
+    }
   }
   return users[ipid];
 }
@@ -1009,6 +1092,8 @@ function showBubble(user, text, style) {
   b.textContent = '';
   b.style.color = user.textColor;
   b.style.fontFamily = user.font || '';
+  if (user.bubbleBgColor) b.style.setProperty('--bubble-bg', user.bubbleBgColor);
+  else b.style.removeProperty('--bubble-bg');
   b.className   = bubbleClass(user);
   applyCommentStyle(b, style);
   triggerTalk(user, b);
@@ -1027,6 +1112,8 @@ function showImageBubble(user, imgUrl, caption, style) {
   </div>`;
   b.style.color = user.textColor;
   b.style.fontFamily = user.font || '';
+  if (user.bubbleBgColor) b.style.setProperty('--bubble-bg', user.bubbleBgColor);
+  else b.style.removeProperty('--bubble-bg');
   b.className   = bubbleClass(user);
   applyCommentStyle(b, style);
   triggerTalk(user, b);
@@ -1068,6 +1155,8 @@ function showEmotionBubble(user, emotions, message, style) {
   </div>`;
   b.style.color = user.textColor;
   b.style.fontFamily = user.font || '';
+  if (user.bubbleBgColor) b.style.setProperty('--bubble-bg', user.bubbleBgColor);
+  else b.style.removeProperty('--bubble-bg');
   b.className   = bubbleClass(user);
   applyCommentStyle(b, style);
   triggerTalk(user, b);
@@ -3324,6 +3413,18 @@ function handleComment(comment) {
       user.name = newName; user.nameManual = true; updateNameDisplay(user);
     }
     display = display.replace(nameM[0], '').trim();
+  }
+
+  const bgColorM = display.match(/吹き出し背景色[：:]([\S]+)/);
+  if (bgColorM) {
+    const raw = bgColorM[1];
+    if (raw === 'なし' || raw === 'リセット' || raw === 'クリア') {
+      user.bubbleBgColor = '';
+    } else {
+      const c = resolveColor(raw);
+      if (c) user.bubbleBgColor = c;
+    }
+    display = display.replace(bgColorM[0], '').trim();
   }
 
   const colorM = display.match(/色[：:]([\S]+)/);

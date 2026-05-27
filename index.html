@@ -47,6 +47,7 @@
 
     .color-table { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
     .color-row   { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 7px 10px; font-size: 13px; }
+    .color-group-title { grid-column: 1 / -1; font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; padding: 8px 2px 3px; border-bottom: 1px solid var(--border); margin-top: 6px; text-transform: uppercase; }
     .color-swatch { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.15); }
     .color-name  { font-weight: 600; }
     .color-hex   { font-family: monospace; font-size: 11px; color: var(--muted); }
@@ -234,7 +235,7 @@
     <a class="sidebar-link" href="#sec-char">🐱 キャラ設定</a>
     <a class="sidebar-link" href="#sec-bubble">💬 吹き出し形</a>
     <a class="sidebar-link" href="#sec-deco">✨ 吹き出し装飾</a>
-    <a class="sidebar-link" href="#sec-color">🎨 文字色</a>
+    <a class="sidebar-link" href="#sec-color">🎨 文字色 / 吹き出し背景色</a>
     <a class="sidebar-link" href="#sec-settings">⚙️ その他設定</a>
     <a class="sidebar-link" href="#sec-effects">🎆 エフェクト</a>
     <a class="sidebar-link" href="#sec-motion">🎭 モーション</a>
@@ -325,6 +326,26 @@
         <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="ライム" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#88FF00"></span>ライム</span>
         <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="茶" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#A0522D"></span>茶</span>
         <span class="cmdgen-chip cmdgen-color-chip" data-group="color" data-val="黒" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#333;border-color:#555"></span>黒</span>
+      </div>
+    </div>
+
+    <div class="cmdgen-row">
+      <span class="cmdgen-label">🖌 吹き出し<br>背景色</span>
+      <div class="cmdgen-chips">
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="bgColor" data-val="なし" onclick="CmdGen.selectChip(this)">なし（解除）</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="bgColor" data-val="赤" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#FF4444"></span>赤</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="bgColor" data-val="青" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#4499FF"></span>青</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="bgColor" data-val="緑" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#44CC44"></span>緑</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="bgColor" data-val="黄" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#FFCC00"></span>黄</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="bgColor" data-val="紫" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#CC44CC"></span>紫</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="bgColor" data-val="ピンク" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#FF88BB"></span>ピンク</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="bgColor" data-val="橙" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#FF8800"></span>橙</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="bgColor" data-val="シアン" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#00CCCC"></span>シアン</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="bgColor" data-val="水色" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#87CEEB"></span>水色</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="bgColor" data-val="ライム" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#88FF00"></span>ライム</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="bgColor" data-val="茶" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#A0522D"></span>茶</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="bgColor" data-val="黒" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#333;border-color:#555"></span>黒</span>
+        <span class="cmdgen-chip cmdgen-color-chip" data-group="bgColor" data-val="白" onclick="CmdGen.selectChip(this)"><span class="cmdgen-swatch" style="background:#FFFFFF"></span>白</span>
       </div>
     </div>
 
@@ -736,24 +757,234 @@
     </div>
   </div>
 
-  <!-- ── 文字色 ── -->
+  <!-- ── 文字色 / 吹き出し背景色 ── -->
   <div class="section" id="sec-color">
-    <div class="section-title">🎨 文字色（永続）</div>
+    <div class="section-title">🎨 文字色 / 吹き出し背景色（共通 200色）</div>
+    <div class="hint-box" style="margin-bottom:10px">
+      <b>色:色名</b>（文字色）・<b>吹き出し背景色:色名</b>（吹き出し背景）の両方で下記200色が使用可。<br>
+      カラーコード直接指定も可能：<b>色:#FF6600</b> / <b>吹き出し背景色:#FF6600</b> &nbsp;｜&nbsp; 背景リセット：<b>吹き出し背景色:なし</b>
+    </div>
     <div class="color-table">
+      <div class="color-group-title">基本色</div>
       <div class="color-row"><div class="color-swatch" style="background:#FF4444"></div><div><div class="color-name">赤</div><div class="color-hex">色:赤</div></div></div>
       <div class="color-row"><div class="color-swatch" style="background:#4499FF"></div><div><div class="color-name">青</div><div class="color-hex">色:青</div></div></div>
       <div class="color-row"><div class="color-swatch" style="background:#44CC44"></div><div><div class="color-name">緑</div><div class="color-hex">色:緑</div></div></div>
       <div class="color-row"><div class="color-swatch" style="background:#FFCC00"></div><div><div class="color-name">黄</div><div class="color-hex">色:黄</div></div></div>
       <div class="color-row"><div class="color-swatch" style="background:#CC44CC"></div><div><div class="color-name">紫</div><div class="color-hex">色:紫</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#222222;border-color:#555"></div><div><div class="color-name">黒</div><div class="color-hex">色:黒</div></div></div>
       <div class="color-row"><div class="color-swatch" style="background:#FF88BB"></div><div><div class="color-name">ピンク</div><div class="color-hex">色:ピンク</div></div></div>
       <div class="color-row"><div class="color-swatch" style="background:#FF8800"></div><div><div class="color-name">橙</div><div class="color-hex">色:橙</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF8800"></div><div><div class="color-name">オレンジ</div><div class="color-hex">色:オレンジ</div></div></div>
       <div class="color-row"><div class="color-swatch" style="background:#00CCCC"></div><div><div class="color-name">シアン</div><div class="color-hex">色:シアン</div></div></div>
-      <div class="color-row"><div class="color-swatch" style="background:#87CEEB"></div><div><div class="color-name">水色</div><div class="color-hex">色:水色</div></div></div>
       <div class="color-row"><div class="color-swatch" style="background:#88FF00"></div><div><div class="color-name">ライム</div><div class="color-hex">色:ライム</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#87CEEB"></div><div><div class="color-name">水色</div><div class="color-hex">色:水色</div></div></div>
       <div class="color-row"><div class="color-swatch" style="background:#A0522D"></div><div><div class="color-name">茶</div><div class="color-hex">色:茶</div></div></div>
-      <div class="color-row"><div class="color-swatch" style="background:#222222;border-color:#555"></div><div><div class="color-name">黒</div><div class="color-hex">色:黒</div></div></div>
+
+      <div class="color-group-title">白・灰系</div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFFFFF"></div><div><div class="color-name">白</div><div class="color-hex">色:白</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#888888"></div><div><div class="color-name">灰</div><div class="color-hex">色:灰</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#808080"></div><div><div class="color-name">グレー</div><div class="color-hex">色:グレー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D3D3D3"></div><div><div class="color-name">薄灰</div><div class="color-hex">色:薄灰</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#696969"></div><div><div class="color-name">鼠色</div><div class="color-hex">色:鼠色</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#708090"></div><div><div class="color-name">スレート</div><div class="color-hex">色:スレート</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#36454F;border-color:#555"></div><div><div class="color-name">チャコール</div><div class="color-hex">色:チャコール</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#2A3439;border-color:#555"></div><div><div class="color-name">ガンメタル</div><div class="color-hex">色:ガンメタル</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#C0C0C0"></div><div><div class="color-name">銀</div><div class="color-hex">色:銀</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#A8A9AD"></div><div><div class="color-name">シルバー</div><div class="color-hex">色:シルバー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#E5E4E2"></div><div><div class="color-name">プラチナ</div><div class="color-hex">色:プラチナ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#F0EAD6"></div><div><div class="color-name">パール</div><div class="color-hex">色:パール</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFFFF0"></div><div><div class="color-name">アイボリー</div><div class="color-hex">色:アイボリー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFFDD0"></div><div><div class="color-name">クリーム</div><div class="color-hex">色:クリーム</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FAF9F6"></div><div><div class="color-name">オフホワイト</div><div class="color-hex">色:オフホワイト</div></div></div>
+
+      <div class="color-group-title">赤系</div>
+      <div class="color-row"><div class="color-swatch" style="background:#C00040;border-color:#555"></div><div><div class="color-name">深紅</div><div class="color-hex">色:深紅</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#E34234"></div><div><div class="color-name">朱色</div><div class="color-hex">色:朱色</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#CC0033;border-color:#555"></div><div><div class="color-name">紅</div><div class="color-hex">色:紅</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#8B0000;border-color:#555"></div><div><div class="color-name">真紅</div><div class="color-hex">色:真紅</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#7C0A02;border-color:#555"></div><div><div class="color-name">バーガンディ</div><div class="color-hex">色:バーガンディ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF2400"></div><div><div class="color-name">スカーレット</div><div class="color-hex">色:スカーレット</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#DC143C"></div><div><div class="color-name">クリムゾン</div><div class="color-hex">色:クリムゾン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#800000;border-color:#555"></div><div><div class="color-name">マルーン</div><div class="color-hex">色:マルーン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#9B111E;border-color:#555"></div><div><div class="color-name">ルビー</div><div class="color-hex">色:ルビー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#733635;border-color:#555"></div><div><div class="color-name">ガーネット</div><div class="color-hex">色:ガーネット</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF6347"></div><div><div class="color-name">トマト</div><div class="color-hex">色:トマト</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF4040"></div><div><div class="color-name">ポピー</div><div class="color-hex">色:ポピー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF3B32"></div><div><div class="color-name">ヒナゲシ</div><div class="color-hex">色:ヒナゲシ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#E44D2E"></div><div><div class="color-name">ヴァーミリオン</div><div class="color-hex">色:ヴァーミリオン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FC5A8D"></div><div><div class="color-name">ストロベリー</div><div class="color-hex">色:ストロベリー</div></div></div>
+
+      <div class="color-group-title">ピンク系</div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF9EAE"></div><div><div class="color-name">薄紅</div><div class="color-hex">色:薄紅</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFBBCB"></div><div><div class="color-name">桃色</div><div class="color-hex">色:桃色</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFB7C5"></div><div><div class="color-name">桜色</div><div class="color-hex">色:桜色</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF007F"></div><div><div class="color-name">ローズ</div><div class="color-hex">色:ローズ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF69B4"></div><div><div class="color-name">ホットピンク</div><div class="color-hex">色:ホットピンク</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF1493"></div><div><div class="color-name">ディープピンク</div><div class="color-hex">色:ディープピンク</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#F4C2C2"></div><div><div class="color-name">ベビーピンク</div><div class="color-hex">色:ベビーピンク</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#E30B5C"></div><div><div class="color-name">ラズベリー</div><div class="color-hex">色:ラズベリー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFA6C9"></div><div><div class="color-name">カーネーション</div><div class="color-hex">色:カーネーション</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FC8EAC"></div><div><div class="color-name">フラミンゴ</div><div class="color-hex">色:フラミンゴ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FADADD"></div><div><div class="color-name">ペールピンク</div><div class="color-hex">色:ペールピンク</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF66CC"></div><div><div class="color-name">ローズピンク</div><div class="color-hex">色:ローズピンク</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFBCD9"></div><div><div class="color-name">コットンキャンディ</div><div class="color-hex">色:コットンキャンディ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFB6C1"></div><div><div class="color-name">ライトピンク</div><div class="color-hex">色:ライトピンク</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF6EC7"></div><div><div class="color-name">ネオンピンク</div><div class="color-hex">色:ネオンピンク</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#E8B4B8"></div><div><div class="color-name">ロータス</div><div class="color-hex">色:ロータス</div></div></div>
+
+      <div class="color-group-title">オレンジ・コーラル系</div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF7F50"></div><div><div class="color-name">コーラル</div><div class="color-hex">色:コーラル</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FA8072"></div><div><div class="color-name">サーモン</div><div class="color-hex">色:サーモン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF6B6B"></div><div><div class="color-name">珊瑚</div><div class="color-hex">色:珊瑚</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#E2725B"></div><div><div class="color-name">テラコッタ</div><div class="color-hex">色:テラコッタ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#CB4154"></div><div><div class="color-name">レンガ</div><div class="color-hex">色:レンガ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#DE3163"></div><div><div class="color-name">チェリー</div><div class="color-hex">色:チェリー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#9C2542;border-color:#555"></div><div><div class="color-name">クランベリー</div><div class="color-hex">色:クランベリー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#CC5500;border-color:#555"></div><div><div class="color-name">バーンオレンジ</div><div class="color-hex">色:バーンオレンジ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF8C00"></div><div><div class="color-name">ダークオレンジ</div><div class="color-hex">色:ダークオレンジ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFCBA4"></div><div><div class="color-name">ピーチ</div><div class="color-hex">色:ピーチ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#F47B20"></div><div><div class="color-name">マンダリン</div><div class="color-hex">色:マンダリン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FBCEB1"></div><div><div class="color-name">アプリコット</div><div class="color-hex">色:アプリコット</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFB347"></div><div><div class="color-name">ライトオレンジ</div><div class="color-hex">色:ライトオレンジ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF6700"></div><div><div class="color-name">ネオンオレンジ</div><div class="color-hex">色:ネオンオレンジ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#F08080"></div><div><div class="color-name">ライトコーラル</div><div class="color-hex">色:ライトコーラル</div></div></div>
+
+      <div class="color-group-title">黄色系</div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFB300"></div><div><div class="color-name">山吹</div><div class="color-hex">色:山吹</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFC512"></div><div><div class="color-name">向日葵</div><div class="color-hex">色:向日葵</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFF44F"></div><div><div class="color-name">レモン</div><div class="color-hex">色:レモン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#F3E5AB"></div><div><div class="color-name">バニラ</div><div class="color-hex">色:バニラ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFBF00"></div><div><div class="color-name">アンバー</div><div class="color-hex">色:アンバー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFD700"></div><div><div class="color-name">ゴールド</div><div class="color-hex">色:ゴールド</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#E6B800"></div><div><div class="color-name">金色</div><div class="color-hex">色:金色</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#C3B091"></div><div><div class="color-name">カーキ</div><div class="color-hex">色:カーキ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFDB58"></div><div><div class="color-name">マスタード</div><div class="color-hex">色:マスタード</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#F28500"></div><div><div class="color-name">タンジェリン</div><div class="color-hex">色:タンジェリン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF7518"></div><div><div class="color-name">パンプキン</div><div class="color-hex">色:パンプキン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FEA004"></div><div><div class="color-name">ハニー</div><div class="color-hex">色:ハニー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FBEC5D"></div><div><div class="color-name">コーン</div><div class="color-hex">色:コーン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#F4C430"></div><div><div class="color-name">サフラン</div><div class="color-hex">色:サフラン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFD800"></div><div><div class="color-name">菜の花</div><div class="color-hex">色:菜の花</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#F7E7CE"></div><div><div class="color-name">シャンパン</div><div class="color-hex">色:シャンパン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFFD74"></div><div><div class="color-name">バター</div><div class="color-hex">色:バター</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFC200"></div><div><div class="color-name">ゴールデン</div><div class="color-hex">色:ゴールデン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFFF00"></div><div><div class="color-name">イエロー</div><div class="color-hex">色:イエロー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFD447"></div><div><div class="color-name">サンシャイン</div><div class="color-hex">色:サンシャイン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#F3DC5C"></div><div><div class="color-name">ミモザ</div><div class="color-hex">色:ミモザ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFFFE0"></div><div><div class="color-name">ライトイエロー</div><div class="color-hex">色:ライトイエロー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#DFFF00"></div><div><div class="color-name">ネオンイエロー</div><div class="color-hex">色:ネオンイエロー</div></div></div>
+
+      <div class="color-group-title">青系</div>
+      <div class="color-row"><div class="color-swatch" style="background:#003087;border-color:#555"></div><div><div class="color-name">紺</div><div class="color-hex">色:紺</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#1F3A6E;border-color:#555"></div><div><div class="color-name">藍</div><div class="color-hex">色:藍</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#4166F5"></div><div><div class="color-name">群青</div><div class="color-hex">色:群青</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#1C4D9B;border-color:#555"></div><div><div class="color-name">瑠璃色</div><div class="color-hex">色:瑠璃色</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#27408B;border-color:#555"></div><div><div class="color-name">蒼</div><div class="color-hex">色:蒼</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#000080;border-color:#555"></div><div><div class="color-name">ネイビー</div><div class="color-hex">色:ネイビー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#4169E1"></div><div><div class="color-name">ロイヤルブルー</div><div class="color-hex">色:ロイヤルブルー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#1E90FF"></div><div><div class="color-name">ドジャーブルー</div><div class="color-hex">色:ドジャーブルー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#40E0D0"></div><div><div class="color-name">ターコイズ</div><div class="color-hex">色:ターコイズ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#008080;border-color:#555"></div><div><div class="color-name">ティール</div><div class="color-hex">色:ティール</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#00BFFF"></div><div><div class="color-name">スカイブルー</div><div class="color-hex">色:スカイブルー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#191970;border-color:#555"></div><div><div class="color-name">ミッドナイトブルー</div><div class="color-hex">色:ミッドナイトブルー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#4682B4"></div><div><div class="color-name">スチールブルー</div><div class="color-hex">色:スチールブルー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#4B0082;border-color:#555"></div><div><div class="color-name">インディゴ</div><div class="color-hex">色:インディゴ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#0047AB;border-color:#555"></div><div><div class="color-name">コバルト</div><div class="color-hex">色:コバルト</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#A8D8EA"></div><div><div class="color-name">空色</div><div class="color-hex">色:空色</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#007FFF;border-color:#555"></div><div><div class="color-name">紺碧</div><div class="color-hex">色:紺碧</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#00FFFF"></div><div><div class="color-name">アクア</div><div class="color-hex">色:アクア</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#CCCCFF"></div><div><div class="color-name">ペリウィンクル</div><div class="color-hex">色:ペリウィンクル</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#2A52BE;border-color:#555"></div><div><div class="color-name">セルリアン</div><div class="color-hex">色:セルリアン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#99C5C4"></div><div><div class="color-name">アイスブルー</div><div class="color-hex">色:アイスブルー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#1560BD;border-color:#555"></div><div><div class="color-name">デニム</div><div class="color-hex">色:デニム</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#0F52BA;border-color:#555"></div><div><div class="color-name">サファイア</div><div class="color-hex">色:サファイア</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#6495ED"></div><div><div class="color-name">コーンフラワー</div><div class="color-hex">色:コーンフラワー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#B0E0E6"></div><div><div class="color-name">パウダーブルー</div><div class="color-hex">色:パウダーブルー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#ADD8E6"></div><div><div class="color-name">ライトブルー</div><div class="color-hex">色:ライトブルー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#89CFF0"></div><div><div class="color-name">ベビーブルー</div><div class="color-hex">色:ベビーブルー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#6699CC"></div><div><div class="color-name">ブルーグレー</div><div class="color-hex">色:ブルーグレー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#7FFFD4"></div><div><div class="color-name">アクアマリン</div><div class="color-hex">色:アクアマリン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#4D4DFF"></div><div><div class="color-name">ネオンブルー</div><div class="color-hex">色:ネオンブルー</div></div></div>
+
+      <div class="color-group-title">緑系</div>
+      <div class="color-row"><div class="color-swatch" style="background:#9ACD32"></div><div><div class="color-name">黄緑</div><div class="color-hex">色:黄緑</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#AACC44"></div><div><div class="color-name">萌黄</div><div class="color-hex">色:萌黄</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#9DC05D"></div><div><div class="color-name">若草</div><div class="color-hex">色:若草</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#006400;border-color:#555"></div><div><div class="color-name">深緑</div><div class="color-hex">色:深緑</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#8A9A5B"></div><div><div class="color-name">苔色</div><div class="color-hex">色:苔色</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#8FBC45"></div><div><div class="color-name">抹茶</div><div class="color-hex">色:抹茶</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#228B22;border-color:#555"></div><div><div class="color-name">フォレストグリーン</div><div class="color-hex">色:フォレストグリーン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#50C878"></div><div><div class="color-name">エメラルド</div><div class="color-hex">色:エメラルド</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#98FF98"></div><div><div class="color-name">ミント</div><div class="color-hex">色:ミント</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#808000;border-color:#555"></div><div><div class="color-name">オリーブ</div><div class="color-hex">色:オリーブ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#77926F"></div><div><div class="color-name">セージ</div><div class="color-hex">色:セージ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#00A86B"></div><div><div class="color-name">ジェード</div><div class="color-hex">色:ジェード</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#355E3B;border-color:#555"></div><div><div class="color-name">ハンターグリーン</div><div class="color-hex">色:ハンターグリーン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#007F5F;border-color:#555"></div><div><div class="color-name">常磐</div><div class="color-hex">色:常磐</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#39FF14"></div><div><div class="color-name">ネオングリーン</div><div class="color-hex">色:ネオングリーン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#93C572"></div><div><div class="color-name">ピスタチオ</div><div class="color-hex">色:ピスタチオ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#4B5320;border-color:#555"></div><div><div class="color-name">アーミーグリーン</div><div class="color-hex">色:アーミーグリーン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#568203;border-color:#555"></div><div><div class="color-name">アボカド</div><div class="color-hex">色:アボカド</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#00FF7F"></div><div><div class="color-name">スプリンググリーン</div><div class="color-hex">色:スプリンググリーン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#7FFF00"></div><div><div class="color-name">チャートリューズ</div><div class="color-hex">色:チャートリューズ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#4F7942;border-color:#555"></div><div><div class="color-name">フェルン</div><div class="color-hex">色:フェルン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#67B346"></div><div><div class="color-name">グラスグリーン</div><div class="color-hex">色:グラスグリーン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D0F0C0"></div><div><div class="color-name">グリーンティー</div><div class="color-hex">色:グリーンティー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#2E8B57;border-color:#555"></div><div><div class="color-name">シーグリーン</div><div class="color-hex">色:シーグリーン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#4A5240;border-color:#555"></div><div><div class="color-name">ミリタリーグリーン</div><div class="color-hex">色:ミリタリーグリーン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#013220;border-color:#555"></div><div><div class="color-name">ダークグリーン</div><div class="color-hex">色:ダークグリーン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#90EE90"></div><div><div class="color-name">ライトグリーン</div><div class="color-hex">色:ライトグリーン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#556B2F;border-color:#555"></div><div><div class="color-name">モスグリーン</div><div class="color-hex">色:モスグリーン</div></div></div>
+
+      <div class="color-group-title">紫系</div>
+      <div class="color-row"><div class="color-swatch" style="background:#D8BFD8"></div><div><div class="color-name">薄紫</div><div class="color-hex">色:薄紫</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#9B7CB5"></div><div><div class="color-name">藤色</div><div class="color-hex">色:藤色</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#6F2DA8;border-color:#555"></div><div><div class="color-name">葡萄色</div><div class="color-hex">色:葡萄色</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#5C3A7A;border-color:#555"></div><div><div class="color-name">菫色</div><div class="color-hex">色:菫色</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#E6E6FA"></div><div><div class="color-name">ラベンダー</div><div class="color-hex">色:ラベンダー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#7F00FF;border-color:#555"></div><div><div class="color-name">バイオレット</div><div class="color-hex">色:バイオレット</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF00FF"></div><div><div class="color-name">マゼンタ</div><div class="color-hex">色:マゼンタ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FF1DCE"></div><div><div class="color-name">フクシア</div><div class="color-hex">色:フクシア</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#DDA0DD"></div><div><div class="color-name">プラム</div><div class="color-hex">色:プラム</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#C8A2C8"></div><div><div class="color-name">ライラック</div><div class="color-hex">色:ライラック</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#9966CC"></div><div><div class="color-name">アメジスト</div><div class="color-hex">色:アメジスト</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#DA70D6"></div><div><div class="color-name">オーキッド</div><div class="color-hex">色:オーキッド</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#800080;border-color:#555"></div><div><div class="color-name">パープル</div><div class="color-hex">色:パープル</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#722F37;border-color:#555"></div><div><div class="color-name">ワイン</div><div class="color-hex">色:ワイン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#E0B0FF"></div><div><div class="color-name">モーブ</div><div class="color-hex">色:モーブ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#9400D3;border-color:#555"></div><div><div class="color-name">ダークバイオレット</div><div class="color-hex">色:ダークバイオレット</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#6A5ACD"></div><div><div class="color-name">スレートブルー</div><div class="color-hex">色:スレートブルー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#8A2BE2"></div><div><div class="color-name">ブルーバイオレット</div><div class="color-hex">色:ブルーバイオレット</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#7851A9"></div><div><div class="color-name">ロイヤルパープル</div><div class="color-hex">色:ロイヤルパープル</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#673AB7;border-color:#555"></div><div><div class="color-name">ディープパープル</div><div class="color-hex">色:ディープパープル</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#4B0057;border-color:#555"></div><div><div class="color-name">ナス</div><div class="color-hex">色:ナス</div></div></div>
+
+      <div class="color-group-title">茶・アース系</div>
+      <div class="color-row"><div class="color-swatch" style="background:#954535;border-color:#555"></div><div><div class="color-name">栗色</div><div class="color-hex">色:栗色</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#F5DEB3"></div><div><div class="color-name">小麦</div><div class="color-hex">色:小麦</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D2B48C"></div><div><div class="color-name">タン</div><div class="color-hex">色:タン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#F5F5DC"></div><div><div class="color-name">ベージュ</div><div class="color-hex">色:ベージュ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#7B3F00;border-color:#555"></div><div><div class="color-name">チョコ</div><div class="color-hex">色:チョコ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#6F4E37;border-color:#555"></div><div><div class="color-name">コーヒー</div><div class="color-hex">色:コーヒー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#704214;border-color:#555"></div><div><div class="color-name">セピア</div><div class="color-hex">色:セピア</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#C04000;border-color:#555"></div><div><div class="color-name">マホガニー</div><div class="color-hex">色:マホガニー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D4955B"></div><div><div class="color-name">朽葉</div><div class="color-hex">色:朽葉</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D4A017"></div><div><div class="color-name">黄土</div><div class="color-hex">色:黄土</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#F0DC82"></div><div><div class="color-name">バフ</div><div class="color-hex">色:バフ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#C19A6B"></div><div><div class="color-name">キャメル</div><div class="color-hex">色:キャメル</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D2691E"></div><div><div class="color-name">チョコレート</div><div class="color-hex">色:チョコレート</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#B87333"></div><div><div class="color-name">銅色</div><div class="color-hex">色:銅色</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#CD7F32"></div><div><div class="color-name">ブロンズ</div><div class="color-hex">色:ブロンズ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#855E42;border-color:#555"></div><div><div class="color-name">クルミ</div><div class="color-hex">色:クルミ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#A52A2A;border-color:#555"></div><div><div class="color-name">ブラウン</div><div class="color-hex">色:ブラウン</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#483C32;border-color:#555"></div><div><div class="color-name">タウプ</div><div class="color-hex">色:タウプ</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#C2B280"></div><div><div class="color-name">サンド</div><div class="color-hex">色:サンド</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#999080"></div><div><div class="color-name">ウォームグレー</div><div class="color-hex">色:ウォームグレー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#DAC17A"></div><div><div class="color-name">バンブー</div><div class="color-hex">色:バンブー</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#8E402A;border-color:#555"></div><div><div class="color-name">錆色</div><div class="color-hex">色:錆色</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#E55B3C"></div><div><div class="color-name">朱</div><div class="color-hex">色:朱</div></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#928E85"></div><div><div class="color-name">ストーングレー</div><div class="color-hex">色:ストーングレー</div></div></div>
     </div>
-    <div class="hint-box" style="margin-top:10px">カラーコード直接指定も可能：<b>色:#FF6600</b></div>
   </div>
 
   <!-- ── その他設定（永続） ── -->
@@ -1242,7 +1473,7 @@
     const STANDALONE_CHARS = {"1":"00000-2030634083.png","2":"00004-159183190.png","3":"00016-2384853052.png","4":"00021-1172747400.png","5":"00027-104778952.png","6":"00057-1276230150.png","7":"00427-3945403169.png","8":"00066-1027476145.png","9":"00088-37272471.png","10":"00095-1276230188.png","11":"00098-1412327967.png","12":"00104-1276230197.png","13":"00117-1276230210.png","14":"00117-1517038803.png","15":"00122-962853712.png","16":"00123-1276230216.png","17":"00137-35515011.png","18":"00145-3565940783.png","19":"00157-3934200010.png","20":"00160-3919013005.png","21":"00166-357524711.png","22":"00172-1633563726.png","23":"00174-1870695443.png","24":"00175-455348432.png","25":"00180-2373247942.png","26":"00181-100637137.png","27":"00187-150337088.png","28":"00194-324389739.png","29":"00208-3215337490.png","30":"suupu.png","31":"00224-4207815776.png","32":"00236-1007308491.png","33":"00293-1473418849.png","34":"00344-771229895.png","35":"00347-4226251993.png","36":"00349-3308618326.png","37":"00356-208134675.png","38":"00378-853967621.png","39":"00384-2500505510.png","40":"00385-3227785838.png","41":"00387-4241659103.png","42":"00390-1077723220.png","43":"00393-1255128614.png","44":"00399-920402769.png","45":"00406-3753321355.png","46":"00412-2923654669.png","47":"00413-3916051567.png","48":"00427-3945403169.png","49":"00439-1517282000.png","50":"00441-3446946138.png","51":"00450-1770945744.png","52":"00486-311847211.png","53":"00520-1559860186.png","54":"00536-1081971587.png","55":"00734-3531920647.png","56":"00387-4241659103.png","57":"02f167a6-f29c-4e92-a51d-5d5c4b4bb41e.png","58":"06bbaa60-4404-4049-a877-79388923e5a0.png","59":"0830e.png","60":"0892ba.png","61":"0f2e0.png","62":"0fe214b1-ac41-4d71-9f9c-41fefe05fb66 (1).png","63":"171130py.png","64":"17ba8402c-6aad-4687-b187-444538fbf4e3.png","65":"1e743fb4-fdd4-4795-8439-acbe9187cbdf.png","66":"20250601065914_db8b8f.png","67":"20260102222250_08cba8.png","68":"247069.png","69":"247448 - コピー.png","70":"247805.png","71":"248008.png","72":"248106.png","73":"260715.png","74":"265631.png","75":"3.png","76":"340.webp","77":"36fa6bbb30ed7d104dd50be1eb9f068c.png","78":"3bd8d.png","79":"40465ceff871ff9f21ea2b841db7c95d.png","80":"407de.png","81":"4234234.png","82":"47cf257515ce38d88dd97b22f664e02f.png","83":"4d8a1b4b2f72ef2e0f721fc35d4f9d6f.png","84":"500cc.png","85":"5853d.png","86":"59565e10f2324d2ab1e25ac49235d506.png","87":"6136ecd087059233671c407a63056f1d.png","88":"72595c4d-7b05-4bb8-b1fd-cfff8f6e148a.png","89":"7a5f86873b3704a7b1f606860ea80916.png","90":"7a6fb.png","91":"8274c475-2c82-4c0d-b958-6fc622ac9fb5.png","92":"85a6b.png","93":"89aeaf3851fed035a430f674b88aac5e.png","94":"8YN0b3v.png","95":"919548c756835156704ee4aa701419d9.png","96":"96453884795d2144bc0c47a4bc0dd40c.png","97":"BCO.c3410ddd-15c4-48be-965a-710039e85cce.png","98":"ChatGPT Image 2026年1月4日 01_37_38.png","99":"Copilot_20251217_164144.png","100":"Copilot_20251226_112508.png","101":"KH.png","102":"ae62dc0d02fe2cc75175ccdfa2dea767.png","103":"age.png","104":"ageru_dot.png","105":"agerutatakiw.png","106":"agetamaw.png","107":"andono.png","108":"babyageru.png","109":"babyhico.png","110":"babyou.png","111":"baka.png","112":"bioagew.png","113":"butterfly.png","114":"c3b7501fcbc2d966ac0e8c22276100b5.png","115":"ccvaipa-.png","116":"content.png","117":"cureageru.png","118":"d2ac3.png","119":"d9de8fe5ed0a6e3573ea12ff7268909f.png","120":"debsika.png","121":"demaeageruw.png","122":"dowageru.png","123":"ee3fe.png","124":"f74f7.png","125":"faefaefaefaege.png","126":"feafae.png","127":"fefaefage35.png","128":"fefer246t34.png","129":"ffffdsfsd.png","130":"fgaeea24ty.png","131":"fgaefeaf.png","132":"gacho.png","133":"gaegea.png","134":"gatitoukaw_diferuw.png","135":"gatitoukaw_hagarenaiw.png","136":"gatitoukaw_hicobabyw.png","137":"00347-4226251993.png","138":"gegagaegea735.png","139":"gelato_pique.mushi.png","140":"gothicageru.png","141":"h8240h8g4.png","142":"hamager2u.png","143":"haruhi.png","144":"hicozombie.png","145":"hikoholmes.png","146":"hikomusi.png","147":"img_-0000-1642450378.png","148":"img_-0000-3139744839.png","149":"img_-0000-447762712.png","150":"img_-0002-2607607172.png","151":"img_-0003-1065042707.png","152":"img_-0004-1065042707.png","153":"img_-0011-959000735.png","154":"img_-0019-3973524258.png","155":"fgaefeaf.png","156":"img_-0025-16269871.png","157":"kisyokeee.png","158":"kisyoneko.mushi.png","159":"kisyoneko.neko.png","160":"lightningafro2.PNG","161":"magicaldraw_20250904_174643.png","162":"makiseageru.png","163":"md7imi67mr67iimr67.png","164":"moi1.png","165":"moonrat.png","166":"moonrat_origin.png","167":"morugana.png","168":"musyasenw.png","169":"neceageru.png","170":"nyanmizu.png","171":"peacock02.png","172":"pirateage.png","173":"pogeruw.png","174":"pogo.png","175":"pundldygjkk.png","176":"runti.png","177":"sageru.png","178":"sf6anti.png","179":"ssf4fuerte.png","180":"ssf4hakan.png","181":"strike.png","182":"suigintou.png","183":"suupu.png","184":"tree_yashinoki_long.png","185":"uchuage.png","186":"umariage.png","187":"whichdottiw.png","188":"yokunerobo.png","189":"yuusya.png","190":"zageru.png","191":"00062-1444818055.png","192":"00223-2211292362.png","193":"00453-412472201.png","194":"00454-3010772843.png","195":"00455-3983739280.png","196":"00457-3472741401.png","197":"00470-4203698194.png","198":"00472-3748750743.png","199":"00473-503041123.png","200":"00477-368893265.png","201":"00478-2743560037.png","202":"00479-2085441311.png","203":"00488-1000068389.png","204":"00490-713403384.png","205":"00494-2566068581.png","206":"00499-1047511690.png","207":"00502-3189715144.png","208":"00506-1423767830.png","209":"0181788245b3c4bfcf39796445279472.png","210":"denpaageru_transparent.png","211":"gatitoukawomukyuaw.png","212":"img_-0023-716318130.png"};
 
     const CmdGen = (function() {
-      const state = { chara: '', bubble: '', deco: '', color: '', font: '' };
+      const state = { chara: '', bubble: '', deco: '', color: '', bgColor: '', font: '' };
       function build() {
         const parts = [];
         if (state.chara) parts.push('キャラ' + state.chara);
@@ -1252,6 +1483,8 @@
         if (state.bubble) parts.push('吹き出し:' + state.bubble);
         if (state.deco && state.deco !== 'なし') parts.push('飾り:' + state.deco);
         if (state.color) parts.push('色:' + state.color);
+        if (state.bgColor && state.bgColor !== 'なし') parts.push('吹き出し背景色:' + state.bgColor);
+        if (state.bgColor === 'なし') parts.push('吹き出し背景色:なし');
         if (state.font && state.font !== 'デフォルト') parts.push('フォント:' + state.font);
         const textEl = document.getElementById('cgText');
         if (!textEl) return;

@@ -764,7 +764,7 @@ body {
   max-width: min(400px, 70vw);
   width: max-content;          /* テキストに合わせて自動拡張 */
   padding: 8px 14px;
-  background: rgba(255,255,255,0.96);
+  background: var(--bubble-bg, rgba(255,255,255,0.96));
   color: #111;
   font-size: var(--fs-bubble);
   line-height: 1.55;
@@ -831,7 +831,7 @@ body {
   left: 50%;
   transform: translateX(-50%);
   border: 8px solid transparent;
-  border-top-color: rgba(255,255,255,0.96);
+  border-top-color: var(--bubble-bg, rgba(255,255,255,0.96));
 }
 
 .bubble.hidden { display: none; }
