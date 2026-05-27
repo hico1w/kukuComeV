@@ -2137,6 +2137,19 @@ function endTaiman(winner, loser) {
     }
     loser._taimanDefeated = true;
 
+    // 1分間キャラ変更なければランダムキャラ
+    const _loserIpid      = loser.ipid;
+    const _defeatCharImage = loser.charImage;
+    setTimeout(() => {
+      const u = users[_loserIpid];
+      if (!u || !u.el) return;
+      if (u.charImage !== _defeatCharImage) return; // すでに変更済み
+      if (availableImages.length === 0) return;
+      u.charImage = availableImages[Math.floor(Math.random() * availableImages.length)];
+      applyAvatarStyle(u);
+      addToLog(u, `[タイマン敗北1分経過 → ランダムキャラ]`, '#f87171');
+    }, 60000);
+
     // 勝者に花火・紙吹雪
     for (let i = 0; i < 6; i++) {
       setTimeout(() => {
