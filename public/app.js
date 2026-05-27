@@ -1653,6 +1653,7 @@ function endBattleRoyale(winner) {
       delete winner.brWinnerScale;
       applyAvatarStyle(winner);
       renderPetBadge(winner);
+      gatherCharactersBottom();
     }, 60000);
   }
   // 脱落キャラを保存済みHPで復活
