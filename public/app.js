@@ -860,26 +860,40 @@ function gatherCharacters() {
 function gatherCharactersBottom() {
   const onStage = Object.values(users).filter(u => u.el);
   if (onStage.length === 0) return;
-  const stageW    = stage.clientWidth;
-  const stageH    = stage.clientHeight;
-  const marginL   = gatherMarginLeft;
-  const marginR   = gatherMarginRight;
+  const stageW     = stage.clientWidth;
+  const stageH     = stage.clientHeight;
+  const marginL    = gatherMarginLeft;
+  const marginR    = gatherMarginRight;
   const effectiveW = Math.max(100, stageW - marginL - marginR);
-  const charW  = u => u.el ? (u.el.offsetWidth  || Math.round(u.size * 1.5 * charSizeScale)) : Math.round(u.size * 1.5 * charSizeScale);
-  const charH  = u => u.el ? (u.el.offsetHeight || (Math.round(u.size * 1.5 * charSizeScale) + 48)) : (Math.round(u.size * 1.5 * charSizeScale) + 48);
-  const n    = onStage.length;
-  const step = n > 1 ? Math.min(charW(onStage[0]) + 8, effectiveW / n) : 0;
-  const startX = marginL + Math.max(0, (effectiveW - (step * (n - 1) + charW(onStage[0]))) / 2);
-  onStage.forEach((u, i) => {
-    const rawX = Math.round(startX + step * i);
-    const rawY = stageH - charH(u) - 10;
-    const clampedX = Math.max(marginL, Math.min(stageW - marginR - charW(u), rawX));
-    const clampedY = Math.max(20, Math.min(stageH - charH(u), rawY));
-    u.x = clampedX;
-    u.y = clampedY;
-    u.el.style.transition = 'left 600ms cubic-bezier(0.34,1.56,0.64,1), top 600ms cubic-bezier(0.34,1.56,0.64,1)';
-    u.el.style.left = u.x + 'px';
-    u.el.style.top  = u.y + 'px';
+  const GAP        = 8;
+  const ROW_GAP    = 6;
+  const charW = u => u.el ? (u.el.offsetWidth  || Math.round(u.size * 1.5 * charSizeScale)) : Math.round(u.size * 1.5 * charSizeScale);
+  const charH = u => u.el ? (u.el.offsetHeight || (Math.round(u.size * 1.5 * charSizeScale) + 48)) : (Math.round(u.size * 1.5 * charSizeScale) + 48);
+
+  // 1行に収まる人数を計算して複数行に分割
+  const avgW   = charW(onStage[0]);
+  const perRow = Math.max(1, Math.floor((effectiveW + GAP) / (avgW + GAP)));
+  const rows   = [];
+  for (let i = 0; i < onStage.length; i += perRow) rows.push(onStage.slice(i, i + perRow));
+
+  // 行の高さを計算し、下から積み上げてY座標を決定
+  const rowHeights = rows.map(row => Math.max(...row.map(charH)));
+  const totalH     = rowHeights.reduce((s, h) => s + h, 0) + ROW_GAP * (rows.length - 1);
+  let y = stageH - totalH - 10;
+
+  rows.forEach((row, ri) => {
+    const rowH    = rowHeights[ri];
+    const step    = row.length > 1 ? Math.min(charW(row[0]) + GAP, effectiveW / row.length) : 0;
+    const rowW    = step * (row.length - 1) + charW(row[0]);
+    const startX  = marginL + Math.max(0, (effectiveW - rowW) / 2);
+    row.forEach((u, i) => {
+      u.x = Math.round(startX + step * i);
+      u.y = Math.max(20, Math.min(stageH - charH(u), y));
+      u.el.style.transition = 'left 600ms cubic-bezier(0.34,1.56,0.64,1), top 600ms cubic-bezier(0.34,1.56,0.64,1)';
+      u.el.style.left = u.x + 'px';
+      u.el.style.top  = u.y + 'px';
+    });
+    y += rowH + ROW_GAP;
   });
 }
 
