@@ -1654,7 +1654,8 @@ function endBattleRoyale(winner) {
         applyAvatarStyle(winner);
         renderPetBadge(winner);
       }
-      gatherCharactersBottom();
+      // .avatar の transition: width/height 0.3s 完了後に下集合
+      setTimeout(() => gatherCharactersBottom(), 400);
     }, 60000);
   }
   // 脱落キャラを保存済みHPで復活
