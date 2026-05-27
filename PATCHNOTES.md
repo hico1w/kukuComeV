@@ -2,6 +2,30 @@
 
 ---
 
+## v2.139.0 — 2026-05-27
+
+### 吹き出し形状・装飾・エフェクト・モーションを大幅追加
+
+**吹き出し形状（`SHAPE_MAP`）**
+- 追加: `星`→star-shape、`六角`→hex、`爆裂`→burst、`楕円`→oval、`横長`→wide
+- CSS: `.bubble-star-shape`（星形clip-path）、`.bubble-hex`（六角形）、`.bubble-burst`（爆裂）、`.bubble-oval`（楕円）、`.bubble-wide`（横長角丸）
+
+**吹き出し装飾（`DECO_MAP`）**
+- 追加: `炎`→fire、`金`→gold、`二重`→double、`点滅`→blink、`緑`→glow-green
+- CSS: `.bubble-deco-fire`（橙グロー）、`.bubble-deco-gold`（金縁）、`.bubble-deco-double`（二重アウトライン）、`.bubble-deco-blink`（点滅アニメ）、`.bubble-deco-glow-green`（緑グロー）
+
+**エフェクト（`EFFECT_TYPES` + spawn関数）**
+- 追加: `桜`→sakura（`spawnSakura`）、`雪`→snow（`spawnSnow`）、`爆発`→explosion（`spawnExplosion`）、`泡`→bubbles（`spawnBubbles`）、`稲妻`→lightning（`spawnLightning`）
+
+**モーション（`MOTION_CLASSES` + CSS + コマンドハンドラ）**
+- 追加: `浮く`→floating（ふわふわ上下）、`揺れる`→swaying（左右ゆらゆら）、`伸縮`/`縮む`→pulsing（伸縮）、`スキップ`→skipping（スキップ）、`酔う`→drunk（フラフラ）
+- 全モーション10秒で自動停止（既存仕様を継承）
+
+**index.html コマンドリファレンス更新**
+- モーション・吹き出し・エフェクトセクションに新コマンドを追記
+
+---
+
 ## v2.138.0 — 2026-05-27
 
 ### タイマンクールダウンを5分に変更

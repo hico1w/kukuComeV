@@ -34,9 +34,9 @@ const COLOR_NAMES = {
   'オレンジ': '#FF8800', 'シアン': '#00CCCC', 'ライム': '#88FF00',
   '水色': '#87CEEB', '茶': '#A0522D',
 };
-const SHAPE_MAP     = { '丸': 'round', '四角': 'square', '雲': 'cloud', '棘': 'spike', 'ハート': 'heart', '思考': 'thought', '叫び': 'shout' };
-const DECO_MAP      = { '光る': 'glow', 'グロー': 'glow', '虹': 'rainbow', 'レインボー': 'rainbow', '点線': 'dotted', 'なし': '', 'リセット': '' };
-const EFFECT_TYPES  = { '花火': 'hanabi', '紙吹雪': 'confetti', '流れ星': 'star', 'ハートシャワー': 'hearts' };
+const SHAPE_MAP     = { '丸': 'round', '四角': 'square', '雲': 'cloud', '棘': 'spike', 'ハート': 'heart', '思考': 'thought', '叫び': 'shout', '星': 'star-shape', '六角': 'hex', '爆裂': 'burst', '楕円': 'oval', '横長': 'wide' };
+const DECO_MAP      = { '光る': 'glow', 'グロー': 'glow', '虹': 'rainbow', 'レインボー': 'rainbow', '点線': 'dotted', '炎': 'fire', '金': 'gold', '二重': 'double', '点滅': 'blink', '緑': 'glow-green', 'なし': '', 'リセット': '' };
+const EFFECT_TYPES  = { '花火': 'hanabi', '紙吹雪': 'confetti', '流れ星': 'star', 'ハートシャワー': 'hearts', '桜': 'sakura', '雪': 'snow', '爆発': 'explosion', '泡': 'bubbles', '稲妻': 'lightning' };
 const MOVE_AREA_MAP = {
   'all':         { x0: 0,   x1: 1,   y0: 0,   y1: 1   },
   'bottom':      { x0: 0,   x1: 1,   y0: 0.5, y1: 1   },
@@ -778,7 +778,7 @@ function applyDirectionalMove(user, dir, amount) {
   user.el.style.top  = user.y + 'px';
 }
 
-const MOTION_CLASSES = ['bouncing', 'spinning', 'trembling', 'wavy'];
+const MOTION_CLASSES = ['bouncing', 'spinning', 'trembling', 'wavy', 'floating', 'swaying', 'pulsing', 'skipping', 'drunk'];
 
 function applyMotion(user, type) {
   if (user.el) MOTION_CLASSES.forEach(c => user.el.classList.remove(c));
@@ -1050,10 +1050,15 @@ function getCharCenter(user) {
 function triggerEffect(type, user) {
   if (compactMode) return;
   const { x, y } = getCharCenter(user);
-  if (type === 'hanabi')   spawnFireworks(x, y);
-  if (type === 'confetti') spawnConfetti();
-  if (type === 'star')     spawnShootingStar();
-  if (type === 'hearts')   spawnHeartShower(x, y);
+  if (type === 'hanabi')    spawnFireworks(x, y);
+  if (type === 'confetti')  spawnConfetti();
+  if (type === 'star')      spawnShootingStar();
+  if (type === 'hearts')    spawnHeartShower(x, y);
+  if (type === 'sakura')    spawnSakura(x, y);
+  if (type === 'snow')      spawnSnow();
+  if (type === 'explosion') spawnExplosion(x, y);
+  if (type === 'bubbles')   spawnBubbles(x, y);
+  if (type === 'lightning') spawnLightning(x, y);
 }
 
 function spawnFireworks(cx, cy) {
@@ -1134,6 +1139,92 @@ function spawnHeartShower(cx, cy) {
       ], { duration: 1100 + Math.random()*700, easing: 'ease-out', fill: 'forwards' }).onfinish = () => p.remove();
     }, i * 70);
   }
+}
+
+function spawnSakura(cx, cy) {
+  if (compactMode) return;
+  const petals = ['🌸','🌺','🌼'];
+  for (let i = 0; i < 18; i++) {
+    setTimeout(() => {
+      const p = document.createElement('div');
+      const ox = (Math.random() - 0.5) * 200;
+      p.style.cssText = `position:absolute;left:${cx}px;top:${cy}px;font-size:${12+Math.random()*14}px;z-index:60;pointer-events:none;user-select:none;`;
+      p.textContent = petals[Math.floor(Math.random()*petals.length)];
+      stage.appendChild(p);
+      const drift = (Math.random() - 0.5) * 80;
+      p.animate([
+        { transform: `translate(calc(-50% + ${ox}px),-50%) rotate(0deg)`, opacity: 1 },
+        { transform: `translate(calc(-50% + ${ox+drift}px),calc(-50% + ${80+Math.random()*80}px)) rotate(${Math.random()*360}deg)`, opacity: 0 },
+      ], { duration: 1500 + Math.random()*800, easing: 'ease-out', fill: 'forwards' }).onfinish = () => p.remove();
+    }, i * 60);
+  }
+}
+
+function spawnSnow() {
+  if (compactMode) return;
+  for (let i = 0; i < 40; i++) {
+    setTimeout(() => {
+      const p = document.createElement('div');
+      const size = 5 + Math.random() * 8;
+      p.style.cssText = `position:absolute;left:${Math.random()*stage.clientWidth}px;top:-${size}px;width:${size}px;height:${size}px;background:rgba(255,255,255,0.9);border-radius:50%;z-index:60;pointer-events:none;`;
+      stage.appendChild(p);
+      const drift = (Math.random() - 0.5) * 100;
+      p.animate([
+        { transform: 'translateX(0)', opacity: 1 },
+        { transform: `translate(${drift}px,${stage.clientHeight+20}px)`, opacity: 0.5 },
+      ], { duration: 2500 + Math.random()*1500, easing: 'linear', fill: 'forwards' }).onfinish = () => p.remove();
+    }, i * 40);
+  }
+}
+
+function spawnExplosion(cx, cy) {
+  if (compactMode) return;
+  const colors = ['#ff6600','#ff9900','#ffcc00','#ffffff','#ff3300'];
+  for (let i = 0; i < 24; i++) {
+    const p = document.createElement('div');
+    const size = 8 + Math.random() * 14;
+    p.style.cssText = `position:absolute;left:${cx}px;top:${cy}px;width:${size}px;height:${size}px;border-radius:50%;background:${colors[i%colors.length]};z-index:60;pointer-events:none;`;
+    stage.appendChild(p);
+    const angle = (i / 24) * Math.PI * 2;
+    const dist = 80 + Math.random() * 100;
+    p.animate([
+      { transform: 'translate(-50%,-50%) scale(1.5)', opacity: 1 },
+      { transform: `translate(calc(-50% + ${Math.cos(angle)*dist}px),calc(-50% + ${Math.sin(angle)*dist}px)) scale(0)`, opacity: 0 },
+    ], { duration: 500 + Math.random()*300, easing: 'ease-out', fill: 'forwards' }).onfinish = () => p.remove();
+  }
+}
+
+function spawnBubbles(cx, cy) {
+  if (compactMode) return;
+  for (let i = 0; i < 16; i++) {
+    setTimeout(() => {
+      const p = document.createElement('div');
+      const size = 10 + Math.random() * 20;
+      const ox = (Math.random() - 0.5) * 100;
+      p.style.cssText = `position:absolute;left:${cx+ox}px;top:${cy}px;width:${size}px;height:${size}px;border-radius:50%;background:rgba(173,216,230,0.45);border:1.5px solid rgba(135,206,235,0.8);z-index:60;pointer-events:none;`;
+      stage.appendChild(p);
+      p.animate([
+        { transform: 'translate(-50%,-50%) scale(0.5)', opacity: 0.9 },
+        { transform: `translate(calc(-50% + ${(Math.random()-0.5)*40}px),calc(-50% - ${80+Math.random()*80}px)) scale(1)`, opacity: 0 },
+      ], { duration: 1200 + Math.random()*800, easing: 'ease-out', fill: 'forwards' }).onfinish = () => p.remove();
+    }, i * 80);
+  }
+}
+
+function spawnLightning(cx, cy) {
+  if (compactMode) return;
+  const bolt = document.createElement('div');
+  bolt.style.cssText = `position:absolute;left:${cx}px;top:0;width:4px;height:${cy}px;background:linear-gradient(180deg,#fff 0%,#faff00 40%,transparent 100%);z-index:60;pointer-events:none;border-radius:2px;box-shadow:0 0 10px 4px rgba(255,255,100,0.7);transform:translateX(-50%);`;
+  stage.appendChild(bolt);
+  bolt.animate([
+    { opacity: 1, transform: 'translateX(-50%) scaleX(1)' },
+    { opacity: 0.6, transform: 'translateX(-50%) scaleX(2)' },
+    { opacity: 0, transform: 'translateX(-50%) scaleX(0.5)' },
+  ], { duration: 400, easing: 'ease-in', fill: 'forwards' }).onfinish = () => bolt.remove();
+  const flash = document.createElement('div');
+  flash.style.cssText = `position:absolute;left:${cx-50}px;top:${cy-50}px;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,150,0.85) 0%,transparent 70%);z-index:61;pointer-events:none;`;
+  stage.appendChild(flash);
+  flash.animate([{ opacity: 1 },{ opacity: 0 }], { duration: 350, fill: 'forwards' }).onfinish = () => flash.remove();
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -3269,6 +3360,31 @@ function handleComment(comment) {
     ensureCharOnStage(user);
     applyMotion(user, 'wavy');
     display = display.replace(/ぐにゃぐにゃ/g, '').trim();
+  }
+  if (/浮く/.test(display)) {
+    ensureCharOnStage(user);
+    applyMotion(user, 'floating');
+    display = display.replace(/浮く/g, '').trim();
+  }
+  if (/揺れる/.test(display)) {
+    ensureCharOnStage(user);
+    applyMotion(user, 'swaying');
+    display = display.replace(/揺れる/g, '').trim();
+  }
+  if (/伸縮|縮む/.test(display)) {
+    ensureCharOnStage(user);
+    applyMotion(user, 'pulsing');
+    display = display.replace(/伸縮|縮む/g, '').trim();
+  }
+  if (/スキップ/.test(display)) {
+    ensureCharOnStage(user);
+    applyMotion(user, 'skipping');
+    display = display.replace(/スキップ/g, '').trim();
+  }
+  if (/酔う/.test(display)) {
+    ensureCharOnStage(user);
+    applyMotion(user, 'drunk');
+    display = display.replace(/酔う/g, '').trim();
   }
 
   const decoM = display.match(/飾り[：:]([\S]+)/);
