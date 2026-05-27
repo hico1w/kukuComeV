@@ -813,7 +813,7 @@ function gatherCharacters() {
   const onStage = Object.values(users).filter(u => u.el);
   if (onStage.length === 0) return;
 
-  const ROW_MAX = 12;
+  const ROW_MAX = 8;
   const GAP     = 20;
   const ROW_GAP = 10;
   const stageW  = stage.clientWidth;
