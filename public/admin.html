@@ -244,6 +244,17 @@
   </div>
 </div>
 
+<!-- タイマン -->
+<div class="section">
+  <div class="section-title">⚔️ タイマン</div>
+  <div class="input-row">
+    <span class="input-label">敗北コマンド</span>
+    <input type="text" id="taimanDefeatCmdInput" placeholder="例: スロット開始"
+           onchange="adminSend({type:'taimanDefeatCmd', value:this.value})">
+  </div>
+  <div style="font-size:10px;color:#64748b;margin-top:3px">タイマンで負けたキャラが発言するコマンド（空欄で無効）</div>
+</div>
+
 <!-- 背景・エリア -->
 <div class="section">
   <div class="section-title">🖼 背景・エリア</div>
@@ -1041,7 +1052,8 @@
     setVol('voiceVolume', 'voiceVolumeSlider', 'voiceVolumeVal');
     if (s.aiModel  !== undefined) { const el = document.getElementById('aiModelInput');  if (el) el.value = s.aiModel; }
     if (s.aiSystem !== undefined) { const el = document.getElementById('aiSystemInput'); if (el) el.value = s.aiSystem; }
-    if (s.charExcludeIds !== undefined) { const el = document.getElementById('charExcludeInput'); if (el) el.value = s.charExcludeIds; }
+    if (s.charExcludeIds !== undefined)      { const el = document.getElementById('charExcludeInput');      if (el) el.value = s.charExcludeIds; }
+    if (s.taimanDefeatCommand !== undefined) { const el = document.getElementById('taimanDefeatCmdInput'); if (el) el.value = s.taimanDefeatCommand; }
     ['slotMpJackpot','slotMpDiamond','slotMpStar','slotMpBell','slotMpCherry'].forEach(key => {
       if (s[key] !== undefined) { const el = document.getElementById(key); if (el) el.value = s[key]; }
     });

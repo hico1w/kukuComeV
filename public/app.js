@@ -304,6 +304,34 @@ const SOUND_SLOT_MISS      = '/sound/slot/'    + encodeURIComponent('ビープ�
 const SOUND_SLOT_CHERRY    = '/sound/slot/'    + encodeURIComponent('決定ボタンを押す26.mp3');
 const SOUND_SLOT_PIRORI    = '/sound/slot/'    + encodeURIComponent('nc129326_ピロピロピロピロ.mp3');
 const SOUND_SLOT_777       = '/sound/slot/'    + encodeURIComponent('777.mp3');
+const SOUND_RACE_FANFARE   = '/sound/keiba/'  + encodeURIComponent('nc269405_中山競馬場_ファンファーレ（歓声Ver02）_トゥール.wav');
+const SOUND_RACE_COUNTDOWN = '/sound/keiba/'  + encodeURIComponent('決定ボタンを押す1.mp3');
+const SOUND_RACE_GATE      = '/sound/keiba/'  + encodeURIComponent('競馬のゲートが開く.mp3');
+const SOUND_RACE_HORSE     = [
+  '/sound/keiba/' + encodeURIComponent('nc133589_【効果音ラボ】馬が走る2.mp3'),
+  '/sound/keiba/' + encodeURIComponent('nc154228_【効果音】馬が走る音.mp3'),
+];
+const SOUND_RACE_WIN       = '/sound/keiba/'  + encodeURIComponent('おめでとう.mp3');
+const SOUND_RACE_CROWD     = '/sound/keiba/'  + encodeURIComponent('nc13275_歓声.mp3');
+
+let _raceFanfareAudio = null;
+function startRaceFanfare() {
+  stopRaceFanfare();
+  if (compactMode) return;
+  try {
+    _raceFanfareAudio = new Audio(SOUND_RACE_FANFARE);
+    _raceFanfareAudio.volume = Math.min(1, 0.7 * seVolume);
+    _raceFanfareAudio.loop = true;
+    _raceFanfareAudio.play().catch(() => {});
+  } catch {}
+}
+function stopRaceFanfare() {
+  if (_raceFanfareAudio) {
+    _raceFanfareAudio.pause();
+    _raceFanfareAudio.src = '';
+    _raceFanfareAudio = null;
+  }
+}
 
 let charImages   = loadCharImages();
 let charAliases  = loadCharAliases();
@@ -372,7 +400,7 @@ function getUser(ipid) {
       level:          1,
       hp:             30,
       maxHp:          30,
-      mp:             30,
+      mp:             50,
       atk:            2,
       ko:             false,
       koTimer:        null,
@@ -409,6 +437,8 @@ function getUser(ipid) {
         lowHpSurvive:  0,
         longComment:   0,
       },
+      lastCommentAt: Date.now(),
+      dormant:       false,
     };
   }
   return users[ipid];
@@ -443,8 +473,48 @@ function getUsedCharIds(excludeUser) {
   return used;
 }
 
+function sleepChar(user) {
+  if (!user.el || user.dormant) return;
+  user.dormant = true;
+  if (user.moveTimer)  { clearTimeout(user.moveTimer);  user.moveTimer  = null; }
+  if (user.walkTimer)  { clearTimeout(user.walkTimer);  user.walkTimer  = null; }
+  user.el.style.transition = 'opacity 1s ease';
+  user.el.style.opacity    = '0';
+  setTimeout(() => { if (user.dormant && user.el) user.el.style.display = 'none'; }, 1000);
+}
+
+function wakeUpChar(user) {
+  if (!user.dormant) return;
+  user.dormant = false;
+  if (user.el) {
+    user.el.style.display    = '';
+    requestAnimationFrame(() => {
+      if (!user.el) return;
+      user.el.style.transition = 'opacity 0.5s ease';
+      user.el.style.opacity    = '';
+      setTimeout(() => { if (user.el) user.el.style.transition = ''; }, 500);
+    });
+    scheduleMove(user);
+  } else {
+    createCharacter(user);
+  }
+}
+
+// 10分間コメントなしのキャラを非表示にするインターバル
+setInterval(() => {
+  const threshold = Date.now() - 10 * 60 * 1000;
+  Object.values(users).forEach(user => {
+    if (user.el && !user.dormant && (user.lastCommentAt ?? 0) < threshold) {
+      sleepChar(user);
+    }
+  });
+}, 60 * 1000);
+
 function ensureCharOnStage(user) {
-  if (user.el) return;
+  if (user.el) {
+    if (user.dormant) wakeUpChar(user);
+    return;
+  }
   if (!user.charDef) {
     const used = getUsedCharIds(user);
     const allIds = Object.keys(charImages).map(Number).filter(id => id >= 1 && id <= 500 && !charExcludeIds.has(id));
@@ -541,24 +611,34 @@ function applyAvatarStyle(user) {
   applyFacingFlip(user);
 }
 
+function isUserFlipped(user) {
+  if (user._taimanFlip) return true;
+  return (!!user.facingRight) !== (!!user.flipped);
+}
+
 function applyFacingFlip(user) {
   const a = document.getElementById('a-' + user.ipid);
   if (!a) return;
   const img = a.querySelector('img');
   if (!img) return;
-  // 右向き XOR 反転フラグ
-  const flip = (!!user.facingRight) !== (!!user.flipped);
+  const flip = isUserFlipped(user);
   img.style.transform = flip ? 'scaleX(-1)' : '';
+  // ペット画像も同様に反転
+  ['p-', 'p2-'].forEach(prefix => {
+    const petImg = document.getElementById(prefix + user.ipid)?.querySelector('img');
+    if (petImg) petImg.style.transform = flip ? 'scaleX(-1)' : '';
+  });
 }
 
 function renderPetBadge(user) {
   const petSize = Math.max(20, Math.round(user.size * 0.75 * charSizeScale * (user.sizeScale || 1) * (user.brWinnerScale || 1)));
+  const flipCss = isUserFlipped(user) ? 'transform:scaleX(-1);' : '';
   const slot = document.getElementById('p-' + user.ipid);
   if (slot) {
     if (!user.pet) { slot.className = 'char-pet'; slot.innerHTML = ''; }
     else {
       slot.className = `char-pet ${user.pet.rarityCls || ''}`;
-      slot.innerHTML = `<img src="/chara/${encodeURIComponent(user.pet.img)}" alt="pet" style="width:${petSize}px;height:${petSize}px;object-fit:contain" title="${escapeHtml(user.pet.abilityName)}: ${escapeHtml(user.pet.abilityDesc)}">`;
+      slot.innerHTML = `<img src="/chara/${encodeURIComponent(user.pet.img)}" alt="pet" style="width:${petSize}px;height:${petSize}px;object-fit:contain;${flipCss}" title="${escapeHtml(user.pet.abilityName)}: ${escapeHtml(user.pet.abilityDesc)}">`;
     }
   }
   const slot2 = document.getElementById('p2-' + user.ipid);
@@ -566,7 +646,7 @@ function renderPetBadge(user) {
     if (!user.pet2) { slot2.className = 'char-pet2'; slot2.innerHTML = ''; }
     else {
       slot2.className = `char-pet2 ${user.pet2.rarityCls || ''}`;
-      slot2.innerHTML = `<img src="/chara/${encodeURIComponent(user.pet2.img)}" alt="pet2" style="width:${petSize}px;height:${petSize}px;object-fit:contain" title="${escapeHtml(user.pet2.abilityName)}: ${escapeHtml(user.pet2.abilityDesc)}">`;
+      slot2.innerHTML = `<img src="/chara/${encodeURIComponent(user.pet2.img)}" alt="pet2" style="width:${petSize}px;height:${petSize}px;object-fit:contain;${flipCss}" title="${escapeHtml(user.pet2.abilityName)}: ${escapeHtml(user.pet2.abilityDesc)}">`;
     }
   }
 }
@@ -1006,6 +1086,23 @@ function spawnConfetti() {
   }
 }
 
+function spawnConfettiSmall(n) {
+  if (compactMode) return;
+  const colors = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#c77dff','#ff9a3c','#ffffff','#ffb347'];
+  for (let i = 0; i < (n || 10); i++) {
+    const p = document.createElement('div');
+    const w = 5 + Math.random()*7, h = 8 + Math.random()*6;
+    p.style.cssText = `position:absolute;left:${Math.random()*stage.clientWidth}px;top:-${h}px;width:${w}px;height:${h}px;background:${colors[Math.floor(Math.random()*colors.length)]};z-index:60;pointer-events:none;border-radius:2px;`;
+    stage.appendChild(p);
+    const rot = Math.random() * 360;
+    const drift = (Math.random() - 0.5) * 120;
+    p.animate([
+      { transform: `rotate(${rot}deg) translateX(0)`, opacity: 1 },
+      { transform: `rotate(${rot+270}deg) translateX(${drift}px) translateY(${stage.clientHeight+20}px)`, opacity: 0.6 },
+    ], { duration: 2200 + Math.random()*1200, easing: 'linear', fill: 'forwards' }).onfinish = () => p.remove();
+  }
+}
+
 function spawnShootingStar() {
   const p = document.createElement('div');
   const startY = Math.random() * stage.clientHeight * 0.5;
@@ -1041,6 +1138,7 @@ function spawnHeartShower(cx, cy) {
 let bossState = null;
 let bossManuallyCleared = false;
 let brState   = null; // バトルロイヤル状態 // 消去ボタン押下後は自動召喚しない
+let taimanState = null; // タイマン状態
 let brNextAutoAt    = Date.now() + 30 * 60 * 1000; // 次回自動BR予定時刻(ms)
 let brTimerVisible  = false;
 let brTimerDragState = null;
@@ -1051,6 +1149,7 @@ let bossCounterRate = 0.40; // 反撃確率（0〜1）
 let bossHpScale    = 1;    // ボスHP倍率（1〜100）
 let bossAtkCoeff   = 20;   // 参加者ATK合計への係数
 let brHpMult       = 200;  // バトルロイヤル仮想HP倍率
+let taimanDefeatCommand = localStorage.getItem('taimanDefeatCommand') || ''; // タイマン敗北時コマンド
 let nikoFontSize  = 40;  // 早押しコメント文字サイズ(px)
 let nikoOpacity   = 1.0; // 早押しコメント透明度（0〜1）
 function nextBossHp() {
@@ -1213,10 +1312,15 @@ function updateStatsDisplay(user) {
   const mp  = user.mp    ?? 10;
   const atk = calcAtk(user);
   const expToNext = lv >= 10 ? 'MAX' : LEVEL_EXP[lv] - (user.exp || 0);
-  // BR中は仮想HPを表示
-  const inBR = brState?.active && brState.hp[user.ipid] !== undefined;
-  const hp  = inBR ? Math.max(0, brState.hp[user.ipid])         : (user.hp    ?? 30);
-  const mhp = inBR ? (brState.maxHp[user.ipid] ?? hp)           : (user.maxHp ?? 30);
+  // タイマン/BR中は仮想HPを表示
+  const inTaiman = taimanState?.active && taimanState.hp[user.ipid] !== undefined;
+  const inBR     = !inTaiman && brState?.active && brState.hp[user.ipid] !== undefined;
+  const hp  = inTaiman ? Math.max(0, taimanState.hp[user.ipid])
+            : inBR     ? Math.max(0, brState.hp[user.ipid])
+            : (user.hp ?? 30);
+  const mhp = inTaiman ? (taimanState.maxHp[user.ipid] ?? hp)
+            : inBR     ? (brState.maxHp[user.ipid] ?? hp)
+            : (user.maxHp ?? 30);
   s.textContent = `HP:${hp.toLocaleString()}/${mhp.toLocaleString()}  MP:${mp}  ATK:${atk}  EXP:${expToNext}`;
 }
 
@@ -1534,6 +1638,397 @@ function arrangeBRCircle(participants) {
     u.el.style.top  = u.y + 'px';
     setTimeout(() => { if (u.el) u.el.style.transition = ''; }, 800);
   });
+}
+
+// ── タイマン ────────────────────────────────────────────────────────
+function startTaiman(challenger, target) {
+  if (taimanState) return;
+  if (brState?.active) return;
+  if (raceState) return;
+  if (!challenger.el || !target.el) return;
+  if (challenger.ko || target.ko) return;
+
+  const sw = stage.clientWidth;
+  const sh = stage.clientHeight;
+
+  // 全キャラの移動を止め、戦闘員以外を縮小
+  const savedSizeScales = {};
+  Object.values(users).forEach(u => {
+    savedSizeScales[u.ipid] = u.sizeScale || 1;
+    if (u.moveTimer) { clearTimeout(u.moveTimer); u.moveTimer = null; }
+    if (u.walkTimer) { clearTimeout(u.walkTimer); u.walkTimer = null; }
+    if (u.ipid !== challenger.ipid && u.ipid !== target.ipid && u.el) {
+      u.sizeScale = 0.5;
+      applyAvatarStyle(u);
+      renderPetBadge(u);
+    }
+  });
+
+  // 観客を画面の左端・右端に退かす
+  const bystanders = Object.values(users).filter(u =>
+    u.el && !u.dormant && u.ipid !== challenger.ipid && u.ipid !== target.ipid
+  );
+  const half = Math.ceil(bystanders.length / 2);
+  bystanders.forEach((u, i) => {
+    const szPx = Math.round(u.size * 1.5 * charSizeScale * 0.5);
+    const isLeft = i < half;
+    const idx    = isLeft ? i : i - half;
+    const nx = isLeft
+      ? Math.max(0, idx * (szPx + 3))
+      : Math.min(sw - szPx, sw - szPx - idx * (szPx + 3));
+    const ny = Math.max(0, sh - szPx - 10);
+    u.x = nx; u.y = ny;
+    u.el.style.transition = 'left 0.7s ease-in-out, top 0.7s ease-in-out';
+    u.el.style.left = nx + 'px';
+    u.el.style.top  = ny + 'px';
+    setTimeout(() => { if (u.el) u.el.style.transition = ''; }, 800);
+  });
+
+  // 戦闘員を4倍に拡大
+  challenger.sizeScale = 4;
+  target.sizeScale = 4;
+  applyAvatarStyle(challenger);
+  applyAvatarStyle(target);
+  renderPetBadge(challenger);
+  renderPetBadge(target);
+
+  // 左右に配置
+  const charSize = Math.round(challenger.size * 1.5 * charSizeScale * 4);
+  const gap    = 100;
+  const leftX  = Math.max(0, Math.round(sw / 2 - charSize - gap / 2));
+  const rightX = Math.max(0, Math.min(sw - charSize, Math.round(sw / 2 + gap / 2)));
+  const midY   = Math.max(0, Math.min(sh - charSize, Math.round(sh * 0.42 - charSize / 2)));
+
+  challenger.x = leftX;  challenger.y = midY;
+  target.x     = rightX; target.y     = midY;
+
+  [challenger, target].forEach(u => {
+    u.el.style.transition = 'left 0.6s ease-in-out, top 0.6s ease-in-out';
+    u.el.style.left = u.x + 'px';
+    u.el.style.top  = u.y + 'px';
+    setTimeout(() => { if (u.el) u.el.style.transition = ''; }, 700);
+  });
+
+  // 左のキャラ（挑戦者）を水平反転
+  challenger._taimanFlip = true;
+  applyFacingFlip(challenger);
+
+  // HP を元の最大HP×10に設定
+  const cMax = calcMaxHp(challenger) * 10;
+  const tMax = calcMaxHp(target)     * 10;
+
+  taimanState = {
+    active: true,
+    challenger: challenger.ipid,
+    target: target.ipid,
+    turn: 'challenger',
+    hp:    { [challenger.ipid]: cMax, [target.ipid]: tMax },
+    maxHp: { [challenger.ipid]: cMax, [target.ipid]: tMax },
+    savedSizeScales,
+    savedHp: {
+      [challenger.ipid]: challenger.hp ?? 30,
+      [target.ipid]:     target.hp ?? 30,
+    },
+    attackTimer: null,
+    interval: 1200,
+  };
+
+  updateStatsDisplay(challenger);
+  updateStatsDisplay(target);
+  renderTaimanHpBars();
+  showTaimanIntroBanner(challenger, target);
+  addToLog(challenger, `⚔️ タイマン：${challenger.name} vs ${target.name}`, '#ef4444');
+
+  taimanState.attackTimer = setTimeout(() => taimanDoAttack(), 3200);
+}
+
+function renderTaimanHpBars() {
+  const prev = document.getElementById('taimanHpBars');
+  if (prev) prev.remove();
+  if (!taimanState) return;
+  const c = users[taimanState.challenger];
+  const t = users[taimanState.target];
+  if (!c || !t) return;
+  const cHp  = taimanState.hp[taimanState.challenger];
+  const tHp  = taimanState.hp[taimanState.target];
+  const cMax = taimanState.maxHp[taimanState.challenger];
+  const tMax = taimanState.maxHp[taimanState.target];
+  const el = document.createElement('div');
+  el.id = 'taimanHpBars';
+  el.className = 'taiman-hp-bars';
+  el.innerHTML = `
+    <div class="taiman-hp-side">
+      <div class="taiman-fighter-name">${escapeHtml(c.name)}</div>
+      <div class="taiman-hp-track">
+        <div class="taiman-hp-fill taiman-hp-fill-left" style="width:${Math.max(0, cHp / cMax * 100).toFixed(1)}%"></div>
+      </div>
+      <div class="taiman-hp-text">${cHp.toLocaleString()} / ${cMax.toLocaleString()}</div>
+    </div>
+    <div class="taiman-vs-label">⚔️ VS ⚔️</div>
+    <div class="taiman-hp-side">
+      <div class="taiman-fighter-name">${escapeHtml(t.name)}</div>
+      <div class="taiman-hp-track">
+        <div class="taiman-hp-fill taiman-hp-fill-right" style="width:${Math.max(0, tHp / tMax * 100).toFixed(1)}%"></div>
+      </div>
+      <div class="taiman-hp-text">${tHp.toLocaleString()} / ${tMax.toLocaleString()}</div>
+    </div>
+  `;
+  stage.appendChild(el);
+}
+
+function showTaimanIntroBanner(challenger, target) {
+  const el = document.createElement('div');
+  el.className = 'taiman-intro-banner';
+  el.innerHTML = `
+    <div class="taiman-intro-title">⚔️ タイマン ⚔️</div>
+    <div class="taiman-intro-names">
+      <span class="taiman-intro-name">${escapeHtml(challenger.name)}</span>
+      <span class="taiman-intro-vs">VS</span>
+      <span class="taiman-intro-name">${escapeHtml(target.name)}</span>
+    </div>
+  `;
+  stage.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+  playLocalSound(SOUND_RACE_FANFARE);
+}
+
+function taimanDoAttack() {
+  if (!taimanState?.active) return;
+  const attackerId = taimanState.turn === 'challenger' ? taimanState.challenger : taimanState.target;
+  const defenderId = taimanState.turn === 'challenger' ? taimanState.target     : taimanState.challenger;
+  const attacker = users[attackerId];
+  const defender = users[defenderId];
+  if (!attacker?.el || !defender?.el) { endTaiman(null, null); return; }
+
+  const atk       = calcAtk(attacker);
+  const titleBon  = typeof getTitleBonuses === 'function' ? getTitleBonuses(attacker) : { dmgM: 1, crit: 0 };
+  const petId     = attacker.pet?.abilityId;
+  const petId2    = attacker.pet2?.abilityId;
+  const critBonus = (petId  === 'scout' ? 0.05 : petId  === 'crit_up' ? 0.20 : 0)
+                  + (petId2 === 'scout' ? 0.05 : petId2 === 'crit_up' ? 0.20 : 0);
+  const isCrit    = Math.random() < (0.15 + critBonus + (titleBon.crit || 0));
+  const hayaMult  = attacker.hayaoshiBuff ? 1.5 : 1;
+  attacker.hayaoshiBuff = false;
+  let dmg = Math.round((isCrit
+    ? Math.max(1, atk * (2 + Math.floor(Math.random() * 3)) * 2)
+    : Math.max(1, atk * (1 + Math.floor(Math.random() * 3)))) * hayaMult * (titleBon.dmgM || 1));
+  // 防御側ペット: guard(-1), barrier(20%で-3)
+  const defPetId  = defender.pet?.abilityId;
+  const defPetId2 = defender.pet2?.abilityId;
+  if (defPetId  === 'guard')                        dmg = Math.max(0, dmg - 1);
+  if (defPetId2 === 'guard')                        dmg = Math.max(0, dmg - 1);
+  if (defPetId  === 'barrier' && Math.random() < 0.20) dmg = Math.max(0, dmg - 3);
+  if (defPetId2 === 'barrier' && Math.random() < 0.20) dmg = Math.max(0, dmg - 3);
+
+  rushToChar(attacker, defender);
+
+  // ── ペット攻撃エフェクト（ボス戦と同じ突進モーション）──────────────
+  const PET_HIT_MAP = { extra_hit:1, double_hit:2, triple_hit:3, quad_hit:4, storm:5,
+                        chain:1, regen:1, hp_steal:1, soul_steal:1, full_drain:1,
+                        team_heal:1, poison:1, burn:1, charge:1, avenger:1, berserk:1, godhand:1, omega:1 };
+  [[attacker.pet, 'p-' + attacker.ipid], [attacker.pet2, 'p2-' + attacker.ipid]]
+    .forEach(([pet, elId], pi) => {
+      if (!pet) return;
+      const aid  = pet.abilityId;
+      const base = Math.max(1, Math.round(calcAtk(attacker) * 0.25));
+      let mult = 1;
+      if (aid === 'avenger' && (attacker.hp ?? 30) < (attacker.maxHp ?? 30) * 0.5) mult = 1.5;
+      if (aid === 'berserk' && (attacker.hp ?? 30) < (attacker.maxHp ?? 30) * 0.3) mult = 3;
+      if (aid === 'godhand' && Math.random() < 0.05) mult = 20;
+      if (aid === 'charge') { pet._chargeCount = (pet._chargeCount || 0) + 1; if (pet._chargeCount % 2 !== 0) return; mult = 2; }
+      let hits = PET_HIT_MAP[aid] ?? 1;
+      if (aid === 'cheer') hits = Math.random() < 0.10 ? 1 : 0;
+      if (aid === 'chain') hits = Math.random() < 0.35 ? 2 : 1;
+      if (hits === 0) return;
+      const petDmg = Math.max(1, Math.round(base * mult));
+      for (let i = 0; i < hits; i++) {
+        setTimeout(() => {
+          if (!taimanState?.active) return;
+          rushPetToChar(attacker, elId, defender);
+          setTimeout(() => {
+            if (!taimanState?.active) return;
+            taimanState.hp[defenderId] = Math.max(0, taimanState.hp[defenderId] - petDmg);
+            updateStatsDisplay(defender);
+            playSentouSound();
+            // ペットダメージは被攻撃キャラの位置に表示（メインダメージと分離のためoffset）
+            { const { x: px, y: py } = getCharCenter(defender);
+              showDamageNumber(px + 30, py - 65, `🐾${petDmg}`, false, 14, '#a78bfa'); }
+            if (defender.el) {
+              defender.el.classList.add('trembling');
+              setTimeout(() => defender.el?.classList.remove('trembling'), 700);
+            }
+            renderTaimanHpBars();
+            // 副効果
+            const stealPct = { hp_steal:0.25, soul_steal:0.40, full_drain:0.60 }[aid];
+            if (stealPct) {
+              const heal = Math.max(1, Math.round(petDmg * stealPct));
+              taimanState.hp[attackerId] = Math.min(taimanState.maxHp[attackerId], taimanState.hp[attackerId] + heal);
+              const { x: ax, y: ay } = getCharCenter(attacker);
+              showDamageNumber(ax, ay - 30, `💉+${heal}`, false, 14, '#86efac');
+              updateStatsDisplay(attacker);
+              renderTaimanHpBars();
+            }
+            if (aid === 'regen') {
+              taimanState.hp[attackerId] = Math.min(taimanState.maxHp[attackerId], taimanState.hp[attackerId] + 2);
+              updateStatsDisplay(attacker);
+              renderTaimanHpBars();
+            }
+            if (aid === 'team_heal') {
+              const th = Math.max(1, Math.round(petDmg * 0.5));
+              taimanState.hp[attackerId] = Math.min(taimanState.maxHp[attackerId], taimanState.hp[attackerId] + th);
+              const { x: ax2, y: ay2 } = getCharCenter(attacker);
+              showDamageNumber(ax2, ay2 - 30, `💚+${th}`, false, 14, '#86efac');
+              updateStatsDisplay(attacker);
+              renderTaimanHpBars();
+            }
+            if (aid === 'omega') {
+              taimanState.hp[attackerId] = Math.min(taimanState.maxHp[attackerId], taimanState.hp[attackerId] + Math.max(1, Math.round(petDmg * 0.5)));
+              taimanState.hp[defenderId] = Math.max(0, taimanState.hp[defenderId] - petDmg);
+              updateStatsDisplay(attacker); updateStatsDisplay(defender);
+              renderTaimanHpBars();
+            }
+            if (taimanState.hp[defenderId] <= 0 && taimanState.active) {
+              if (!tryTaimanRevive(defender, defenderId)) endTaiman(attacker, defender);
+            }
+          }, 120);
+        }, 370 + pi * 800 + i * 400);
+      }
+    });
+
+  setTimeout(() => {
+    if (!taimanState?.active) return;
+    taimanState.hp[defenderId] = Math.max(0, taimanState.hp[defenderId] - dmg);
+    updateStatsDisplay(defender);
+    playSentouSound();
+    const { x, y } = getCharCenter(defender);
+    showDamageNumber(x, y - 20, (isCrit ? '💥' : '') + dmg.toLocaleString(), isCrit);
+    if (defender.el) {
+      defender.el.classList.add('trembling');
+      setTimeout(() => defender.el?.classList.remove('trembling'), 700);
+    }
+    // ダメージトースト
+    const container = document.getElementById('brToastContainer');
+    if (container) {
+      const toast = document.createElement('div');
+      toast.className = 'br-toast' + (isCrit ? ' br-toast-crit' : '');
+      toast.innerHTML = `<span class="br-atk">${escapeHtml(attacker.name)}</span> ⚔️ <span class="br-tgt">${escapeHtml(defender.name)}</span> <span class="br-dmg">${isCrit ? '💥' : '−'}${dmg.toLocaleString()}</span>`;
+      container.prepend(toast);
+      while (container.children.length > 8) container.lastChild.remove();
+      setTimeout(() => toast.remove(), 2800);
+    }
+    renderTaimanHpBars();
+    if (taimanState.hp[defenderId] <= 0) {
+      if (!tryTaimanRevive(defender, defenderId)) { endTaiman(attacker, defender); return; }
+    }
+    taimanState.turn = taimanState.turn === 'challenger' ? 'target' : 'challenger';
+    taimanState.interval = Math.max(200, taimanState.interval - 40);
+    taimanState.attackTimer = setTimeout(() => taimanDoAttack(), taimanState.interval);
+  }, 240);
+}
+
+function tryTaimanRevive(defender, defenderId) {
+  if (!taimanState) return false;
+  const revivePet = (defender.pet?.abilityId  === 'revive' && !defender.pet.reviveUsed)  ? defender.pet
+                  : (defender.pet2?.abilityId === 'revive' && !defender.pet2.reviveUsed) ? defender.pet2
+                  : null;
+  if (!revivePet) return false;
+  revivePet.reviveUsed = true;
+  taimanState.hp[defenderId] = Math.round(taimanState.maxHp[defenderId] * 0.5);
+  updateStatsDisplay(defender);
+  renderTaimanHpBars();
+  const { x, y } = getCharCenter(defender);
+  showDamageNumber(x, y - 50, '🔥 不死鳥！', false, 18, '#f97316');
+  showBubble(defender, '🔥 不死鳥！復活！', {});
+  return true;
+}
+
+function endTaiman(winner, loser) {
+  if (!taimanState) return;
+  clearTimeout(taimanState.attackTimer);
+  taimanState.active = false;
+  const snapshot = taimanState;
+  taimanState = null;
+
+  document.getElementById('taimanHpBars')?.remove();
+
+  // 全キャラのサイズをリセット
+  Object.values(users).forEach(u => {
+    u.sizeScale = snapshot.savedSizeScales[u.ipid] ?? 1;
+    applyAvatarStyle(u);
+    renderPetBadge(u);
+  });
+
+  // 反転フラグ解除
+  const c = users[snapshot.challenger];
+  const t = users[snapshot.target];
+  if (c) { c._taimanFlip = false; applyFacingFlip(c); }
+
+  // HP を元に戻す
+  if (c) { c.hp = snapshot.savedHp[snapshot.challenger] ?? (c.hp ?? 30); updateStatsDisplay(c); }
+  if (t) { t.hp = snapshot.savedHp[snapshot.target]     ?? (t.hp ?? 30); updateStatsDisplay(t); }
+
+  if (winner && loser) {
+    const transferMp = loser.mp ?? 0;
+    winner.mp = (winner.mp ?? 0) + transferMp;
+    loser.mp  = 0;
+    updateStatsDisplay(winner);
+    updateStatsDisplay(loser);
+
+    if (transferMp > 0) {
+      const { x: wx, y: wy } = getCharCenter(winner);
+      showDamageNumber(wx, wy - 50, `MP+${transferMp}`, false, 20, '#a78bfa');
+    }
+
+    // 敗者の画像を敗北画像に変更
+    const loserAvatar = document.getElementById('a-' + loser.ipid);
+    if (loserAvatar) {
+      loserAvatar.innerHTML = `<img src="/chara/248106.png" alt="${escapeHtml(loser.name)}">`;
+    }
+    loser._taimanDefeated = true;
+
+    // 勝者に花火・紙吹雪
+    for (let i = 0; i < 6; i++) {
+      setTimeout(() => {
+        if (!winner.el) return;
+        const { x, y } = getCharCenter(winner);
+        spawnFireworks(x + (Math.random() - 0.5) * 250, y + (Math.random() - 0.5) * 120);
+      }, i * 350);
+    }
+    spawnConfettiSmall(20);
+    const confettiId = setInterval(() => spawnConfettiSmall(12), 400);
+    setTimeout(() => clearInterval(confettiId), 5000);
+
+    showBubble(winner, `🏆 勝利！ MP+${transferMp}`, {});
+    showBubble(loser,  '😢 負け…', {});
+
+    // 敗北コマンドを敗者の発言として実行
+    if (taimanDefeatCommand.trim()) {
+      setTimeout(() => {
+        handleComment({ type: 'comment', ipid: loser.ipid, icon_name: loser.name, message: taimanDefeatCommand, _skipCharDupeCheck: true });
+      }, 1200);
+    }
+
+    showTaimanWinBanner(winner, loser, transferMp);
+    addToLog(winner, `⚔️ タイマン勝利！ MP+${transferMp}`, '#fbbf24');
+    addToLog(loser,  '⚔️ タイマン敗北… MP→0', '#f87171');
+  }
+
+  setTimeout(() => gatherCharactersBottom(), 4500);
+}
+
+function showTaimanWinBanner(winner, loser, transferMp) {
+  const banner = document.createElement('div');
+  banner.className = 'taiman-win-banner';
+  banner.innerHTML = `
+    <div class="taiman-win-title">⚔️ タイマン終了 ⚔️</div>
+    <div class="taiman-win-result">🏆 <b>${escapeHtml(winner.name)}</b> の勝利！</div>
+    <div class="taiman-win-mp">MP +${transferMp.toLocaleString()} 獲得</div>
+  `;
+  stage.appendChild(banner);
+  const { x, y } = getCharCenter(winner);
+  spawnHeartShower(x, y);
+  spawnFireworks(x, y);
+  setTimeout(() => banner.remove(), 6000);
 }
 
 function damageUser(user, dmg) {
@@ -1886,6 +2381,26 @@ function attackBoss(user, msgLen) {
   }
 }
 
+function rushPetToChar(attacker, elId, defender) {
+  const petEl = document.getElementById(elId);
+  if (!petEl || !defender?.el) return;
+  const pr = petEl.getBoundingClientRect();
+  const cr = defender.el.getBoundingClientRect();
+  const dx = (cr.left + cr.width  / 2) - (pr.left + pr.width  / 2);
+  const dy = (cr.top  + cr.height / 2) - (pr.top  + pr.height / 2);
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+  const rx  = (dx / len) * Math.min(len * 0.6, 120);
+  const ry  = (dy / len) * Math.min(len * 0.6, 120);
+  petEl.style.transition = 'transform 0.12s ease-in';
+  petEl.style.transform  = `translate(${rx}px,${ry}px) scale(1.4)`;
+  setTimeout(() => {
+    if (!petEl.isConnected) return;
+    petEl.style.transition = 'transform 0.22s cubic-bezier(0.34,1.56,0.64,1)';
+    petEl.style.transform  = '';
+    setTimeout(() => { if (petEl.isConnected) petEl.style.transition = ''; }, 220);
+  }, 120);
+}
+
 function rushPetToBoss(user, elId) {
   const petEl = document.getElementById(elId || ('p-' + user.ipid));
   if (!petEl || !bossState?.el) return;
@@ -2202,6 +2717,10 @@ function handleComment(comment) {
   const ipid  = comment.ipid || comment.from || 'master';
   const user  = getUser(ipid);
 
+  // アクティブ時刻を更新・休眠中なら復帰
+  user.lastCommentAt = Date.now();
+  if (user.dormant) wakeUpChar(user);
+
   // バトルロイヤル中：脱落済みユーザーは処理スキップ
   if (brState?.active && user.brOut) return;
 
@@ -2273,6 +2792,40 @@ function handleComment(comment) {
     }
   }
 
+  // ── 応援（レース中） ──
+  if (raceState?.phase === 'racing' && raceState.horses?.length) {
+    const normMsg = message.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+    raceState.horses.forEach(h => {
+      if (new RegExp(`(?<![0-9])${h.no}(?![0-9])`).test(normMsg)) {
+        triggerRaceCheer(h);
+      }
+    });
+  }
+
+  // ── YouTube URL 共有でMP回復 ──
+  {
+    // comment.urlはURLエンコードされている場合がある（例: v%3DID → v=ID）
+    const urlDecoded = comment.url ? decodeURIComponent(comment.url) : '';
+    const plainMsg = (comment.message ?? '').replace(/<[^>]+>/g, ' ');
+    const searchTarget = urlDecoded + ' ' + plainMsg + ' ' + rawMessage;
+    const ytMatch = searchTarget.match(/(?:youtu\.be\/|[?&]v=|shorts\/|live\/)([A-Za-z0-9_-]{11})/);
+    if (ytMatch) {
+      const videoId = ytMatch[1];
+      if (seenYoutubeUrls.has(videoId)) {
+        postAIReply('もうみた');
+      } else {
+        seenYoutubeUrls.add(videoId);
+        user.mp = (user.mp ?? 0) + 20;
+        updateStatsDisplay(user);
+        ensureCharOnStage(user);
+        showBubble(user, '📺 YouTube共有！ MP+20', {});
+        const { x: yx, y: yy } = getCharCenter(user);
+        showDamageNumber(yx, yy - 40, 'MP+20', false, 20, '#60a5fa');
+        addToLog(user, '📺 YouTube共有 MP+20', '#60a5fa');
+      }
+    }
+  }
+
   // ── 不在確認ワード自動返答 ──
   const _absentWords = ['これ放置', 'mumyou', '無明', 'いない', 'いにゃい', '寝た？', 'ねた？', 'ほうち', 'ホウチ', 'houti', 'houchi', 'abandoned', 'いる？', 'iru?', 'ねてる'];
   if (_absentWords.some(w => rawMessage.includes(w)) && !_aiPostedTexts.has(message)) {
@@ -2332,6 +2885,35 @@ function handleComment(comment) {
   // ── クイズ回答チェック ────────────────────────
   if (quizState && !quizState.answered) {
     handleQuizAnswer(user, message.trim());
+  }
+
+  // ── タイマン ─────────────────────────────────────
+  {
+    const taimanM = message.trim().match(/^タイマン[：:](.+)$/);
+    if (taimanM) {
+      const targetName = taimanM[1].trim();
+      ensureCharOnStage(user);
+      if (taimanState) {
+        showBubble(user, 'タイマン中です', {});
+        return;
+      }
+      const TAIMAN_COOLDOWN = 2 * 60 * 1000;
+      const elapsed = Date.now() - (user.lastTaimanAt ?? 0);
+      if (elapsed < TAIMAN_COOLDOWN) {
+        const remaining = Math.ceil((TAIMAN_COOLDOWN - elapsed) / 1000);
+        showBubble(user, `あと${remaining}秒でタイマンできます`, {});
+        return;
+      }
+      const targetUser = Object.values(users).find(u => u.name === targetName && u.el && !u.ko && u.ipid !== user.ipid);
+      if (!targetUser) {
+        showBubble(user, `「${targetName}」が見つかりません`, {});
+        return;
+      }
+      user.lastTaimanAt = Date.now();
+      showBubble(user, `⚔️ ${targetName} にタイマンを挑む！`, {});
+      startTaiman(user, targetUser);
+      return;
+    }
   }
 
   // ── AFK ───────────────────────────────────────
@@ -2427,11 +3009,11 @@ function handleComment(comment) {
   if (message.includes('ペットガチャ')) {
     if (compactMode) { ensureCharOnStage(user); showBubble(user, 'コンパクトモード中は使用できません', {}); return; }
     ensureCharOnStage(user);
-    if ((user.mp ?? 0) < 10) {
-      showBubble(user, `MPが足りない… (${user.mp ?? 0}/10)`, {});
+    if ((user.mp ?? 0) < 20) {
+      showBubble(user, `MPが足りない… (${user.mp ?? 0}/20)`, {});
       return;
     }
-    user.mp -= 10;
+    user.mp -= 20;
     updateStatsDisplay(user);
     if (!user.tc) user.tc = {};
     user.tc.petGachas = (user.tc.petGachas || 0) + 1;
@@ -2444,11 +3026,9 @@ function handleComment(comment) {
     renderPetBadge(user);
     showPetGachaAnim(user, pet);
     if (unlockPet2) {
-      showBubble(user, `🎉 ペット2枠目が解放！ ${pet.abilityName}[${pet.rarityName}]`, {});
       addToLog(user, `🎉 ペット2枠目解放 → ${pet.abilityName}[${pet.rarityName}]`, '#fbbf24');
     } else {
       const slotLabel = isSlot2 ? '(2枠目)' : '';
-      showBubble(user, `🐾 ${pet.abilityName}[${pet.rarityName}]を引いた！${slotLabel}`, {});
       addToLog(user, `🐾 ペットガチャ${slotLabel} → ${pet.abilityName}[${pet.rarityName}]`, '#a78bfa');
     }
     return;
@@ -2471,12 +3051,12 @@ function handleComment(comment) {
     ensureCharOnStage(user);
     if (user.slotAutoMode) return;
     if (user.slotSpinning) return;
-    if ((user.mp ?? 0) < 1) {
-      showBubble(user, `MPが足りない… (${user.mp ?? 0}/1)`, {});
+    if ((user.mp ?? 0) < 3) {
+      showBubble(user, `MPが足りない… (${user.mp ?? 0}/3)`, {});
       return;
     }
     user.slotAutoMode = true;
-    user.mp -= 1;
+    user.mp -= 3;
     updateStatsDisplay(user);
     playSlot(user);
     addToLog(user, '🎰 スロット開始（自動）', '#fbbf24');
@@ -2488,11 +3068,11 @@ function handleComment(comment) {
     if (compactMode) { ensureCharOnStage(user); showBubble(user, 'コンパクトモード中は使用できません', {}); return; }
     ensureCharOnStage(user);
     if (user.slotSpinning) return;
-    if ((user.mp ?? 0) < 1) {
-      showBubble(user, `MPが足りない… (${user.mp ?? 0}/1)`, {});
+    if ((user.mp ?? 0) < 3) {
+      showBubble(user, `MPが足りない… (${user.mp ?? 0}/3)`, {});
       return;
     }
-    user.mp -= 1;
+    user.mp -= 3;
     updateStatsDisplay(user);
     playSlot(user);
     addToLog(user, '🎰 スロット！', '#fbbf24');
@@ -2515,7 +3095,7 @@ function handleComment(comment) {
     const id = aliasId;
     if (id < 1 || id > 500) return;
     const usedIds = getUsedCharIds(user);
-    if (usedIds.has(id)) {
+    if (usedIds.has(id) && !comment._skipCharDupeCheck) {
       ensureCharOnStage(user);
       showBubble(user, `キャラ${id}は他の人が使用中です`, {});
       return;
@@ -2555,7 +3135,7 @@ function handleComment(comment) {
     const id = parseInt(charM[1]);
     if (id >= 1 && id <= 500) {
       const usedIds = getUsedCharIds(user);
-      if (usedIds.has(id)) {
+      if (usedIds.has(id) && !comment._skipCharDupeCheck) {
         ensureCharOnStage(user);
         showBubble(user, `キャラ${id}は他の人が使用中です`, {});
       } else {
@@ -3416,6 +3996,7 @@ async function playTTS(text) {
 let aiModel  = localStorage.getItem('aiModel')  || 'gemma3:12b';
 let aiSystem = localStorage.getItem('aiSystem') || '';
 const _aiPostedTexts = new Set();
+const seenYoutubeUrls = new Set();
 let _aiQueue = Promise.resolve();
 let _aiConvHistory = []; // 5分モードの会話履歴 [{role:'user',content:...},{role:'assistant',content:...},...]
 
@@ -4135,7 +4716,8 @@ function rollPetGacha() {
 }
 
 function showPetGachaAnim(user, finalPet) {
-  const prev = document.getElementById('petGachaOverlay');
+  if (!user.el) return;
+  const prev = user.el.querySelector('.pet-gacha-panel');
   if (prev) prev.remove();
 
   // ドラムロール開始
@@ -4143,61 +4725,54 @@ function showPetGachaAnim(user, finalPet) {
   if (!compactMode) {
     try {
       petGachaDrumAudio = new Audio(SOUND_GACHA_DRUM);
-      petGachaDrumAudio.volume = 0.8;
+      petGachaDrumAudio.volume = Math.min(1, 0.7 * seVolume);
       petGachaDrumAudio.loop = true;
       petGachaDrumAudio.play().catch(() => {});
     } catch {}
   }
 
-  const ov = document.createElement('div');
-  ov.id = 'petGachaOverlay';
-  document.body.appendChild(ov);
+  const panel = document.createElement('div');
+  panel.className = 'pet-gacha-panel';
+  user.el.appendChild(panel);
 
   const imgs = availableImages.length > 0 ? availableImages : ['kisyokeee.png'];
-  const updateCycle = (img, hint) => {
-    ov.innerHTML = `
-      <div class="pg-title">🐾 ペットガチャ！</div>
-      <div class="pg-img-wrap"><img src="/chara/${encodeURIComponent(img)}" alt="pet"></div>
-      <div class="pg-hint">${hint || '🎲 ガチャ中...'}</div>
-      <div class="pg-owner">👤 ${escapeHtml(user.name)}</div>`;
+  const update = img => {
+    panel.innerHTML = `
+      <div class="pg-panel-title">🐾 ガチャ中...</div>
+      <div class="pg-panel-img"><img src="/chara/${encodeURIComponent(img)}" alt="pet"></div>`;
   };
 
-  updateCycle(imgs[0]);
-  let timer = setInterval(() => updateCycle(imgs[Math.floor(Math.random() * imgs.length)]), 80);
+  update(imgs[0]);
+  let timer = setInterval(() => update(imgs[Math.floor(Math.random() * imgs.length)]), 80);
 
   setTimeout(() => {
     clearInterval(timer);
-    timer = setInterval(() => updateCycle(imgs[Math.floor(Math.random() * imgs.length)], '⏳ まもなく...'), 280);
+    timer = setInterval(() => update(imgs[Math.floor(Math.random() * imgs.length)]), 280);
   }, 2000);
 
   setTimeout(() => {
     clearInterval(timer);
-
-    // ドラムロール停止
     if (petGachaDrumAudio) { petGachaDrumAudio.pause(); petGachaDrumAudio = null; }
 
-    // 結果表示
     const RC = {
-      '':             { bg:'rgba(20,25,35,0.97)', border:'#374151', color:'#9ca3af' },
-      'rarity-rare':  { bg:'rgba(5,40,20,0.97)',  border:'#16a34a', color:'#4ade80' },
-      'rarity-epic':  { bg:'rgba(10,25,60,0.97)', border:'#3b82f6', color:'#60a5fa' },
-      'rarity-legend':{ bg:'rgba(30,10,60,0.97)', border:'#a855f7', color:'#c084fc' },
-      'rarity-myth':  { bg:'rgba(60,20,5,0.97)',  border:'#f59e0b', color:'#fbbf24' },
+      '':             { border:'#374151', color:'#9ca3af' },
+      'rarity-rare':  { border:'#16a34a', color:'#4ade80' },
+      'rarity-epic':  { border:'#3b82f6', color:'#60a5fa' },
+      'rarity-legend':{ border:'#a855f7', color:'#c084fc' },
+      'rarity-myth':  { border:'#f59e0b', color:'#fbbf24' },
     }[finalPet.rarityCls || ''];
 
-    ov.style.background = RC.bg;
-    ov.style.boxShadow  = `inset 0 0 80px ${RC.border}44`;
-    ov.innerHTML = `
-      <div class="pg-title">🎉 ペット獲得！</div>
-      <div class="pg-img-wrap pg-reveal" style="border-color:${RC.border};box-shadow:0 0 30px ${RC.border}88">
+    panel.style.borderColor = RC.border;
+    panel.style.boxShadow   = `0 0 12px ${RC.border}88, 0 4px 16px rgba(0,0,0,0.6)`;
+    panel.innerHTML = `
+      <div class="pg-panel-title" style="color:${RC.color}">🎉 GET!</div>
+      <div class="pg-panel-img pg-panel-reveal" style="border-color:${RC.border}">
         <img src="/chara/${encodeURIComponent(finalPet.img)}" alt="pet">
       </div>
-      <div class="pg-rarity" style="color:${RC.color}">${finalPet.rarityName}</div>
-      <div class="pg-ability-name" style="color:${RC.color}">${escapeHtml(finalPet.abilityName)}</div>
-      <div class="pg-ability-desc">${escapeHtml(finalPet.abilityDesc)}</div>
-      <div class="pg-owner">👤 ${escapeHtml(user.name)}</div>`;
+      <div class="pg-panel-rarity" style="color:${RC.color}">${finalPet.rarityName}</div>
+      <div class="pg-panel-name"   style="color:${RC.color}">${escapeHtml(finalPet.abilityName)}</div>
+      <div class="pg-panel-desc">${escapeHtml(finalPet.abilityDesc)}</div>`;
 
-    // レア度別効果音
     const raritySound = {
       '':              SOUND_GACHA_NORMAL,
       'rarity-rare':   SOUND_GACHA_RARE,
@@ -4207,7 +4782,6 @@ function showPetGachaAnim(user, finalPet) {
     }[finalPet.rarityCls || ''];
     playLocalSound(raritySound);
 
-    // 演出
     if (finalPet.rarityCls === 'rarity-myth') {
       for (let i = 0; i < 5; i++) setTimeout(() => spawnFireworks(Math.random() * stage.clientWidth, Math.random() * stage.clientHeight * 0.8), i * 200);
       spawnConfetti();
@@ -4215,7 +4789,7 @@ function showPetGachaAnim(user, finalPet) {
       spawnFireworks(stage.clientWidth / 2, stage.clientHeight / 2);
     }
 
-    setTimeout(() => ov.remove(), 4000);
+    setTimeout(() => panel.remove(), 4000);
   }, 3000);
 }
 
@@ -4237,7 +4811,8 @@ function postStatusComment(user) {
     ? (user.equips || []).map(eq => `${eq.icon}(${eq.stat === 'atk' ? 'ATK' : 'HP'}+${eq.value})`).join(' ')
     : 'なし';
 
-  const petSummary = (user.pet ? user.pet.abilityName : '') + (user.pet2 ? ' ' + user.pet2.abilityName : '') || 'なし';
+  const petSummary = [user.pet, user.pet2].filter(Boolean)
+    .map(p => `${p.abilityName}(${p.abilityDesc})`).join(' / ') || 'なし';
 
   const activeTitleName = user.activeTitle
     ? (TITLES.find(t => t.id === user.activeTitle)?.name || '')
@@ -4335,7 +4910,7 @@ function showStatusModal(user, autoClose = true) {
                 <div class="sm-stat"><span class="sm-stat-label">ATK</span><span class="sm-stat-val">${atk}</span></div>
                 <div class="sm-stat"><span class="sm-stat-label">EXP</span><span class="sm-stat-val">${user.exp || 0}</span></div>
               </div>
-              <div class="sm-section-title" style="margin-top:12px">📈 記録</div>
+              <div class="sm-section-title" style="margin-top:8px">📈 記録</div>
               <div class="sm-stats">
                 <div class="sm-stat"><span class="sm-stat-label">コメント数</span><span class="sm-stat-val">${user.commentCount || 0}</span></div>
                 <div class="sm-stat"><span class="sm-stat-label">合計ダメージ</span><span class="sm-stat-val">${(user.totalDmgDealt || 0).toLocaleString()}</span></div>
@@ -4365,7 +4940,6 @@ function showStatusModal(user, autoClose = true) {
 
   const close = () => overlay.remove();
   overlay.querySelector('.sm-close').addEventListener('click', close);
-  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
   if (autoClose !== false) setTimeout(close, 5000);
 }
 
@@ -4843,9 +5417,11 @@ function handleQuizAnswer(user, message) {
   renderQuizPanel();
 
   user.hp = Math.min(calcMaxHp(user), (user.hp ?? 30) + 20);
+  user.mp = (user.mp ?? 0) + 20;
   updateStatsDisplay(user);
   const { x, y } = getCharCenter(user);
   showDamageNumber(x, y - 30, '💊+20', false, 20, '#86efac');
+  showDamageNumber(x, y - 60, 'MP+20', false, 20, '#60a5fa');
   spawnFireworks(x, y);
   playLocalSound(SOUND_QUIZ_CORRECT);
 
@@ -5015,8 +5591,8 @@ function playSlot(user) {
     user.slotSpinning = false;
     // 自動モード継続
     if (user.slotAutoMode) {
-      if ((user.mp ?? 0) >= 1) {
-        user.mp -= 1;
+      if ((user.mp ?? 0) >= 3) {
+        user.mp -= 3;
         updateStatsDisplay(user);
         playSlot(user);
       } else {
@@ -5954,7 +6530,8 @@ function handleAdminMessage(d, replyFn) {
     state.sdDisplayTime    = sdDisplayTime;
     state.sdMosaicKeywords = sdMosaicKeywords;
     state.sdMosaicBlock    = sdMosaicBlock;
-    state.charExcludeIds   = localStorage.getItem('charExcludeIds') || '';
+    state.charExcludeIds        = localStorage.getItem('charExcludeIds') || '';
+    state.taimanDefeatCommand   = taimanDefeatCommand;
     state.slotMpJackpot = SLOT_OUTCOMES[0].mp;
     state.slotMpDiamond = SLOT_OUTCOMES[1].mp;
     state.slotMpStar    = SLOT_OUTCOMES[2].mp;
@@ -6119,6 +6696,9 @@ function handleAdminMessage(d, replyFn) {
       localStorage.setItem('wordleDisplayRows', v);
       renderWordlePanel();
     }
+  } else if (d.type === 'taimanDefeatCmd') {
+    taimanDefeatCommand = d.value || '';
+    localStorage.setItem('taimanDefeatCommand', taimanDefeatCommand);
   } else if (d.type === 'charExclude') {
     localStorage.setItem('charExcludeIds', d.value);
     charExcludeIds = new Set((d.value || '').split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0));
@@ -6291,6 +6871,7 @@ function startRace(numHorses, betSeconds) {
     gapFactor: 0.5 + Math.random() * 2.5, // 0.5x=接戦 〜 3.0x=大差
   };
   renderRacePanel();
+  startRaceFanfare();
   raceState._betTimerId = setInterval(() => {
     if (!raceState || raceState.phase !== 'betting') { clearInterval(raceState?._betTimerId); return; }
     raceState.betRemaining--;
@@ -6306,6 +6887,7 @@ function startRace(numHorses, betSeconds) {
 function beginRacing() {
   if (!raceState || raceState.phase !== 'betting') return;
   if (raceState._betTimerId) { clearInterval(raceState._betTimerId); raceState._betTimerId = null; }
+  stopRaceFanfare();
   // Weighted shuffle: better condition = higher chance of top finish
   const pool = [...raceState.horses];
   const order = [];
@@ -6333,21 +6915,26 @@ function beginRacing() {
     cdEl.className = 'race-countdown';
     cdEl.textContent = '3';
     panel.appendChild(cdEl);
+    playLocalSound(SOUND_RACE_COUNTDOWN);
     let cdCount = 3;
     const cdTick = setInterval(() => {
       cdCount--;
       if (cdCount > 0) {
         cdEl.textContent = String(cdCount);
         cdEl.style.animation = 'none'; void cdEl.offsetWidth; cdEl.style.animation = '';
+        playLocalSound(SOUND_RACE_COUNTDOWN);
       } else {
         clearInterval(cdTick);
         cdEl.textContent = 'GO!';
         cdEl.classList.add('race-countdown-go');
+        playLocalSound(SOUND_RACE_GATE);
         setTimeout(() => {
           cdEl.remove();
           // Measure track width here — panel has fully expanded by now
           const trackEl = panel.querySelector('.race-track-inner');
           raceState.trackW = trackEl ? Math.max(200, trackEl.offsetWidth - 82) : 680;
+          spawnConfettiSmall(14);
+          raceState._confettiTimerId = setInterval(() => spawnConfettiSmall(10), 500);
           requestAnimationFrame(ts => { raceState.raceStartTime = ts; requestAnimationFrame(raceAnimFrame); });
         }, 650);
       }
@@ -6357,25 +6944,34 @@ function beginRacing() {
   }
 }
 
-function showRaceHorseBubble(horse) {
+function showRaceHorseBubble(horse, text, extraCls) {
   const panel = document.getElementById('racePanel');
   const horseEl = document.getElementById('rh-' + horse.no);
   if (!panel || !horseEl) return;
-  // Remove previous bubble for this horse
   panel.querySelectorAll(`.race-horse-bubble[data-no="${horse.no}"]`).forEach(b => b.remove());
   const pr = panel.getBoundingClientRect();
   const hr = horseEl.getBoundingClientRect();
   const x = hr.left - pr.left + hr.width / 2;
   const y = hr.top - pr.top;
-  const text = RACE_BUBBLE_PHRASES[Math.floor(Math.random() * RACE_BUBBLE_PHRASES.length)];
+  const msg = text ?? RACE_BUBBLE_PHRASES[Math.floor(Math.random() * RACE_BUBBLE_PHRASES.length)];
   const b = document.createElement('div');
-  b.className = 'race-horse-bubble';
+  b.className = 'race-horse-bubble' + (extraCls ? ' ' + extraCls : '');
   b.dataset.no = horse.no;
-  b.textContent = text;
+  b.textContent = msg;
   b.style.left = x + 'px';
   b.style.top  = y + 'px';
   panel.appendChild(b);
   setTimeout(() => b.remove(), 2400);
+}
+
+function triggerRaceCheer(horse) {
+  showRaceHorseBubble(horse, 'うおおお！', 'race-cheer-bubble');
+  const el = document.getElementById('rh-' + horse.no);
+  if (!el) return;
+  el.classList.remove('race-cheer-flash');
+  void el.offsetWidth;
+  el.classList.add('race-cheer-flash');
+  el.addEventListener('animationend', () => el.classList.remove('race-cheer-flash'), { once: true });
 }
 
 function raceAnimFrame(ts) {
@@ -6383,13 +6979,18 @@ function raceAnimFrame(ts) {
   const t = (ts - raceState.raceStartTime) / 1000;
   const panel = document.getElementById('racePanel');
   if (!panel) return;
-  // Periodic speech bubbles
+  // Periodic speech bubbles + horse run sounds
   raceState.horses.forEach(h => {
     if (h.finished) return;
     if (h._nextSpeakAt === undefined) h._nextSpeakAt = 1.5 + Math.random() * 3;
     if (t >= h._nextSpeakAt) {
       h._nextSpeakAt = t + 3 + Math.random() * 5;
       showRaceHorseBubble(h);
+    }
+    if (h._nextHorseSoundAt === undefined) h._nextHorseSoundAt = Math.random() * 2;
+    if (t >= h._nextHorseSoundAt) {
+      h._nextHorseSoundAt = t + 1.5 + Math.random() * 2.5;
+      playLocalSound(SOUND_RACE_HORSE[Math.floor(Math.random() * SOUND_RACE_HORSE.length)], 0.35);
     }
   });
   let allDone = true;
@@ -6414,15 +7015,7 @@ function raceAnimFrame(ts) {
       const badge = document.getElementById('rb-' + h.no);
       if (badge) { badge.textContent = ['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣'][h.finalRank-1]||h.finalRank+'着'; badge.style.display='block'; }
       if (h.finalRank === 1) {
-        try {
-          const ctx = new AudioContext();
-          const osc = ctx.createOscillator(); const g = ctx.createGain();
-          osc.connect(g); g.connect(ctx.destination);
-          [523,659,784,1047].forEach((f,i) => osc.frequency.setValueAtTime(f, ctx.currentTime+i*0.15));
-          g.gain.setValueAtTime(0.25, ctx.currentTime);
-          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.8);
-          osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.8);
-        } catch {}
+        playLocalSound(SOUND_RACE_WIN);
       }
     }
   });
@@ -6452,6 +7045,8 @@ function finishRace() {
   const top3 = resultOrder.slice(0,3).map(no => `${no}番${raceState.horses.find(h=>h.no===no)?.name||''}`).join('→');
   addSystemLog(`🏇 結果: ${top3}`, '#f59e0b');
   renderRacePanel();
+  playLocalSound(SOUND_RACE_CROWD);
+  if (raceState._confettiTimerId) { clearInterval(raceState._confettiTimerId); raceState._confettiTimerId = null; }
   setTimeout(() => { document.getElementById('racePanel')?.remove(); raceState = null; }, 8000);
 }
 
@@ -6499,6 +7094,8 @@ function handleRaceBet(user, picksStr, mp) {
 function cancelRace() {
   if (!raceState) return;
   if (raceState._betTimerId) clearInterval(raceState._betTimerId);
+  if (raceState._confettiTimerId) { clearInterval(raceState._confettiTimerId); raceState._confettiTimerId = null; }
+  stopRaceFanfare();
   raceState.bets.forEach(bet => {
     const u = users[bet.ipid]; if (u) { u.mp = (u.mp??0)+bet.mp; updateStatsDisplay(u); }
   });
@@ -6568,6 +7165,7 @@ function renderRacePanel() {
     });
     const horseEls = horses.map(h => `
       <div class="race-horse-run" id="rh-${h.no}" style="left:0;top:${Math.round(h._trackY)}px;z-index:2">
+        <span class="race-horse-no">${h.no}</span>
         <img src="/chara/${encodeURIComponent(h.imgFile)}" alt="" style="transform:scaleX(-1)">
         <span class="race-horse-run-name">${escapeHtml(h.name)}</span>
         <span class="race-rank-badge" id="rb-${h.no}" style="display:none"></span>
