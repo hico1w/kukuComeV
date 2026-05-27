@@ -2,6 +2,22 @@
 
 ---
 
+## v2.140.0 — 2026-05-27
+
+### 下集合余白設定・装備アイコン位置変更
+
+**下集合コマンドの余白設定**
+- `gatherMarginLeft` / `gatherMarginRight` 変数を追加（デフォルト各50px）
+- `gatherCharactersBottom()` を修正：有効幅 = `stageW - marginL - marginR` の範囲内に配置し、端への移動を防止
+- 管理パネル「サイズ調整」セクションに「⬇ 下集合 左余白」「⬇ 下集合 右余白」スライダーを追加（0〜400px、5px刻み）
+- `SETTINGS_KEYS` に `gatherMarginLeft` / `gatherMarginRight` を追加（サーバー設定に永続化）
+
+**装備アイコン表示位置をキャラ上に変更**
+- `updateEquipBadge()` を修正：`.char-equip-area` を `.avatar-wrap` の前に挿入することでキャラ画像の上に表示
+- `.char-equip-area` CSSを `position:absolute`（左側縦並び）から フロー配置の横並び（`flex-direction:row`）に変更
+
+---
+
 ## v2.139.0 — 2026-05-27
 
 ### 吹き出し形状・装飾・エフェクト・モーションを大幅追加

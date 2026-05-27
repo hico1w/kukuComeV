@@ -433,6 +433,20 @@
     <button class="btn-reset" onclick="resetSlider('bossSizeSlider',100,'bossSizeVal',v=>v+'%')">↺</button>
   </div>
   <div class="size-row">
+    <span class="size-label">⬇ 下集合 左余白</span>
+    <input type="range" id="gatherMarginLeftSlider" min="0" max="400" step="5" value="50" class="size-slider"
+           oninput="syncSlider(this,'gatherMarginLeftVal',v=>v+'px')">
+    <span id="gatherMarginLeftVal" class="size-val">50px</span>
+    <button class="btn-reset" onclick="resetSlider('gatherMarginLeftSlider',50,'gatherMarginLeftVal',v=>v+'px')">↺</button>
+  </div>
+  <div class="size-row">
+    <span class="size-label">⬇ 下集合 右余白</span>
+    <input type="range" id="gatherMarginRightSlider" min="0" max="400" step="5" value="50" class="size-slider"
+           oninput="syncSlider(this,'gatherMarginRightVal',v=>v+'px')">
+    <span id="gatherMarginRightVal" class="size-val">50px</span>
+    <button class="btn-reset" onclick="resetSlider('gatherMarginRightSlider',50,'gatherMarginRightVal',v=>v+'px')">↺</button>
+  </div>
+  <div class="size-row">
     <span class="size-label">💤 AFK透明度</span>
     <input type="range" id="afkOpacitySlider" min="0" max="100" value="45" class="size-slider"
            oninput="syncSlider(this,'afkOpacityVal',v=>v+'%')">

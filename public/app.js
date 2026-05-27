@@ -233,6 +233,7 @@ const SETTINGS_KEYS = [
   'wordlePanelX','wordlePanelY','quizPanelX','quizPanelY',
   'brTimerPanelX','brTimerPanelY','trashX','trashY',
   'bossX','bossY',
+  'gatherMarginLeft','gatherMarginRight',
 ];
 let _settingsSaveTimer = null;
 function saveSettingsToServer() {
@@ -859,20 +860,23 @@ function gatherCharacters() {
 function gatherCharactersBottom() {
   const onStage = Object.values(users).filter(u => u.el);
   if (onStage.length === 0) return;
-  const stageW = stage.clientWidth;
-  const stageH = stage.clientHeight;
+  const stageW    = stage.clientWidth;
+  const stageH    = stage.clientHeight;
+  const marginL   = gatherMarginLeft;
+  const marginR   = gatherMarginRight;
+  const effectiveW = Math.max(100, stageW - marginL - marginR);
   const charW  = u => u.el ? (u.el.offsetWidth  || Math.round(u.size * 1.5 * charSizeScale)) : Math.round(u.size * 1.5 * charSizeScale);
   const charH  = u => u.el ? (u.el.offsetHeight || (Math.round(u.size * 1.5 * charSizeScale) + 48)) : (Math.round(u.size * 1.5 * charSizeScale) + 48);
-  // 重なり許容で均等配置
   const n    = onStage.length;
-  const step = n > 1 ? Math.min(charW(onStage[0]) + 8, (stageW - 20) / n) : 0;
-  const startX = Math.max(10, (stageW - (step * (n - 1) + charW(onStage[0]))) / 2);
+  const step = n > 1 ? Math.min(charW(onStage[0]) + 8, effectiveW / n) : 0;
+  const startX = marginL + Math.max(0, (effectiveW - (step * (n - 1) + charW(onStage[0]))) / 2);
   onStage.forEach((u, i) => {
     const rawX = Math.round(startX + step * i);
     const rawY = stageH - charH(u) - 10;
-    const clamped = clampToStage(u, rawX, rawY);
-    u.x = clamped.x;
-    u.y = clamped.y;
+    const clampedX = Math.max(marginL, Math.min(stageW - marginR - charW(u), rawX));
+    const clampedY = Math.max(20, Math.min(stageH - charH(u), rawY));
+    u.x = clampedX;
+    u.y = clampedY;
     u.el.style.transition = 'left 600ms cubic-bezier(0.34,1.56,0.64,1), top 600ms cubic-bezier(0.34,1.56,0.64,1)';
     u.el.style.left = u.x + 'px';
     u.el.style.top  = u.y + 'px';
@@ -1257,7 +1261,9 @@ let moveLocked = false;          // 移動制限モード（方向移動・移�
 let debugMode  = false;          // デバッグモード（全キャラATK=50）
 let compactMode  = false;        // コンパクトモード
 let fiveMinMode  = false;        // 5分モード（AI自動返答）
-let equipHidden  = false;        // 装備アイコン非表示
+let equipHidden        = false;   // 装備アイコン非表示
+let gatherMarginLeft   = 50;      // 下集合左余白(px)
+let gatherMarginRight  = 50;      // 下集合右余白(px)
 let brAutoEnabled = true;        // 自動バトルロイヤル有効フラグ
 let bombHidden   = false;        // 爆弾ボタン非表示
 let trashHidden  = false;        // ゴミ箱非表示
@@ -1454,7 +1460,9 @@ function updateEquipBadge(user) {
   if (!area) {
     area = document.createElement('div');
     area.className = 'char-equip-area';
-    user.el.appendChild(area);
+    const avatarWrap = user.el.querySelector('.avatar-wrap');
+    if (avatarWrap) user.el.insertBefore(area, avatarWrap);
+    else user.el.appendChild(area);
   }
   area.innerHTML = '';
   (user.equips || []).forEach(eq => {
@@ -4021,6 +4029,30 @@ document.getElementById('moveAreaSelect').addEventListener('change', e => {
     bossSlider.value = 100;
     bossSlider.dispatchEvent(new Event('input'));
   });
+
+  // 下集合余白スライダー
+  const gml = document.getElementById('gatherMarginLeftSlider');
+  const gmr = document.getElementById('gatherMarginRightSlider');
+  if (gml && gmr) {
+    gatherMarginLeft  = parseInt(localStorage.getItem('gatherMarginLeft')  || '50');
+    gatherMarginRight = parseInt(localStorage.getItem('gatherMarginRight') || '50');
+    gml.value = gatherMarginLeft;
+    gmr.value = gatherMarginRight;
+    document.getElementById('gatherMarginLeftVal').textContent  = gatherMarginLeft  + 'px';
+    document.getElementById('gatherMarginRightVal').textContent = gatherMarginRight + 'px';
+    gml.addEventListener('input', () => {
+      gatherMarginLeft = parseInt(gml.value);
+      document.getElementById('gatherMarginLeftVal').textContent = gatherMarginLeft + 'px';
+      localStorage.setItem('gatherMarginLeft', gatherMarginLeft);
+      saveSettingsToServer();
+    });
+    gmr.addEventListener('input', () => {
+      gatherMarginRight = parseInt(gmr.value);
+      document.getElementById('gatherMarginRightVal').textContent = gatherMarginRight + 'px';
+      localStorage.setItem('gatherMarginRight', gatherMarginRight);
+      saveSettingsToServer();
+    });
+  }
 })();
 
 // ── AFK表示スライダー（透明度・グレースケール・明るさ） ──────────
