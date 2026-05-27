@@ -88,6 +88,14 @@
     .bs-thought::after { content:'● ● ●'; border:none; color:rgba(180,180,180,.85); font-size:8px; letter-spacing:3px; white-space:nowrap; background:none; }
     .bs-shout  { background: #fffde7; border: 2px solid #fbbf24; border-radius: 4px; font-weight: bold; }
     .bs-shout::after { border-top-color: #fbbf24; }
+    .bs-star-shape { clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%); border-radius: 0; padding: 16px 12px; min-height: 40px; }
+    .bs-star-shape::after { display: none; }
+    .bs-hex { clip-path: polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%); border-radius: 0; padding: 12px 20px; }
+    .bs-hex::after { display: none; }
+    .bs-burst { border-radius: 0; padding: 14px 16px; clip-path: polygon(50% 0%,56% 18%,68% 5%,63% 24%,80% 15%,71% 31%,92% 28%,77% 41%,98% 46%,80% 52%,96% 62%,76% 61%,86% 78%,67% 71%,70% 90%,55% 80%,50% 100%,45% 80%,30% 90%,33% 71%,14% 78%,24% 61%,4% 62%,20% 52%,2% 46%,23% 41%,8% 28%,29% 31%,20% 15%,37% 24%,32% 5%,44% 18%); }
+    .bs-burst::after { display: none; }
+    .bs-oval { border-radius: 50%; padding: 12px 22px; min-height: 30px; }
+    .bs-wide { border-radius: 40px; padding: 6px 24px; min-width: 100px; }
     .bubble-label { font-size: 12px; color: var(--muted); }
     .bubble-cmd   { font-family: monospace; font-size: 12px; color: var(--accent); }
 
@@ -685,6 +693,11 @@
       <div class="bubble-preview-card"><div class="bubble-sample bs-heart">こんにちは</div><div class="bubble-label">ハート</div><div class="bubble-cmd">吹き出し:ハート</div></div>
       <div class="bubble-preview-card"><div class="bubble-sample bs-thought">こんにちは</div><div class="bubble-label">思考</div><div class="bubble-cmd">吹き出し:思考</div></div>
       <div class="bubble-preview-card"><div class="bubble-sample bs-shout">こんにちは</div><div class="bubble-label">叫び</div><div class="bubble-cmd">吹き出し:叫び</div></div>
+      <div class="bubble-preview-card"><div class="bubble-sample bs-star-shape">こんにちは</div><div class="bubble-label">星</div><div class="bubble-cmd">吹き出し:星</div></div>
+      <div class="bubble-preview-card"><div class="bubble-sample bs-hex">こんにちは</div><div class="bubble-label">六角</div><div class="bubble-cmd">吹き出し:六角</div></div>
+      <div class="bubble-preview-card"><div class="bubble-sample bs-burst">こんにちは</div><div class="bubble-label">爆裂</div><div class="bubble-cmd">吹き出し:爆裂</div></div>
+      <div class="bubble-preview-card"><div class="bubble-sample bs-oval">こんにちは</div><div class="bubble-label">楕円</div><div class="bubble-cmd">吹き出し:楕円</div></div>
+      <div class="bubble-preview-card"><div class="bubble-sample bs-wide">こんにちは</div><div class="bubble-label">横長</div><div class="bubble-cmd">吹き出し:横長</div></div>
     </div>
   </div>
 
@@ -695,6 +708,11 @@
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code purple">飾り:光る</span></div><div class="cmd-desc">吹き出しが水色にグロー発光する</div><div class="cmd-variants"><span class="variant">飾り:光る</span><span class="variant">飾り:グロー</span></div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code purple">飾り:虹</span></div><div class="cmd-desc">吹き出しの背景が虹色グラデーションになる</div><div class="cmd-variants"><span class="variant">飾り:虹</span><span class="variant">飾り:レインボー</span></div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code purple">飾り:点線</span></div><div class="cmd-desc">吹き出しの枠が点線になる</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code purple">飾り:炎</span></div><div class="cmd-desc">吹き出しがオレンジ色に炎のように発光する</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code purple">飾り:金</span></div><div class="cmd-desc">吹き出しにゴールドの縁取りと光沢が付く</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code purple">飾り:二重</span></div><div class="cmd-desc">吹き出しの外側にもう一枚縁取りが付く</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code purple">飾り:点滅</span></div><div class="cmd-desc">吹き出しが点滅し続ける</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code purple">飾り:緑</span></div><div class="cmd-desc">吹き出しが緑色にグロー発光する</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code purple">飾り:なし</span></div><div class="cmd-desc">装飾をリセット</div><div class="cmd-variants"><span class="variant">飾り:なし</span><span class="variant">飾り:リセット</span></div></div>
     </div>
   </div>
@@ -786,6 +804,11 @@
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code orange">紙吹雪</span></div><div class="cmd-desc">カラフルな紙吹雪が画面上から降り注ぐ</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code orange">流れ星</span></div><div class="cmd-desc">白く光る流れ星が画面を横断する</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code orange">ハートシャワー</span></div><div class="cmd-desc">ハートが複数、キャラから上に舞い上がる</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code orange">桜</span></div><div class="cmd-desc">桜の花びら🌸がキャラから舞い落ちる</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code orange">雪</span></div><div class="cmd-desc">白い雪が画面全体からゆっくり降り積もる</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code orange">爆発</span></div><div class="cmd-desc">オレンジ・黄色のパーティクルがキャラ位置で爆発</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code orange">泡</span></div><div class="cmd-desc">水色の泡がキャラ位置から浮かび上がる</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code orange">稲妻</span></div><div class="cmd-desc">稲妻がキャラに落ちてフラッシュが光る</div></div>
     </div>
     <div class="info-box">
       エフェクトは他のコマンドと同時使用可。コマンド部分を除いた残りのテキストが吹き出しに表示されます。<br>
@@ -801,6 +824,11 @@
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code green">回転</span></div><div class="cmd-desc">キャラがくるくると回転する</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code green">震える</span></div><div class="cmd-desc">キャラが小刻みに震える</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code green">ぐにゃぐにゃ</span></div><div class="cmd-desc">キャラがぐにゃぐにゃと波打つように動く</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code green">浮く</span></div><div class="cmd-desc">キャラがふわふわと上下に浮遊する</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code green">揺れる</span></div><div class="cmd-desc">キャラが左右にゆらゆら揺れる</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code green">伸縮</span></div><div class="cmd-desc">キャラが大きくなったり小さくなったりする</div><div class="cmd-variants"><span class="variant">伸縮</span><span class="variant">縮む</span></div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code green">スキップ</span></div><div class="cmd-desc">キャラが元気よくスキップする</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code green">酔う</span></div><div class="cmd-desc">キャラがフラフラと酔っぱらいのように揺れる</div></div>
     </div>
     <div class="warn-box">
       すべてのモーションは <b>10秒後に自動停止</b> します。<br>
