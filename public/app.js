@@ -415,6 +415,7 @@ const CHAR_SAVE_FIELDS = [
   'commentCount','tc','sizeScale','flipped','lastTaimanAt','charDef',
   'name','nameManual',
   'textColor','bubbleShape','bubbleDeco','font',
+  'charImage',
 ];
 
 function getUser(ipid) {
@@ -602,12 +603,11 @@ function createCharacter(user) {
 function applyAvatarStyle(user) {
   const a = document.getElementById('a-' + user.ipid);
   if (!a || !user.charDef) return;
-  const lvScale = 1 + ((user.level || 1) - 1) * 0.06;
-  const px = Math.round(user.size * 1.5 * lvScale * charSizeScale * (user.sizeScale || 1) * (user.brWinnerScale || 1));
+  const px = Math.round(user.size * 1.5 * charSizeScale * (user.sizeScale || 1) * (user.brWinnerScale || 1));
   a.style.width  = px + 'px';
   a.style.height = px + 'px';
   a.style.transform = '';
-  const imgFile = charImages[user.charDef.id] || 'kisyokeee.png';
+  const imgFile = user.charImage || charImages[user.charDef.id] || 'kisyokeee.png';
   a.innerHTML      = `<img src="/chara/${encodeURIComponent(imgFile)}" alt="${escapeHtml(user.name)}">`;
   a.style.fontSize = '0';
   applyFacingFlip(user);
@@ -3099,6 +3099,7 @@ function handleComment(comment) {
       return;
     }
     user.charDef = getCharDef(id);
+    delete user.charImage;
     if (!user.el) createCharacter(user);
     else applyAvatarStyle(user);
     updateNameDisplay(user);
@@ -3138,6 +3139,7 @@ function handleComment(comment) {
         showBubble(user, `キャラ${id}は他の人が使用中です`, {});
       } else {
         user.charDef = getCharDef(id);
+        delete user.charImage;
         if (!user.el) createCharacter(user);
         else applyAvatarStyle(user);
         updateNameDisplay(user);
@@ -3221,11 +3223,10 @@ function handleComment(comment) {
   }
 
   if (/ランダムキャラ/.test(display)) {
-    if (availableImages.length > 0 && user.charDef) {
-      charImages[user.charDef.id] = availableImages[Math.floor(Math.random() * availableImages.length)];
-      saveCharImages();
+    if (availableImages.length > 0) {
+      user.charImage = availableImages[Math.floor(Math.random() * availableImages.length)];
       applyAvatarStyle(user);
-      addToLog(user, `[ランダムキャラ → ${charImages[user.charDef.id]}]`, '#64748b');
+      addToLog(user, `[ランダムキャラ → ${user.charImage}]`, '#64748b');
     }
     display = display.replace(/ランダムキャラ/g, '').trim();
   }
@@ -4900,7 +4901,7 @@ function postStatusComment(user) {
 
 // ── ステータスモーダル ─────────────────────────────────────────────
 function showStatusModal(user, autoClose = true) {
-  const imgFile = user.charDef ? (charImages[user.charDef.id] || 'kisyokeee.png') : 'kisyokeee.png';
+  const imgFile = user.charImage || (user.charDef ? (charImages[user.charDef.id] || 'kisyokeee.png') : 'kisyokeee.png');
   const atk     = calcAtk(user);
   const lv      = user.level  || 1;
   const hp      = user.hp     ?? 30;
@@ -6913,7 +6914,7 @@ function startRace(numHorses, betSeconds) {
       no: i+1,
       ipid: u.ipid,
       name: u.name || '名無し',
-      imgFile: charImages[u.charDef?.id] || 'kisyokeee.png',
+      imgFile: u.charImage || charImages[u.charDef?.id] || 'kisyokeee.png',
       finalRank: null,
       finishT: null,
       dramaSeed: Math.random() * Math.PI * 2,
