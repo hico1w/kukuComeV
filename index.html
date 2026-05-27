@@ -51,9 +51,13 @@
     .color-name  { font-weight: 600; }
     .color-hex   { font-family: monospace; font-size: 11px; color: var(--muted); }
 
-    .char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
-    .char-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 8px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 5px; }
-    .char-img   { width: 64px; height: 64px; object-fit: contain; border-radius: 6px; }
+    .char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; }
+    .char-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 8px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
+    .char-card:hover { border-color: var(--accent); transform: scale(1.02); }
+    .char-img   { width: 192px; height: 192px; object-fit: contain; border-radius: 6px; }
+    .char-fullscreen { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; justify-content: center; align-items: center; cursor: pointer; }
+    .char-fullscreen.open { display: flex; }
+    .char-fullscreen img { max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 8px; }
     .char-emoji { font-size: 36px; line-height: 1; }
     .char-cmd   { font-family: monospace; font-size: 11px; background: rgba(125,211,252,0.1); color: var(--accent); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(125,211,252,0.2); }
     .char-alias { font-size: 10px; color: var(--muted); }
@@ -651,6 +655,11 @@
     </div>
   </div>
 
+  <!-- フルスクリーン画像オーバーレイ -->
+  <div class="char-fullscreen" id="charFullscreen" onclick="this.classList.remove('open')">
+    <img id="charFullscreenImg" src="" alt="">
+  </div>
+
   <!-- ── キャラ設定 ── -->
   <div class="section" id="sec-char">
     <div class="section-title">🐱 キャラ設定（画像割り当て済みキャラ）</div>
@@ -1185,6 +1194,13 @@
           `<img class="char-img" src="./chara/${encodeURIComponent(fname)}" alt="キャラ${id}" onerror="this.style.display='none'">`
           + `<div class="char-cmd">キャラ${id}</div>`
           + (alias ? `<div class="char-alias">「${alias}」</div>` : '');
+        card.addEventListener('click', () => {
+          const overlay = document.getElementById('charFullscreen');
+          const img = document.getElementById('charFullscreenImg');
+          img.src = `./chara/${encodeURIComponent(fname)}`;
+          img.alt = `キャラ${id}`;
+          overlay.classList.add('open');
+        });
         grid.appendChild(card);
       });
     })();
