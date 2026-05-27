@@ -1649,10 +1649,11 @@ function endBattleRoyale(winner) {
     applyAvatarStyle(winner);
     renderPetBadge(winner);
     setTimeout(() => {
-      if (!winner.el) return;
-      delete winner.brWinnerScale;
-      applyAvatarStyle(winner);
-      renderPetBadge(winner);
+      if (winner.el) {
+        delete winner.brWinnerScale;
+        applyAvatarStyle(winner);
+        renderPetBadge(winner);
+      }
       gatherCharactersBottom();
     }, 60000);
   }
