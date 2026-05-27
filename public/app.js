@@ -833,24 +833,19 @@ function gatherCharacters() {
   let   y          = stageH - totalH - 20;
 
   rows.forEach((row, ri) => {
-    const rowH      = rowHeights[ri];
-    const totalRowW = row.reduce((s, u) => s + cw(u), 0);
-    let   gap       = GAP;
-    const totalWithGap = totalRowW + GAP * (row.length - 1);
-    if (totalWithGap > stageW - 40) {
-      gap = Math.max(4, (stageW - 40 - totalRowW) / Math.max(1, row.length - 1));
-    }
-    const totalW = totalRowW + gap * (row.length - 1);
-    let   x      = Math.max(10, (stageW - totalW) / 2);
+    const rowH  = rowHeights[ri];
+    const n     = row.length;
+    const step  = n > 1 ? Math.min(cw(row[0]) + GAP, (stageW - 40) / n) : 0;
+    const rowW  = step * (n - 1) + cw(row[0]);
+    const startX = Math.max(10, (stageW - rowW) / 2);
+    const clampedY = Math.max(20, Math.min(stageH - rowH, y));
 
-    row.forEach(u => {
-      const clamped = clampToStage(u, x, y);
-      u.x = clamped.x;
-      u.y = clamped.y;
+    row.forEach((u, i) => {
+      u.x = Math.round(startX + step * i);
+      u.y = clampedY;
       u.el.style.transition = 'left 600ms cubic-bezier(0.34,1.56,0.64,1), top 600ms cubic-bezier(0.34,1.56,0.64,1)';
       u.el.style.left = u.x + 'px';
       u.el.style.top  = u.y + 'px';
-      x += cw(u) + gap;
     });
 
     y += rowH + ROW_GAP;
