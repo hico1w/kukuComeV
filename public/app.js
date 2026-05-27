@@ -3223,6 +3223,9 @@ function handleComment(comment) {
   // ── インラインコマンド ───────────────────────
   let display = message;
 
+  // コマンド処理前にキャラを確定させる（randomizeCharAppearanceをここで済ませ、後続コマンドで上書きさせる）
+  ensureCharOnStage(user);
+
   // キャラN（他コマンドと併用可）
   const charM = display.match(/キャラ(\d{1,3})/);
   if (charM) {
