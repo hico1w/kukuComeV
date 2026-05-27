@@ -14,6 +14,16 @@ const PORT = 3000;
 app.use(express.json({ limit: '20mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ユーザーインストールフォントを配信（OBS Browser Source 対応）
+const USER_FONTS_DIR = process.env.LOCALAPPDATA
+  ? path.join(process.env.LOCALAPPDATA, 'Microsoft', 'Windows', 'Fonts')
+  : null;
+if (USER_FONTS_DIR && fs.existsSync(USER_FONTS_DIR)) {
+  app.use('/user-fonts', express.static(USER_FONTS_DIR, { setHeaders: (res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }}));
+}
+
 // 背景画像アップロード
 app.post('/api/bg-upload', (req, res) => {
   const { dataUrl } = req.body || {};

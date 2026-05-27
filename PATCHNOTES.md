@@ -2,6 +2,19 @@
 
 ---
 
+## v2.147.0 — 2026-05-28
+
+### OBS Browser Source でのフリーフォント対応
+
+- **原因**：フリーフォントが `%LOCALAPPDATA%\Microsoft\Windows\Fonts`（ユーザーインストール）にあり、OBS の Browser Source（CEF）からアクセスできなかった
+- **修正**：
+  - `server.js` に `/user-fonts` ルートを追加し、AppData フォントディレクトリを HTTP 配信
+  - `public/index.html` に `@font-face` 宣言ブロックを追加（34フォント）
+  - 対象：黒薔薇/おまつり/くるんデコ/鉄瓶ゴシック/みつばち/源界明朝 等 AppData 内全フォント
+  - 日本語ファイル名フォント（しょかきうたげ・みつバッチ・数式フォント等）もURLエンコードで対応
+
+---
+
 ## v2.146.0 — 2026-05-28
 
 ### index.html（コマンドリファレンス）同期更新
