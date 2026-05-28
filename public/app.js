@@ -2103,10 +2103,11 @@ function taimanDoAttack() {
               setTimeout(() => defender.el?.classList.remove('trembling'), 700);
             }
             renderTaimanHpBars();
-            // 副効果
+            // 副効果（回復はタイマン仮想HP倍率×レベル分スケール）
+            const healMult = taimanHpMult * (attacker.level || 1);
             const stealPct = { hp_steal:0.25, soul_steal:0.40, full_drain:0.60 }[aid];
             if (stealPct) {
-              const heal = Math.max(1, Math.round(petDmg * stealPct));
+              const heal = Math.max(1, Math.round(petDmg * stealPct * healMult));
               taimanState.hp[attackerId] = Math.min(taimanState.maxHp[attackerId], taimanState.hp[attackerId] + heal);
               const { x: ax, y: ay } = getCharCenter(attacker);
               showDamageNumber(ax, ay - 30, `💉+${heal}`, false, 14, '#86efac');
@@ -2114,12 +2115,13 @@ function taimanDoAttack() {
               renderTaimanHpBars();
             }
             if (aid === 'regen') {
-              taimanState.hp[attackerId] = Math.min(taimanState.maxHp[attackerId], taimanState.hp[attackerId] + 2);
+              const regenHeal = Math.max(1, Math.round(2 * healMult));
+              taimanState.hp[attackerId] = Math.min(taimanState.maxHp[attackerId], taimanState.hp[attackerId] + regenHeal);
               updateStatsDisplay(attacker);
               renderTaimanHpBars();
             }
             if (aid === 'team_heal') {
-              const th = Math.max(1, Math.round(petDmg * 0.5));
+              const th = Math.max(1, Math.round(petDmg * 0.5 * healMult));
               taimanState.hp[attackerId] = Math.min(taimanState.maxHp[attackerId], taimanState.hp[attackerId] + th);
               const { x: ax2, y: ay2 } = getCharCenter(attacker);
               showDamageNumber(ax2, ay2 - 30, `💚+${th}`, false, 14, '#86efac');
@@ -2127,7 +2129,7 @@ function taimanDoAttack() {
               renderTaimanHpBars();
             }
             if (aid === 'omega') {
-              taimanState.hp[attackerId] = Math.min(taimanState.maxHp[attackerId], taimanState.hp[attackerId] + Math.max(1, Math.round(petDmg * 0.5)));
+              taimanState.hp[attackerId] = Math.min(taimanState.maxHp[attackerId], taimanState.hp[attackerId] + Math.max(1, Math.round(petDmg * 0.5 * healMult)));
               taimanState.hp[defenderId] = Math.max(0, taimanState.hp[defenderId] - petDmg);
               updateStatsDisplay(attacker); updateStatsDisplay(defender);
               renderTaimanHpBars();
