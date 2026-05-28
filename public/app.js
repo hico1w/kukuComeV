@@ -1568,12 +1568,10 @@ function randomizeCharAppearance(user) {
   const shapes = Object.values(SHAPE_MAP);
   const decos  = ['', 'glow', 'rainbow', 'dotted'];
   const colors = Object.values(COLOR_NAMES);
-  const sizes  = [50, 55, 60];
   user.bubbleShape = shapes[Math.floor(Math.random() * shapes.length)];
   user.font        = RANDOM_FONTS[Math.floor(Math.random() * RANDOM_FONTS.length)];
   user.bubbleDeco  = decos[Math.floor(Math.random() * decos.length)];
   user.textColor   = colors[Math.floor(Math.random() * colors.length)];
-  user.size        = sizes[Math.floor(Math.random() * sizes.length)];
 }
 
 function rollEquipValue(bossMaxHp) {
