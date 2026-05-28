@@ -3236,10 +3236,14 @@ function handleComment(comment) {
 
   // ── AFK ───────────────────────────────────────
   if (user.afk || user.afkText) {
-    user.afk = false;
-    user.afkText = null;
-    if (user.afkEl) { user.afkEl.remove(); user.afkEl = null; }
-    user.el?.classList.remove('char-afk');
+    // masterは「戻りました」のみ解除
+    const canClearAfk = user.ipid !== 'master' || message.trim() === '戻りました';
+    if (canClearAfk) {
+      user.afk = false;
+      user.afkText = null;
+      if (user.afkEl) { user.afkEl.remove(); user.afkEl = null; }
+      user.el?.classList.remove('char-afk');
+    }
   }
   if (/AFK|ＡＦＫ/i.test(message)) {
     ensureCharOnStage(user);
