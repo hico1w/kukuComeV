@@ -1958,9 +1958,9 @@ function startTaiman(challenger, target) {
   challenger._taimanFlip = true;
   applyFacingFlip(challenger);
 
-  // HP を元の最大HP×taimanHpMultに設定
-  const cMax = calcMaxHp(challenger) * taimanHpMult;
-  const tMax = calcMaxHp(target)     * taimanHpMult;
+  // HP を 元の最大HP × taimanHpMult × キャラレベル に設定
+  const cMax = calcMaxHp(challenger) * taimanHpMult * (challenger.level || 1);
+  const tMax = calcMaxHp(target)     * taimanHpMult * (target.level     || 1);
 
   taimanState = {
     active: true,

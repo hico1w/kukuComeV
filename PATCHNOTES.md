@@ -2,6 +2,17 @@
 
 ---
 
+## v2.167.0 — 2026-05-28
+
+### タイマン仮想HPにキャラレベルを乗算
+
+- `startTaiman()` の仮想HP計算を変更
+- 旧: `calcMaxHp(char) × taimanHpMult`
+- 新: `calcMaxHp(char) × taimanHpMult × char.level`
+- 高レベルキャラほど仮想HPが多くなり、レベル差がバトルの長さに反映される
+
+---
+
 ## v2.166.0 — 2026-05-28
 
 ### index.html 最新化
