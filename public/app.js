@@ -3178,6 +3178,7 @@ function handleComment(comment) {
 
   // ── ランダムタイマン ──────────────────────────────
   if (message.includes('ランダムタイマン')) {
+    if (compactMode) return;
     ensureCharOnStage(user);
     if (taimanState) {
       showBubble(user, 'タイマン中です', {});
@@ -3206,6 +3207,7 @@ function handleComment(comment) {
   {
     const taimanM = message.trim().match(/^タイマン[：:](.+)$/);
     if (taimanM) {
+      if (compactMode) return;
       const targetName = taimanM[1].trim();
       ensureCharOnStage(user);
       if (taimanState) {
