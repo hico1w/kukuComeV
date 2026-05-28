@@ -746,6 +746,16 @@ function applyAvatarStyle(user) {
   const imgFile = user.charImage || charImages[user.charDef.id] || 'kisyokeee.png';
   a.innerHTML      = `<img src="/chara/${encodeURIComponent(imgFile)}" alt="${escapeHtml(user.name)}">`;
   a.style.fontSize = '0';
+  const img = a.querySelector('img');
+  if (img) {
+    const adjustWidth = () => {
+      if (img.naturalWidth > 0 && img.naturalHeight > img.naturalWidth) {
+        a.style.width = Math.round(px * img.naturalWidth / img.naturalHeight) + 'px';
+      }
+    };
+    if (img.complete) adjustWidth();
+    else img.addEventListener('load', adjustWidth, { once: true });
+  }
   applyFacingFlip(user);
 }
 

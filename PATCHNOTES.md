@@ -2,6 +2,16 @@
 
 ---
 
+## v2.180.0 — 2026-05-28
+
+### 縦長キャラ画像のコンテナ幅をアスペクト比に合わせて調整
+
+- `applyAvatarStyle()` でimg読み込み後に `naturalWidth < naturalHeight` を検出
+- 縦長の場合、コンテナ幅を `px × (naturalWidth / naturalHeight)` に縮小
+- 正方形・横長はそのまま
+
+---
+
 ## v2.179.0 — 2026-05-28
 
 ### キャラサイズのランダム化廃止・object-fit変更
