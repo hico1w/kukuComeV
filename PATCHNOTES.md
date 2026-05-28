@@ -2,6 +2,17 @@
 
 ---
 
+## v2.171.0 — 2026-05-28
+
+### レベルバッジを装備アイコンエリアの右下に移動
+
+- `updateLevelBadge()` でバッジを `.char-equip-area` 内に配置するよう変更
+- `updateEquipBadge()` の `innerHTML = ''` を `.char-equip-badge` 限定削除に変更（バッジを保持するため）
+- CSS: `.char-equip-area` に `position: relative` 追加
+- CSS: `.char-level-badge` の位置を `bottom: 20px` → `bottom: -6px`（装備エリア基準）に変更
+
+---
+
 ## v2.170.0 — 2026-05-28
 
 ### タイマン中のペット回復効果に仮想HP倍率を適用

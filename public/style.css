@@ -1424,7 +1424,7 @@ body {
 .char-level-badge {
   position: absolute;
   right: -4px;
-  bottom: 20px;
+  bottom: -6px;
   font-size: var(--fs-char-lv);
   font-weight: 800;
   padding: 1px 5px;
@@ -1610,6 +1610,7 @@ body {
   gap: 2px;
   pointer-events: auto;
   max-width: 130px;
+  position: relative;
 }
 
 /* 装備バッジ */

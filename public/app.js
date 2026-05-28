@@ -1600,7 +1600,7 @@ function updateEquipBadge(user) {
     if (avatarWrap) user.el.insertBefore(area, avatarWrap);
     else user.el.appendChild(area);
   }
-  area.innerHTML = '';
+  area.querySelectorAll('.char-equip-badge').forEach(b => b.remove());
   (user.equips || []).forEach(eq => {
     const b = document.createElement('span');
     b.className   = `char-equip-badge ${eq.rarityCls || ''}`;
@@ -2423,11 +2423,19 @@ function bossCounterAttack() {
 
 function updateLevelBadge(user) {
   if (!user.el) return;
-  let badge = user.el.querySelector('.char-level-badge');
+  let area = user.el.querySelector('.char-equip-area');
+  if (!area) {
+    area = document.createElement('div');
+    area.className = 'char-equip-area';
+    const avatarWrap = user.el.querySelector('.avatar-wrap');
+    if (avatarWrap) user.el.insertBefore(area, avatarWrap);
+    else user.el.appendChild(area);
+  }
+  let badge = area.querySelector('.char-level-badge');
   if (!badge) {
     badge = document.createElement('div');
     badge.className = 'char-level-badge';
-    user.el.appendChild(badge);
+    area.appendChild(badge);
   }
   const lv = user.level || 1;
   badge.textContent = `Lv.${lv}`;
