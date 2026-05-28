@@ -748,13 +748,16 @@ function applyAvatarStyle(user) {
   a.style.fontSize = '0';
   const img = a.querySelector('img');
   if (img) {
-    const adjustWidth = () => {
-      if (img.naturalWidth > 0 && img.naturalHeight > img.naturalWidth) {
-        a.style.width = Math.round(px * img.naturalWidth / img.naturalHeight) + 'px';
+    const adjustSize = () => {
+      if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+        const r = img.naturalWidth / img.naturalHeight;
+        const sqr = Math.sqrt(r);
+        a.style.width  = Math.round(px * sqr) + 'px';
+        a.style.height = Math.round(px / sqr) + 'px';
       }
     };
-    if (img.complete) adjustWidth();
-    else img.addEventListener('load', adjustWidth, { once: true });
+    if (img.complete) adjustSize();
+    else img.addEventListener('load', adjustSize, { once: true });
   }
   applyFacingFlip(user);
 }
