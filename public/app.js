@@ -5247,6 +5247,7 @@ function postStatusComment(user) {
   const deaths = user.deaths || 0;
   const wordle = user.wordleWins || 0;
   const hayaoshi = user.hayaoshiWins || 0;
+  const quiz = user.tc?.quizWins || 0;
 
   const petSummary = [user.pet, user.pet2].filter(Boolean)
     .map(p => `${p.abilityName}(${p.abilityDesc})`).join(' / ') || 'なし';
@@ -5256,7 +5257,7 @@ function postStatusComment(user) {
     : '';
 
   let text = `【${user.name}】Lv.${lv} HP:${hp}/${mhp} MP:${mp} ATK:${atk} EXP:${exp}`;
-  text += ` | ダメージ:${dmg} 死亡:${deaths}回 Wordle:${wordle} 早押し:${hayaoshi}`;
+  text += ` | ダメージ:${dmg} 死亡:${deaths}回 Wordle:${wordle} 早押し:${hayaoshi} クイズ:${quiz}`;
   if (petSummary !== 'なし') text += ` | ペット:${petSummary}`;
   if (activeTitleName) text += ` | 称号:【${activeTitleName}】`;
 
@@ -5352,6 +5353,7 @@ function showStatusModal(user, autoClose = true) {
                 <div class="sm-stat"><span class="sm-stat-label">合計ダメージ</span><span class="sm-stat-val">${(user.totalDmgDealt || 0).toLocaleString()}</span></div>
                 <div class="sm-stat"><span class="sm-stat-label">Wordle正解</span><span class="sm-stat-val">${user.wordleWins || 0} 回</span></div>
                 <div class="sm-stat"><span class="sm-stat-label">早押し正解</span><span class="sm-stat-val">${user.hayaoshiWins || 0} 回</span></div>
+                <div class="sm-stat"><span class="sm-stat-label">クイズ正解</span><span class="sm-stat-val">${(user.tc?.quizWins || 0)} 回</span></div>
                 <div class="sm-stat"><span class="sm-stat-label">死亡回数</span><span class="sm-stat-val">${user.deaths || 0} 回</span></div>
               </div>
             </div>
