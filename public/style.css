@@ -2305,19 +2305,20 @@ body {
 /* AFK */
 .afk-bubble {
   position: absolute;
-  top: -28px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0,0,0,0.72);
+  transform: translate(-50%, -50%);
+  background: none;
   color: #94a3b8;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   padding: 3px 10px;
   border-radius: 20px;
   white-space: nowrap;
   pointer-events: none;
   z-index: 25;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: none;
+  text-shadow: 0 1px 4px #000, 0 0 8px #000;
 }
 
 /* ── ボタン ── */
