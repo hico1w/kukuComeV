@@ -610,6 +610,7 @@ function getUser(ipid) {
     const saved = _charSaveData[ipid];
     if (saved) {
       CHAR_SAVE_FIELDS.forEach(k => { if (saved[k] !== undefined) users[ipid][k] = saved[k]; });
+      users[ipid].sizeScale = 1.0; // タイマン中リロード時の異常値を起動時にリセット
       // 外見データが保存済みならランダム初期化をスキップ
       if (['textColor','bubbleShape','bubbleDeco','bubbleBgColor','font','charImage'].some(k => saved[k] !== undefined)) {
         users[ipid].firstAppear = false;
