@@ -1443,9 +1443,16 @@ body {
 .char-level-badge.lv7  { background: linear-gradient(135deg,#ef4444,#dc2626); display: block; filter: drop-shadow(0 0 4px #f87171); }
 .char-level-badge.lv8  { background: linear-gradient(90deg,#f59e0b,#ef4444,#8b5cf6,#3b82f6); background-size: 200%; animation: rainbowBadge 2s linear infinite; display: block; }
 .char-level-badge.lv9  { background: #0f0; color: #000; display: block; filter: drop-shadow(0 0 5px #0f0); animation: lvNinePulse 0.6s ease-in-out infinite; }
-.char-level-badge.lv10 { background: linear-gradient(90deg,gold,#fff,gold); background-size: 200%; color: #7c2d12; animation: rainbowBadge 0.8s linear infinite; display: block; filter: drop-shadow(0 0 8px gold); font-size: calc(var(--fs-char-lv) + 1px); }
+.char-level-badge.lv10    { background: linear-gradient(90deg,gold,#fff,gold); background-size: 200%; color: #7c2d12; animation: rainbowBadge 0.8s linear infinite; display: block; filter: drop-shadow(0 0 8px gold); font-size: calc(var(--fs-char-lv) + 1px); }
+.char-level-badge.lv11plus { background: linear-gradient(135deg,#6366f1,#818cf8); display: block; filter: drop-shadow(0 0 4px #6366f1); }
+.char-level-badge.lv31plus { background: linear-gradient(135deg,#06b6d4,#22d3ee); color: #0c4a6e; display: block; filter: drop-shadow(0 0 5px #06b6d4); }
+.char-level-badge.lv51plus { background: linear-gradient(135deg,#ec4899,#f472b6); display: block; filter: drop-shadow(0 0 5px #ec4899); animation: lvHiPulse 1.2s ease-in-out infinite; }
+.char-level-badge.lv71plus { background: linear-gradient(90deg,#f97316,#ef4444,#f59e0b); background-size: 200%; display: block; filter: drop-shadow(0 0 6px #f97316); animation: rainbowBadge 1.2s linear infinite, lvHiPulse 0.8s ease-in-out infinite; }
+.char-level-badge.lv91plus { background: linear-gradient(90deg,#a855f7,#ec4899,#f59e0b,#22d3ee,#a855f7); background-size: 300%; display: block; filter: drop-shadow(0 0 7px #a855f7); animation: rainbowBadge 0.6s linear infinite; }
+.char-level-badge.lv100   { background: linear-gradient(90deg,gold,#fff,#ff6fff,gold); background-size: 200%; color: #7c2d12; display: block; filter: drop-shadow(0 0 10px gold) drop-shadow(0 0 6px #ff6fff); animation: rainbowBadge 0.4s linear infinite; font-size: calc(var(--fs-char-lv) + 1px); font-weight: 900; }
 @keyframes rainbowBadge { 0% { background-position: 0%; } 100% { background-position: 200%; } }
 @keyframes lvNinePulse  { 0%,100% { filter: drop-shadow(0 0 5px #0f0); } 50% { filter: drop-shadow(0 0 12px #0f0) brightness(1.4); } }
+@keyframes lvHiPulse    { 0%,100% { filter: drop-shadow(0 0 5px currentColor); } 50% { filter: drop-shadow(0 0 12px currentColor) brightness(1.3); } }
 
 /* 歩行モーション */
 @keyframes walkBob {
@@ -1698,9 +1705,9 @@ body {
 }
 .myth-drop-panel {
   position: absolute;
-  bottom: calc(100% + 8px);
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   background: rgba(10, 6, 0, 0.96);
   border: 2px solid #f59e0b;
   border-radius: 10px;

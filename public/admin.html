@@ -248,6 +248,13 @@
 <div class="section">
   <div class="section-title">⚔️ タイマン</div>
   <div class="size-row">
+    <span class="size-label">❤️ 仮想HP倍率</span>
+    <input type="range" id="taimanHpMultSlider" min="1" max="100" step="1" value="10" class="size-slider"
+           oninput="syncSlider(this,'taimanHpMultVal',v=>v+'x')">
+    <span id="taimanHpMultVal" class="size-val">10x</span>
+    <button class="btn-reset" onclick="resetSlider('taimanHpMultSlider',10,'taimanHpMultVal',v=>v+'x')">↺</button>
+  </div>
+  <div class="size-row">
     <span class="size-label">キャラ倍率</span>
     <input type="range" id="taimanCharScaleSlider" min="1" max="10" step="0.1" value="4" class="size-slider"
            oninput="syncSlider(this,'taimanCharScaleVal',v=>v+'x'); adminSend({type:'taimanCharScale',value:this.value})">
@@ -1026,6 +1033,7 @@
       { id:'charSizeSlider',     valId:'charSizeVal',     fmt: v=>v+'%'  },
       { id:'bossSizeSlider',     valId:'bossSizeVal',     fmt: v=>v+'%'  },
       { id:'brHpMultSlider',     valId:'brHpMultVal',     fmt: v=>v+'x'  },
+      { id:'taimanHpMultSlider', valId:'taimanHpMultVal', fmt: v=>v+'x'  },
       { id:'slotProbCherry',     valId:'slotProbCherryVal',  fmt: v=>parseFloat(v)+'%' },
       { id:'slotProbBell',       valId:'slotProbBellVal',    fmt: v=>parseFloat(v)+'%' },
       { id:'slotProbStar',       valId:'slotProbStarVal',    fmt: v=>parseFloat(v)+'%' },

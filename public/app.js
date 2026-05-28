@@ -350,7 +350,7 @@ let _charSaveData = _loadServerSync('/api/char-save');
 
 const SETTINGS_KEYS = [
   'charSizeScale','bossSizeScale','moveArea','bossHpScale','bossAtkCoeff','bossCounterRate',
-  'brHpMult','nikoFontSize','nikoOpacity','hayaoshiFreq','hayaoshiSpeed',
+  'brHpMult','taimanHpMult','nikoFontSize','nikoOpacity','hayaoshiFreq','hayaoshiSpeed',
   'slotProbs','slotSoundEnabled','seVolume','voiceVolume',
   'aiModel','aiSystem','wordleDisplayRows','wordleCellSize','charFontSizes',
   'bgColor','bgImageUrl','taimanDefeatCommand','taimanCharScale',
@@ -1381,6 +1381,7 @@ let bossCounterRate = 0.40; // 反撃確率（0〜1）
 let bossHpScale    = 1;    // ボスHP倍率（1〜100）
 let bossAtkCoeff   = 20;   // 参加者ATK合計への係数
 let brHpMult       = 200;  // バトルロイヤル仮想HP倍率
+let taimanHpMult   = 10;   // タイマン仮想HP倍率
 let taimanDefeatCommand = localStorage.getItem('taimanDefeatCommand') || '';
 let taimanCharScale     = parseFloat(localStorage.getItem('taimanCharScale') || '4');
 let nikoFontSize  = 40;  // 早押しコメント文字サイズ(px)
@@ -1438,7 +1439,8 @@ let bossLastPos   = (localStorage.getItem('bossX') !== null && localStorage.getI
   ? { x: parseInt(localStorage.getItem('bossX')), y: parseInt(localStorage.getItem('bossY')) }
   : null;
 // Lv1〜10 累計攻撃数（合計150）
-const LEVEL_EXP = [0, 3, 10, 22, 40, 65, 90, 115, 133, 150];
+// Lv1=0, Lv100=4000 の二次曲線: f(i) = round((96010i + 1010i²) / 4851)
+const LEVEL_EXP = Array.from({length: 100}, (_, i) => Math.round((96010 * i + 1010 * i * i) / 4851));
 
 const EQUIP_POOL = [
   { name: '剣',    icon: '⚔️',  stat: 'atk' },
@@ -1522,7 +1524,7 @@ const PET_RARITY_RATE = [
 function calcLevel(exp) {
   let lv = 1;
   for (let i = 1; i < LEVEL_EXP.length; i++) { if (exp >= LEVEL_EXP[i]) lv = i + 1; }
-  return Math.min(lv, 10);
+  return Math.min(lv, 100);
 }
 
 function calcAtk(user) {
@@ -1534,7 +1536,8 @@ function calcAtk(user) {
 }
 
 function calcMaxHp(user) {
-  const base       = 30;
+  const lv         = user.level || 1;
+  const base       = 30 + (lv - 1) * 2;
   const equipBonus = (user.equips || []).filter(e => e.stat === 'hp').reduce((s, e) => s + (e.value || 0), 0);
   const petBonus   = (user.pet?.abilityId === 'tough' ? 10 : 0)
                    + (user.pet2?.abilityId === 'tough' ? 10 : 0);
@@ -1548,7 +1551,7 @@ function updateStatsDisplay(user) {
   const lv  = user.level || 1;
   const mp  = user.mp    ?? 10;
   const atk = calcAtk(user);
-  const expToNext = lv >= 10 ? 'MAX' : LEVEL_EXP[lv] - (user.exp || 0);
+  const expToNext = lv >= 100 ? 'MAX' : LEVEL_EXP[lv] - (user.exp || 0);
   // タイマン/BR中は仮想HPを表示
   const inTaiman = taimanState?.active && taimanState.hp[user.ipid] !== undefined;
   const inBR     = !inTaiman && brState?.active && brState.hp[user.ipid] !== undefined;
@@ -1955,9 +1958,9 @@ function startTaiman(challenger, target) {
   challenger._taimanFlip = true;
   applyFacingFlip(challenger);
 
-  // HP を元の最大HP×10に設定
-  const cMax = calcMaxHp(challenger) * 10;
-  const tMax = calcMaxHp(target)     * 10;
+  // HP を元の最大HP×taimanHpMultに設定
+  const cMax = calcMaxHp(challenger) * taimanHpMult;
+  const tMax = calcMaxHp(target)     * taimanHpMult;
 
   taimanState = {
     active: true,
@@ -2210,9 +2213,15 @@ function endTaiman(winner, loser) {
   if (t) { t.hp = snapshot.savedHp[snapshot.target]     ?? (t.hp ?? 30); updateStatsDisplay(t); }
 
   if (winner && loser) {
-    const transferMp = loser.mp ?? 0;
+    // 挑戦者のレベルが相手より高い場合、1Lvにつき10%ペナルティ
+    const challengerLv = (c?.level || 1);
+    const targetLv     = (t?.level || 1);
+    const lvDiff       = challengerLv - targetLv;
+    const mpMult       = lvDiff > 0 ? Math.max(0, 1 - lvDiff * 0.05) : 1;
+    const loserFullMp  = loser.mp ?? 0;
+    const transferMp   = Math.floor(loserFullMp * mpMult);
     winner.mp = (winner.mp ?? 0) + transferMp;
-    loser.mp  = 0;
+    loser.mp  = loserFullMp - transferMp;
     updateStatsDisplay(winner);
     updateStatsDisplay(loser);
 
@@ -2272,7 +2281,7 @@ function endTaiman(winner, loser) {
 
     showTaimanWinBanner(winner, loser, transferMp);
     addToLog(winner, `⚔️ タイマン勝利！ MP+${transferMp}`, '#fbbf24');
-    addToLog(loser,  '⚔️ タイマン敗北… MP→0', '#f87171');
+    addToLog(loser,  `⚔️ タイマン敗北… MP→${loser.mp}`, '#f87171');
   }
 
   setTimeout(() => gatherCharactersBottom(), 4500);
@@ -2420,7 +2429,15 @@ function updateLevelBadge(user) {
   }
   const lv = user.level || 1;
   badge.textContent = `Lv.${lv}`;
-  badge.className = 'char-level-badge' + (lv >= 2 ? ` lv${lv}` : '');
+  let lvCls = '';
+  if      (lv >= 100) lvCls = ' lv100';
+  else if (lv >= 91)  lvCls = ' lv91plus';
+  else if (lv >= 71)  lvCls = ' lv71plus';
+  else if (lv >= 51)  lvCls = ' lv51plus';
+  else if (lv >= 31)  lvCls = ' lv31plus';
+  else if (lv >= 11)  lvCls = ' lv11plus';
+  else if (lv >= 2)   lvCls = ` lv${lv}`;
+  badge.className = 'char-level-badge' + lvCls;
 }
 
 function showDamageNumber(x, y, text, isCrit, forceFontSize, color) {
@@ -3147,6 +3164,32 @@ function handleComment(comment) {
   // ── クイズ回答チェック ────────────────────────
   if (quizState && !quizState.answered) {
     handleQuizAnswer(user, message.trim());
+  }
+
+  // ── ランダムタイマン ──────────────────────────────
+  if (message.includes('ランダムタイマン')) {
+    ensureCharOnStage(user);
+    if (taimanState) {
+      showBubble(user, 'タイマン中です', {});
+      return;
+    }
+    const TAIMAN_COOLDOWN = 5 * 60 * 1000;
+    const elapsed = Date.now() - (user.lastTaimanAt ?? 0);
+    if (elapsed < TAIMAN_COOLDOWN) {
+      const remaining = Math.ceil((TAIMAN_COOLDOWN - elapsed) / 1000);
+      showBubble(user, `あと${remaining}秒でタイマンできます`, {});
+      return;
+    }
+    const candidates = Object.values(users).filter(u => u.el && !u.ko && u.ipid !== user.ipid);
+    if (candidates.length === 0) {
+      showBubble(user, '挑める相手がいません', {});
+      return;
+    }
+    const target = candidates[Math.floor(Math.random() * candidates.length)];
+    user.lastTaimanAt = Date.now();
+    showBubble(user, `⚔️ ${target.name} にタイマンを挑む！`, {});
+    startTaiman(user, target);
+    return;
   }
 
   // ── タイマン ─────────────────────────────────────
@@ -4761,6 +4804,26 @@ function launchBullets(user, text) {
   });
 })();
 
+(function initTaimanHpMultSlider() {
+  const slider = document.getElementById('taimanHpMultSlider');
+  const val    = document.getElementById('taimanHpMultVal');
+  if (!slider || !val) return;
+  const saved = parseInt(localStorage.getItem('taimanHpMult') ?? '10');
+  taimanHpMult = saved;
+  slider.value = saved;
+  val.textContent = saved + 'x';
+  slider.addEventListener('input', () => {
+    taimanHpMult = parseInt(slider.value);
+    val.textContent = taimanHpMult + 'x';
+    localStorage.setItem('taimanHpMult', taimanHpMult);
+    saveSettingsToServer();
+  });
+  document.getElementById('taimanHpMultReset').addEventListener('click', () => {
+    slider.value = 10;
+    slider.dispatchEvent(new Event('input'));
+  });
+})();
+
 document.getElementById('batchAssign').addEventListener('click', () => {
   const assigned = new Set(Object.values(charImages));
   const unassigned = availableImages.filter(f => !assigned.has(f));
@@ -5185,10 +5248,6 @@ function postStatusComment(user) {
   const wordle = user.wordleWins || 0;
   const hayaoshi = user.hayaoshiWins || 0;
 
-  const equipSummary = (user.equips || []).length > 0
-    ? (user.equips || []).map(eq => `${eq.icon}(${eq.stat === 'atk' ? 'ATK' : 'HP'}+${eq.value})`).join(' ')
-    : 'なし';
-
   const petSummary = [user.pet, user.pet2].filter(Boolean)
     .map(p => `${p.abilityName}(${p.abilityDesc})`).join(' / ') || 'なし';
 
@@ -5198,7 +5257,6 @@ function postStatusComment(user) {
 
   let text = `【${user.name}】Lv.${lv} HP:${hp}/${mhp} MP:${mp} ATK:${atk} EXP:${exp}`;
   text += ` | ダメージ:${dmg} 死亡:${deaths}回 Wordle:${wordle} 早押し:${hayaoshi}`;
-  text += ` | 装備:${equipSummary}`;
   if (petSummary !== 'なし') text += ` | ペット:${petSummary}`;
   if (activeTitleName) text += ` | 称号:【${activeTitleName}】`;
 
@@ -6896,7 +6954,7 @@ function handleAdminMessage(d, replyFn) {
     if (el) { el.value = d.value; el.dispatchEvent(new Event('input')); }
   } else if (d.type === 'getState' || d.type === 'ping') {
     const sliderIds = ['nikoSizeSlider','nikoOpacitySlider','hayaoshiFreqSlider','hayaoshiSpeedSlider',
-                       'bossHpScaleSlider','bossAtkCoeffSlider','counterRateSlider','charSizeSlider','bossSizeSlider','brHpMultSlider',
+                       'bossHpScaleSlider','bossAtkCoeffSlider','counterRateSlider','charSizeSlider','bossSizeSlider','brHpMultSlider','taimanHpMultSlider',
                        'slotProbCherry','slotProbBell','slotProbStar','slotProbDiamond','slotProbJackpot',
                        'afkOpacitySlider','afkGrayscaleSlider','afkBrightnessSlider',
                        'kaiSpeedSlider','kaiRestitutionSlider','kaiGravitySlider','kaiBulletSizeSlider'];
