@@ -2318,6 +2318,11 @@ body {
   pointer-events: none;
   z-index: 25;
   border: 1px solid rgba(255,255,255,0.1);
+  animation: afkPulse 2.4s ease-in-out infinite;
+}
+@keyframes afkPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
 }
 
 /* ── ボタン ── */
