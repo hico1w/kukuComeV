@@ -3038,6 +3038,7 @@ function handleComment(comment) {
   // ── 通常コメント以外はスキップ ─────────────
   if (type !== 'comment') return;
   user.commentCount = (user.commentCount || 0) + 1;
+  user.lastCommentAt = Date.now();
 
   // コメント毎に基礎 EXP +1（ボス有無・コンパクトモード問わず）
   user.exp = (user.exp || 0) + 1;
@@ -7249,6 +7250,25 @@ setInterval(() => {
     startBattleRoyale();
   }
 }, 30 * 60 * 1000);
+
+// ── 5分無コメントで自動AFK ───────────────────────────────────────────
+setInterval(() => {
+  const now = Date.now();
+  const AFK_TIMEOUT = 5 * 60 * 1000;
+  Object.values(users).forEach(u => {
+    if (!u.el || u.ko || u.afk || u.afkText) return;
+    if (!u.lastCommentAt) return;
+    if (now - u.lastCommentAt < AFK_TIMEOUT) return;
+    u.afk = true;
+    if (u.afkEl) u.afkEl.remove();
+    const afkEl = document.createElement('div');
+    afkEl.className = 'afk-bubble';
+    afkEl.textContent = '💤 AFK';
+    u.el.appendChild(afkEl);
+    u.afkEl = afkEl;
+    u.el.classList.add('char-afk');
+  });
+}, 30 * 1000);
 
 // ── 競馬 ──────────────────────────────────────────────────────────
 let raceState     = null;
