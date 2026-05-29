@@ -7727,7 +7727,6 @@ setInterval(() => {
     el.style.transition = 'transform 0.3s ease-in, opacity 0.3s ease-in';
     el.style.transform  = 'scale(0) rotate(20deg)';
     el.style.opacity    = '0';
-    const _autoDelSaveKey = u.saveKey || ipid;
     setTimeout(() => {
       if (u.bubbleTimer) clearTimeout(u.bubbleTimer);
       if (u.motionTimer) clearTimeout(u.motionTimer);
@@ -7735,8 +7734,6 @@ setInterval(() => {
       if (u.walkTimer)   clearTimeout(u.walkTimer);
       el.remove();
       delete users[ipid];
-      delete _charSaveData[_autoDelSaveKey];
-      fetch(`/api/char-save/${encodeURIComponent(_autoDelSaveKey)}`, { method: 'DELETE' }).catch(() => {});
       if (brState?.active && brState.survivors.has(ipid)) {
         brState.survivors.delete(ipid);
         brState.ranking.push(ipid);
