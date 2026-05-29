@@ -3169,6 +3169,22 @@ function handleComment(comment) {
   const ipid  = comment.ipid || comment.from || 'master';
   const user  = getUser(ipid);
 
+  // icon_num がある場合はセーブキーを更新し、icon_numキーの既存セーブを優先適用
+  if (comment.icon_num) {
+    const iconKey = String(comment.icon_num);
+    if (user.saveKey !== iconKey) {
+      user.saveKey = iconKey;
+      const savedByIcon = _charSaveData[iconKey];
+      if (savedByIcon) {
+        CHAR_SAVE_FIELDS.forEach(k => { if (savedByIcon[k] !== undefined) user[k] = savedByIcon[k]; });
+        user.sizeScale = 1.0;
+        if (['textColor','bubbleShape','bubbleDeco','bubbleBgColor','font','charImage'].some(k => savedByIcon[k] !== undefined)) {
+          user.firstAppear = false;
+        }
+      }
+    }
+  }
+
   // バトルロイヤル中：脱落済みユーザーは処理スキップ
   if (brState?.active && user.brOut) return;
 
@@ -3732,8 +3748,9 @@ function handleComment(comment) {
       if (user.walkTimer)   clearTimeout(user.walkTimer);
       user.el?.remove();
       delete users[ipid];
-      delete _charSaveData[ipid];
-      fetch(`/api/char-save/${encodeURIComponent(ipid)}`, { method: 'DELETE' }).catch(() => {});
+      const _sk = user.saveKey || ipid;
+      delete _charSaveData[_sk];
+      fetch(`/api/char-save/${encodeURIComponent(_sk)}`, { method: 'DELETE' }).catch(() => {});
       if (brState?.active && brState.survivors.has(ipid)) {
         brState.survivors.delete(ipid);
         brState.ranking.push(ipid);
@@ -7508,6 +7525,8 @@ function handleAdminMessage(d, replyFn) {
     }
   } else if (d.type === 'clearCharSave') {
     _charSaveData = {};
+  } else if (d.type === 'deleteCharSave') {
+    delete _charSaveData[d.key];
   } else if (d.type === 'taimanCharScale') {
     taimanCharScale = parseFloat(d.value) || 4;
     localStorage.setItem('taimanCharScale', taimanCharScale);
@@ -7685,6 +7704,7 @@ setInterval(() => {
     el.style.transition = 'transform 0.3s ease-in, opacity 0.3s ease-in';
     el.style.transform  = 'scale(0) rotate(20deg)';
     el.style.opacity    = '0';
+    const _autoDelSaveKey = u.saveKey || ipid;
     setTimeout(() => {
       if (u.bubbleTimer) clearTimeout(u.bubbleTimer);
       if (u.motionTimer) clearTimeout(u.motionTimer);
@@ -7692,6 +7712,8 @@ setInterval(() => {
       if (u.walkTimer)   clearTimeout(u.walkTimer);
       el.remove();
       delete users[ipid];
+      delete _charSaveData[_autoDelSaveKey];
+      fetch(`/api/char-save/${encodeURIComponent(_autoDelSaveKey)}`, { method: 'DELETE' }).catch(() => {});
       if (brState?.active && brState.survivors.has(ipid)) {
         brState.survivors.delete(ipid);
         brState.ranking.push(ipid);
@@ -8154,7 +8176,7 @@ setInterval(() => {
   Object.values(users).forEach(u => {
     const obj = {};
     CHAR_SAVE_FIELDS.forEach(k => { if (u[k] !== undefined) obj[k] = u[k]; });
-    data[u.ipid] = obj;
+    data[u.saveKey || u.ipid] = obj;
   });
   if (Object.keys(data).length) _saveServer('/api/char-save', data);
 }, 60 * 1000);
