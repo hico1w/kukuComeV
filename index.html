@@ -275,7 +275,7 @@
 
     <div class="cmdgen-row">
       <span class="cmdgen-label">👤 名前</span>
-      <input type="text" id="cgName" class="cmdgen-name-input" placeholder="表示名（空欄でスキップ）" maxlength="20" oninput="CmdGen.build()">
+      <input type="text" id="cgName" class="cmdgen-name-input" placeholder="表示名（空欄でスキップ・最大10文字）" maxlength="10" oninput="CmdGen.build()">
     </div>
 
     <div class="cmdgen-row">
@@ -460,7 +460,7 @@
       <div class="feature-card">
         <div class="feature-card-title" style="color:#a78bfa">🐾 ペットシステム</div>
         <div class="feature-card-body">
-          コメントに <b>ペットガチャ</b> と入力すると <b>MP10を消費</b> してペットを1体引けます。<br>
+          コメントに <b>ペットガチャ</b> と入力すると <b>MP20を消費</b> してペットを1体引けます。<br>
           ペットはキャラクターの右下に常時表示され、様々なバトル効果を発揮します。<br>
           ペットも攻撃モーションを行い（キャラの後に順番に）、ダメージ数字も表示されます。<br>
           新たにガチャを引くと対象スロットのペットは上書きされます。<b>ノーマル〜神話</b>の5段階レアリティ。<br>
@@ -529,7 +529,7 @@
     <div class="section-title">🐾 ペットガチャ</div>
 
     <div class="hint-box" style="margin-bottom:16px">
-      <b>ペットガチャ</b>とコメントすると <b>MP10</b> を消費してガチャを1回引けます。<br>
+      <b>ペットガチャ</b>とコメントすると <b>MP20</b> を消費してガチャを1回引けます。<br>
       MPが足りない場合は失敗します。新たに引くと以前のペットは上書きされます。<br>
       <b>ステータス確認</b>とコメントすると現在のペット情報を含むモーダルが5秒間表示されます。
     </div>
@@ -537,11 +537,11 @@
     <div class="cmd-grid" style="margin-bottom:16px">
       <div class="cmd-card">
         <div class="cmd-row"><span class="cmd-code purple">ペットガチャ</span></div>
-        <div class="cmd-desc">MP10消費してペットを1体引く。引いたペット・レアリティ・能力がアニメーションで表示される</div>
+        <div class="cmd-desc">MP20消費してペットを1体引く。引いたペット・レアリティ・能力がアニメーションで表示される</div>
       </div>
       <div class="cmd-card">
         <div class="cmd-row"><span class="cmd-code">ステータス確認</span></div>
-        <div class="cmd-desc">ペット・装備・HP/MP/ATK・各種記録を含むモーダルを5秒間表示</div>
+        <div class="cmd-desc">ペット・装備・HP/MP/ATK・各種記録を含むモーダルを5秒間表示。Discord Webhook連携時はスクリーンショットを自動投稿（Ollama総評付き。9秒以内に返答がなければ総評なしで投稿）</div>
       </div>
     </div>
 
@@ -762,7 +762,8 @@
     <div class="section-title">🎨 文字色 / 吹き出し背景色（共通 200色）</div>
     <div class="hint-box" style="margin-bottom:10px">
       <b>色:色名</b>（文字色）・<b>吹き出し背景色:色名</b>（吹き出し背景）の両方で下記200色が使用可。<br>
-      カラーコード直接指定も可能：<b>色:#FF6600</b> / <b>吹き出し背景色:#FF6600</b> &nbsp;｜&nbsp; 背景リセット：<b>吹き出し背景色:なし</b>
+      カラーコード直接指定も可能：<b>色:#FF6600</b> / <b>吹き出し背景色:#FF6600</b> &nbsp;｜&nbsp; 背景リセット：<b>吹き出し背景色:なし</b><br>
+      ⚠️ 文字色と吹き出し背景色に<b>同じ色を指定した場合</b>、文字が見えなくなるためランダムな別の文字色が自動設定されます。設定はキャラ名の表示にも適用されます。
     </div>
     <div class="color-table">
       <div class="color-group-title">基本色</div>
@@ -994,7 +995,7 @@
 
       <div class="cmd-card">
         <div class="cmd-row"><span class="cmd-code pink">名前:たろう</span></div>
-        <div class="cmd-desc">表示名を変更。デフォルトは icon_name または「名無し」。最大20文字</div>
+        <div class="cmd-desc">表示名を変更。デフォルトは icon_name または「名無し」。最大10文字（超過した場合は先頭10文字を使用）。<b>文字色・背景色・フォント・装飾の設定がキャラ名にも反映される。</b></div>
       </div>
 
       <div class="cmd-card">
@@ -1360,7 +1361,7 @@
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">はずむ 大きさ:大 ノリノリ〜</span></div><div class="cmd-desc">大サイズでバウンス開始しながらコメント表示</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">吹き出し:ハート 飾り:光る 好き！</span></div><div class="cmd-desc">ハート形＋グロー装飾の吹き出しで「好き！」と表示</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">回復 みんないけー！</span></div><div class="cmd-desc">MP2消費で全キャラHP+2回復しながらコメント表示</div></div>
-      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">ペットガチャ</span></div><div class="cmd-desc">MP10消費してペットを引く（他コマンドと同時使用不可）</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">ペットガチャ</span></div><div class="cmd-desc">MP20消費してペットを引く（他コマンドと同時使用不可）</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">ステータス確認</span></div><div class="cmd-desc">ペット・装備・HP/MP/ATK・Wordle/早押し正解数を5秒間表示</div></div>
     </div>
     <div class="hint-box">
@@ -1383,7 +1384,7 @@
     <div class="cmd-grid">
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">キャラN</span></div><div class="cmd-desc">キャラをN番に変更（N=1〜500）。他コマンドと併用可。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">エイリアス名</span></div><div class="cmd-desc">★単独。管理パネルで設定した名前でキャラを呼び出す。</div></div>
-      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">名前:テキスト</span></div><div class="cmd-desc">表示名を変更（最大20文字）。同名が使われていると拒否。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">名前:テキスト</span></div><div class="cmd-desc">表示名を変更（最大10文字、超過時は先頭10文字）。同名が使われていると拒否。文字色・背景色・フォント・装飾がキャラ名にも反映される。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">大きさ:大／中／小</span></div><div class="cmd-desc">キャラサイズを変更（大=120px・中=80px・小=48px）。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">反転</span></div><div class="cmd-desc">キャラ画像を左右反転（トグル）。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">ランダムキャラ</span></div><div class="cmd-desc">キャラ画像をランダムに変更。自分だけに適用。</div></div>
@@ -1444,7 +1445,7 @@
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code red">ランダムタイマン</span></div><div class="cmd-desc">★単独。ランダムなキャラに1v1決闘を申し込む（クールダウン5分）。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code red">ボス召喚</span><span style="color:var(--muted);font-size:11px;margin-left:6px">/ ボス召喚:HP数値</span></div><div class="cmd-desc">★単独。ボスを召喚。HP数値で強さ指定可。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">開ける</span></div><div class="cmd-desc">★単独。宝箱が出現中に開けて中身を取得。</div></div>
-      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">ステータス確認</span></div><div class="cmd-desc">★単独。HP/MP/ATK/EXP・装備・ペット・称号を5秒間表示。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">ステータス確認</span></div><div class="cmd-desc">★単独。HP/MP/ATK/EXP・装備・ペット・称号を5秒間表示。Discord Webhook連携時はスクリーンショットを自動投稿（Ollama総評なしでも投稿）。</div></div>
     </div>
 
     <!-- 競馬 -->
