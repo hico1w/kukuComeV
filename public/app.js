@@ -7699,6 +7699,7 @@ setInterval(() => {
   const AFK_TIMEOUT = 30 * 60 * 1000;
   Object.values(users).forEach(u => {
     if (!u.el || u.ko || u.afk || u.afkText) return;
+    if (u.ipid === 'master') return;
     if (!u.lastCommentAt) return;
     if (now - u.lastCommentAt < AFK_TIMEOUT) return;
     u.afk = true;
@@ -7712,12 +7713,13 @@ setInterval(() => {
   });
 }, 30 * 1000);
 
-// ── 10分無コメントで自動削除 ─────────────────────────────────────────
+// ── 30分無コメントで自動削除 ─────────────────────────────────────────
 setInterval(() => {
   const now = Date.now();
-  const DELETE_TIMEOUT = 10 * 60 * 1000;
+  const DELETE_TIMEOUT = 30 * 60 * 1000;
   Object.values(users).forEach(u => {
     if (!u.el || u.ko || u.afkManual || u.afkText) return;
+    if (u.ipid === 'master') return;
     if (!u.lastCommentAt) return;
     if (now - u.lastCommentAt < DELETE_TIMEOUT) return;
     const el = u.el;
