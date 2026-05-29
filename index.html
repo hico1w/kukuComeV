@@ -386,11 +386,11 @@
       <div class="feature-card">
         <div class="feature-card-title" style="color:#f87171">🐉 ボスバトルシステム</div>
         <div class="feature-card-body">
-          <b>ボス召喚</b> コマンドでボスが出現し、<b>視聴者全員のコメントが攻撃</b>になります。<br>
-          ボスはHPに応じてサイズが変わります（HP100→小、HP2000→超巨大）。<br>
-          攻撃を受けるたびにランダムなセリフを表示し、<b>20%の確率で全キャラに反撃（5ダメ）</b>。<br>
-          ボス撃破で全員にHP+20回復＋ランダム装備が配布されます。<br>
-          ボス戦中は2体目の召喚は不可。次のボスは自動で召喚されます。
+          <b>ボス召喚</b> コマンドでボスが出現し、<b>視聴者全員のコメントが攻撃</b>になります。HP指定：<code>ボス召喚:500</code>（上限2000）。<br>
+          ボスサイズはHPに比例（HP100→約120px・HP2000→約420px）。<br>
+          攻撃を受けるたびにランダムなセリフを表示。<b>反撃確率は管理パネルで設定可</b>（デフォルト20%・全キャラに5ダメ）。<br>
+          撃破で全員 <b>HP+20回復</b>＋ランダム装備が全キャラに配布。<b>次のボスは一定時間後に自動召喚</b>されます。<br>
+          ボス画像は <code>public/chara/</code> の画像からランダム選択。管理パネルの「揺れ設定」でボスにも胸の揺れアニメーションを適用できます。
         </div>
       </div>
 
@@ -429,10 +429,11 @@
         <div class="feature-card-title" style="color:#7dd3fc">📊 キャラステータス</div>
         <div class="feature-card-body">
           <b>HP</b>：基本30 ＋ HP系装備ボーナス（鉄壁ペットで+10追加）<br>
-          <b>MP</b>：初期30。攻撃するたびに+1（ペットにより追加あり）。死亡してもリセットされない。<b>出して</b>で20、<b>ペットガチャ</b>で10、<b>回復</b>で2消費。<br>
-          <b>ATK</b>：1 ＋ レベル ＋ ATK系装備ボーナス<br>
-          <b>クリティカル</b>：15%の確率でダメージ×2〜4倍。クリ率はペットで上昇。<br>
-          ステータスはキャラの下に常時表示されます。
+          <b>MP</b>：コメント攻撃で+1（ペット効果で+2〜+4）。上限なし。死亡しても保持。<br>
+          　消費：<b>ペットガチャ</b> -20 ／ <b>出して（AI画像）</b> -20 ／ <b>スロット</b> -3 ／ <b>回復</b> -2<br>
+          <b>ATK</b>：1 ＋ レベル ＋ ATK系装備ボーナス ＋ 称号ボーナス<br>
+          <b>クリティカル</b>：基本15%でダメージ×2〜4倍。ペット・称号でクリ率上昇（最大値は称号合算次第）。<br>
+          <b>キャラ名表示</b>：設定した文字色・背景色・フォント・装飾がキャラ名にも反映されます。
         </div>
       </div>
 
@@ -481,10 +482,10 @@
       <div class="feature-card">
         <div class="feature-card-title" style="color:#fbbf24">⚡ 早押しゲーム</div>
         <div class="feature-card-body">
-          <b>⚡ 早押しボタン</b>で手動起動、または<b>配信開始15秒後から20秒ごとに自動起動</b>します。<br>
-          自動起動時はニコニコ動画風に<b>右から左へキーワードが流れます</b>。<br>
-          コメントでキーワードと一致した最初の視聴者が<b>HP+10回復</b>＋早押し正解数がカウントされます。<br>
-          30秒で時間切れになります。
+          <b>⚡ 早押しボタン</b>で手動起動。配信開始後も一定間隔で<b>自動起動</b>します（間隔は管理パネルで調整可）。<br>
+          <b>白ストリーム</b>：テロップがニコニコ動画風に右から左へ流れる。正解でHP+10回復。<br>
+          <b>赤ストリーム</b>：赤背景の緊急テロップ。白の3倍間隔で発生。正解でHP+15回復。<br>
+          どちらも30秒で時間切れ。正解回数は称号解除に使用されます。
         </div>
       </div>
 
@@ -515,9 +516,79 @@
       <div class="feature-card">
         <div class="feature-card-title" style="color:#f472b6">🎨 AI画像生成（出してコマンド）</div>
         <div class="feature-card-body">
-          コメントに <b>出して</b> を含めると <b>MP20を消費</b> してStable DiffusionでAI画像を生成します。<br>
+          コメントに <b>出して / 出ろ / 生成</b> を含めると <b>MP20を消費</b> してStable DiffusionでAI画像を生成します。<br>
           MPが20未満の場合は「MPが足りなくて画像生成できません」と吹き出しに表示されます。<br>
-          Discord Webhook連携設定時は生成画像とプロンプトが自動送信されます。
+          コメントのテキスト部分がそのままプロンプトになります。Discord Webhook連携時は生成画像とプロンプトが自動送信されます。
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#f87171">⚔️ タイマン（1v1 決闘）</div>
+        <div class="feature-card-body">
+          <b>タイマン:相手名</b> または <b>ランダムタイマン</b> で他のキャラに1v1決闘を申し込みます。<br>
+          申し込まれた側は<b>次のコメントで自動参加</b>。お互いのATK・装備・ペット・称号を総合判定して勝敗決定。<br>
+          勝者は敗者の<b>MP全額を奪取</b>。ただし挑戦者がレベルで上回っている場合、1Lv差ごとに奪えるMP量が5%ずつ減少します（レベル差20以上で0%）。<br>
+          クールダウンはデフォルト<b>5分</b>（管理パネルで変更可）。敗北時コマンドも管理パネルで設定可能。
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#a78bfa">🎰 スロット</div>
+        <div class="feature-card-body">
+          <b>スロット</b> でMP3消費して1回。<b>スロット開始</b> で自動連続（<b>スロット停止</b> で停止）。<br>
+          3リールが揃うと当たり。絵柄と報酬（デフォルト値）：<br>
+          🍒 チェリー 20%→MP+5 ／ 🔔 ベル 10%→MP+10 ／ ⭐ スター 5%→MP+25<br>
+          💎 ダイヤ 1%→MP+60 ／ 7️⃣ JACKPOT 0.5%→MP+200 ／ ハズレ 63.5%<br>
+          確率・報酬は管理パネルからカスタマイズ可。
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#fbbf24">📦 宝箱システム</div>
+        <div class="feature-card-body">
+          配信中<b>5分ごとに自動でステージに宝箱が出現</b>します（出現から20秒間有効）。<br>
+          出現中に <b>開ける</b> とコメントした<b>先着1名</b>が中身を取得。<br>
+          中身は<b>エピック以上確定の装備（+5〜+10）＋HP+30回復</b>。花火・紙吹雪・ハートシャワーの豪華演出あり。<br>
+          開けた回数は記録され、称号解除（宝探し・宝箱ハンター・財宝の王 など）に使用されます。
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#fb923c">🏇 競馬システム</div>
+        <div class="feature-card-body">
+          馬が自動でレースを走ります。ベット期間中に <b>馬券 馬番 賭けMP</b> でベット（例：<code>馬券 3 10</code>）。<br>
+          複勝（2着以内）は範囲指定：<code>馬券 2-5 10</code>。<br>
+          レース中にコメントに馬番の数字が含まれると<b>応援</b>になり、その馬がわずかに加速します。<br>
+          的中すると賭けMPに応じたオッズでMPが返ってきます。
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#64748b">😴 自動 AFK・離席表示</div>
+        <div class="feature-card-body">
+          <b>5分間コメントがないキャラは自動でAFK状態</b>になります（透明度・グレースケール・明度は管理パネルで調整可）。<br>
+          コメントに <b>AFK / ＡＦＫ</b> を含めると即時AFK。<b>放置:テキスト</b> / <b>無明:テキスト</b> でカスタムメッセージ付き離席。<br>
+          次にコメントすると自動で復帰します。
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#7dd3fc">🔗 Discord / Ollama 連携</div>
+        <div class="feature-card-body">
+          管理パネルで <b>Discord Webhook URL</b> を設定すると、<b>ステータス確認</b> 時にスクリーンショットを自動投稿します。<br>
+          <b>Ollama</b>（ローカルAI）が起動中なら、キャラの状態を元にした<b>総評コメントを生成して添付</b>します（9秒タイムアウト。時間内に返答がなければ総評なしで投稿）。<br>
+          <b>AI画像生成（出して）</b> と <b>ai:質問</b> コマンドも Ollama を経由して動作します。
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#a78bfa">🔊 TTS / AI / ノベル</div>
+        <div class="feature-card-body">
+          <b>tts:テキスト</b>：テキストを音声合成（TTS）で読み上げます。<br>
+          <b>ai:質問 / AI:質問</b>：Ollama に質問。回答が吹き出しとコメントログに表示されます。<br>
+          <b>YouTubeのURL</b>：URLを含むコメントを投稿するとMP+20獲得（同じURLは1回限り）。<br>
+          <b>ノベル起動</b>：ビジュアルノベル形式のストーリーモードを起動します。<br>
+          これらはすべて <b>★単独コマンド</b>（他コマンドと同時使用不可）です。
         </div>
       </div>
 
@@ -529,8 +600,9 @@
     <div class="section-title">🐾 ペットガチャ</div>
 
     <div class="hint-box" style="margin-bottom:16px">
-      <b>ペットガチャ</b>とコメントすると <b>MP20</b> を消費してガチャを1回引けます。<br>
-      MPが足りない場合は失敗します。新たに引くと以前のペットは上書きされます。<br>
+      <b>ペットガチャ</b>とコメントすると <b>MP20</b> を消費してガチャを1回引けます。MPが足りない場合は失敗します。<br>
+      ペットはキャラの右下に常時表示。コメントするたびにキャラの後に追加攻撃を行い、ダメージ数字も表示されます。<br>
+      新たにガチャを引くと対象スロットのペットは上書き。<b>20回目でスロット2枠目解放</b>（20回目以降は奇数回→1枠目・偶数回→2枠目に交互格納）。<br>
       <b>ステータス確認</b>とコメントすると現在のペット情報を含むモーダルが5秒間表示されます。
     </div>
 
@@ -669,10 +741,11 @@
 
     </div>
     <div class="danger-box">
-      ボスは攻撃を受けるたびに <b>20%の確率で全キャラに反撃（ダメージ5）</b> します。<br>
-      ボスを倒すと全員 <b>HP+20 回復</b>＋ランダム装備が全キャラに配布されます。<br>
-      <b>ボス画像は public/chara/ にある画像からランダム選択</b>されます。<br>
-      ボスのサイズはHP100→約120px、HP2000→約420pxとHP比例して大きくなります。
+      ボスは攻撃を受けるたびに<b>反撃確率（デフォルト20%）で全キャラに反撃（ダメージ5）</b>します。反撃率・ダメージは管理パネルで変更可。<br>
+      ボスを倒すと全員 <b>HP+20 回復</b>＋ボスHPに応じたレアリティのランダム装備が全キャラに配布されます。<br>
+      <b>ボス画像は public/chara/ にある画像からランダム選択</b>。管理パネルの「揺れ設定」でボスにも揺れアニメを設定できます。<br>
+      ボスのサイズはHP100→約120px、HP2000→約420pxとHP比例して大きくなります。<br>
+      ボス撃破後は<b>一定時間後に次のボスが自動召喚</b>されます。
     </div>
   </div>
 
@@ -1438,13 +1511,13 @@
     <div class="section-subtitle" style="font-size:13px;font-weight:700;color:var(--accent);margin:12px 0 6px">🎮 ゲーム・バトル</div>
     <div class="cmd-grid">
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code purple">ペットガチャ</span></div><div class="cmd-desc">★単独。MP20消費でペットガチャ。20回目でスロット2枠目解放。</div></div>
-      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">スロット</span></div><div class="cmd-desc">★単独。MP3消費でスロット1回。</div></div>
-      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">スロット開始</span></div><div class="cmd-desc">★単独。MP3消費で自動連続スロット開始。</div></div>
-      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">スロット停止</span></div><div class="cmd-desc">★単独。自動スロットを停止。</div></div>
-      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code red">タイマン:名前</span></div><div class="cmd-desc">★単独。指定した名前のキャラに1v1決闘を申し込む（クールダウン5分）。挑戦者がレベル差分高い場合、1Lvにつき奪えるMP5%減少。</div></div>
-      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code red">ランダムタイマン</span></div><div class="cmd-desc">★単独。ランダムなキャラに1v1決闘を申し込む（クールダウン5分）。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">スロット</span></div><div class="cmd-desc">★単独。MP3消費でスロット1回。🍒20%/🔔10%/⭐5%/💎1%/7️⃣0.5%/ハズレ63.5%（確率・報酬は管理パネルで変更可）。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">スロット開始</span></div><div class="cmd-desc">★単独。MP3消費で自動連続スロット開始（MP切れまで自動継続）。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">スロット停止</span></div><div class="cmd-desc">★単独。自動連続スロットを停止。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code red">タイマン:名前</span></div><div class="cmd-desc">★単独。指定名のキャラに1v1決闘申し込み。申し込まれた側は次のコメントで自動参加。勝者が敗者のMP全額を奪取（挑戦者レベル優位時は1Lv差ごとに奪取量-5%）。クールダウン5分（管理パネルで変更可）。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code red">ランダムタイマン</span></div><div class="cmd-desc">★単独。ランダムなキャラに1v1決闘を申し込む。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code red">ボス召喚</span><span style="color:var(--muted);font-size:11px;margin-left:6px">/ ボス召喚:HP数値</span></div><div class="cmd-desc">★単独。ボスを召喚。HP数値で強さ指定可。</div></div>
-      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">開ける</span></div><div class="cmd-desc">★単独。宝箱が出現中に開けて中身を取得。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">開ける</span></div><div class="cmd-desc">★単独。宝箱出現中（20秒間）に先着1名が取得。エピック以上装備確定＋HP+30回復。宝箱は配信中5分ごとに自動出現。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">ステータス確認</span></div><div class="cmd-desc">★単独。HP/MP/ATK/EXP・装備・ペット・称号を5秒間表示。Discord Webhook連携時はスクリーンショットを自動投稿（Ollama総評なしでも投稿）。</div></div>
     </div>
 
@@ -1458,8 +1531,8 @@
     <!-- 特殊 -->
     <div class="section-subtitle" style="font-size:13px;font-weight:700;color:var(--accent);margin:12px 0 6px">⚡ 特殊</div>
     <div class="cmd-grid">
-      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">AFK</span><span class="cmd-code pink" style="margin-left:4px">ＡＦＫ</span></div><div class="cmd-desc">AFK（離席）状態を表示。次のコメントで自動解除。</div></div>
-      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">放置:テキスト</span><span class="cmd-code pink" style="margin-left:4px">無明:テキスト</span></div><div class="cmd-desc">カスタムテキストでAFK状態表示。次コメントで解除。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">AFK</span><span class="cmd-code pink" style="margin-left:4px">ＡＦＫ</span></div><div class="cmd-desc">AFK（離席）状態を即時表示。次のコメントで自動解除。5分間コメントがない場合も自動AFK。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">放置:テキスト</span><span class="cmd-code pink" style="margin-left:4px">無明:テキスト</span></div><div class="cmd-desc">カスタムメッセージ付きでAFK状態表示。次コメントで解除。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">射</span></div><div class="cmd-desc">コメントの文字を1文字ずつ物理的に発射。当たったキャラにダメージ。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">出ろ／出して／生成</span></div><div class="cmd-desc">★単独。MP20消費でAI画像生成。テキスト部分がプロンプトになる。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">tts:テキスト</span></div><div class="cmd-desc">★単独。テキストを音声合成（TTS）で読み上げ。</div></div>
