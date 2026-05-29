@@ -3406,6 +3406,7 @@ function handleComment(comment) {
     if (canClearAfk) {
       user.afk = false;
       user.afkText = null;
+      user.afkManual = false;
       if (user.afkEl) { user.afkEl.remove(); user.afkEl = null; }
       user.el?.classList.remove('char-afk');
     }
@@ -3413,6 +3414,7 @@ function handleComment(comment) {
   if (/AFK|ＡＦＫ/i.test(message)) {
     ensureCharOnStage(user);
     user.afk = true;
+    user.afkManual = true;
     if (user.afkEl) user.afkEl.remove();
     const afkEl = document.createElement('div');
     afkEl.className = 'afk-bubble';
@@ -3429,6 +3431,7 @@ function handleComment(comment) {
     ensureCharOnStage(user);
     const text = afkTextMatch[1].trim();
     user.afkText = text;
+    user.afkManual = true;
     if (user.afkEl) user.afkEl.remove();
     const afkEl = document.createElement('div');
     afkEl.className = 'afk-bubble';
@@ -7668,6 +7671,39 @@ setInterval(() => {
     u.el.classList.add('char-afk');
   });
 }, 30 * 1000);
+
+// ── 10分無コメントで自動削除 ─────────────────────────────────────────
+setInterval(() => {
+  const now = Date.now();
+  const DELETE_TIMEOUT = 10 * 60 * 1000;
+  Object.values(users).forEach(u => {
+    if (!u.el || u.ko || u.afkManual || u.afkText) return;
+    if (!u.lastCommentAt) return;
+    if (now - u.lastCommentAt < DELETE_TIMEOUT) return;
+    const el = u.el;
+    const ipid = u.ipid;
+    el.style.transition = 'transform 0.3s ease-in, opacity 0.3s ease-in';
+    el.style.transform  = 'scale(0) rotate(20deg)';
+    el.style.opacity    = '0';
+    setTimeout(() => {
+      if (u.bubbleTimer) clearTimeout(u.bubbleTimer);
+      if (u.motionTimer) clearTimeout(u.motionTimer);
+      if (u.moveTimer)   clearTimeout(u.moveTimer);
+      if (u.walkTimer)   clearTimeout(u.walkTimer);
+      el.remove();
+      delete users[ipid];
+      if (brState?.active && brState.survivors.has(ipid)) {
+        brState.survivors.delete(ipid);
+        brState.ranking.push(ipid);
+        if (brState.survivors.size <= 1) {
+          const winnerId = [...brState.survivors][0];
+          const winner = winnerId ? users[winnerId] : null;
+          setTimeout(() => endBattleRoyale(winner), 800);
+        }
+      }
+    }, 300);
+  });
+}, 60 * 1000);
 
 // ── 競馬 ──────────────────────────────────────────────────────────
 let raceState     = null;
