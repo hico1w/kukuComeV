@@ -164,7 +164,21 @@ const DATA = p => path.join(__dirname, 'data', p);
 makeDataEndpoints('/api/char-images',  DATA('charImages.json'));
 makeDataEndpoints('/api/char-aliases', DATA('charAliases.json'));
 makeDataEndpoints('/api/settings',     DATA('settings.json'));
-makeDataEndpoints('/api/char-save',    DATA('charSave.json'));
+
+// char-save: GET は全データ返却、POST はマージ（上書きしない）
+app.get('/api/char-save', (req, res) => {
+  try { res.json(fs.existsSync(DATA('charSave.json')) ? JSON.parse(fs.readFileSync(DATA('charSave.json'), 'utf8')) : {}); }
+  catch { res.json({}); }
+});
+app.post('/api/char-save', (req, res) => {
+  try {
+    const file = DATA('charSave.json');
+    const existing = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : {};
+    const merged = { ...existing, ...(req.body || {}) };
+    fs.writeFileSync(file, JSON.stringify(merged));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 // キャラセーブ削除
 app.delete('/api/char-save', (req, res) => {
