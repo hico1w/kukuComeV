@@ -5543,6 +5543,8 @@ function showStatusModal(user, autoClose = true, triggerCnum = null) {
                 <div class="sm-stat"><span class="sm-stat-label">Wordle正解</span><span class="sm-stat-val">${user.wordleWins || 0} 回</span></div>
                 <div class="sm-stat"><span class="sm-stat-label">早押し正解</span><span class="sm-stat-val">${user.hayaoshiWins || 0} 回</span></div>
                 <div class="sm-stat"><span class="sm-stat-label">クイズ正解</span><span class="sm-stat-val">${(user.tc?.quizWins || 0)} 回</span></div>
+                <div class="sm-stat"><span class="sm-stat-label">スロット回数</span><span class="sm-stat-val">${(user.tc?.slotPlays || 0)} 回</span></div>
+                <div class="sm-stat"><span class="sm-stat-label">ペットガチャ</span><span class="sm-stat-val">${(user.tc?.petGachas || 0)} 回</span></div>
                 <div class="sm-stat"><span class="sm-stat-label">死亡回数</span><span class="sm-stat-val">${user.deaths || 0} 回</span></div>
               </div>
               <div class="sm-section-title">🐾 ペット</div>
