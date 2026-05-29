@@ -3169,7 +3169,7 @@ function handleComment(comment) {
   const ipid  = comment.ipid || comment.from || 'master';
   const user  = getUser(ipid);
 
-  // icon_num がある場合はセーブキーを更新し、icon_numキーの既存セーブを優先適用
+  // icon_num がある場合はセーブキーを更新し、icon_numキーの既存セーブでキャラを上書き
   if (comment.icon_num) {
     const iconKey = String(comment.icon_num);
     if (user.saveKey !== iconKey) {
@@ -3178,8 +3178,18 @@ function handleComment(comment) {
       if (savedByIcon) {
         CHAR_SAVE_FIELDS.forEach(k => { if (savedByIcon[k] !== undefined) user[k] = savedByIcon[k]; });
         user.sizeScale = 1.0;
+        user.atk   = calcAtk(user);
+        user.maxHp = calcMaxHp(user);
         if (['textColor','bubbleShape','bubbleDeco','bubbleBgColor','font','charImage'].some(k => savedByIcon[k] !== undefined)) {
           user.firstAppear = false;
+        }
+        // キャラがステージ上にいる場合は表示を即時更新
+        if (user.el) {
+          applyAvatarStyle(user);
+          updateNameDisplay(user);
+          updateStatsDisplay(user);
+          updateLevelBadge(user);
+          applyPets(user);
         }
       }
     }

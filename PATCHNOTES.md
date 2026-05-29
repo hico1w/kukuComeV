@@ -2,6 +2,16 @@
 
 ---
 
+## v2.265.0 — 2026-05-29
+
+### セーブ機能改修：icon_num途中設定時にキャラを即時上書き
+
+- `public/app.js`: ipidで登場後にicon_numが付いた場合、icon_numのセーブデータを適用した後にDOM表示も即時更新するよう修正
+  - `atk`・`maxHp` を再計算
+  - `user.el` が存在する場合は `applyAvatarStyle`・`updateNameDisplay`・`updateStatsDisplay`・`updateLevelBadge`・`applyPets` を呼び出して反映
+
+---
+
 ## v2.264.0 — 2026-05-29
 
 ### ステータス確認画面の記録エリアを拡充
