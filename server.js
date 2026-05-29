@@ -73,6 +73,17 @@ async function translateToEnglish(text) {
   return data[0].map(seg => seg[0]).join('');
 }
 
+app.get('/api/live-info', async (req, res) => {
+  const { apikey } = req.query;
+  if (!apikey) return res.status(400).json({ error: 'apikey が必要です' });
+  try {
+    const data = await fetchJSON(`https://live.erinn.biz/api/?category=mylive&type=port_info&apikey=${encodeURIComponent(apikey)}`);
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/comments', async (req, res) => {
   const { apikey, hash, cnum } = req.query;
   if (!apikey) return res.status(400).json({ error: 'apikey が必要です' });
@@ -528,6 +539,87 @@ app.post('/api/ai-reply', (req, res) => {
     req2.write(body);
     req2.end();
   }
+});
+
+// ステータス画面スクリーンショット → Discord 投稿 → URL 返却
+app.post('/api/status-screenshot', async (req, res) => {
+  const { imageDataUrl, userName = '' } = req.body || {};
+  if (!imageDataUrl) return res.status(400).json({ error: 'imageDataUrl is required' });
+  const { webhookUrl } = loadDiscordConfig();
+  if (!webhookUrl) return res.status(400).json({ error: 'Discord webhook not configured' });
+
+  const base64 = imageDataUrl.replace(/^data:image\/\w+;base64,/, '');
+  const imgBuf = Buffer.from(base64, 'base64');
+  const boundary = 'kukuComeBoundary' + Date.now() + Math.random().toString(36).slice(2);
+  const content = userName ? `📊 ${userName} のステータス` : '📊 ステータス確認';
+  const payloadJson = JSON.stringify({ content, username: 'kukuCome' });
+  const head = Buffer.from(
+    `--${boundary}\r\nContent-Disposition: form-data; name="payload_json"\r\nContent-Type: application/json\r\n\r\n${payloadJson}\r\n` +
+    `--${boundary}\r\nContent-Disposition: form-data; name="files[0]"; filename="status.png"\r\nContent-Type: image/png\r\n\r\n`
+  );
+  const tail = Buffer.from(`\r\n--${boundary}--\r\n`);
+  const body = Buffer.concat([head, imgBuf, tail]);
+
+  let parsedUrl;
+  try { parsedUrl = new URL(webhookUrl); } catch { return res.status(400).json({ error: 'Invalid webhook URL' }); }
+  // ?wait=true でメッセージオブジェクトを返してもらう
+  const pathWithWait = parsedUrl.pathname + (parsedUrl.search ? parsedUrl.search + '&wait=true' : '?wait=true');
+  const lib = parsedUrl.protocol === 'https:' ? https : http;
+
+  const result = await new Promise(resolve => {
+    const req2 = lib.request({
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+      path: pathWithWait,
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}`, 'Content-Length': body.length },
+    }, response => {
+      let raw = '';
+      response.on('data', c => raw += c);
+      response.on('end', () => {
+        try {
+          const json = JSON.parse(raw);
+          const url = json.attachments?.[0]?.url;
+          resolve(url ? { url } : { error: 'No attachment URL: ' + raw.slice(0, 100) });
+        } catch (e) { resolve({ error: e.message }); }
+      });
+    });
+    req2.on('error', err => resolve({ error: err.message }));
+    req2.write(body);
+    req2.end();
+  });
+
+  res.json(result);
+});
+
+// コメント総評（Ollama）
+app.post('/api/ollama-review', (req, res) => {
+  const { comments = [], systemPrompt = '', userName = '', model = 'gemma3:12b' } = req.body || {};
+  if (!systemPrompt) return res.status(400).json({ error: 'systemPrompt is required' });
+  const commentsText = comments.length > 0 ? comments.join('\n') : '（コメントなし）';
+  const userPrompt = `${userName ? `${userName}さん` : 'ユーザー'}のコメント一覧:\n${commentsText}`;
+  const chatMessages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }];
+  const body = JSON.stringify({ model, messages: chatMessages, stream: false });
+  const opts = {
+    hostname: '127.0.0.1', port: 11434,
+    path: '/api/chat', method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+  };
+  const req2 = http.request(opts, res2 => {
+    let raw = '';
+    res2.on('data', c => raw += c);
+    res2.on('end', () => {
+      try {
+        const json = JSON.parse(raw);
+        const review = json.message?.content?.trim();
+        if (!review) return res.status(500).json({ error: 'No response from Ollama' });
+        res.json({ review });
+      } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+  });
+  req2.on('error', e => res.status(500).json({ error: e.message }));
+  req2.write(body);
+  req2.end();
 });
 
 app.get('/api/time', (req, res) => {

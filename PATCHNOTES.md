@@ -2,6 +2,787 @@
 
 ---
 
+## v2.255.0 — 2026-05-29
+
+### コンパクトモード中も揺れオーバーレイを表示
+
+- `style.css`: `body.compact-mode .jiggle-overlay { display: none !important; }` を削除し、コンパクトモード中でも胸の揺れ設定が反映されるよう修正
+
+---
+
+## v2.254.0 — 2026-05-29
+
+### captureAndPostDiscord の DOM 復元・レイアウト安定化修正
+
+- `app.js` `captureAndPostDiscord()`:
+  - DOM スタイル復元処理を `try` ブロック内から `finally` ブロックに移動し、エラー時も必ず復元されるよう修正
+  - `height: auto` の適用を他の overflow 変更より後にすることでレイアウト崩壊を防止
+  - スタイル変更後に `requestAnimationFrame` で1フレーム待機し、ブラウザのリフローを確実に待つよう修正
+  - `captureW / captureH` に `scrollWidth || offsetWidth` フォールバックを追加（0×0 キャプチャを防止）
+  - 画像置換処理も `finally` ブロック内で確実に復元するよう整理
+
+---
+
+## v2.253.0 — 2026-05-29
+
+### ステータス確認の Discord 連携にデバッグログを追加
+
+- `app.js` `captureAndPostDiscord()`: 各ステップ（開始・画像差し替え・html2canvas・POST・レスポンス・コメント投稿）に `console.log` を追加
+- Ollama フローにも開始・レスポンス・タイムアウト時のログを追加
+
+---
+
+## v2.252.0 — 2026-05-29
+
+### AFK スライダーをサーバー設定に追加
+
+- `app.js`: `afkOpacity`・`afkGrayscale`・`afkBrightness` を `SETTINGS_KEYS` に追加（サーバー保存対応）
+- AFK スライダーの `input` ハンドラに `saveSettingsToServer()` を追加
+
+---
+
+## v2.251.0 — 2026-05-29
+
+### 吹き出し背景色と文字色が同色の場合にランダム文字色を設定
+
+- `app.js`: `色:` / `吹き出し背景色:` コマンド処理後、`textColor === bubbleBgColor` の場合は `COLOR_NAMES` からランダムな別の色を `textColor` に設定
+
+---
+
+## v2.250.0 — 2026-05-29
+
+### 爆弾・ゴミ箱の表示状態を保存
+
+- `app.js`: `bombHidden` / `trashHidden` を `localStorage` + サーバー設定（`SETTINGS_KEYS`）に保存
+- トグルボタン押下時に `localStorage.setItem` と `saveSettingsToServer()` を呼ぶよう追加
+- ページ読み込み時に保存済み状態を反映（ボタン非表示・active クラス付与）
+
+---
+
+## v2.249.0 — 2026-05-29
+
+### 名前変更コマンドの文字数制限
+
+- `app.js`: `名前:` コマンドで10文字を超える名前が指定された場合、先頭10文字のみを使用するよう修正
+
+---
+
+## v2.248.0 — 2026-05-29
+
+### ボスの揺れオーバーレイを水平反転に対応
+
+- `app.js` `updateBossJiggleOverlay()`: オーバーレイに `transform: scaleX(-1)` を追加（ボス画像のデフォルト反転に合わせる）
+
+---
+
+## v2.247.0 — 2026-05-29
+
+### 管理パネルの揺れ設定にボスを追加
+
+- `app.js`: `getUsers` レスポンスに `bossImgFile` を追加
+- `admin.html`: 揺れ設定の画像グリッドにボス画像を「👹 BOSS」ラベルで先頭表示
+- 🔄 更新ボタンを押すとボスが表示中の場合にグリッドへ反映される
+
+---
+
+## v2.246.0 — 2026-05-29
+
+### ボスに胸の揺れ（jiggle）を適用
+
+- `app.js`: `updateBossJiggleOverlay()` 関数を追加（`updateJiggleOverlay` のボス版）
+- `spawnBoss()`: `bossState` に `imgFile` を保存、スポーン時に `updateBossJiggleOverlay()` を呼び出し
+- `jiggleConfig` 更新時: ボス画像が対象ファイルと一致する場合も `updateBossJiggleOverlay()` を呼び出し
+
+---
+
+## v2.245.0 — 2026-05-29
+
+### キャラ名表示に吹き出しと同じ装飾を適用
+
+- `app.js` `updateNameDisplay()`: 文字色（`textColor`）・背景色（`bubbleBgColor`）・フォント（`font`）・装飾クラス（`bubbleDeco`）をキャラ名ラベルに反映するよう拡張
+- `ensureCharOnStage()`: キャラ生成時に `updateNameDisplay()` を呼ぶよう追加
+- `handleComment()`: 背景色・文字色・フォント・飾りの変更時に `updateNameDisplay()` を呼ぶよう追加
+- ステータスモーダルの名前表示（`.sm-ol-name`）は装飾なしに戻す
+
+---
+
+## v2.244.0 — 2026-05-29
+
+### ステータス確認 Discord 連携の改善
+
+- `app.js` `showStatusModal()`: Ollama レビューに 9 秒タイムアウトを追加（`Promise.race`）
+- タイムアウト時は総評なしでキャプチャ・投稿を実行
+- Ollama 未設定の場合も 600ms 後にキャプチャ・投稿を実行（既存動作を維持）
+
+---
+
+## v2.242.0 — 2026-05-29
+
+### ステータスモーダル：名前表示に吹き出しと同じ装飾を適用
+
+- `app.js` `showStatusModal()`: `.sm-ol-name` にユーザーの `textColor`・`bubbleBgColor`・`font`・`bubbleDeco` を inline style / class で適用
+- `style.css`: `.sm-ol-name` に `padding: 2px 7px; border-radius: 6px` を追加（背景色が見えるように）
+
+---
+
+## v2.241.0 — 2026-05-29
+
+### ステータス確認のテキスト自動コメントを廃止
+
+- `app.js`: ステータス確認コマンド実行時の `postStatusComment()` 呼び出しを削除
+- `postStatusComment()` 関数を削除（Discord 画像 URL コメントに一本化）
+
+---
+
+## v2.240.0 — 2026-05-29
+
+### キャプチャ画像に称号が含まれないバグ修正
+
+- `app.js` `captureAndPostDiscord()`: `.sm-content` / `.sm-title-panel` / `.sm-title-list` の `overflow` / `height` / `minHeight` / `flex` をキャプチャ前に一時解除し全称号が映るよう修正
+
+---
+
+## v2.239.0 — 2026-05-29
+
+### ステータスモーダル横幅拡大
+
+- `style.css`: `.sm-modal` の `width` を `82vw` → `65vw` に変更、`max-width` を `1040px` → `1230px` に変更
+
+---
+
+## v2.234.1 — 2026-05-29
+
+### ライブタイトル取得の CORS 修正
+
+- `server.js`: `/api/live-info` プロキシエンドポイント追加（`category=mylive&type=port_info` をサーバー経由で取得）
+- `app.js`: ライブタイトル取得を外部 URL 直接 fetch → `/api/live-info` プロキシ経由に変更
+
+---
+
+## v2.234.0 — 2026-05-29
+
+### ステータスモーダルのヘッダーを配信タイトル＋日時に変更
+
+- `showStatusModal()`: ヘッダーを「配信タイトル（APIから取得）」＋「現在の年月日-時刻」に変更
+- モーダル表示後に `https://live.erinn.biz/api/?category=mylive&type=port_info&apikey=...` を fetch し `livetitle` をヘッダーに反映
+- apikey なし / 取得失敗時は「ステータス確認」にフォールバック
+- `.sm-header-live-title` / `.sm-header-date` クラス追加
+
+---
+
+## v2.238.0 — 2026-05-29
+
+### ステータスモーダル：称号を2列表示に変更
+
+- `.sm-title-list`: `flex-direction: column` → `grid-template-columns: 1fr 1fr` の2列グリッドに変更
+- `.sm-title-panel`: 幅を 190px → 380px（2列分）に拡大
+
+---
+
+## v2.237.0 — 2026-05-29
+
+### キャプチャ画像の画質向上
+
+- `html2canvas` の `scale: 1` → `scale: 2` に変更（解像度2倍）
+- キャラ・ペット画像のキャンバス差し替えも同じ scale2 で高解像度描画
+
+---
+
+## v2.236.0 — 2026-05-29
+
+### キャプチャ画像の品質改善（引き伸ばし修正・総評エリア含める）
+
+- `captureAndPostDiscord()`:
+  - img を `onclone` ではなく html2canvas 実行前に実 DOM でキャンバスに差し替え（object-fit:contain を Canvas API で手動描画）、キャプチャ後に元に戻す
+  - キャプチャ前に `sm-modal`/`sm-content`/`sm-main-panel` の overflow/height 制約を一時解除し全コンテンツを展開。総評エリアも確実にキャプチャされるように
+
+---
+
+## v2.235.0 — 2026-05-29
+
+### キャプチャ画像の引き伸ばし修正（再）
+
+- `fixContain()`: canvas 差し替え方式 → `background-image + background-size:contain` div 差し替え方式に変更
+  - html2canvas は background-size:contain を正しくサポートするため、余白を維持しつつ引き伸ばしなしで描画される
+
+---
+
+## v2.233.0 — 2026-05-29
+
+### キャプチャ画像のキャラ・ペット余白消え修正
+
+- `fixContain()`: margin 方式から canvas 差し替え方式に変更。box サイズのキャンバスに `object-fit:contain` 相当の描画を行い img と置換することで、余白（レターボックス）を正確に再現
+
+---
+
+## v2.232.1 — 2026-05-29
+
+### アンカー番号を number に変更
+
+- `app.js`: Discord 画像 URL コメントのアンカーを `comment.icon_num` → `comment.number` に変更
+
+---
+
+## v2.232.0 — 2026-05-29
+
+### ステータス画像キャプチャの引き伸ばし修正
+
+- `captureAndPostDiscord()`: html2canvas の `onclone` コールバックで `.sm-avatar` / `.sm-pet-img` の `object-fit: contain` を手動計算して適用し、キャラ・ペット画像の引き伸ばしを修正
+
+---
+
+## v2.231.1 — 2026-05-29
+
+### アンカーを icon_num に変更
+
+- `app.js`: `showStatusModal` に渡すアンカー番号を `comment.cnum` → `comment.icon_num` に変更
+
+---
+
+## v2.231.0 — 2026-05-29
+
+### ステータス Discord 連携の改善
+
+- クリックでステータス確認を開いた場合は Discord 投稿しない（`triggerCnum == null` のときスキップ）
+- html2canvas に `height/width: modalEl.clientHeight/Width` を指定し、スクロール部分を含めず実際の表示と同じ高さでキャプチャ
+- 自動コメントに `>>{cnum}` アンカーを付与（例: `>>3 https://...`）
+- `showStatusModal` に第3引数 `triggerCnum` を追加
+
+---
+
+## v2.230.0 — 2026-05-29
+
+### ステータス確認画面を Discord に画像投稿・URL を自動コメント
+
+- `public/index.html`: `html2canvas@1.4.1` を CDN から読み込み
+- `server.js`: `/api/status-screenshot` POST エンドポイント追加
+  - base64 画像を受け取り Discord webhook に `?wait=true` で投稿
+  - レスポンスから `attachments[0].url` を取得して返却
+- `app.js`:
+  - `captureAndPostDiscord()` 関数を追加（html2canvas でモーダルをキャプチャ → `/api/status-screenshot` → `postAIReply` で URL をコメント投稿）
+  - 総評プロンプトありの場合: Ollama 応答後にキャプチャ
+  - 総評プロンプトなしの場合: 600ms 後にキャプチャ
+
+---
+
+## v2.229.0 — 2026-05-29
+
+### ステータスモーダル：総評ラベルを「コメント」に変更
+
+- `showStatusModal()`: レビューエリアのラベル「🤖 総評」→「コメント」に変更
+
+---
+
+## v2.228.2 — 2026-05-29
+
+### 総評プロンプトのサーバー保存対応
+
+- `app.js`: `aiText` ハンドラで `saveSettingsToServer()` を呼び出し、`data/settings.json` にも保存するように修正（再起動後も設定が維持される）
+
+---
+
+## v2.228.1 — 2026-05-29
+
+### 総評プロンプトが反映されないバグ修正
+
+- `app.js`: `aiText` ハンドラの `elMap` に `ollamaReviewPrompt` を追加し、`if (elId)` の外で `localStorage.setItem` と変数更新を実行するよう修正
+
+---
+
+## v2.228.0 — 2026-05-29
+
+### ステータス確認画面にOllama総評を追加
+
+- `server.js`: `/api/ollama-review` POSTエンドポイント追加（comments配列・systemPrompt・モデルを受け取りOllama `/api/chat` で総評を生成）
+- `app.js`:
+  - `user.recentComments[]` に最新150件のコメントを蓄積
+  - `SETTINGS_KEYS` に `ollamaReviewPrompt` を追加
+  - `showStatusModal()`: 総評プロンプトが設定されている場合、キャラ表示エリア下に `.sm-review-area` を表示し非同期でOllamaから総評を取得
+- `admin.html`: AI設定セクションに「総評プロンプト」テキストエリアを追加、`applyState()` で復元対応
+- `style.css`: `.sm-review-area` / `.sm-review-label` / `.sm-review-text` / `.sm-review-loading` クラス追加
+
+---
+
+## v2.227.0 — 2026-05-29
+
+### ステータスモーダル：ペット画像を1.3倍に拡大
+
+- `.sm-pet-img`: 108px → 140px（1.3倍）に変更
+
+---
+
+## v2.226.0 — 2026-05-29
+
+### ステータスモーダル：称号表示の改善
+
+- 称号の `【】` を削除
+- 称号とHPステータスを `.sm-ol-stats-wrap` で包み独立表示（称号ブロック → ステータスブロックの縦並び）
+- `.sm-ol-stats-wrap`: `position: absolute; top: 6px; left: 6px` で左上に配置
+- `.sm-ol-title`: 独自の半透明背景付きブロックに変更
+
+---
+
+## v2.225.0 — 2026-05-29
+
+### ステータスモーダル：称号をレア度高い順に表示
+
+- `showStatusModal()`: 称号リストをレア度順（虹 → 金 → 通常）にソートして表示
+- `titleRank()` ヘルパーで T99/T100 → 0、金称号 → 1、通常 → 2 に分類
+
+---
+
+## v2.224.0 — 2026-05-29
+
+### ステータスモーダル：表示中の称号をHPの上にオーバーレイ表示
+
+- `showStatusModal()`: `sm-ol-stats` 内のHP行の上に表示中称号を追加（`.sm-ol-title`）
+- `.sm-ol-title`: 金色・太字で称号名を表示するクラス追加
+
+---
+
+## v2.223.0 — 2026-05-29
+
+### ステータスモーダル：装備一覧を70%サイズに縮小
+
+- `.sm-ol-equip`: `transform: scale(0.7); transform-origin: bottom right` 追加
+
+---
+
+## v2.222.0 — 2026-05-29
+
+### ステータスモーダル：装備一覧をキャラ画像右下にオーバーレイ表示
+
+- `showStatusModal()`: 装備一覧を `sm-left` 内に移動し `.sm-ol-equip` でラップ
+- `.sm-ol-equip`: `position: absolute; bottom: 6px; right: 6px` でキャラ画像右下に重ね表示
+
+---
+
+## v2.221.0 — 2026-05-29
+
+### ステータスモーダルの高さ変更
+
+- `.sm-modal`: `height: 82vh` → `60vh` に変更
+
+---
+
+## v2.220.0 — 2026-05-29
+
+### ステータスモーダルの高さを固定
+
+- `.sm-modal`: `max-height: 82vh` → `height: 82vh` に変更し、コンテンツ量によらず高さを固定
+
+---
+
+## v2.219.0 — 2026-05-29
+
+### ステータスモーダル：装備一覧をキャラ画像右に独立配置・2列表示
+
+- `showStatusModal()`: 装備一覧を `sm-right` から取り出し、`sm-left` の右隣に `.sm-equip-side` として配置
+- `.sm-equip-side` クラス追加（`align-self: flex-start` でキャラ画像の高さに揃える）
+- `.sm-equip-list`: `display: grid; grid-template-columns: repeat(2, auto)` で2列表示に変更
+
+---
+
+## v2.218.0 — 2026-05-29
+
+### ステータスモーダル：名前・LV のフォントサイズ変更
+
+- `.sm-ol-name`: 15px → 20px（1.3倍）
+- `.sm-ol-lv`: 14px → 28px（2倍）
+
+---
+
+## v2.217.0 — 2026-05-29
+
+### ステータスモーダル：装備一覧を1行表示に変更
+
+- `.sm-equip-list`: grid → `display: flex; flex-wrap: nowrap` に変更し、常に1行で横並び表示
+
+---
+
+## v2.216.0 — 2026-05-29
+
+### ステータスモーダル：Lv オーバーレイの位置ずれ修正
+
+- `.sm-left`: `align-self: flex-start` を追加し、sm-right の高さに引き伸ばされないよう修正（bottom: 6px が画像の底に正しく配置されるようになる）
+
+---
+
+## v2.215.0 — 2026-05-29
+
+### ステータスモーダル：装備一覧の横幅をコンテンツ幅に縮小
+
+- `.sm-equip-list`: `grid-template-columns: repeat(4, 1fr)` → `repeat(4, auto)`、`width: fit-content` 追加
+
+---
+
+## v2.214.0 — 2026-05-29
+
+### ステータスモーダルのキャラ画像を2.5倍に変更
+
+- `.sm-avatar`: 480px → 400px（元160pxの2.5倍）に変更
+
+---
+
+## v2.213.0 — 2026-05-29
+
+### ステータスモーダル：装備一覧をペット情報の下に移動
+
+- `showStatusModal()`: `sm-equip-section` を廃止し、装備一覧を `sm-right` 内のペットセクション下に移動
+
+---
+
+## v2.212.0 — 2026-05-29
+
+### ステータスモーダルのレイアウト刷新（キャラ画像オーバーレイ表示）
+
+- 名前をキャラ画像の右上にオーバーレイ表示（`.sm-ol-name`）
+- Lv をキャラ画像の左下にオーバーレイ表示（`.sm-ol-lv`）
+- HP / MP / ATK / EXP をキャラ画像の左上にオーバーレイ表示（`.sm-ol-stats`）、1行ずつ縦並び
+- `.sm-right` は 📈 記録・🐾 ペット のみに整理
+- `public/style.css`: `.sm-left` に `position: relative` 追加、`.sm-ol-name` / `.sm-ol-lv` / `.sm-ol-stats` / `.sm-ol-stat` クラス追加
+
+---
+
+## v2.211.0 — 2026-05-29
+
+### ペット横並び表示の修正
+
+- `showStatusModal()`: `.sm-pet-row` に inline style で `flex-direction:row` を明示し確実に横並びになるよう修正
+- `.sm-pet-block`: `flex-shrink: 0` を追加して縮まらないように
+
+---
+
+## v2.210.0 — 2026-05-29
+
+### ペット画像サイズを1.5倍に変更
+
+- `.sm-pet-img`: 144px → 108px（72pxの1.5倍）に変更
+
+---
+
+## v2.209.0 — 2026-05-29
+
+### ステータスモーダル：ペット2体を横並び表示
+
+- `showStatusModal()`: ペットブロックを `.sm-pet-row` コンテナで囲み横並びに
+- `.sm-pet-row`: `display: flex; flex-direction: row; gap: 12px; flex-wrap: wrap` 追加
+
+---
+
+## v2.208.0 — 2026-05-29
+
+### ステータスモーダルのペット表示改善
+
+- `.sm-pet-block`: `flex-direction: column` に変更し画像の下にテキストを表示
+- `.sm-pet-img`: 72px → 144px（2倍）に拡大
+- `.sm-pet-info`: `align-items: center; text-align: center` を追加してテキストを中央揃え
+
+---
+
+## v2.207.0 — 2026-05-29
+
+### ステータスモーダルのレイアウト改善（名前・ペット位置変更）
+
+- `showStatusModal()`: 名前・アイコン名・レベルを `sm-left`（画像横）から `sm-right` の先頭（ステータスセクションの上）に移動
+- `showStatusModal()`: ペット情報セクション（🐾）を装備一覧の下から `sm-right` 内の「📈 記録」セクションの下に移動
+- これにより「名前→ステータス→記録→ペット」という読みやすい縦並び順になった
+
+---
+
+## v2.206.1 — 2026-05-29
+
+### ステータスモーダルのレイアウト修正
+
+- `.sm-modal` の幅を `56vw / 720px` → `82vw / 1040px` に拡大
+- `.sm-right` に `min-width: 200px; max-height: 480px` を追加してスタッツ欄が潰れないように調整
+
+---
+
+## v2.206.0 — 2026-05-29
+
+### ステータス確認モーダルのキャラ画像を3倍に拡大
+
+- `.sm-avatar` の width/height を 160px → 480px に変更
+
+---
+
+## v2.205.0 — 2026-05-29
+
+### ダメージ表示を常に最前面に・HPバーに数値を重ね表示
+
+- `showDamageNumber()`: `el.style.zIndex = charZCounter + 1` を設定し、常に最前面のキャラより手前に表示
+- `updateStatsDisplay()`: HPバーに `<span class="cs-hpnum">` を追加して現在HP数値を重ね表示
+- `public/style.css`:
+  - `.cs-hpbar` の height を 5px → 10px に変更、`position: relative` を追加
+  - `.cs-hpnum` クラス追加（絶対配置、7px 太字、黒テキストシャドウ）
+
+---
+
+## v2.204.0 — 2026-05-29
+
+### 揺れ設定プレビューにアニメーション表示を追加
+
+- 管理パネルのプレビューで実際の揺れアニメーションを確認可能に
+- `#jigglePreviewOverlay` / `#jigglePreviewOverlayImg` をプレビュー内に追加
+- `@keyframes jiggleBounce` を admin.html の `<style>` に追加
+- スライダー操作のたびに clip-path と CSS 変数を更新してリアルタイムプレビュー
+- ゾーン枠を破線に変更（アニメーションを隠さないように）
+
+---
+
+## v2.203.0 — 2026-05-29
+
+### 揺れ設定の画像選択をグリッド表示に変更
+
+- ドロップダウンを廃止し、画像サムネイルのグリッドから選択する方式に変更
+- 🔄更新でキャラ画像一覧を64pxサムネイル表示（ファイル名ラベル付き）
+- 選択中画像は赤枠でハイライト表示
+- `_jiggleSelectedImg` 変数で選択状態を管理
+
+---
+
+## v2.202.0 — 2026-05-29
+
+### 揺れエリアを四角形指定に対応（左端・右端追加）
+
+- `jiggleConfig` に `left`（デフォルト0%）・`right`（デフォルト100%）を追加
+- `clip-path: inset(top% rightInv% bottomInv% left%)` で四角形エリアを指定可能に
+- 管理パネル「🫀 揺れ設定」に「左端」「右端」スライダー追加（0〜100%）
+- プレビューゾーンも左右を反映して正確な四角形で表示
+
+---
+
+## v2.201.0 — 2026-05-29
+
+### キャラ画像の特定部位を揺らす機能（クリップ案1）
+
+- `jiggleConfig` 変数追加（画像ファイル名をキーにした設定オブジェクト）、localStorage + `/api/settings` に保存
+- `updateJiggleOverlay(user)` 関数追加:
+  - `.avatar` 内に `.jiggle-overlay` div を絶対配置で追加
+  - `clip-path: inset(top% 0% bottom% 0%)` で揺れエリアを切り抜き
+  - `@keyframes jiggleBounce` で translateY + scaleY アニメーション
+  - CSS変数 `--jiggle-speed / --jiggle-sy / --jiggle-ty / --jiggle-origin-y` で強さ・速さを制御
+- `applyAvatarStyle()` の `adjustSize` コールバック内で `updateJiggleOverlay` を呼ぶ
+- `applyFacingFlip()` で揺れオーバーレイ div に `scaleX(-1)` を適用（アニメーションと干渉しない）
+- `public/style.css`: `.jiggle-overlay` / `.jiggle-overlay img` / `@keyframes jiggleBounce` 追加
+- `public/admin.html` 「🫀 揺れ設定」セクション追加:
+  - 🔄 更新ボタンで現在ユーザーのcharImage一覧をドロップダウンに反映
+  - プレビュー: キャラ画像 + 赤色の揺れエリアハイライト（リアルタイム更新）
+  - スライダー: 上端(0〜100%) / 下端(0〜100%) / 強さ(0〜20%) / 速さ(0.1〜2s)
+  - 有効/無効チェックボックス
+
+---
+
+## v2.200.0 — 2026-05-29
+
+### ペット画像の縦長補正・ブースト・サイズ調整に対応
+
+- `petSizeScale`（デフォルト1.0）・`petAspectExp`（0.5）・`petPortraitBoost`（0）変数を追加
+- `renderPetBadge()` を DOM ベースに書き換え、キャラ画像と同様に自然サイズ取得後に補正を適用
+  - 縦横比補正: `Math.pow(r, petAspectExp)` でスケール調整
+  - 縦長ブースト: `r < 1 ? Math.pow(1/r, petPortraitBoost) : 1`
+- `public/app.js` : SETTINGS_KEYS 追加、state 送信追加、`petSizeScale`/`petAspectExp`/`petPortraitBoost` メッセージハンドラ追加
+- `public/admin.html` : 「📐 サイズ調整」に「🐾 ペット」サイズ・縦長補正・縦長ブーストスライダー追加、`applyState()` 復元追加
+
+---
+
+## v2.199.0 — 2026-05-29
+
+### 装備アイコン表示位置を管理パネルから調整可能に
+
+- `charEquipOffsetX` / `charEquipOffsetY` 変数を追加（デフォルト0）
+- CSSカスタムプロパティ `--equip-x` / `--equip-y` で全キャラの装備アイコン位置を一括制御
+- `public/style.css` `.char-equip-area` に `transform: translate(var(--equip-x, 0px), var(--equip-y, 0px))` 追加（前バージョンで追加済み）
+- `public/app.js`:
+  - `SETTINGS_KEYS` に `charEquipOffsetX`, `charEquipOffsetY` 追加
+  - 起動時IIFE `applyCharEquipOffset()` で `--equip-x` / `--equip-y` を stage に適用
+  - state送信に `charEquipOffsetX`, `charEquipOffsetY` を追加
+  - `handleAdminMessage()` に `charEquipOffset` ハンドラ追加
+- `public/admin.html`:
+  - 「📐 サイズ調整」に「⚔️ 装備 横/縦」スライダー（-200〜200px）を追加
+  - `syncEquipOffset()` 関数追加
+  - `applyState()` で `charEquipOffsetX` / `charEquipOffsetY` を復元
+
+---
+
+## v2.198.0 — 2026-05-29
+
+### ステータス表示位置を管理パネルから調整可能に
+
+- `charStatsBottom` / `charStatsLeft` 変数を追加（デフォルト0）
+- CSSカスタムプロパティ `--stats-bottom` / `--stats-left` で全キャラ一括制御
+- 管理パネル「📐 サイズ調整」に「📊 ステータス 縦/横」スライダー（-200〜200px）を追加
+- `/api/settings` に保存・復元
+
+---
+
+## v2.197.0 — 2026-05-29
+
+### 称号をステータス表示（HPバー上）に移動
+
+- `updateNameDisplay()` から称号タグを削除（名前の左の称号表示を廃止）
+- `getTitleCls(t)` ヘルパー関数を追加（称号クラス判定を共通化）
+- `updateStatsDisplay()` で称号を最上行に表示（HPバーの上）
+  - 称号なしの場合は行ごと省略
+
+---
+
+## v2.196.0 — 2026-05-29
+
+### ステータス表示をコンパクト化（HPバー＋アイコン）
+
+- `updateStatsDisplay()` をHPバー＋アイコン形式に変更
+  - 1行目: HPバー（50%超=緑、20%超=黄、以下=赤）＋ 💎MP
+  - 2行目: ⚔️ATK ⭐EXP
+- `.char-stats` を flex 列レイアウトに変更
+- `.cs-hpbar` / `.cs-hpfill` / `.cs-row` クラスを追加
+
+---
+
+## v2.195.0 — 2026-05-29
+
+### タイマン敗北1分後に元のキャラ画像に戻すよう変更
+
+- 1分タイマー発火時、ランダムキャラではなく敗北前の `charImage` を復元するよう変更
+- `_taimanDefeatImg`（敗北時点のcharImageを保存したフィールド）を使って元画像に戻す
+
+---
+
+## v2.194.0 — 2026-05-29
+
+### ステータス表示をキャラ画像に重ねて2行表示に変更
+
+- `char-stats` を `avatar-wrap` 内に移動（名前の上・キャラ画像に重なる位置）
+- CSS を `position: absolute; bottom: 0; left: 50%; transform: translateX(-50%)` に変更
+- `updateStatsDisplay()` を `innerHTML` + `<br>` で2行表示に変更
+  - 1行目: `HP:x/y MP:x`
+  - 2行目: `ATK:x EXP:x`
+
+---
+
+## v2.193.0 — 2026-05-29
+
+### 下集合の上下位置を管理パネルで調整可能に
+
+- `gatherMarginBottom`（デフォルト10px）変数を追加
+- `gatherCharactersBottom()` の Y 座標を `stageH - charH(u) - gatherMarginBottom` に変更
+- 管理パネル「📐 サイズ調整」に「⬇ 下集合 下余白」スライダー（-400〜400px、5px刻み）を追加
+  - 正値 = 上方向にずらす、負値 = 画面外に沈める
+- `localStorage('gatherMarginBottom')` および `/api/settings` に保存
+
+---
+
+## v2.192.0 — 2026-05-29
+
+### 縦長キャラのみ全体スケールアップ（縦長ブースト）を管理パネルで設定可能に
+
+- グローバル変数 `charPortraitBoost`（デフォルト0）を追加
+- `applyAvatarStyle()` に `boost = r < 1 ? (1/r)^charPortraitBoost : 1` を追加し、縦長画像のみ幅・高さ両方を拡大
+  - 0 = 無効（現状維持）
+  - 0.3 = アスペクト比0.5の縦長で約1.4倍
+  - 横長画像（r≥1）には影響なし
+- 管理パネル「📐 サイズ調整」に「縦長ブースト」スライダー（0.00〜1.00、0.05刻み）を追加
+- スライダー変更時に全キャラ即時反映
+
+---
+
+## v2.191.0 — 2026-05-29
+
+### 縦長キャラ画像の補正強度を管理パネルで調整可能に
+
+- グローバル変数 `charAspectExp`（デフォルト0.5）を追加
+- `applyAvatarStyle()` の `Math.sqrt(r)` を `Math.pow(r, charAspectExp)` に変更
+  - 0.5 = 従来と同じ面積統一（√r）
+  - 0.0 = 高さ固定（縦長が最大に大きく表示される）
+  - 中間値で縦長キャラを徐々に大きく
+- 管理パネル「📐 サイズ調整」セクションに「縦長補正」スライダー（0.00〜0.50、0.05刻み）を追加
+- スライダー変更時に全キャラに即時反映
+- `localStorage('charAspectExp')` および `/api/settings` に保存
+
+---
+
+## v2.190.0 — 2026-05-29
+
+### 管理パネルにタイマンハンデ・クールダウン設定を追加
+
+**タイマンクールダウン**
+- グローバル変数 `taimanCooldown`（デフォルト300秒）を追加
+- ハードコードの `5 * 60 * 1000` を `taimanCooldown` に置き換え（ランダムタイマン・通常タイマン両方）
+- 管理パネルの⚔️タイマンセクションにクールダウンスライダー（0〜1800秒、30秒刻み）を追加
+- `localStorage('taimanCooldown')` および `/api/settings` に保存
+
+**タイマンハンデ（キャラ個別ダメージ倍率）**
+- `user.taimanDmgMult`（0.0〜1.0、デフォルト1.0）フィールドを追加、`CHAR_SAVE_FIELDS` に追加
+- `taimanDoAttack()` でメインダメージ・ペットダメージの両方に `attacker.taimanDmgMult` を乗算
+- 管理パネルに「⚔️ タイマンハンデ」セクションを追加
+  - キャラ選択ドロップダウン（`getUsers` で `taimanDmgMult` も送信）
+  - ダメージ倍率スライダー（0〜100%、5%刻み）
+  - キャラ切り替え時に現在の倍率を自動反映
+
+---
+
+## v2.189.0 — 2026-05-29
+
+### パネルの表示位置・表示状態を記憶
+
+対象: クイズ / ダメージランキング / MPランキング / 次のBR / もじあてw
+
+- 各パネルの表示/非表示状態を `localStorage` および `/api/settings` に保存
+- ページリロード後も前回の表示状態を復元
+- `brTimerVisible` / `rankingVisible` / `mpRankingVisible` / `quizVisible` / `wordleVisible` をキーとして保存
+- `restorePanelVisibility()` IIFE をファイル末尾に追加（起動時に復元）
+- ダメージ/MPランキングのclose ✕ を `closeRankingPanel()` / `closeMpRankingPanel()` に差し替え
+- もじあてw は非表示にした場合のみ次回起動時に非表示（デフォルトは自動表示）
+
+---
+
+## v2.188.0 — 2026-05-29
+
+### 自動AFK発動タイムアウトを30分に変更
+
+- `AFK_TIMEOUT` を `5 * 60 * 1000` → `30 * 60 * 1000` に変更
+
+---
+
+## v2.187.0 — 2026-05-28
+
+### AFK・放置モード中は装備アイコン非表示
+
+- `.char-afk .char-equip-area { display: none !important; }` をCSSに追加
+- `char-afk` クラスが付いている間、装備バッジエリアを非表示
+
+---
+
+## v2.186.0 — 2026-05-28
+
+### 最後にコメントしたキャラを最前面に表示
+
+- グローバルカウンター `charZCounter`（初期値70）を追加
+- コメント受信時に `user.el.style.zIndex = ++charZCounter` でインクリメント
+- 最後にコメントしたキャラが常に他のキャラより手前に表示される
+
+---
+
+## v2.185.0 — 2026-05-28
+
+### ダメージ表示を画面内に収めるよう修正
+
+- `showDamageNumber()` で要素をDOMに追加後 `offsetWidth/offsetHeight` で実際のサイズを取得
+- `stage.clientWidth/clientHeight` に対してクランプし、画面外にはみ出さないように修正
+
+---
+
+## v2.184.0 — 2026-05-28
+
+### キャラ・吹き出しをランキングパネルより手前に表示
+
+- `.character` の `z-index: 10` → `z-index: 70`
+- `.bubble` の `z-index: 65` → `z-index: 70`
+- `#rankingPanel` / `#mpRankingPanel` / `#brTimerPanel`（全て z-index: 65）より手前に表示されるよう変更
+
+---
+
 ## v2.183.0 — 2026-05-28
 
 ### 起動時にsizeScaleを1.0にリセット

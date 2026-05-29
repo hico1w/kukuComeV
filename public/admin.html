@@ -155,6 +155,15 @@
       color: #94a3b8;
       font-size: 12px;
     }
+    @keyframes jiggleBounce {
+      0%, 100% { transform: translateY(0) scaleY(1); }
+      50%       { transform: translateY(var(--jiggle-ty, -2px)) scaleY(var(--jiggle-sy, 1.04)); }
+    }
+    #jigglePreviewOverlayImg {
+      width: 100%; height: 100%; object-fit: contain; display: block;
+      animation: jiggleBounce var(--jiggle-speed, 0.4s) ease-in-out infinite;
+      transform-origin: center var(--jiggle-origin-y, 40%);
+    }
   </style>
 </head>
 <body>
@@ -261,12 +270,38 @@
     <span class="size-val" id="taimanCharScaleVal">4x</span>
     <button class="btn-reset" onclick="document.getElementById('taimanCharScaleSlider').value=4; document.getElementById('taimanCharScaleSlider').dispatchEvent(new Event('input'))">↺</button>
   </div>
+  <div class="size-row">
+    <span class="size-label">⏱ クールダウン</span>
+    <input type="range" id="taimanCooldownSlider" min="0" max="1800" step="30" value="300" class="size-slider"
+           oninput="syncSlider(this,'taimanCooldownVal',v=>v+'秒'); adminSend({type:'taimanCooldown',value:this.value})">
+    <span id="taimanCooldownVal" class="size-val">300秒</span>
+    <button class="btn-reset" onclick="resetSlider('taimanCooldownSlider',300,'taimanCooldownVal',v=>v+'秒'); adminSend({type:'taimanCooldown',value:300})">↺</button>
+  </div>
   <div class="input-row">
     <span class="input-label">敗北コマンド</span>
     <input type="text" id="taimanDefeatCmdInput" placeholder="例: スロット開始"
            onchange="adminSend({type:'taimanDefeatCmd', value:this.value})">
   </div>
   <div style="font-size:10px;color:#64748b;margin-top:3px">タイマンで負けたキャラが発言するコマンド（空欄で無効）</div>
+</div>
+
+<!-- タイマンハンデ -->
+<div class="section">
+  <div class="section-title">⚔️ タイマンハンデ</div>
+  <div class="input-row">
+    <select id="taimanHandicapUserSelect" style="flex:1;background:#0f1117;border:1px solid #374151;color:#e2e8f0;border-radius:4px;padding:3px 5px;font-size:12px">
+      <option value="">-- キャラを選択 --</option>
+    </select>
+    <button onclick="taimanHandicapRefreshUsers()" style="margin-left:4px">↺</button>
+  </div>
+  <div class="size-row" style="margin-top:6px">
+    <span class="size-label">ダメージ倍率</span>
+    <input type="range" id="taimanHandicapSlider" min="0" max="100" step="5" value="100" class="size-slider"
+           oninput="syncTaimanHandicap(this)">
+    <span id="taimanHandicapVal" class="size-val">100%</span>
+    <button class="btn-reset" onclick="resetTaimanHandicap()">↺</button>
+  </div>
+  <div style="font-size:10px;color:#64748b;margin-top:3px">0%=ダメージ0、50%=半減、100%=通常</div>
 </div>
 
 <!-- セーブ管理 -->
@@ -433,6 +468,71 @@
     <button class="btn-reset" onclick="resetSlider('charSizeSlider',100,'charSizeVal',v=>v+'%')">↺</button>
   </div>
   <div class="size-row">
+    <span class="size-label">📏 縦長補正</span>
+    <input type="range" id="charAspectExpSlider" min="0" max="0.5" step="0.05" value="0.5" class="size-slider"
+           oninput="syncSlider(this,'charAspectExpVal',v=>parseFloat(v).toFixed(2)); adminSend({type:'charAspectExp',value:this.value})">
+    <span id="charAspectExpVal" class="size-val">0.50</span>
+    <button class="btn-reset" onclick="resetSlider('charAspectExpSlider',0.5,'charAspectExpVal',v=>parseFloat(v).toFixed(2)); adminSend({type:'charAspectExp',value:0.5})">↺</button>
+  </div>
+  <div style="font-size:10px;color:#64748b;margin-top:3px">0.5=現在（面積統一）/ 0=縦長最大（高さ固定）/ 間の値で縦長を大きく</div>
+  <div class="size-row" style="margin-top:4px">
+    <span class="size-label">📏 縦長ブースト</span>
+    <input type="range" id="charPortraitBoostSlider" min="0" max="1" step="0.05" value="0" class="size-slider"
+           oninput="syncSlider(this,'charPortraitBoostVal',v=>parseFloat(v).toFixed(2)); adminSend({type:'charPortraitBoost',value:this.value})">
+    <span id="charPortraitBoostVal" class="size-val">0.00</span>
+    <button class="btn-reset" onclick="resetSlider('charPortraitBoostSlider',0,'charPortraitBoostVal',v=>parseFloat(v).toFixed(2)); adminSend({type:'charPortraitBoost',value:0})">↺</button>
+  </div>
+  <div style="font-size:10px;color:#64748b;margin-top:3px">縦長画像のみ全体スケールアップ（0=無効、0.3=r=0.5で約1.4倍）横長には影響なし</div>
+  <div class="size-row" style="margin-top:8px">
+    <span class="size-label">🐾 ペット</span>
+    <input type="range" id="petSizeSlider" min="30" max="300" step="10" value="100" class="size-slider"
+           oninput="syncSlider(this,'petSizeVal',v=>v+'%'); adminSend({type:'petSizeScale',value:this.value/100})">
+    <span id="petSizeVal" class="size-val">100%</span>
+    <button class="btn-reset" onclick="document.getElementById('petSizeSlider').value=100; document.getElementById('petSizeVal').textContent='100%'; adminSend({type:'petSizeScale',value:1})">↺</button>
+  </div>
+  <div class="size-row">
+    <span class="size-label">📏 縦長補正</span>
+    <input type="range" id="petAspectExpSlider" min="0" max="0.5" step="0.05" value="0.5" class="size-slider"
+           oninput="syncSlider(this,'petAspectExpVal',v=>parseFloat(v).toFixed(2)); adminSend({type:'petAspectExp',value:this.value})">
+    <span id="petAspectExpVal" class="size-val">0.50</span>
+    <button class="btn-reset" onclick="resetSlider('petAspectExpSlider',0.5,'petAspectExpVal',v=>parseFloat(v).toFixed(2)); adminSend({type:'petAspectExp',value:0.5})">↺</button>
+  </div>
+  <div class="size-row">
+    <span class="size-label">📏 縦長ブースト</span>
+    <input type="range" id="petPortraitBoostSlider" min="0" max="1" step="0.05" value="0" class="size-slider"
+           oninput="syncSlider(this,'petPortraitBoostVal',v=>parseFloat(v).toFixed(2)); adminSend({type:'petPortraitBoost',value:this.value})">
+    <span id="petPortraitBoostVal" class="size-val">0.00</span>
+    <button class="btn-reset" onclick="resetSlider('petPortraitBoostSlider',0,'petPortraitBoostVal',v=>parseFloat(v).toFixed(2)); adminSend({type:'petPortraitBoost',value:0})">↺</button>
+  </div>
+  <div class="size-row" style="margin-top:4px">
+    <span class="size-label">📊 ステータス 縦</span>
+    <input type="range" id="charStatsBottomSlider" min="-200" max="200" step="2" value="0" class="size-slider"
+           oninput="syncStatsOffset()">
+    <span id="charStatsBottomVal" class="size-val">0px</span>
+    <button class="btn-reset" onclick="document.getElementById('charStatsBottomSlider').value=0; syncStatsOffset()">↺</button>
+  </div>
+  <div class="size-row">
+    <span class="size-label">📊 ステータス 横</span>
+    <input type="range" id="charStatsLeftSlider" min="-200" max="200" step="2" value="0" class="size-slider"
+           oninput="syncStatsOffset()">
+    <span id="charStatsLeftVal" class="size-val">0px</span>
+    <button class="btn-reset" onclick="document.getElementById('charStatsLeftSlider').value=0; syncStatsOffset()">↺</button>
+  </div>
+  <div class="size-row" style="margin-top:4px">
+    <span class="size-label">⚔️ 装備 横</span>
+    <input type="range" id="charEquipXSlider" min="-200" max="200" step="2" value="0" class="size-slider"
+           oninput="syncEquipOffset()">
+    <span id="charEquipXVal" class="size-val">0px</span>
+    <button class="btn-reset" onclick="document.getElementById('charEquipXSlider').value=0; syncEquipOffset()">↺</button>
+  </div>
+  <div class="size-row">
+    <span class="size-label">⚔️ 装備 縦</span>
+    <input type="range" id="charEquipYSlider" min="-200" max="200" step="2" value="0" class="size-slider"
+           oninput="syncEquipOffset()">
+    <span id="charEquipYVal" class="size-val">0px</span>
+    <button class="btn-reset" onclick="document.getElementById('charEquipYSlider').value=0; syncEquipOffset()">↺</button>
+  </div>
+  <div class="size-row">
     <span class="size-label">🐉 ボス</span>
     <input type="range" id="bossSizeSlider" min="30" max="300" value="100" class="size-slider"
            oninput="syncSlider(this,'bossSizeVal',v=>v+'%')">
@@ -454,6 +554,13 @@
     <button class="btn-reset" onclick="resetSlider('gatherMarginRightSlider',50,'gatherMarginRightVal',v=>v+'px')">↺</button>
   </div>
   <div class="size-row">
+    <span class="size-label">⬇ 下集合 下余白</span>
+    <input type="range" id="gatherMarginBottomSlider" min="-400" max="400" step="5" value="10" class="size-slider"
+           oninput="syncSlider(this,'gatherMarginBottomVal',v=>v+'px')">
+    <span id="gatherMarginBottomVal" class="size-val">10px</span>
+    <button class="btn-reset" onclick="resetSlider('gatherMarginBottomSlider',10,'gatherMarginBottomVal',v=>v+'px')">↺</button>
+  </div>
+  <div class="size-row">
     <span class="size-label">💤 AFK透明度</span>
     <input type="range" id="afkOpacitySlider" min="0" max="100" value="45" class="size-slider"
            oninput="syncSlider(this,'afkOpacityVal',v=>v+'%')">
@@ -473,6 +580,66 @@
            oninput="syncSlider(this,'afkBrightnessVal',v=>v+'%')">
     <span id="afkBrightnessVal" class="size-val">55%</span>
     <button class="btn-reset" onclick="resetSlider('afkBrightnessSlider',55,'afkBrightnessVal',v=>v+'%')">↺</button>
+  </div>
+</div>
+
+<!-- 揺れ設定 -->
+<div class="section">
+  <div class="section-title">🫀 揺れ設定</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+    <span style="font-size:11px;color:#94a3b8">画像を選択</span>
+    <button onclick="jiggleRefreshUsers()" style="padding:4px 8px;font-size:11px;white-space:nowrap">🔄 更新</button>
+  </div>
+  <div id="jiggleImgGrid" style="display:flex;flex-wrap:wrap;gap:5px;max-height:220px;overflow-y:auto;padding:4px;background:#0d1117;border:1px solid #334155;border-radius:4px;margin-bottom:8px">
+    <span style="color:#64748b;font-size:11px;padding:8px">🔄 更新を押してください</span>
+  </div>
+  <div id="jigglePreviewWrap" style="display:none;margin-bottom:10px">
+    <div style="position:relative;display:inline-block;border:1px solid #334155;background:#0d1117;line-height:0">
+      <img id="jigglePreviewImg" src="" style="display:block;height:390px;width:auto;object-fit:contain">
+      <div id="jigglePreviewOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden;display:none">
+        <img id="jigglePreviewOverlayImg" src="">
+      </div>
+      <div id="jigglePreviewZone" style="position:absolute;background:transparent;border:1px dashed #f87171;pointer-events:none"></div>
+    </div>
+    <div style="font-size:10px;color:#64748b;margin-top:4px">赤エリア = 揺れる範囲（管理パネルプレビュー）</div>
+  </div>
+  <div id="jiggleControls" style="display:none">
+    <div style="margin-bottom:6px">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px">
+        <input type="checkbox" id="jiggleEnabled" onchange="syncJiggle()">
+        <span>揺れを有効にする</span>
+      </label>
+    </div>
+    <div class="size-row">
+      <span class="size-label">上端</span>
+      <input type="range" id="jiggleTop" min="0" max="100" value="35" class="size-slider" oninput="syncJiggle()">
+      <span id="jiggleTopVal" class="size-val">35%</span>
+    </div>
+    <div class="size-row">
+      <span class="size-label">下端</span>
+      <input type="range" id="jiggleBottom" min="0" max="100" value="55" class="size-slider" oninput="syncJiggle()">
+      <span id="jiggleBottomVal" class="size-val">55%</span>
+    </div>
+    <div class="size-row">
+      <span class="size-label">左端</span>
+      <input type="range" id="jiggleLeft" min="0" max="100" value="0" class="size-slider" oninput="syncJiggle()">
+      <span id="jiggleLeftVal" class="size-val">0%</span>
+    </div>
+    <div class="size-row">
+      <span class="size-label">右端</span>
+      <input type="range" id="jiggleRight" min="0" max="100" value="100" class="size-slider" oninput="syncJiggle()">
+      <span id="jiggleRightVal" class="size-val">100%</span>
+    </div>
+    <div class="size-row">
+      <span class="size-label">強さ</span>
+      <input type="range" id="jiggleScale" min="0" max="20" step="0.5" value="4" class="size-slider" oninput="syncJiggle()">
+      <span id="jiggleScaleVal" class="size-val">4.0%</span>
+    </div>
+    <div class="size-row">
+      <span class="size-label">速さ(秒)</span>
+      <input type="range" id="jiggleSpeed" min="0.1" max="2" step="0.05" value="0.4" class="size-slider" oninput="syncJiggle()">
+      <span id="jiggleSpeedVal" class="size-val">0.40s</span>
+    </div>
   </div>
 </div>
 
@@ -655,6 +822,13 @@
               style="flex:1;resize:vertical;font-size:11px;line-height:1.4"
               oninput="sendAIText('aiSystem',this.value)"
               placeholder="例: あなたは配信のコメントに返答するアシスタントです。50文字以内の日本語で返答してください。"></textarea>
+  </div>
+  <div class="size-row" style="align-items:flex-start;margin-top:6px">
+    <span class="size-label" style="padding-top:4px">総評プロンプト</span>
+    <textarea id="ollamaReviewPromptInput" rows="4" class="admin-text-input"
+              style="flex:1;resize:vertical;font-size:11px;line-height:1.4"
+              oninput="sendAIText('ollamaReviewPrompt',this.value)"
+              placeholder="例: ユーザーのコメント一覧から性格・傾向を総評してください。空欄の場合は総評を表示しません。"></textarea>
   </div>
 </div>
 
@@ -845,6 +1019,9 @@
       const mpSel = document.getElementById('giveMpUserSelect');
       const mpPrev = mpSel.value;
       mpSel.innerHTML = '<option value="">-- キャラを選択 --</option>';
+      const thSel = document.getElementById('taimanHandicapUserSelect');
+      const thPrev = thSel.value;
+      thSel.innerHTML = '<option value="">-- キャラを選択 --</option>';
       (d.data || []).forEach(u => {
         _dbgUserNames[u.ipid] = u.name;
         _charSizeUsers[u.ipid] = u;
@@ -858,13 +1035,44 @@
         const mpOpt = document.createElement('option');
         mpOpt.value = u.ipid; mpOpt.textContent = label;
         mpSel.appendChild(mpOpt);
+        const thOpt = document.createElement('option');
+        thOpt.value = u.ipid; thOpt.textContent = label;
+        thSel.appendChild(thOpt);
       });
-      if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
-      if (csPrev && [...csSel.options].some(o => o.value === csPrev)) {
-        csSel.value = csPrev;
+      // 揺れ設定: 画像グリッドを更新
+      const imgFiles = [...new Set((d.data || []).map(u => u.charImage).filter(Boolean))].sort();
+      const grid = document.getElementById('jiggleImgGrid');
+      if (grid) {
+        grid.innerHTML = '';
+        const allEntries = [];
+        if (d.bossImgFile) allEntries.push({ f: d.bossImgFile, label: '👹 BOSS' });
+        imgFiles.forEach(f => { if (f !== d.bossImgFile) allEntries.push({ f, label: f }); });
+        if (allEntries.length === 0) {
+          grid.innerHTML = '<span style="color:#64748b;font-size:11px;padding:8px">キャラが見つかりません</span>';
+        } else {
+          allEntries.forEach(({ f, label }) => {
+            const item = document.createElement('div');
+            item.dataset.file = f;
+            item.style.cssText = 'cursor:pointer;border:2px solid transparent;border-radius:6px;padding:3px;text-align:center;flex-shrink:0';
+            if (f === _jiggleSelectedImg) { item.style.borderColor = '#f87171'; item.style.background = 'rgba(248,113,113,0.12)'; }
+            item.innerHTML = `<img src="/chara/${encodeURIComponent(f)}" style="width:64px;height:64px;object-fit:contain;display:block;border-radius:3px"><div style="font-size:8px;color:#94a3b8;width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px" title="${f}">${label}</div>`;
+            item.addEventListener('click', () => selectJiggleImg(f));
+            grid.appendChild(item);
+          });
+        }
       }
-      if (mpPrev && [...mpSel.options].some(o => o.value === mpPrev)) {
-        mpSel.value = mpPrev;
+
+      if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
+      if (csPrev && [...csSel.options].some(o => o.value === csPrev)) csSel.value = csPrev;
+      if (mpPrev && [...mpSel.options].some(o => o.value === mpPrev)) mpSel.value = mpPrev;
+      if (thPrev && [...thSel.options].some(o => o.value === thPrev)) {
+        thSel.value = thPrev;
+        const u = _charSizeUsers[thPrev];
+        if (u) {
+          const pct = Math.round((u.taimanDmgMult ?? 1.0) * 100);
+          document.getElementById('taimanHandicapSlider').value = pct;
+          document.getElementById('taimanHandicapVal').textContent = pct + '%';
+        }
       }
     }
   }
@@ -1042,8 +1250,9 @@
       { id:'afkOpacitySlider',       valId:'afkOpacityVal',       fmt: v=>v+'%'  },
       { id:'afkGrayscaleSlider',     valId:'afkGrayscaleVal',     fmt: v=>v+'%'  },
       { id:'afkBrightnessSlider',    valId:'afkBrightnessVal',    fmt: v=>v+'%'  },
-      { id:'gatherMarginLeftSlider', valId:'gatherMarginLeftVal', fmt: v=>v+'px' },
-      { id:'gatherMarginRightSlider',valId:'gatherMarginRightVal',fmt: v=>v+'px' },
+      { id:'gatherMarginLeftSlider',  valId:'gatherMarginLeftVal',  fmt: v=>v+'px' },
+      { id:'gatherMarginRightSlider', valId:'gatherMarginRightVal', fmt: v=>v+'px' },
+      { id:'gatherMarginBottomSlider',valId:'gatherMarginBottomVal',fmt: v=>v+'px' },
       { id:'kaiSpeedSlider',      valId:'kaiSpeedVal',      fmt: v=>v      },
       { id:'kaiRestitutionSlider',valId:'kaiRestitutionVal',fmt: v=>v+'%' },
       { id:'kaiGravitySlider',    valId:'kaiGravityVal',    fmt: v=>v+'%' },
@@ -1100,9 +1309,21 @@
     setVol('voiceVolume', 'voiceVolumeSlider', 'voiceVolumeVal');
     if (s.aiModel  !== undefined) { const el = document.getElementById('aiModelInput');  if (el) el.value = s.aiModel; }
     if (s.aiSystem !== undefined) { const el = document.getElementById('aiSystemInput'); if (el) el.value = s.aiSystem; }
+    if (s.ollamaReviewPrompt !== undefined) { const el = document.getElementById('ollamaReviewPromptInput'); if (el) el.value = s.ollamaReviewPrompt; }
     if (s.charExcludeIds !== undefined)      { const el = document.getElementById('charExcludeInput');      if (el) el.value = s.charExcludeIds; }
     if (s.taimanDefeatCommand !== undefined) { const el = document.getElementById('taimanDefeatCmdInput'); if (el) el.value = s.taimanDefeatCommand; }
     if (s.taimanCharScale !== undefined) { const sl = document.getElementById('taimanCharScaleSlider'); if (sl) { sl.value = s.taimanCharScale; document.getElementById('taimanCharScaleVal').textContent = s.taimanCharScale + 'x'; } }
+    if (s.taimanCooldown !== undefined) { const sl = document.getElementById('taimanCooldownSlider'); if (sl) { const sec = Math.round(s.taimanCooldown / 1000); sl.value = sec; document.getElementById('taimanCooldownVal').textContent = sec + '秒'; } }
+    if (s.charAspectExp !== undefined) { const sl = document.getElementById('charAspectExpSlider'); if (sl) { sl.value = s.charAspectExp; document.getElementById('charAspectExpVal').textContent = parseFloat(s.charAspectExp).toFixed(2); } }
+    if (s.charPortraitBoost !== undefined) { const sl = document.getElementById('charPortraitBoostSlider'); if (sl) { sl.value = s.charPortraitBoost; document.getElementById('charPortraitBoostVal').textContent = parseFloat(s.charPortraitBoost).toFixed(2); } }
+    if (s.charStatsBottom !== undefined) { document.getElementById('charStatsBottomSlider').value = s.charStatsBottom; document.getElementById('charStatsBottomVal').textContent = s.charStatsBottom + 'px'; }
+    if (s.charStatsLeft   !== undefined) { document.getElementById('charStatsLeftSlider').value   = s.charStatsLeft;   document.getElementById('charStatsLeftVal').textContent   = s.charStatsLeft   + 'px'; }
+    if (s.charEquipOffsetX !== undefined) { document.getElementById('charEquipXSlider').value = s.charEquipOffsetX; document.getElementById('charEquipXVal').textContent = s.charEquipOffsetX + 'px'; }
+    if (s.charEquipOffsetY !== undefined) { document.getElementById('charEquipYSlider').value = s.charEquipOffsetY; document.getElementById('charEquipYVal').textContent = s.charEquipOffsetY + 'px'; }
+    if (s.jiggleConfig) { try { _jiggleAllConfig = JSON.parse(s.jiggleConfig); } catch(e) {} }
+    if (s.petSizeScale !== undefined) { const v = Math.round(s.petSizeScale * 100); document.getElementById('petSizeSlider').value = v; document.getElementById('petSizeVal').textContent = v + '%'; }
+    if (s.petAspectExp !== undefined) { document.getElementById('petAspectExpSlider').value = s.petAspectExp; document.getElementById('petAspectExpVal').textContent = parseFloat(s.petAspectExp).toFixed(2); }
+    if (s.petPortraitBoost !== undefined) { document.getElementById('petPortraitBoostSlider').value = s.petPortraitBoost; document.getElementById('petPortraitBoostVal').textContent = parseFloat(s.petPortraitBoost).toFixed(2); }
     ['slotMpJackpot','slotMpDiamond','slotMpStar','slotMpBell','slotMpCherry'].forEach(key => {
       if (s[key] !== undefined) { const el = document.getElementById(key); if (el) el.value = s[key]; }
     });
@@ -1118,6 +1339,130 @@
 
   function charSizeRefreshUsers() { adminSend({ type: 'getUsers' }); }
   function giveMpRefreshUsers() { adminSend({ type: 'getUsers' }); }
+  function taimanHandicapRefreshUsers() { adminSend({ type: 'getUsers' }); }
+
+  function syncStatsOffset() {
+    const b = document.getElementById('charStatsBottomSlider').value;
+    const l = document.getElementById('charStatsLeftSlider').value;
+    document.getElementById('charStatsBottomVal').textContent = b + 'px';
+    document.getElementById('charStatsLeftVal').textContent   = l + 'px';
+    adminSend({ type: 'charStatsOffset', bottom: b, left: l });
+  }
+
+  function syncEquipOffset() {
+    const x = document.getElementById('charEquipXSlider').value;
+    const y = document.getElementById('charEquipYSlider').value;
+    document.getElementById('charEquipXVal').textContent = x + 'px';
+    document.getElementById('charEquipYVal').textContent = y + 'px';
+    adminSend({ type: 'charEquipOffset', x, y });
+  }
+
+  let _jiggleAllConfig = {};
+  let _jiggleSelectedImg = '';
+
+  function selectJiggleImg(imgFile) {
+    _jiggleSelectedImg = imgFile;
+    document.querySelectorAll('#jiggleImgGrid [data-file]').forEach(el => {
+      const sel = el.dataset.file === imgFile;
+      el.style.borderColor = sel ? '#f87171' : 'transparent';
+      el.style.background  = sel ? 'rgba(248,113,113,0.12)' : '';
+    });
+    document.getElementById('jiggleControls').style.display  = 'block';
+    document.getElementById('jigglePreviewWrap').style.display = 'block';
+    const cfg = _jiggleAllConfig[imgFile] || {};
+    document.getElementById('jiggleEnabled').checked         = cfg.enabled ?? false;
+    document.getElementById('jiggleTop').value               = cfg.top     ?? 35;
+    document.getElementById('jiggleBottom').value            = cfg.bottom  ?? 55;
+    document.getElementById('jiggleLeft').value              = cfg.left    ?? 0;
+    document.getElementById('jiggleRight').value             = cfg.right   ?? 100;
+    document.getElementById('jiggleScale').value             = cfg.scale   ?? 4;
+    document.getElementById('jiggleSpeed').value             = cfg.speed   ?? 0.4;
+    document.getElementById('jiggleTopVal').textContent      = (cfg.top    ?? 35)    + '%';
+    document.getElementById('jiggleBottomVal').textContent   = (cfg.bottom ?? 55)    + '%';
+    document.getElementById('jiggleLeftVal').textContent     = (cfg.left   ?? 0)     + '%';
+    document.getElementById('jiggleRightVal').textContent    = (cfg.right  ?? 100)   + '%';
+    document.getElementById('jiggleScaleVal').textContent    = parseFloat(cfg.scale  ?? 4).toFixed(1) + '%';
+    document.getElementById('jiggleSpeedVal').textContent    = parseFloat(cfg.speed  ?? 0.4).toFixed(2) + 's';
+    document.getElementById('jigglePreviewImg').src = `/chara/${encodeURIComponent(imgFile)}`;
+    document.getElementById('jigglePreviewOverlayImg').src = `/chara/${encodeURIComponent(imgFile)}`;
+    _updateJigglePreview();
+  }
+
+  function _updateJigglePreviewZone() { _updateJigglePreview(); }
+
+  function _updateJigglePreview() {
+    const top     = parseInt(document.getElementById('jiggleTop').value);
+    const bottom  = parseInt(document.getElementById('jiggleBottom').value);
+    const left    = parseInt(document.getElementById('jiggleLeft').value);
+    const right   = parseInt(document.getElementById('jiggleRight').value);
+    const scale   = parseFloat(document.getElementById('jiggleScale').value);
+    const speed   = parseFloat(document.getElementById('jiggleSpeed').value);
+    const enabled = document.getElementById('jiggleEnabled').checked;
+
+    // ゾーン枠
+    const zone = document.getElementById('jigglePreviewZone');
+    zone.style.top    = top + '%';
+    zone.style.height = Math.max(0, bottom - top) + '%';
+    zone.style.left   = left + '%';
+    zone.style.width  = Math.max(0, right - left) + '%';
+
+    // 揺れアニメーションオーバーレイ
+    const overlay    = document.getElementById('jigglePreviewOverlay');
+    const overlayImg = document.getElementById('jigglePreviewOverlayImg');
+    if (!overlay || !overlayImg) return;
+    if (!enabled || !_jiggleSelectedImg) { overlay.style.display = 'none'; return; }
+    overlay.style.display   = '';
+    overlay.style.clipPath  = `inset(${top}% ${100 - right}% ${100 - bottom}% ${left}%)`;
+    overlayImg.style.setProperty('--jiggle-speed',    speed + 's');
+    overlayImg.style.setProperty('--jiggle-sy',       String(1 + scale / 100));
+    overlayImg.style.setProperty('--jiggle-ty',       `-${(scale * 0.5).toFixed(1)}px`);
+    overlayImg.style.setProperty('--jiggle-origin-y', top + '%');
+  }
+
+  function syncJiggle() {
+    const imgFile = _jiggleSelectedImg;
+    if (!imgFile) return;
+    const top     = parseInt(document.getElementById('jiggleTop').value);
+    const bottom  = parseInt(document.getElementById('jiggleBottom').value);
+    const left    = parseInt(document.getElementById('jiggleLeft').value);
+    const right   = parseInt(document.getElementById('jiggleRight').value);
+    const scale   = parseFloat(document.getElementById('jiggleScale').value);
+    const speed   = parseFloat(document.getElementById('jiggleSpeed').value);
+    const enabled = document.getElementById('jiggleEnabled').checked;
+    document.getElementById('jiggleTopVal').textContent    = top + '%';
+    document.getElementById('jiggleBottomVal').textContent = bottom + '%';
+    document.getElementById('jiggleLeftVal').textContent   = left + '%';
+    document.getElementById('jiggleRightVal').textContent  = right + '%';
+    document.getElementById('jiggleScaleVal').textContent  = scale.toFixed(1) + '%';
+    document.getElementById('jiggleSpeedVal').textContent  = speed.toFixed(2) + 's';
+    _updateJigglePreviewZone();
+    _jiggleAllConfig[imgFile] = { top, bottom, left, right, scale, speed, enabled };
+    adminSend({ type: 'jiggleConfig', imgFile, config: { top, bottom, left, right, scale, speed, enabled } });
+  }
+
+  function jiggleRefreshUsers() { adminSend({ type: 'getUsers' }); }
+
+  function syncTaimanHandicap(el) {
+    document.getElementById('taimanHandicapVal').textContent = el.value + '%';
+    const ipid = document.getElementById('taimanHandicapUserSelect').value;
+    if (!ipid) return;
+    adminSend({ type: 'taimanHandicap', ipid, mult: parseFloat(el.value) / 100 });
+  }
+
+  function resetTaimanHandicap() {
+    document.getElementById('taimanHandicapSlider').value = 100;
+    document.getElementById('taimanHandicapVal').textContent = '100%';
+    const ipid = document.getElementById('taimanHandicapUserSelect').value;
+    if (!ipid) return;
+    adminSend({ type: 'taimanHandicap', ipid, mult: 1.0 });
+  }
+
+  document.getElementById('taimanHandicapUserSelect').addEventListener('change', function() {
+    const u = _charSizeUsers[this.value];
+    const pct = u ? Math.round((u.taimanDmgMult ?? 1.0) * 100) : 100;
+    document.getElementById('taimanHandicapSlider').value = pct;
+    document.getElementById('taimanHandicapVal').textContent = pct + '%';
+  });
 
   function sendRaceStart() {
     const numHorses  = parseInt(document.getElementById('raceNumHorses').value)  || 5;

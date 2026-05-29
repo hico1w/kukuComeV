@@ -353,13 +353,20 @@ const SETTINGS_KEYS = [
   'brHpMult','taimanHpMult','nikoFontSize','nikoOpacity','hayaoshiFreq','hayaoshiSpeed',
   'slotProbs','slotSoundEnabled','seVolume','voiceVolume',
   'aiModel','aiSystem','wordleDisplayRows','wordleCellSize','charFontSizes',
-  'bgColor','bgImageUrl','taimanDefeatCommand','taimanCharScale',
+  'bgColor','bgImageUrl','taimanDefeatCommand','taimanCharScale','taimanCooldown','charAspectExp','charPortraitBoost',
+  'charStatsBottom','charStatsLeft','charEquipOffsetX','charEquipOffsetY',
+  'petSizeScale','petAspectExp','petPortraitBoost',
+  'jiggleConfig',
   'slotMpJackpot','slotMpDiamond','slotMpStar','slotMpBell','slotMpCherry',
   'rankingPanelX','rankingPanelY','mpRankingPanelX','mpRankingPanelY',
   'wordlePanelX','wordlePanelY','quizPanelX','quizPanelY',
   'brTimerPanelX','brTimerPanelY','trashX','trashY',
+  'rankingVisible','mpRankingVisible','quizVisible','wordleVisible','brTimerVisible',
   'bossX','bossY',
-  'gatherMarginLeft','gatherMarginRight',
+  'gatherMarginLeft','gatherMarginRight','gatherMarginBottom',
+  'ollamaReviewPrompt',
+  'bombHidden','trashHidden',
+  'afkOpacity','afkGrayscale','afkBrightness',
 ];
 let _settingsSaveTimer = null;
 function saveSettingsToServer() {
@@ -404,6 +411,7 @@ let hash      = '';
 let petGachaDrumAudio = null;
 let dragState      = null;
 let trashDragState = null;
+let charZCounter   = 70;
 let moveArea       = MOVE_AREA_MAP['all'];
 
 let dragSounds   = [];
@@ -542,7 +550,7 @@ const CHAR_SAVE_FIELDS = [
   'commentCount','tc','sizeScale','flipped','lastTaimanAt','charDef',
   'name','nameManual',
   'textColor','bubbleShape','bubbleDeco','bubbleBgColor','font',
-  'charImage',
+  'charImage','taimanDmgMult',
 ];
 
 function getUser(ipid) {
@@ -586,6 +594,8 @@ function getUser(ipid) {
       totalDmgDealt:  0,
       walking:        false,
       walkTimer:      null,
+      // コメント履歴（総評用・最新150件）
+      recentComments: [],
       // ペット
       pet:            null,
       pet2:           null,
@@ -683,9 +693,9 @@ function createCharacter(user) {
       <div class="avatar"   id="a-${user.ipid}"></div>
       <div class="char-pet"  id="p-${user.ipid}"></div>
       <div class="char-pet2" id="p2-${user.ipid}"></div>
+      <div class="char-stats" id="s-${user.ipid}"></div>
     </div>
     <div class="char-name" id="n-${user.ipid}">${escapeHtml(user.name)}</div>
-    <div class="char-stats" id="s-${user.ipid}"></div>
   `;
 
   stage.appendChild(el);
@@ -698,6 +708,7 @@ function createCharacter(user) {
   renderPetBadge(user);
   scheduleMove(user);
   restoreMotion(user);
+  updateNameDisplay(user);
 
   // AFK/放置状態の復元
   if (user.afk || user.afkText) {
@@ -751,16 +762,86 @@ function applyAvatarStyle(user) {
   if (img) {
     const adjustSize = () => {
       if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-        const r = img.naturalWidth / img.naturalHeight;
-        const sqr = Math.sqrt(r);
-        a.style.width  = Math.round(px * sqr) + 'px';
-        a.style.height = Math.round(px / sqr) + 'px';
+        const r     = img.naturalWidth / img.naturalHeight;
+        const pow   = Math.pow(r, charAspectExp);
+        const boost = r < 1 ? Math.pow(1 / r, charPortraitBoost) : 1;
+        a.style.width  = Math.round(px * pow * boost) + 'px';
+        a.style.height = Math.round(px / pow * boost) + 'px';
+        updateJiggleOverlay(user);
       }
     };
     if (img.complete) adjustSize();
     else img.addEventListener('load', adjustSize, { once: true });
   }
   applyFacingFlip(user);
+}
+
+function updateJiggleOverlay(user) {
+  const a = document.getElementById('a-' + user.ipid);
+  if (!a) return;
+  a.querySelector('.jiggle-overlay')?.remove();
+
+  const imgFile = user.charImage || (user.charDef && charImages[user.charDef.id]) || 'kisyokeee.png';
+  const cfg = jiggleConfig[imgFile];
+  if (!cfg || !cfg.enabled) return;
+
+  const baseImg = a.querySelector('img');
+  if (!baseImg || !baseImg.complete || !baseImg.naturalWidth) return;
+
+  const topPct   = cfg.top    ?? 35;
+  const botPct   = cfg.bottom ?? 55;
+  const leftPct  = cfg.left   ?? 0;
+  const rightPct = cfg.right  ?? 100;
+  const scaleAmt = cfg.scale  ?? 4;
+  const speedVal = cfg.speed  ?? 0.4;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'jiggle-overlay';
+  overlay.style.clipPath = `inset(${topPct}% ${100 - rightPct}% ${100 - botPct}% ${leftPct}%)`;
+  if (isUserFlipped(user)) overlay.style.transform = 'scaleX(-1)';
+
+  const img2 = document.createElement('img');
+  img2.src = baseImg.src;
+  img2.alt = '';
+  img2.style.setProperty('--jiggle-speed',    speedVal + 's');
+  img2.style.setProperty('--jiggle-sy',       String(1 + scaleAmt / 100));
+  img2.style.setProperty('--jiggle-ty',       `-${(scaleAmt * 0.5).toFixed(1)}px`);
+  img2.style.setProperty('--jiggle-origin-y', topPct + '%');
+
+  overlay.appendChild(img2);
+  a.appendChild(overlay);
+}
+
+function updateBossJiggleOverlay() {
+  const a = document.getElementById('bossAvatar');
+  if (!a) return;
+  a.querySelector('.jiggle-overlay')?.remove();
+  if (!bossState) return;
+  const imgFile = bossState.imgFile;
+  if (!imgFile) return;
+  const cfg = jiggleConfig[imgFile];
+  if (!cfg || !cfg.enabled) return;
+  const baseImg = a.querySelector('img');
+  if (!baseImg || !baseImg.complete || !baseImg.naturalWidth) return;
+  const topPct   = cfg.top    ?? 35;
+  const botPct   = cfg.bottom ?? 55;
+  const leftPct  = cfg.left   ?? 0;
+  const rightPct = cfg.right  ?? 100;
+  const scaleAmt = cfg.scale  ?? 4;
+  const speedVal = cfg.speed  ?? 0.4;
+  const overlay = document.createElement('div');
+  overlay.className = 'jiggle-overlay';
+  overlay.style.clipPath = `inset(${topPct}% ${100 - rightPct}% ${100 - botPct}% ${leftPct}%)`;
+  overlay.style.transform = 'scaleX(-1)';
+  const img2 = document.createElement('img');
+  img2.src = baseImg.src;
+  img2.alt = '';
+  img2.style.setProperty('--jiggle-speed',    speedVal + 's');
+  img2.style.setProperty('--jiggle-sy',       String(1 + scaleAmt / 100));
+  img2.style.setProperty('--jiggle-ty',       `-${(scaleAmt * 0.5).toFixed(1)}px`);
+  img2.style.setProperty('--jiggle-origin-y', topPct + '%');
+  overlay.appendChild(img2);
+  a.appendChild(overlay);
 }
 
 function isUserFlipped(user) {
@@ -775,6 +856,9 @@ function applyFacingFlip(user) {
   if (!img) return;
   const flip = isUserFlipped(user);
   img.style.transform = flip ? 'scaleX(-1)' : '';
+  // 揺れオーバーレイも反転（overlay div ごと反転してアニメーションと干渉しない）
+  const jOverlay = a.querySelector('.jiggle-overlay');
+  if (jOverlay) jOverlay.style.transform = flip ? 'scaleX(-1)' : '';
   // ペット画像も同様に反転
   ['p-', 'p2-'].forEach(prefix => {
     const petImg = document.getElementById(prefix + user.ipid)?.querySelector('img');
@@ -783,44 +867,60 @@ function applyFacingFlip(user) {
 }
 
 function renderPetBadge(user) {
-  const petSize = Math.max(20, Math.round(user.size * 0.75 * charSizeScale * (user.sizeScale || 1) * (user.brWinnerScale || 1)));
-  const flipCss = isUserFlipped(user) ? 'transform:scaleX(-1);' : '';
-  const slot = document.getElementById('p-' + user.ipid);
-  if (slot) {
-    if (!user.pet) { slot.className = 'char-pet'; slot.innerHTML = ''; }
-    else {
-      slot.className = `char-pet ${user.pet.rarityCls || ''}`;
-      slot.innerHTML = `<img src="/chara/${encodeURIComponent(user.pet.img)}" alt="pet" style="width:${petSize}px;height:${petSize}px;object-fit:contain;${flipCss}" title="${escapeHtml(user.pet.abilityName)}: ${escapeHtml(user.pet.abilityDesc)}">`;
-    }
+  const px   = Math.max(20, Math.round(user.size * 0.75 * charSizeScale * petSizeScale * (user.sizeScale || 1) * (user.brWinnerScale || 1)));
+  const flip = isUserFlipped(user);
+
+  function setSlot(slotId, petObj, baseCls) {
+    const slot = document.getElementById(slotId);
+    if (!slot) return;
+    if (!petObj) { slot.className = baseCls; slot.innerHTML = ''; return; }
+    slot.className = `${baseCls} ${petObj.rarityCls || ''}`;
+    const img = document.createElement('img');
+    img.src          = `/chara/${encodeURIComponent(petObj.img)}`;
+    img.alt          = 'pet';
+    img.title        = `${escapeHtml(petObj.abilityName)}: ${escapeHtml(petObj.abilityDesc)}`;
+    img.style.width  = px + 'px';
+    img.style.height = px + 'px';
+    img.style.objectFit = 'contain';
+    if (flip) img.style.transform = 'scaleX(-1)';
+    const adjustSize = () => {
+      if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+        const r     = img.naturalWidth / img.naturalHeight;
+        const pow   = Math.pow(r, petAspectExp);
+        const boost = r < 1 ? Math.pow(1 / r, petPortraitBoost) : 1;
+        img.style.width  = Math.round(px * pow * boost) + 'px';
+        img.style.height = Math.round(px / pow * boost) + 'px';
+      }
+    };
+    if (img.complete && img.naturalWidth > 0) adjustSize();
+    else img.addEventListener('load', adjustSize, { once: true });
+    slot.innerHTML = '';
+    slot.appendChild(img);
   }
-  const slot2 = document.getElementById('p2-' + user.ipid);
-  if (slot2) {
-    if (!user.pet2) { slot2.className = 'char-pet2'; slot2.innerHTML = ''; }
-    else {
-      slot2.className = `char-pet2 ${user.pet2.rarityCls || ''}`;
-      slot2.innerHTML = `<img src="/chara/${encodeURIComponent(user.pet2.img)}" alt="pet2" style="width:${petSize}px;height:${petSize}px;object-fit:contain;${flipCss}" title="${escapeHtml(user.pet2.abilityName)}: ${escapeHtml(user.pet2.abilityDesc)}">`;
-    }
-  }
+
+  setSlot('p-'  + user.ipid, user.pet,  'char-pet');
+  setSlot('p2-' + user.ipid, user.pet2, 'char-pet2');
+}
+
+function getTitleCls(t) {
+  return ['T99','T100'].includes(t.id) ? 'title-tag-rainbow'
+       : ['T91','T92','T93','T94','T62','T70','T74','T80'].includes(t.id) ? 'title-tag-gold'
+       : 'title-tag-normal';
 }
 
 function updateNameDisplay(user) {
   const n = document.getElementById('n-' + user.ipid);
   if (!n) return;
   let html = escapeHtml(user.name);
-  if (user.activeTitle && typeof TITLES !== 'undefined') {
-    const t = TITLES.find(x => x.id === user.activeTitle);
-    if (t) {
-      const cls = ['T99','T100'].includes(t.id) ? 'title-tag-rainbow'
-                : ['T91','T92','T93','T94'].includes(t.id) ? 'title-tag-gold'
-                : ['T62','T70','T74','T80'].includes(t.id) ? 'title-tag-gold'
-                : 'title-tag-normal';
-      html = '<span class="title-tag ' + cls + '">' + escapeHtml(t.name) + '</span>' + escapeHtml(user.name);
-    }
-  }
   if (user.brWinner) {
     html = '<span class="title-tag title-tag-winner">優勝</span>' + html;
   }
   n.innerHTML = html;
+  n.style.color      = user.textColor || '';
+  n.style.background = user.bubbleBgColor || '';
+  n.style.fontFamily = user.font || '';
+  n.classList.forEach(c => { if (c.startsWith('bubble-deco-')) n.classList.remove(c); });
+  if (user.bubbleDeco) n.classList.add('bubble-deco-' + user.bubbleDeco);
 }
 
 function refreshAllAvatars() {
@@ -1017,7 +1117,7 @@ function gatherCharactersBottom() {
 
   onStage.forEach((u, i) => {
     u.x = Math.round(startX + step * i);
-    u.y = Math.max(20, Math.min(stageH - charH(u), stageH - charH(u) - 10));
+    u.y = Math.max(0, stageH - charH(u) - gatherMarginBottom);
     u.el.style.transition = 'left 600ms cubic-bezier(0.34,1.56,0.64,1), top 600ms cubic-bezier(0.34,1.56,0.64,1)';
     u.el.style.left = u.x + 'px';
     u.el.style.top  = u.y + 'px';
@@ -1386,7 +1486,7 @@ let bossManuallyCleared = false;
 let brState   = null; // バトルロイヤル状態 // 消去ボタン押下後は自動召喚しない
 let taimanState = null; // タイマン状態
 let brNextAutoAt    = Date.now() + 30 * 60 * 1000; // 次回自動BR予定時刻(ms)
-let brTimerVisible  = false;
+let brTimerVisible  = localStorage.getItem('brTimerVisible') === '1';
 let brTimerDragState = null;
 let brTimerPanelX   = parseInt(localStorage.getItem('brTimerPanelX')) || 10;
 let brTimerPanelY   = parseInt(localStorage.getItem('brTimerPanelY')) || 150;
@@ -1398,6 +1498,18 @@ let brHpMult       = 200;  // バトルロイヤル仮想HP倍率
 let taimanHpMult   = 10;   // タイマン仮想HP倍率
 let taimanDefeatCommand = localStorage.getItem('taimanDefeatCommand') || '';
 let taimanCharScale     = parseFloat(localStorage.getItem('taimanCharScale') || '4');
+let taimanCooldown      = parseInt(localStorage.getItem('taimanCooldown')) || 5 * 60 * 1000;
+let charAspectExp       = parseFloat(localStorage.getItem('charAspectExp') ?? '0.5');
+let charPortraitBoost   = parseFloat(localStorage.getItem('charPortraitBoost') ?? '0');
+let charStatsBottom     = parseInt(localStorage.getItem('charStatsBottom') ?? '0');
+let charStatsLeft       = parseInt(localStorage.getItem('charStatsLeft')   ?? '0');
+let charEquipOffsetX    = parseInt(localStorage.getItem('charEquipOffsetX') ?? '0');
+let charEquipOffsetY    = parseInt(localStorage.getItem('charEquipOffsetY') ?? '0');
+let petSizeScale        = parseFloat(localStorage.getItem('petSizeScale') ?? '1');
+let petAspectExp        = parseFloat(localStorage.getItem('petAspectExp') ?? '0.5');
+let petPortraitBoost    = parseFloat(localStorage.getItem('petPortraitBoost') ?? '0');
+let jiggleConfig        = {};
+try { jiggleConfig = JSON.parse(localStorage.getItem('jiggleConfig') || '{}'); } catch(e) {}
 let nikoFontSize  = 40;  // 早押しコメント文字サイズ(px)
 let nikoOpacity   = 1.0; // 早押しコメント透明度（0〜1）
 function nextBossHp() {
@@ -1412,9 +1524,10 @@ let fiveMinMode  = false;        // 5分モード（AI自動返答）
 let equipHidden        = false;   // 装備アイコン非表示
 let gatherMarginLeft   = parseInt(localStorage.getItem('gatherMarginLeft')  || '50');
 let gatherMarginRight  = parseInt(localStorage.getItem('gatherMarginRight') || '50');
+let gatherMarginBottom = parseInt(localStorage.getItem('gatherMarginBottom') || '10');
 let brAutoEnabled = true;        // 自動バトルロイヤル有効フラグ
-let bombHidden   = false;        // 爆弾ボタン非表示
-let trashHidden  = false;        // ゴミ箱非表示
+let bombHidden   = localStorage.getItem('bombHidden')  === 'true';
+let trashHidden  = localStorage.getItem('trashHidden') === 'true';
 let slotSoundEnabled = true;    // スロット効果音ON/OFF
 // TTS設定
 let seVolume      = 1.0;  // 効果音マスター音量
@@ -1575,7 +1688,19 @@ function updateStatsDisplay(user) {
   const mhp = inTaiman ? (taimanState.maxHp[user.ipid] ?? hp)
             : inBR     ? (brState.maxHp[user.ipid] ?? hp)
             : (user.maxHp ?? 30);
-  s.textContent = `HP:${hp.toLocaleString()}/${mhp.toLocaleString()}  MP:${mp}  ATK:${atk}  EXP:${expToNext}`;
+  const hpPct   = mhp > 0 ? Math.min(100, Math.round((hp / mhp) * 100)) : 0;
+  const hpColor = hpPct > 50 ? '#4ade80' : hpPct > 20 ? '#fbbf24' : '#f87171';
+  let titleHtml = '';
+  if (user.activeTitle && typeof TITLES !== 'undefined') {
+    const t = TITLES.find(x => x.id === user.activeTitle);
+    if (t) titleHtml = `<span class="cs-row"><span class="title-tag ${getTitleCls(t)}">${escapeHtml(t.name)}</span></span>`;
+  }
+  s.innerHTML =
+    titleHtml +
+    `<span class="cs-row"><span class="cs-hpbar"><span class="cs-hpfill" style="width:${hpPct}%;background:${hpColor}"></span><span class="cs-hpnum">${hp}</span></span></span>` +
+    `<span class="cs-row">💎${mp}</span>` +
+    `<span class="cs-row">⚔️${atk}</span>` +
+    `<span class="cs-row">⭐${expToNext}</span>`;
 }
 
 function randomizeCharAppearance(user) {
@@ -2066,9 +2191,10 @@ function taimanDoAttack() {
   const isCrit    = Math.random() < (0.15 + critBonus + (titleBon.crit || 0));
   const hayaMult  = attacker.hayaoshiBuff ? 1.5 : 1;
   attacker.hayaoshiBuff = false;
+  const handicap = attacker.taimanDmgMult ?? 1;
   let dmg = Math.round((isCrit
     ? Math.max(1, atk * (2 + Math.floor(Math.random() * 3)) * 2)
-    : Math.max(1, atk * (1 + Math.floor(Math.random() * 3)))) * hayaMult * (titleBon.dmgM || 1));
+    : Math.max(1, atk * (1 + Math.floor(Math.random() * 3)))) * hayaMult * (titleBon.dmgM || 1) * handicap);
   // 防御側ペット: guard(-1), barrier(20%で-3)
   const defPetId  = defender.pet?.abilityId;
   const defPetId2 = defender.pet2?.abilityId;
@@ -2087,7 +2213,7 @@ function taimanDoAttack() {
     .forEach(([pet, elId], pi) => {
       if (!pet) return;
       const aid  = pet.abilityId;
-      const base = Math.max(1, Math.round(calcAtk(attacker) * 0.25));
+      const base = Math.max(1, Math.round(calcAtk(attacker) * 0.25 * handicap));
       let mult = 1;
       if (aid === 'avenger' && (attacker.hp ?? 30) < (attacker.maxHp ?? 30) * 0.5) mult = 1.5;
       if (aid === 'berserk' && (attacker.hp ?? 30) < (attacker.maxHp ?? 30) * 0.3) mult = 3;
@@ -2262,13 +2388,13 @@ function endTaiman(winner, loser) {
       if (!u || !u.el) return;
       if (u._taimanDefeatToken !== _defeatToken) return; // 後続の敗北で上書き済み
       if (u.charImage !== u._taimanDefeatImg) return;    // ユーザーが自分で変更済み
-      if (availableImages.length === 0) return;
+      const orig = u._taimanDefeatImg;
       delete u._taimanDefeatToken;
       delete u._taimanDefeatImg;
       delete u._taimanDefeatTimer;
-      u.charImage = availableImages[Math.floor(Math.random() * availableImages.length)];
+      u.charImage = orig;
       applyAvatarStyle(u);
-      addToLog(u, `[タイマン敗北1分経過 → ランダムキャラ]`, '#f87171');
+      addToLog(u, `[タイマン敗北1分経過 → 元のキャラに戻す]`, '#f87171');
     }, 60000);
 
     // 勝者に花火・紙吹雪
@@ -2472,9 +2598,21 @@ function showDamageNumber(x, y, text, isCrit, forceFontSize, color) {
     ? forceFontSize * 3
     : Math.min((18 + Math.floor(numVal / 4) * 3) * 3, 174)) + 'px';
   if (color) el.style.color = color;
-  el.style.left = (x - 15 + (Math.random() - 0.5) * 60) + 'px';
-  el.style.top  = (y      + (Math.random() - 0.5) * 30) + 'px';
+  const rawX = x - 15 + (Math.random() - 0.5) * 60;
+  const rawY = y      + (Math.random() - 0.5) * 30;
+  el.style.left   = rawX + 'px';
+  el.style.top    = rawY + 'px';
+  el.style.zIndex = charZCounter + 1;
   stage.appendChild(el);
+  // offsetWidth/Height forces reflow — clamp to stage bounds
+  const sw = stage.clientWidth;
+  const sh = stage.clientHeight;
+  const ew = el.offsetWidth;
+  const eh = el.offsetHeight;
+  const cx = Math.max(0, Math.min(rawX, sw - ew));
+  const cy = Math.max(0, Math.min(rawY, sh - eh));
+  if (cx !== rawX) el.style.left = cx + 'px';
+  if (cy !== rawY) el.style.top  = cy + 'px';
   el.addEventListener('animationend', () => el.remove(), { once: true });
 }
 
@@ -2509,8 +2647,17 @@ function spawnBoss(maxHp) {
     <div class="boss-avatar" id="bossAvatar" style="width:${bossSize}px;height:${bossSize}px;font-size:${Math.round(bossSize*0.87)}px">${avatarInner}</div>
   `;
   stage.appendChild(el);
-  bossState = { hp: maxHp, maxHp, el, defeated: false, origSize: bossSize };
+  bossState = { hp: maxHp, maxHp, el, defeated: false, origSize: bossSize, imgFile: bossImg || null };
   updateBossHpDisplay();
+  if (bossImg) {
+    const bossAvatarEl = document.getElementById('bossAvatar');
+    const bossImgEl = bossAvatarEl?.querySelector('img');
+    if (bossImgEl && !bossImgEl.complete) {
+      bossImgEl.addEventListener('load', updateBossJiggleOverlay, { once: true });
+    } else {
+      updateBossJiggleOverlay();
+    }
+  }
 
   el.addEventListener('mousedown', e => {
     if (e.button !== 0 || dragState || trashDragState) return;
@@ -3051,6 +3198,7 @@ function handleComment(comment) {
   if (type !== 'comment') return;
   user.commentCount = (user.commentCount || 0) + 1;
   user.lastCommentAt = Date.now();
+  if (user.el) user.el.style.zIndex = ++charZCounter;
 
   // コメント毎に基礎 EXP +1（ボス有無・コンパクトモード問わず）
   user.exp = (user.exp || 0) + 1;
@@ -3078,6 +3226,11 @@ function handleComment(comment) {
 
   const rawMessage = decodeHtml(comment.message ?? '');
   const message    = stripPrefix(rawMessage);
+  if (message) {
+    if (!user.recentComments) user.recentComments = [];
+    user.recentComments.push(message);
+    if (user.recentComments.length > 150) user.recentComments.shift();
+  }
 
   // ── 馬券ベット ──
   if (raceState?.phase === 'betting') {
@@ -3197,7 +3350,7 @@ function handleComment(comment) {
       showBubble(user, 'タイマン中です', {});
       return;
     }
-    const TAIMAN_COOLDOWN = 5 * 60 * 1000;
+    const TAIMAN_COOLDOWN = taimanCooldown;
     const elapsed = Date.now() - (user.lastTaimanAt ?? 0);
     if (elapsed < TAIMAN_COOLDOWN) {
       const remaining = Math.ceil((TAIMAN_COOLDOWN - elapsed) / 1000);
@@ -3227,7 +3380,7 @@ function handleComment(comment) {
         showBubble(user, 'タイマン中です', {});
         return;
       }
-      const TAIMAN_COOLDOWN = 5 * 60 * 1000;
+      const TAIMAN_COOLDOWN = taimanCooldown;
       const elapsed = Date.now() - (user.lastTaimanAt ?? 0);
       if (elapsed < TAIMAN_COOLDOWN) {
         const remaining = Math.ceil((TAIMAN_COOLDOWN - elapsed) / 1000);
@@ -3418,8 +3571,7 @@ function handleComment(comment) {
   if (message.includes('ステータス確認')) {
     if (compactMode) { ensureCharOnStage(user); showBubble(user, 'コンパクトモード中は使用できません', {}); return; }
     ensureCharOnStage(user);
-    showStatusModal(user);
-    postStatusComment(user);
+    showStatusModal(user, true, comment.number);
     return;
   }
 
@@ -3492,7 +3644,7 @@ function handleComment(comment) {
 
   const nameM = display.match(/名前[：:]([\S]{1,20})/);
   if (nameM) {
-    const newName = nameM[1];
+    const newName = nameM[1].slice(0, 10);
     const usedNames = getUsedNames(user.ipid);
     if (usedNames.has(newName)) {
       ensureCharOnStage(user);
@@ -3512,11 +3664,27 @@ function handleComment(comment) {
       const c = resolveColor(raw);
       if (c) user.bubbleBgColor = c;
     }
+    if (user.bubbleBgColor && user.bubbleBgColor === user.textColor) {
+      const others = Object.values(COLOR_NAMES).filter(v => v !== user.bubbleBgColor);
+      user.textColor = others[Math.floor(Math.random() * others.length)];
+    }
     display = display.replace(bgColorM[0], '').trim();
+    updateNameDisplay(user);
   }
 
   const colorM = display.match(/色[：:]([\S]+)/);
-  if (colorM) { const c = resolveColor(colorM[1]); if (c) user.textColor = c; display = display.replace(colorM[0], '').trim(); }
+  if (colorM) {
+    const c = resolveColor(colorM[1]);
+    if (c) {
+      user.textColor = c;
+      if (user.bubbleBgColor && user.bubbleBgColor === user.textColor) {
+        const others = Object.values(COLOR_NAMES).filter(v => v !== user.bubbleBgColor);
+        user.textColor = others[Math.floor(Math.random() * others.length)];
+      }
+      updateNameDisplay(user);
+    }
+    display = display.replace(colorM[0], '').trim();
+  }
 
   const bubbleM = display.match(/吹き出し[：:]([\S]+)/);
   if (bubbleM) { const s = SHAPE_MAP[bubbleM[1]]; if (s) user.bubbleShape = s; display = display.replace(bubbleM[0], '').trim(); }
@@ -3596,6 +3764,7 @@ function handleComment(comment) {
       ? FONT_MAP[raw]
       : (fontM[1] ? `"${raw}"` : raw); // quoted → wrap in quotes, unquoted → use as-is
     display = display.replace(fontM[0], '').trim();
+    updateNameDisplay(user);
   }
 
   if (/歩く|歩きゅ/.test(display)) {
@@ -3658,7 +3827,7 @@ function handleComment(comment) {
   const decoM = display.match(/飾り[：:]([\S]+)/);
   if (decoM) {
     const d = DECO_MAP[decoM[1]];
-    if (d !== undefined) user.bubbleDeco = d;
+    if (d !== undefined) { user.bubbleDeco = d; updateNameDisplay(user); }
     display = display.replace(decoM[0], '').trim();
   }
 
@@ -4068,7 +4237,9 @@ document.getElementById('wordleBtn').addEventListener('click', () => {
   if (panel) {
     panel.remove();
     wordleState = null;
+    localStorage.setItem('wordleVisible', '0');
   } else if (wordleWords.length > 0) {
+    localStorage.setItem('wordleVisible', '1');
     startWordle();
   }
 });
@@ -4423,6 +4594,7 @@ async function playTTS(text) {
 // ── AI返答（Ollama） ─────────────────────────────────────────────
 let aiModel  = localStorage.getItem('aiModel')  || 'gemma3:12b';
 let aiSystem = localStorage.getItem('aiSystem') || '';
+let ollamaReviewPrompt = localStorage.getItem('ollamaReviewPrompt') || '';
 const _aiPostedTexts = new Set();
 const seenYoutubeUrls = new Set();
 let _aiQueue = Promise.resolve();
@@ -4711,6 +4883,7 @@ function launchBullets(user, text) {
       if (valEl) valEl.textContent = v + '%';
       document.documentElement.style.setProperty(cssVar, toCSS(v));
       localStorage.setItem(key, v);
+      saveSettingsToServer();
     });
     document.getElementById(id.replace('Slider', 'Reset'))?.addEventListener('click', () => {
       slider.value = def;
@@ -5263,47 +5436,8 @@ function showPetGachaAnim(user, finalPet) {
   }, 3000);
 }
 
-// ── ステータスコメント投稿 ─────────────────────────────────────────
-function postStatusComment(user) {
-  if (!apikey) return;
-  const atk  = calcAtk(user);
-  const lv   = user.level  || 1;
-  const hp   = user.hp     ?? 30;
-  const mhp  = user.maxHp  ?? 30;
-  const mp   = user.mp     ?? 10;
-  const exp  = user.exp    || 0;
-  const dmg  = (user.totalDmgDealt || 0).toLocaleString();
-  const deaths = user.deaths || 0;
-  const wordle = user.wordleWins || 0;
-  const hayaoshi = user.hayaoshiWins || 0;
-  const quiz = user.tc?.quizWins || 0;
-
-  const petSummary = [user.pet, user.pet2].filter(Boolean)
-    .map(p => `${p.abilityName}(${p.abilityDesc})`).join(' / ') || 'なし';
-
-  const activeTitleName = user.activeTitle
-    ? (TITLES.find(t => t.id === user.activeTitle)?.name || '')
-    : '';
-
-  let text = `【${user.name}】Lv.${lv} HP:${hp}/${mhp} MP:${mp} ATK:${atk} EXP:${exp}`;
-  text += ` | ダメージ:${dmg} 死亡:${deaths}回 Wordle:${wordle} 早押し:${hayaoshi} クイズ:${quiz}`;
-  if (petSummary !== 'なし') text += ` | ペット:${petSummary}`;
-  if (activeTitleName) text += ` | 称号:【${activeTitleName}】`;
-
-  const params = new URLSearchParams({
-    category: 'comment',
-    type:     'write',
-    apikey,
-    icon:     '0',
-    comment:  text,
-  });
-  const url = `https://live.erinn.biz/api/?${params.toString()}`;
-  console.log('[postStatusComment]', url);
-  fetch(url).catch(() => {});
-}
-
 // ── ステータスモーダル ─────────────────────────────────────────────
-function showStatusModal(user, autoClose = true) {
+function showStatusModal(user, autoClose = true, triggerCnum = null) {
   const imgFile = user.charImage || (user.charDef ? (charImages[user.charDef.id] || 'kisyokeee.png') : 'kisyokeee.png');
   const atk     = calcAtk(user);
   const lv      = user.level  || 1;
@@ -5335,15 +5469,16 @@ function showStatusModal(user, autoClose = true) {
     </div>`;
   }
   const petHtml = (user.pet || user.pet2)
-    ? (buildPetBlock(user.pet) + buildPetBlock(user.pet2))
+    ? `<div class="sm-pet-row" style="display:flex;flex-direction:row;gap:12px;flex-wrap:wrap;align-items:flex-start">${buildPetBlock(user.pet)}${buildPetBlock(user.pet2)}</div>`
     : '<div class="sm-no-equip">ペットなし</div>';
 
   const overlay = document.createElement('div');
   overlay.id = 'statusModal';
   overlay.className = 'sm-overlay';
+  const titleRank = id => ['T99','T100'].includes(id) ? 0 : ['T91','T92','T93','T94','T70','T74','T80'].includes(id) ? 1 : 2;
   const titleListHtml = (user.titles||[]).length === 0
     ? '<div class="sm-no-equip">称号なし</div>'
-    : (user.titles||[]).map(id => {
+    : [...(user.titles||[])].sort((a,b) => titleRank(a) - titleRank(b)).map(id => {
         const t = TITLES.find(x=>x.id===id);
         if (!t) return '';
         const cls = ['T99','T100'].includes(t.id) ? 'sm-title-rainbow'
@@ -5356,7 +5491,8 @@ function showStatusModal(user, autoClose = true) {
   overlay.innerHTML = `
     <div class="sm-modal">
       <div class="sm-header">
-        <span>📊 ステータス確認</span>
+        <span id="smLiveTitle" class="sm-header-live-title">取得中...</span>
+        <span class="sm-header-date">${(() => { const n = new Date(); return `${n.getFullYear()}/${String(n.getMonth()+1).padStart(2,'0')}/${String(n.getDate()).padStart(2,'0')} ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; })()}</span>
         <button class="sm-close">✕</button>
       </div>
       <div class="sm-content">
@@ -5364,19 +5500,23 @@ function showStatusModal(user, autoClose = true) {
           <div class="sm-body">
             <div class="sm-left">
               <img class="sm-avatar" src="/chara/${encodeURIComponent(imgFile)}" alt="${escapeHtml(user.name)}">
-              <div class="sm-name">${escapeHtml(user.name)}</div>
-              ${user.iconName ? `<div class="sm-icon-name">${escapeHtml(user.iconName)}</div>` : ''}
-              <div class="sm-lv">Lv. ${lv}</div>
+              <div class="sm-ol-stats-wrap">
+                ${user.activeTitle ? `<div class="sm-ol-title">${escapeHtml(TITLES.find(t=>t.id===user.activeTitle)?.name||'?')}</div>` : ''}
+                <div class="sm-ol-stats">
+                  <div class="sm-ol-stat">HP <span>${hp} / ${mhp}</span></div>
+                  <div class="sm-ol-stat">MP <span>${mp}</span></div>
+                  <div class="sm-ol-stat">ATK <span>${atk}</span></div>
+                  <div class="sm-ol-stat">EXP <span>${user.exp || 0}</span></div>
+                </div>
+              </div>
+              <div class="sm-ol-name">${escapeHtml(user.name)}${user.iconName ? `<div class="sm-icon-name" style="font-size:10px;margin-top:2px">${escapeHtml(user.iconName)}</div>` : ''}</div>
+              <div class="sm-ol-lv">Lv. ${lv}</div>
+              <div class="sm-ol-equip">
+                <div class="sm-equip-list">${equipRows}</div>
+              </div>
             </div>
             <div class="sm-right">
-              <div class="sm-section-title">⚡ ステータス</div>
-              <div class="sm-stats">
-                <div class="sm-stat"><span class="sm-stat-label">HP</span><span class="sm-stat-val">${hp} / ${mhp}</span></div>
-                <div class="sm-stat"><span class="sm-stat-label">MP</span><span class="sm-stat-val">${mp}</span></div>
-                <div class="sm-stat"><span class="sm-stat-label">ATK</span><span class="sm-stat-val">${atk}</span></div>
-                <div class="sm-stat"><span class="sm-stat-label">EXP</span><span class="sm-stat-val">${user.exp || 0}</span></div>
-              </div>
-              <div class="sm-section-title" style="margin-top:8px">📈 記録</div>
+              <div class="sm-section-title">📈 記録</div>
               <div class="sm-stats">
                 <div class="sm-stat"><span class="sm-stat-label">コメント数</span><span class="sm-stat-val">${user.commentCount || 0}</span></div>
                 <div class="sm-stat"><span class="sm-stat-label">合計ダメージ</span><span class="sm-stat-val">${(user.totalDmgDealt || 0).toLocaleString()}</span></div>
@@ -5385,16 +5525,11 @@ function showStatusModal(user, autoClose = true) {
                 <div class="sm-stat"><span class="sm-stat-label">クイズ正解</span><span class="sm-stat-val">${(user.tc?.quizWins || 0)} 回</span></div>
                 <div class="sm-stat"><span class="sm-stat-label">死亡回数</span><span class="sm-stat-val">${user.deaths || 0} 回</span></div>
               </div>
+              <div class="sm-section-title">🐾 ペット</div>
+              ${petHtml}
             </div>
           </div>
-          <div class="sm-equip-section">
-            <div class="sm-section-title">🐾 ペット</div>
-            ${petHtml}
-          </div>
-          <div class="sm-equip-section">
-            <div class="sm-section-title">⚔️ 装備一覧 (${(user.equips || []).length}個)</div>
-            <div class="sm-equip-list">${equipRows}</div>
-          </div>
+          ${ollamaReviewPrompt ? '<div class="sm-review-area"><span class="sm-review-loading">🤖 総評を生成中...</span></div>' : ''}
         </div>
         <div class="sm-title-panel">
           <div class="sm-title-panel-header">⭐ 称号 <span class="sm-title-count">${(user.titles||[]).length}</span>${user.activeTitle ? '<div class="sm-title-active">表示中: 【' + escapeHtml(TITLES.find(t=>t.id===user.activeTitle)?.name||'?') + '】</div>' : ''}</div>
@@ -5405,12 +5540,172 @@ function showStatusModal(user, autoClose = true) {
   `;
   document.body.appendChild(overlay);
 
+  // ライブタイトル取得してヘッダーに反映
+  if (apikey) {
+    fetch(`/api/live-info?apikey=${encodeURIComponent(apikey)}`)
+      .then(r => r.json())
+      .then(d => {
+        const el = overlay.querySelector('#smLiveTitle');
+        if (el) el.textContent = d.livetitle || '(タイトルなし)';
+      })
+      .catch(() => {
+        const el = overlay.querySelector('#smLiveTitle');
+        if (el) el.textContent = 'ステータス確認';
+      });
+  } else {
+    const el = overlay.querySelector('#smLiveTitle');
+    if (el) el.textContent = 'ステータス確認';
+  }
+
+  const captureAndPostDiscord = async () => {
+    console.log('[capture] start triggerCnum=', triggerCnum, 'html2canvas=', typeof html2canvas);
+    if (triggerCnum == null) { console.warn('[capture] skip: triggerCnum is null'); return; }
+    if (typeof html2canvas === 'undefined') { console.warn('[capture] skip: html2canvas not loaded'); return; }
+
+    const modalEl = overlay.querySelector('.sm-modal');
+    if (!modalEl) { console.warn('[capture] skip: modalEl not found'); return; }
+
+    // ② overflow/height/flex を一時解除（finally で必ず復元）
+    const smContent    = modalEl.querySelector('.sm-content');
+    const smMainPanel  = modalEl.querySelector('.sm-main-panel');
+    const smTitlePanel = modalEl.querySelector('.sm-title-panel');
+    const smTitleList  = modalEl.querySelector('.sm-title-list');
+    const saved = {
+      mH:  modalEl.style.height,        mO:  modalEl.style.overflow,
+      cO:  smContent?.style.overflow,   cMH: smContent?.style.minHeight,   cH: smContent?.style.height,
+      pO:  smMainPanel?.style.overflow, pMH: smMainPanel?.style.maxHeight,
+      tO:  smTitlePanel?.style.overflow, tH: smTitlePanel?.style.height,
+      lO:  smTitleList?.style.overflow,  lF: smTitleList?.style.flex,       lH: smTitleList?.style.height,
+    };
+    const restoreStyles = () => {
+      modalEl.style.height = saved.mH;
+      modalEl.style.overflow = saved.mO;
+      if (smContent)    { smContent.style.overflow = saved.cO; smContent.style.minHeight = saved.cMH; smContent.style.height = saved.cH; }
+      if (smMainPanel)  { smMainPanel.style.overflow = saved.pO; smMainPanel.style.maxHeight = saved.pMH; }
+      if (smTitlePanel) { smTitlePanel.style.overflow = saved.tO; smTitlePanel.style.height = saved.tH; }
+      if (smTitleList)  { smTitleList.style.overflow = saved.lO; smTitleList.style.flex = saved.lF; smTitleList.style.height = saved.lH; }
+    };
+
+    const restoreList = [];
+    try {
+      modalEl.style.overflow = 'visible';
+      if (smContent)    { smContent.style.overflow = 'visible'; smContent.style.minHeight = 'auto'; smContent.style.height = 'auto'; }
+      if (smMainPanel)  { smMainPanel.style.overflow = 'visible'; smMainPanel.style.maxHeight = 'none'; }
+      if (smTitlePanel) { smTitlePanel.style.overflow = 'visible'; smTitlePanel.style.height = 'auto'; }
+      if (smTitleList)  { smTitleList.style.overflow = 'visible'; smTitleList.style.flex = 'none'; smTitleList.style.height = 'auto'; }
+      // height:auto は最後に適用してリフローを安定させる
+      modalEl.style.height = 'auto';
+
+      // スタイル変更後1フレーム待ってレイアウトを確定させる
+      await new Promise(r => requestAnimationFrame(r));
+      console.log('[capture] modalEl size=', modalEl.offsetWidth, 'x', modalEl.offsetHeight,
+                  'scroll=', modalEl.scrollWidth, 'x', modalEl.scrollHeight);
+
+      // ① object-fit:contain img をキャンバスに差し替え
+      for (const img of modalEl.querySelectorAll('.sm-avatar, .sm-pet-img')) {
+        const bW = img.offsetWidth, bH = img.offsetHeight;
+        const nW = img.naturalWidth, nH = img.naturalHeight;
+        console.log('[capture] img', img.className, 'box=', bW, bH, 'natural=', nW, nH);
+        if (!bW || !bH || !nW || !nH || !img.parentElement) continue;
+        const scale2 = 2;
+        const cvs = document.createElement('canvas');
+        cvs.width = bW * scale2; cvs.height = bH * scale2;
+        const ctx2 = cvs.getContext('2d');
+        ctx2.scale(scale2, scale2);
+        const s = Math.min(bW / nW, bH / nH);
+        const dW = nW * s, dH = nH * s;
+        ctx2.drawImage(img, (bW - dW) / 2, (bH - dH) / 2, dW, dH);
+        cvs.style.width = bW + 'px'; cvs.style.height = bH + 'px';
+        cvs.style.flexShrink = '0';
+        cvs.style.borderRadius = window.getComputedStyle(img).borderRadius;
+        img.parentElement.replaceChild(cvs, img);
+        restoreList.push({ cvs, img });
+      }
+
+      const captureW = modalEl.scrollWidth  || modalEl.offsetWidth;
+      const captureH = modalEl.scrollHeight || modalEl.offsetHeight;
+      console.log('[capture] html2canvas start w=', captureW, 'h=', captureH);
+      const canvas = await html2canvas(modalEl, {
+        backgroundColor: '#0f121c',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        width: captureW,
+        height: captureH,
+      });
+      console.log('[capture] html2canvas done canvas=', canvas.width, 'x', canvas.height);
+
+      const dataUrl = canvas.toDataURL('image/png');
+      console.log('[capture] posting to /api/status-screenshot dataUrl length=', dataUrl.length);
+      const resp = await fetch('/api/status-screenshot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageDataUrl: dataUrl, userName: user.name }),
+      });
+      const data = await resp.json();
+      console.log('[capture] response=', data);
+      if (data.url) {
+        console.log('[capture] posting comment >>', triggerCnum, data.url);
+        postAIReply(`>>${triggerCnum} ${data.url}`);
+      } else {
+        console.warn('[capture] no url in response', data);
+      }
+    } catch (e) {
+      console.error('[capture] error', e);
+    } finally {
+      restoreStyles();
+      for (const { cvs, img } of restoreList) cvs.parentElement?.replaceChild(img, cvs);
+    }
+  };
+
+  if (ollamaReviewPrompt) {
+    const reviewEl = overlay.querySelector('.sm-review-area');
+    const comments = user.recentComments || [];
+    const ollamaReq = fetch('/api/ollama-review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ comments, systemPrompt: ollamaReviewPrompt, userName: user.name, model: aiModel }),
+    }).then(r => r.json());
+    const ollamaTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 9000));
+    console.log('[capture] ollama request start');
+    Promise.race([ollamaReq, ollamaTimeout])
+    .then(d => {
+      console.log('[capture] ollama response', d);
+      if (reviewEl) reviewEl.innerHTML = d.review
+        ? `<div class="sm-review-label">コメント</div><div class="sm-review-text">${escapeHtml(d.review)}</div>`
+        : `<div class="sm-review-text" style="color:#f87171">${escapeHtml(d.error || '取得失敗')}</div>`;
+      captureAndPostDiscord();
+    })
+    .catch(e => {
+      console.warn('[capture] ollama error/timeout', e.message);
+      if (reviewEl) reviewEl.innerHTML = e.message === 'timeout'
+        ? ''
+        : `<div class="sm-review-text" style="color:#f87171">エラー: ${escapeHtml(e.message)}</div>`;
+      captureAndPostDiscord();
+    });
+  } else {
+    console.log('[capture] no ollama prompt, scheduling capture in 600ms');
+    setTimeout(captureAndPostDiscord, 600);
+  }
+
   const close = () => overlay.remove();
   overlay.querySelector('.sm-close').addEventListener('click', close);
   if (autoClose !== false) setTimeout(close, 5000);
 }
 
 // ── ダメージランキング ─────────────────────────────────────────────
+function closeRankingPanel() {
+  rankingState = null;
+  localStorage.setItem('rankingVisible', '0');
+  document.getElementById('rankingPanel')?.remove();
+}
+
+function closeMpRankingPanel() {
+  mpRankingState = null;
+  localStorage.setItem('mpRankingVisible', '0');
+  document.getElementById('mpRankingPanel')?.remove();
+}
+
 function showDamageRanking(dmgMap) {
   if (compactMode) return;
   if (!Object.keys(dmgMap).length) return;
@@ -5419,6 +5714,7 @@ function showDamageRanking(dmgMap) {
     panelX: parseInt(localStorage.getItem('rankingPanelX')) || (stage.clientWidth - 220),
     panelY: parseInt(localStorage.getItem('rankingPanelY')) || 10,
   };
+  localStorage.setItem('rankingVisible', '1');
   renderRankingPanel();
 }
 
@@ -5430,6 +5726,7 @@ function showMpRanking() {
     panelX: parseInt(localStorage.getItem('mpRankingPanelX')) || Math.max(0, stage.clientWidth - 450),
     panelY: parseInt(localStorage.getItem('mpRankingPanelY')) || 10,
   };
+  localStorage.setItem('mpRankingVisible', '1');
   renderMpRankingPanel();
 }
 
@@ -5459,7 +5756,7 @@ function renderMpRankingPanel() {
     .slice(0, 5);
 
   const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
-  let html = '<div class="ranking-header ranking-header-mp">💎 MPランキング<span class="ranking-close" onclick="mpRankingState=null;document.getElementById(\'mpRankingPanel\')?.remove()">✕</span></div>';
+  let html = '<div class="ranking-header ranking-header-mp">💎 MPランキング<span class="ranking-close" onclick="closeMpRankingPanel()">✕</span></div>';
   entries.forEach((entry, i) => {
     html += `<div class="ranking-row">
       <span class="ranking-medal">${medals[i]}</span>
@@ -5494,7 +5791,7 @@ function renderRankingPanel() {
     .slice(0, 5);
 
   const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
-  let html = '<div class="ranking-header">⚔️ ダメージランキング<span class="ranking-close" onclick="rankingState=null;document.getElementById(\'rankingPanel\')?.remove()">✕</span></div>';
+  let html = '<div class="ranking-header">⚔️ ダメージランキング<span class="ranking-close" onclick="closeRankingPanel()">✕</span></div>';
   entries.forEach((entry, i) => {
     html += `<div class="ranking-row">
       <span class="ranking-medal">${medals[i]}</span>
@@ -5576,7 +5873,7 @@ let wordleDisplayRows = parseInt(localStorage.getItem('wordleDisplayRows')) || 1
     wordleWords = t.split('\n')
       .map(l => [...l.trim()].slice(0, 5).join(''))
       .filter(w => [...w].length === 5);
-    if (wordleWords.length > 0) startWordle();
+    if (wordleWords.length > 0 && localStorage.getItem('wordleVisible') !== '0') startWordle();
   } catch {}
 })();
 
@@ -5773,6 +6070,7 @@ let quizDragState = null;
         return { q, a };
       })
       .filter(({ q, a }) => q && a);
+    if (quizQuestions.length > 0 && localStorage.getItem('quizVisible') === '1') startQuiz();
   } catch {}
 })();
 
@@ -5798,6 +6096,7 @@ function startQuiz() {
   const panelX = parseInt(localStorage.getItem('quizPanelX')) || 10;
   const panelY = parseInt(localStorage.getItem('quizPanelY')) || 80;
   quizState = { panelX, panelY };
+  localStorage.setItem('quizVisible', '1');
   nextQuizQuestion();
 }
 
@@ -5805,6 +6104,7 @@ function stopQuiz() {
   if (!quizState) return;
   clearInterval(quizState.timer);
   quizState = null;
+  localStorage.setItem('quizVisible', '0');
   const panel = document.getElementById('quizPanel');
   if (panel) panel.remove();
 }
@@ -6113,6 +6413,7 @@ setInterval(renderBRTimerPanel, 1000);
 
 document.getElementById('brTimerBtn').addEventListener('click', () => {
   brTimerVisible = !brTimerVisible;
+  localStorage.setItem('brTimerVisible', brTimerVisible ? '1' : '0');
   document.getElementById('brTimerBtn').classList.toggle('active', brTimerVisible);
   renderBRTimerPanel();
 });
@@ -6127,13 +6428,21 @@ document.getElementById('toggleBombBtn').addEventListener('click', () => {
   bombHidden = !bombHidden;
   document.getElementById('bombBtn').style.display = bombHidden ? 'none' : '';
   document.getElementById('toggleBombBtn').classList.toggle('active', bombHidden);
+  localStorage.setItem('bombHidden', bombHidden);
+  saveSettingsToServer();
 });
 
 document.getElementById('toggleTrashBtn').addEventListener('click', () => {
   trashHidden = !trashHidden;
   document.getElementById('trashCan').style.display = trashHidden ? 'none' : '';
   document.getElementById('toggleTrashBtn').classList.toggle('active', trashHidden);
+  localStorage.setItem('trashHidden', trashHidden);
+  saveSettingsToServer();
 });
+
+// 保存された表示状態を復元
+if (bombHidden)  { document.getElementById('bombBtn').style.display  = 'none'; document.getElementById('toggleBombBtn').classList.add('active'); }
+if (trashHidden) { document.getElementById('trashCan').style.display = 'none'; document.getElementById('toggleTrashBtn').classList.add('active'); }
 
 document.getElementById('slotSoundBtn').addEventListener('click', () => {
   slotSoundEnabled = !slotSoundEnabled;
@@ -6975,6 +7284,9 @@ function handleAdminMessage(d, replyFn) {
     } else if (d.id === 'gatherMarginRightSlider') {
       gatherMarginRight = parseInt(d.value) || 0;
       localStorage.setItem('gatherMarginRight', gatherMarginRight);
+    } else if (d.id === 'gatherMarginBottomSlider') {
+      gatherMarginBottom = parseInt(d.value) || 0;
+      localStorage.setItem('gatherMarginBottom', gatherMarginBottom);
       saveSettingsToServer();
     }
   } else if (d.type === 'select' && d.id) {
@@ -7012,8 +7324,20 @@ function handleAdminMessage(d, replyFn) {
     state.charExcludeIds        = localStorage.getItem('charExcludeIds') || '';
     state.taimanDefeatCommand   = taimanDefeatCommand;
     state.taimanCharScale       = taimanCharScale;
+    state.taimanCooldown        = taimanCooldown;
+    state.charAspectExp         = charAspectExp;
+    state.charPortraitBoost     = charPortraitBoost;
+    state.charStatsBottom       = charStatsBottom;
+    state.charStatsLeft         = charStatsLeft;
+    state.charEquipOffsetX      = charEquipOffsetX;
+    state.charEquipOffsetY      = charEquipOffsetY;
+    state.petSizeScale          = petSizeScale;
+    state.petAspectExp          = petAspectExp;
+    state.petPortraitBoost      = petPortraitBoost;
+    state.jiggleConfig          = JSON.stringify(jiggleConfig);
     state.gatherMarginLeft      = gatherMarginLeft;
     state.gatherMarginRight     = gatherMarginRight;
+    state.gatherMarginBottom    = gatherMarginBottom;
     state.slotMpJackpot = SLOT_OUTCOMES[0].mp;
     state.slotMpDiamond = SLOT_OUTCOMES[1].mp;
     state.slotMpStar    = SLOT_OUTCOMES[2].mp;
@@ -7058,15 +7382,15 @@ function handleAdminMessage(d, replyFn) {
       }
     }
   } else if (d.type === 'aiText') {
-    const elMap = { aiModel: 'aiModelInput', aiSystem: 'aiSystemInput' };
+    const elMap = { aiModel: 'aiModelInput', aiSystem: 'aiSystemInput', ollamaReviewPrompt: 'ollamaReviewPromptInput' };
     const elId = elMap[d.key];
-    if (elId) {
-      const el = document.getElementById(elId);
-      if (el) el.value = d.value;
-      localStorage.setItem(d.key, d.value);
-      if (d.key === 'aiModel')  aiModel  = d.value;
-      if (d.key === 'aiSystem') aiSystem = d.value;
-    }
+    const el = elId ? document.getElementById(elId) : null;
+    if (el) el.value = d.value;
+    localStorage.setItem(d.key, d.value);
+    if (d.key === 'aiModel')  aiModel  = d.value;
+    if (d.key === 'aiSystem') aiSystem = d.value;
+    if (d.key === 'ollamaReviewPrompt') ollamaReviewPrompt = d.value;
+    saveSettingsToServer();
   } else if (d.type === 'sdText') {
     const elMap = { sdWidth:'sdWidthInput', sdHeight:'sdHeightInput', sdSteps:'sdStepsSlider',
                     sdPopWidth:'sdPopWidthSlider',
@@ -7098,8 +7422,8 @@ function handleAdminMessage(d, replyFn) {
   } else if (d.type === 'openNovel') {
     openNovelModal();
   } else if (d.type === 'getUsers') {
-    const list = Object.values(users).filter(u => u.el).map(u => ({ ipid: u.ipid, name: u.name || '名無し', sizeScale: u.sizeScale || 1.0 }));
-    replyFn({ type: 'users', data: list });
+    const list = Object.values(users).filter(u => u.el).map(u => ({ ipid: u.ipid, name: u.name || '名無し', sizeScale: u.sizeScale || 1.0, taimanDmgMult: u.taimanDmgMult ?? 1.0, charImage: u.charImage || (u.charDef && charImages[u.charDef.id]) || null }));
+    replyFn({ type: 'users', data: list, bossImgFile: bossState?.imgFile || null });
   } else if (d.type === 'addAtkAll') {
     const val = parseInt(d.value) || 0;
     if (val <= 0) return;
@@ -7189,6 +7513,65 @@ function handleAdminMessage(d, replyFn) {
     taimanDefeatCommand = d.value || '';
     localStorage.setItem('taimanDefeatCommand', taimanDefeatCommand);
     saveSettingsToServer();
+  } else if (d.type === 'charAspectExp') {
+    charAspectExp = Math.max(0, Math.min(0.5, parseFloat(d.value) || 0.5));
+    localStorage.setItem('charAspectExp', charAspectExp);
+    saveSettingsToServer();
+    Object.values(users).filter(u => u.el).forEach(u => applyAvatarStyle(u));
+  } else if (d.type === 'charPortraitBoost') {
+    charPortraitBoost = Math.max(0, Math.min(1, parseFloat(d.value) || 0));
+    localStorage.setItem('charPortraitBoost', charPortraitBoost);
+    saveSettingsToServer();
+    Object.values(users).filter(u => u.el).forEach(u => applyAvatarStyle(u));
+  } else if (d.type === 'jiggleConfig') {
+    if (d.imgFile) {
+      jiggleConfig[d.imgFile] = d.config;
+      localStorage.setItem('jiggleConfig', JSON.stringify(jiggleConfig));
+      saveSettingsToServer();
+      Object.values(users).filter(u => u.el).forEach(u => {
+        const f = u.charImage || (u.charDef && charImages[u.charDef.id]) || 'kisyokeee.png';
+        if (f === d.imgFile) updateJiggleOverlay(u);
+      });
+      if (bossState?.imgFile === d.imgFile) updateBossJiggleOverlay();
+    }
+  } else if (d.type === 'petSizeScale') {
+    petSizeScale = Math.max(0.3, Math.min(3, parseFloat(d.value) || 1));
+    localStorage.setItem('petSizeScale', petSizeScale);
+    saveSettingsToServer();
+    Object.values(users).filter(u => u.el).forEach(u => renderPetBadge(u));
+  } else if (d.type === 'petAspectExp') {
+    petAspectExp = Math.max(0, Math.min(0.5, parseFloat(d.value) || 0.5));
+    localStorage.setItem('petAspectExp', petAspectExp);
+    saveSettingsToServer();
+    Object.values(users).filter(u => u.el).forEach(u => renderPetBadge(u));
+  } else if (d.type === 'petPortraitBoost') {
+    petPortraitBoost = Math.max(0, Math.min(1, parseFloat(d.value) || 0));
+    localStorage.setItem('petPortraitBoost', petPortraitBoost);
+    saveSettingsToServer();
+    Object.values(users).filter(u => u.el).forEach(u => renderPetBadge(u));
+  } else if (d.type === 'charStatsOffset') {
+    charStatsBottom = parseInt(d.bottom) || 0;
+    charStatsLeft   = parseInt(d.left)   || 0;
+    localStorage.setItem('charStatsBottom', charStatsBottom);
+    localStorage.setItem('charStatsLeft',   charStatsLeft);
+    stage.style.setProperty('--stats-bottom', charStatsBottom + 'px');
+    stage.style.setProperty('--stats-left',   charStatsLeft   + 'px');
+    saveSettingsToServer();
+  } else if (d.type === 'charEquipOffset') {
+    charEquipOffsetX = parseInt(d.x) || 0;
+    charEquipOffsetY = parseInt(d.y) || 0;
+    localStorage.setItem('charEquipOffsetX', charEquipOffsetX);
+    localStorage.setItem('charEquipOffsetY', charEquipOffsetY);
+    stage.style.setProperty('--equip-x', charEquipOffsetX + 'px');
+    stage.style.setProperty('--equip-y', charEquipOffsetY + 'px');
+    saveSettingsToServer();
+  } else if (d.type === 'taimanCooldown') {
+    taimanCooldown = Math.max(0, parseInt(d.value) || 0) * 1000;
+    localStorage.setItem('taimanCooldown', taimanCooldown);
+    saveSettingsToServer();
+  } else if (d.type === 'taimanHandicap') {
+    const u = users[d.ipid];
+    if (u) { u.taimanDmgMult = Math.max(0, Math.min(1, parseFloat(d.mult) ?? 1)); }
   } else if (d.type === 'charExclude') {
     localStorage.setItem('charExcludeIds', d.value);
     charExcludeIds = new Set((d.value || '').split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0));
@@ -7270,7 +7653,7 @@ setInterval(() => {
 // ── 5分無コメントで自動AFK ───────────────────────────────────────────
 setInterval(() => {
   const now = Date.now();
-  const AFK_TIMEOUT = 5 * 60 * 1000;
+  const AFK_TIMEOUT = 30 * 60 * 1000;
   Object.values(users).forEach(u => {
     if (!u.el || u.ko || u.afk || u.afkText) return;
     if (!u.lastCommentAt) return;
@@ -7744,6 +8127,45 @@ setInterval(() => {
   // 管理パネル設定（30秒ごと）
   saveSettingsToServer();
 }, 30 * 1000);
+
+// ── パネル表示状態の復元 ──────────────────────────────────────────
+(function applyCharStatsOffset() {
+  stage.style.setProperty('--stats-bottom', charStatsBottom + 'px');
+  stage.style.setProperty('--stats-left',   charStatsLeft   + 'px');
+})();
+
+(function applyCharEquipOffset() {
+  stage.style.setProperty('--equip-x', charEquipOffsetX + 'px');
+  stage.style.setProperty('--equip-y', charEquipOffsetY + 'px');
+})();
+
+(function restorePanelVisibility() {
+  // brTimerBtn の active 状態をセット（brTimerVisible は localStorage から初期化済み）
+  document.getElementById('brTimerBtn').classList.toggle('active', brTimerVisible);
+  if (brTimerVisible) renderBRTimerPanel();
+
+  // ダメージランキング
+  if (localStorage.getItem('rankingVisible') === '1') {
+    rankingState = {
+      dmgMap: {},
+      panelX: parseInt(localStorage.getItem('rankingPanelX')) || Math.max(0, stage.clientWidth - 220),
+      panelY: parseInt(localStorage.getItem('rankingPanelY')) || 10,
+    };
+    renderRankingPanel();
+  }
+
+  // MPランキング
+  if (localStorage.getItem('mpRankingVisible') === '1') {
+    mpRankingState = {
+      panelX: parseInt(localStorage.getItem('mpRankingPanelX')) || Math.max(0, stage.clientWidth - 450),
+      panelY: parseInt(localStorage.getItem('mpRankingPanelY')) || 10,
+    };
+    renderMpRankingPanel();
+  }
+
+  // クイズは loadQuizQuestions 内で自動復元
+  // もじあてw は loadWordleWords 内で自動復元
+})();
 
 // ── OBSモード（?obs=1 で設定バーを非表示にして自動スタート） ──
 (function initOBSMode() {
