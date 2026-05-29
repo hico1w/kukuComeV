@@ -445,7 +445,7 @@
           <b>MP</b>：コメント攻撃で+1（ペット効果で+2〜+4）。上限なし。死亡しても保持。<br>
           　消費：<b>ペットガチャ</b> -20 ／ <b>出して（AI画像）</b> -20 ／ <b>スロット</b> -3 ／ <b>回復</b> -2<br>
           <b>ATK</b>：1 ＋ レベル ＋ ATK系装備ボーナス ＋ 称号ボーナス<br>
-          <b>クリティカル</b>：基本15%でダメージ×2〜4倍。ペット・称号でクリ率上昇（最大値は称号合算次第）。<br>
+          <b>CRT（クリティカル率）</b>：基本15%。ペット「偵察」+5%・「鋭爪」+20%（pet1・pet2それぞれ加算）＋ 称号ボーナス。クリ時ダメージ×2〜4倍。<br>
           <b>キャラ名表示</b>：設定した文字色・背景色・フォント・装飾がキャラ名にも反映されます。
         </div>
       </div>
@@ -577,11 +577,13 @@
       </div>
 
       <div class="feature-card">
-        <div class="feature-card-title" style="color:#64748b">😴 自動 AFK・離席表示</div>
+        <div class="feature-card-title" style="color:#64748b">😴 自動 AFK・離席表示・自動削除</div>
         <div class="feature-card-body">
-          <b>5分間コメントがないキャラは自動でAFK状態</b>になります（透明度・グレースケール・明度は管理パネルで調整可）。<br>
+          <b>30分間コメントがないキャラは自動でAFK状態</b>になります（透明度・グレースケール・明度は管理パネルで調整可）。<br>
           コメントに <b>AFK / ＡＦＫ</b> を含めると即時AFK。<b>放置:テキスト</b> / <b>無明:テキスト</b> でカスタムメッセージ付き離席。<br>
-          次にコメントすると自動で復帰します。
+          次にコメントすると自動で復帰します。<br>
+          <b>30分間コメントがないキャラは自動でステージから削除</b>されます（セーブデータは保持されるため、次回コメント時に復元）。<br>
+          ただし <b>手動でAFK・放置・無明コマンドを入力したキャラは自動削除の対象外</b>です。masterキャラも対象外。
         </div>
       </div>
 
@@ -626,7 +628,7 @@
       </div>
       <div class="cmd-card">
         <div class="cmd-row"><span class="cmd-code">ステータス確認</span></div>
-        <div class="cmd-desc">ペット・装備・HP/MP/ATK・各種記録を含むモーダルを5秒間表示。Discord Webhook連携時はスクリーンショットを自動投稿（Ollama総評付き。9秒以内に返答がなければ総評なしで投稿）</div>
+        <div class="cmd-desc">ペット・装備・HP/MP/ATK/CRT・各種記録（コメント数・合計ダメージ・Wordle/早押し/クイズ正解・スロット回数/当選数・宝箱開封・ペットガチャ・死亡回数）を含むモーダルを5秒間表示。Discord Webhook連携時はスクリーンショットを自動投稿（Ollama総評付き。9秒以内に返答がなければ総評なしで投稿）</div>
       </div>
     </div>
 
@@ -1531,7 +1533,7 @@
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code red">ランダムタイマン</span></div><div class="cmd-desc">★単独。ランダムなキャラに1v1決闘を申し込む。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code red">ボス召喚</span><span style="color:var(--muted);font-size:11px;margin-left:6px">/ ボス召喚:HP数値</span></div><div class="cmd-desc">★単独。ボスを召喚。HP数値で強さ指定可。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">開ける</span></div><div class="cmd-desc">★単独。宝箱出現中（20秒間）に先着1名が取得。エピック以上装備確定＋HP+30回復。宝箱は配信中5分ごとに自動出現。</div></div>
-      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">ステータス確認</span></div><div class="cmd-desc">★単独。HP/MP/ATK/EXP・装備・ペット・称号を5秒間表示。Discord Webhook連携時はスクリーンショットを自動投稿（Ollama総評なしでも投稿）。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">ステータス確認</span></div><div class="cmd-desc">★単独。HP/MP/ATK/CRT/EXP・装備・ペット・称号・各種記録（スロット当選数・宝箱開封数など）を5秒間表示。Discord Webhook連携時はスクリーンショットを自動投稿（Ollama総評付き）。</div></div>
     </div>
 
     <!-- 競馬 -->
@@ -1544,8 +1546,8 @@
     <!-- 特殊 -->
     <div class="section-subtitle" style="font-size:13px;font-weight:700;color:var(--accent);margin:12px 0 6px">⚡ 特殊</div>
     <div class="cmd-grid">
-      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">AFK</span><span class="cmd-code pink" style="margin-left:4px">ＡＦＫ</span></div><div class="cmd-desc">AFK（離席）状態を即時表示。次のコメントで自動解除。5分間コメントがない場合も自動AFK。</div></div>
-      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">放置:テキスト</span><span class="cmd-code pink" style="margin-left:4px">無明:テキスト</span></div><div class="cmd-desc">カスタムメッセージ付きでAFK状態表示。次コメントで解除。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">AFK</span><span class="cmd-code pink" style="margin-left:4px">ＡＦＫ</span></div><div class="cmd-desc">AFK（離席）状態を即時表示。次のコメントで自動解除。30分間コメントがない場合も自動AFK。<b>手動AFK中は自動ステージ削除の対象外。</b></div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">放置:テキスト</span><span class="cmd-code pink" style="margin-left:4px">無明:テキスト</span></div><div class="cmd-desc">カスタムメッセージ付きでAFK状態表示。次コメントで解除。<b>自動ステージ削除の対象外。</b></div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">射</span></div><div class="cmd-desc">コメントの文字を1文字ずつ物理的に発射。当たったキャラにダメージ。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">出ろ／出して／生成</span></div><div class="cmd-desc">★単独。MP20消費でAI画像生成。テキスト部分がプロンプトになる。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">tts:テキスト</span></div><div class="cmd-desc">★単独。テキストを音声合成（TTS）で読み上げ。</div></div>
