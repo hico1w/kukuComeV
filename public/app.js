@@ -5464,6 +5464,12 @@ function showStatusModal(user, autoClose = true, triggerCnum = null) {
   const hp      = user.hp     ?? 30;
   const mhp     = user.maxHp  ?? 30;
   const mp      = user.mp     ?? 10;
+  const _petId1 = user.pet?.abilityId;
+  const _petId2 = user.pet2?.abilityId;
+  const _petCrit = (_petId1 === 'scout' ? 0.05 : _petId1 === 'crit_up' ? 0.20 : 0)
+                 + (_petId2 === 'scout' ? 0.05 : _petId2 === 'crit_up' ? 0.20 : 0);
+  const _titleCrit = typeof getTitleBonuses === 'function' ? (getTitleBonuses(user).crit || 0) : 0;
+  const critRate = Math.round((0.15 + _petCrit + _titleCrit) * 100);
 
   const rarityLabel = { 'rarity-rare': 'レア', 'rarity-epic': 'エピック', 'rarity-legend': '伝説', 'rarity-myth': '神話', '': 'コモン' };
 
@@ -5526,6 +5532,7 @@ function showStatusModal(user, autoClose = true, triggerCnum = null) {
                   <div class="sm-ol-stat">HP <span>${hp} / ${mhp}</span></div>
                   <div class="sm-ol-stat">MP <span>${mp}</span></div>
                   <div class="sm-ol-stat">ATK <span>${atk}</span></div>
+                  <div class="sm-ol-stat">CRT <span>${critRate}%</span></div>
                   <div class="sm-ol-stat">EXP <span>${user.exp || 0}</span></div>
                 </div>
               </div>
