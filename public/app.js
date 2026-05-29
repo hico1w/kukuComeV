@@ -7367,6 +7367,7 @@ function handleAdminMessage(d, replyFn) {
     state.voiceVolume = voiceVolume;
     state.aiModel    = aiModel;
     state.aiSystem   = aiSystem;
+    state.ollamaReviewPrompt = ollamaReviewPrompt;
     state.fiveMinMode = fiveMinMode;
     replyFn({ type: d.type === 'ping' ? 'pong' : 'state', data: state });
   } else if (d.type === 'volumeText') {
