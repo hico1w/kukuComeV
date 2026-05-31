@@ -208,6 +208,18 @@ app.get('/api/images', (req, res) => {
   }
 });
 
+app.get('/api/ageru-images', (req, res) => {
+  const dir = path.join(__dirname, 'public', 'ageru');
+  try {
+    const files = fs.readdirSync(dir)
+      .filter(f => /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(f))
+      .sort();
+    res.json({ images: files });
+  } catch {
+    res.json({ images: [] });
+  }
+});
+
 // Discord Webhook 連携
 const DISCORD_CONFIG_PATH = path.join(__dirname, 'data', 'discord.json');
 
@@ -436,28 +448,129 @@ app.post('/api/tts', (req, res) => {
   req2.end();
 });
 
+// VoiceVox スピーカー一覧
+app.get('/api/voicevox-speakers', (req, res) => {
+  const opts = { hostname: '127.0.0.1', port: 50021, path: '/speakers', method: 'GET' };
+  const r = http.request(opts, r2 => {
+    let raw = '';
+    r2.on('data', c => raw += c);
+    r2.on('end', () => {
+      try {
+        const speakers = JSON.parse(raw);
+        // { name, styles:[{name, id}] } を { id, label } のフラットリストに
+        const list = [];
+        speakers.forEach(sp => {
+          sp.styles.forEach(st => {
+            list.push({ id: st.id, label: `${sp.name}（${st.name}）` });
+          });
+        });
+        res.json({ speakers: list });
+      } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+  });
+  r.on('error', e => res.status(500).json({ error: e.message }));
+  r.end();
+});
+
+// VoiceVox TTS（port 50021）
+app.post('/api/voicevox', (req, res) => {
+  const { text, speaker = 0, speedScale = 1.0 } = req.body || {};
+  if (!text) return res.status(400).json({ error: 'text is required' });
+
+  const queryPath = `/audio_query?text=${encodeURIComponent(text)}&speaker=${speaker}`;
+  const queryOpts = {
+    hostname: '127.0.0.1', port: 50021, path: queryPath, method: 'POST',
+    headers: { 'Content-Length': 0 },
+  };
+
+  const queryReq = http.request(queryOpts, queryRes => {
+    let raw = '';
+    queryRes.on('data', c => raw += c);
+    queryRes.on('end', () => {
+      if (queryRes.statusCode !== 200) return res.status(500).json({ error: 'audio_query failed: ' + queryRes.statusCode });
+      let query;
+      try { query = JSON.parse(raw); } catch (e) { return res.status(500).json({ error: 'parse error: ' + e.message }); }
+      query.speedScale = Number(speedScale);
+
+      const bodyStr = JSON.stringify(query);
+      const synthOpts = {
+        hostname: '127.0.0.1', port: 50021,
+        path: `/synthesis?speaker=${speaker}`, method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(bodyStr) },
+      };
+
+      const synthReq = http.request(synthOpts, synthRes => {
+        const chunks = [];
+        synthRes.on('data', c => chunks.push(c));
+        synthRes.on('end', () => {
+          if (synthRes.statusCode !== 200) return res.status(500).json({ error: 'synthesis failed: ' + synthRes.statusCode });
+          const audio = 'data:audio/wav;base64,' + Buffer.concat(chunks).toString('base64');
+          res.json({ audio });
+        });
+      });
+      synthReq.on('error', e => res.status(500).json({ error: e.message }));
+      synthReq.write(bodyStr);
+      synthReq.end();
+    });
+  });
+  queryReq.on('error', e => res.status(500).json({ error: e.message }));
+  queryReq.end();
+});
+
+// ── サーバー設定（永続化） ────────────────────────────────────────
+const SERVER_CONFIG_PATH = path.join(__dirname, 'data', 'server-config.json');
+function loadServerConfig() {
+  try { return JSON.parse(fs.readFileSync(SERVER_CONFIG_PATH, 'utf-8')); }
+  catch { return {}; }
+}
+function saveServerConfig(cfg) {
+  const dir = path.dirname(SERVER_CONFIG_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(SERVER_CONFIG_PATH, JSON.stringify(cfg, null, 2));
+}
+
+const _initSrvCfg = loadServerConfig();
+let ollamaHost = _initSrvCfg.ollamaHost || '127.0.0.1';
+const OLLAMA_PORT = 11434;
+
+app.get('/api/ollama-host', (req, res) => {
+  res.json({ host: ollamaHost === '127.0.0.1' ? '' : ollamaHost });
+});
+
+app.post('/api/ollama-host', (req, res) => {
+  const { host } = req.body || {};
+  ollamaHost = (host || '').trim() || '127.0.0.1';
+  const cfg = loadServerConfig();
+  cfg.ollamaHost = ollamaHost;
+  saveServerConfig(cfg);
+  if (MANAGED_SERVERS.ollama) MANAGED_SERVERS.ollama.host = ollamaHost;
+  console.log(`[Ollama] host → ${ollamaHost}`);
+  res.json({ ok: true, host: ollamaHost });
+});
+
 // ── サーバー管理 ────────────────────────────────────────────────
 const MANAGED_SERVERS = {
-  tts:    { label: 'TTS (RVC)',  port: 7870,  cmd: 'E:\\rvc-tts-webui\\venv\\Scripts\\python.exe', args: ['app.py'], cwd: 'E:\\rvc-tts-webui' },
-  ollama: { label: 'Ollama',    port: 11434, cmd: 'C:\\Users\\swift\\AppData\\Local\\Programs\\Ollama\\ollama.exe', args: ['serve'], cwd: null },
+  tts:    { label: 'TTS (RVC)',         port: 7870,  cmd: 'E:\\rvc-tts-webui\\venv\\Scripts\\python.exe', args: ['app.py'], cwd: 'E:\\rvc-tts-webui' },
+  ollama: { label: 'Ollama',            port: OLLAMA_PORT, get host() { return ollamaHost; }, cmd: 'C:\\Users\\swift\\AppData\\Local\\Programs\\Ollama\\ollama.exe', args: ['serve'], cwd: null },
+  sd:     { label: 'Stable Diffusion',  port: 7860,  cmd: 'cmd.exe', args: ['/c', 'webui-user.bat'], cwd: 'E:\\stable-diffusion-webui' },
 };
 const _srvProcs = {};
 
-function checkPort(port) {
+function checkPort(port, host = '127.0.0.1') {
   return new Promise(resolve => {
     const s = new net.Socket();
     s.setTimeout(500);
     s.on('connect', () => { s.destroy(); resolve(true); });
     s.on('timeout', () => { s.destroy(); resolve(false); });
     s.on('error',   () => resolve(false));
-    s.connect(port, '127.0.0.1');
+    s.connect(port, host);
   });
 }
 
 app.get('/api/srv/status', async (req, res) => {
   const result = {};
   for (const [name, cfg] of Object.entries(MANAGED_SERVERS)) {
-    result[name] = await checkPort(cfg.port);
+    result[name] = await checkPort(cfg.port, cfg.host || '127.0.0.1');
   }
   res.json(result);
 });
@@ -510,7 +623,7 @@ app.post('/api/ai-reply', (req, res) => {
     const chatMessages = [{ role: 'system', content: systemText }, ...messages];
     const body = JSON.stringify({ model, messages: chatMessages, stream: false });
     const opts = {
-      hostname: '127.0.0.1', port: 11434,
+      hostname: ollamaHost, port: OLLAMA_PORT,
       path: '/api/chat', method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
     };
@@ -534,7 +647,7 @@ app.post('/api/ai-reply', (req, res) => {
     if (!prompt) return res.status(400).json({ error: 'prompt is required' });
     const body = JSON.stringify({ model, prompt, system: systemText, stream: false });
     const opts = {
-      hostname: '127.0.0.1', port: 11434,
+      hostname: ollamaHost, port: OLLAMA_PORT,
       path: '/api/generate', method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
     };
@@ -615,7 +728,7 @@ app.post('/api/ollama-review', (req, res) => {
   const chatMessages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }];
   const body = JSON.stringify({ model, messages: chatMessages, stream: false });
   const opts = {
-    hostname: '127.0.0.1', port: 11434,
+    hostname: ollamaHost, port: OLLAMA_PORT,
     path: '/api/chat', method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
   };

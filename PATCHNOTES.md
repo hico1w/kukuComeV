@@ -2,6 +2,1062 @@
 
 ---
 
+## v2.353.0 — 2026-05-31
+
+### アゲルちゃん — 返答文字数を40文字程度に変更
+
+- `public/app.js`: `AGRU_DEFAULT_SYSTEM` の返答文字数指示を70文字→40文字に変更
+
+---
+
+## v2.352.0 — 2026-05-31
+
+### 会話モード — チャット欄背景を暗めのピンクに変更
+
+- `public/style.css`: チャットエリア背景を `#ffffff` → `#f5e8ef`（くすみピンク）に変更
+
+---
+
+## v2.351.0 — 2026-05-31
+
+### 好感度ハート点滅・返答の「」除去
+
+- `public/app.js`:
+  - `_agruUpdateAffinityDisplay(delta)`: delta≠0のときに `.agru-affinity-flash` を付与して点滅
+  - `_agruParseResponse()`: replyTextの先頭・末尾の `「」` を除去
+- `public/style.css`: `.agru-affinity-flash` アニメーション追加（0.6s×3回点滅）
+
+---
+
+## v2.350.0 — 2026-05-31
+
+### 好感度システム・返答文字数の調整
+
+- `public/app.js`:
+  - `agruAffinity` を0〜10→0〜100管理に変更（初期値50）
+  - `_agruGetAffinityContext()`: 閾値を100スケールに合わせて更新
+  - `_agruUpdateAffinityDisplay()`: `filled = agruAffinity / 10` でハート10個表示
+  - 好感度変化クランプを `±2` → `-10〜+5` に変更
+  - `AGRU_DEFAULT_SYSTEM`: 好感度変化指示を「好感+1〜+5 / 嫌悪-1〜-10 / 普通0」に更新
+  - 返答文字数を150文字程度→70文字程度に変更
+- `public/style.css`: `.agru-affinity-display` のfont-sizeを16px→32pxに変更
+
+---
+
+## v2.349.0 — 2026-05-31
+
+### 会話モード — モーダルデザインを白×ピンク基調にリニューアル
+
+- `public/style.css`:
+  - モーダル全体: 白×ピンク基調、角丸22px、ピンクのグロー影
+  - ヘッダー: ピンクグラデーション（#f472b6→#db2777）、閉じるボタンを丸形に
+  - キャラエリア: ライトピンクグラデーション、ドット模様の装飾背景、キャラ画像にドロップシャドウ
+  - チャットエリア: 白背景、上部にごく薄いピンクフェード
+  - アゲルちゃんバブル: ピンクグラデーション・ピンクテキスト
+  - リスナーバブル: 水色グラデーション・紺テキスト
+  - タイピングバブル: ピンク/水色に対応
+  - ハート・感情ラベル・カーソルもピンク系に統一
+- `public/index.html`: ヘッダータイトルを「🌸 星井野アゲル」に変更
+
+---
+
+## v2.348.0 — 2026-05-31
+
+### アゲルちゃん — 好感度システム追加
+
+- `public/app.js`:
+  - `agruAffinity`（0〜10、初期値5）変数追加
+  - `_agruGetAffinityContext()`: 好感度レベルに応じた態度指示を返す
+  - `_agruUpdateAffinityDisplay()`: ♥×10のハート表示を更新
+  - `AGRU_DEFAULT_SYSTEM`: 返答フォーマットに `[好感度変化（+2/+1/0/-1/-2）]` 行を追加
+  - `_agruParseResponse()`: 2行目の好感度変化を抽出し `affinityDelta` を返すよう更新
+  - `_agruSend()` / `_agruDebug()`: システムプロンプトに好感度コンテキストを注入、返答後に好感度を加算・表示更新
+  - `openAgruModal()`: 起動時に好感度を5にリセット
+- `public/index.html`: `#agruAffinityDisplay` をキャラ画像下に追加
+- `public/style.css`: `.agru-affinity-display` / `.agru-heart-on` / `.agru-heart-off` を追加
+
+---
+
+## v2.347.0 — 2026-05-31
+
+### 会話モード — キャラ画像を上寄せに変更
+
+- `public/style.css`: `.agru-char-area` の `justify-content` を `flex-end` → `flex-start` に変更
+
+---
+
+## v2.346.0 — 2026-05-31
+
+### 会話モード — 履歴上限変更・キャラ設定修正
+
+- `public/app.js`:
+  - `_agruConvHistory` の上限を40→100件（50往復）に変更
+  - `AGRU_DEFAULT_SYSTEM` からHカップの記述を削除
+
+---
+
+## v2.345.0 — 2026-05-31
+
+### 会話モード — 自撮りコマンド時のみキャラタグ+selfie poseを強制付加
+
+- `public/app.js`:
+  - `_agruSend()`: `自撮り` キーワードを `_isSelfie` フラグで別検出
+  - `_agruGenerateSDImageFromReply(replyText, isSelfie)`: `isSelfie=true` の場合は `AGRU_CHAR_TAGS + ',selfie pose'` を常に前置。`出して` / `写真` 等の場合は従来通り personRe 判定のみ
+
+---
+
+## v2.344.0 — 2026-05-31
+
+### 会話モード — チャット効果音を安定化
+
+- `public/ageru/oto/pop.mp3`: 効果音ファイルをシンプルな名前でコピー
+- `public/app.js`: `_agruPopAudio` をモジュールレベルで保持し `currentTime = 0` でリセット再生に変更（GCによる途中停止を防止）
+
+---
+
+## v2.343.0 — 2026-05-31
+
+### 会話モード — コメント待ち表示と効果音修正
+
+- `public/app.js`:
+  - `_agruSetStatus()`: コメント待ちを右側（リスナー側）バブルに変更
+  - `_agruPlayPopSound()`: ファイル名を `encodeURIComponent` でURLエンコードし再生エラーをコンソール出力
+- `public/style.css`: `.agru-typing-bubble-right`（右テール・青ドット）を追加、不要な `.agru-typing-bubble-idle` を廃止
+
+---
+
+## v2.342.0 — 2026-05-31
+
+### 会話モード — チャット効果音追加
+
+- `public/app.js`:
+  - `_agruPlayPopSound()` 追加（`/ageru/oto/nc280166_メッセージのポップ音.mp3` を音量50%で再生）
+  - `_agruAddBubble()`: コメント・返答どちらのバブル追加時にも効果音を再生
+
+---
+
+## v2.341.0 — 2026-05-31
+
+### 会話モード — コメント待ちをチャット内タイピング表示に変更
+
+- `public/index.html`: `#agruWaitingIndicator`（右下の...）を削除
+- `public/app.js`: `_agruSetStatus()` でコメント待ちも返答中と同様にチャット欄末尾にバブルを表示。アイドル時はクラス `agru-typing-bubble-idle` を付与
+- `public/style.css`: `.agru-waiting-indicator` を削除。`.agru-typing-bubble-idle`（グレー・ゆっくり）を追加
+
+---
+
+## v2.340.0 — 2026-05-31
+
+### アゲルちゃん — 身長・体重追加
+
+- `public/app.js`: `AGRU_DEFAULT_SYSTEM` に身長164cm・体重48kgを追加
+
+---
+
+## v2.339.0 — 2026-05-31
+
+### アゲルちゃん — キャラクター設定追加
+
+- `public/app.js`: `AGRU_DEFAULT_SYSTEM` にバストサイズ（Hカップ）を追加
+
+---
+
+## v2.338.0 — 2026-05-31
+
+### アゲルちゃん — 嫌いなもの設定追加
+
+- `public/app.js`: `AGRU_DEFAULT_SYSTEM` に嫌いなもの（虫・どろどろしたもの・ピーマン）を追加
+
+---
+
+## v2.337.0 — 2026-05-31
+
+### アゲルちゃん — 好きなもの設定追加
+
+- `public/app.js`: `AGRU_DEFAULT_SYSTEM` に好きなもの（ゲーム・音楽・星）を追加
+
+---
+
+## v2.336.0 — 2026-05-31
+
+### アゲルちゃん — 一人称を「私」に変更
+
+- `public/app.js`: `AGRU_DEFAULT_SYSTEM` の一人称指示を「私」に変更
+
+---
+
+## v2.335.0 — 2026-05-31
+
+### アゲルちゃん — キャラクター設定追加
+
+- `public/app.js`:
+  - `AGRU_DEFAULT_SYSTEM`: フルネーム「星井野アゲル（アゲルちゃん）」を明記
+  - 年齢は存在しない旨を追加（聞かれたら自然にかわす）
+
+---
+
+## v2.334.0 — 2026-05-31
+
+### 会話モード — チャット表示改善
+
+- `public/app.js`:
+  - `_agruSend()`: コメント泡を追加してから入力中インジケーターを末尾に追加するよう順序を修正（入力中...が常に最下部に表示）
+  - `_agruScrollBottom()` ヘルパー追加（requestAnimationFrame で確実に最下部へスクロール）
+  - `_agruAddBubble()`: 名前ラベルをバブル外（上）に移動し、ラッパーdivで囲む構造に変更
+  - `_agruAddImageBubble()`: 同様に名前を外側へ移動
+  - `_agruSetStatus()`: スクロールを `_agruScrollBottom()` に統一
+- `public/style.css`:
+  - `.agru-bubble-wrapper` / `.agru-bubble-wrapper-right/left` を追加（名前+バブルを縦並びで囲むコンテナ）
+  - `max-width: 78%` を `.agru-bubble` から `.agru-bubble-wrapper` へ移動
+  - `.agru-bubble-name` のセレクタを `bubble-wrapper` ベースに更新
+
+---
+
+## v2.333.0 — 2026-05-31
+
+### ステータスモーダル — 最近のコメント表示を10件・スクロールなしに変更
+
+- `public/app.js`: `recentComments` の表示件数を20→10件に変更
+- `public/style.css`: `.sm-comment-list` の `max-height` と `overflow-y: auto` を削除
+
+---
+
+## v2.332.0 — 2026-05-31
+
+### 管理パネル — 会話モード設定の復元を修正
+
+- `public/app.js`:
+  - `getState` レスポンスに `agruSystem` / `agruVoicevox*` / `agruSd*` / `agruDefaultImage` / `agruEmotionMap` を追加
+  - これにより管理パネル再接続時にSD生成設定（幅・高さ・ポジティブサフィックス）や VoiceVox 設定・感情マップが正しく復元されるようになった
+
+---
+
+## v2.331.0 — 2026-05-31
+
+### アゲルちゃん — ステータス表示をインジケーターに変更
+
+- `public/index.html`:
+  - キャラ画像下の `#agruStatus` テキストラベルを削除
+  - `.agru-chat-area` 内に `#agruWaitingIndicator`（右寄せ3ドット）を追加
+- `public/app.js`:
+  - `_agruSetStatus()` を全面書き換え:
+    - `返答中...` → チャット欄末尾に `.agru-typing-bubble`（バウンスする3ドット）を動的生成
+    - `コメント待ち...` → `#agruWaitingIndicator` を表示（右端の小ドット）
+    - その他 → 両方非表示
+  - `_agruSend()`: 返信バブル追加直前にタイピングインジケーターを確実に消去
+- `public/style.css`:
+  - `.agru-status` を削除
+  - `.agru-typing-bubble` `.agru-waiting-indicator` + `@keyframes agru-dot-bounce` を追加
+
+---
+
+## v2.330.0 — 2026-05-31
+
+### ステータスモーダル — 総評欄をキャラのコメント履歴表示に変更
+
+- `public/app.js`:
+  - ステータスモーダルのHTML生成: 総評（Ollama生成テキスト）の代わりに `user.recentComments` の最新20件を表示
+  - キャプチャフロー: Ollama総評リクエスト分岐を削除し、常に「最低600ms + 全画像ロード後にキャプチャ」に統一
+- `public/style.css`:
+  - `.sm-comment-list`・`.sm-comment-item`・`.sm-comment-num` スタイルを追加
+
+---
+
+## v2.329.0 — 2026-05-31
+
+### 会話モード — モザイク適用時にマッチキーワードをログ出力
+
+- `public/app.js`:
+  - `_sdNeedsMosaic()` の戻り値を `true/false` → マッチしたキーワード文字列 or `null` に変更
+  - `_agruAddImageBubble()`: モザイク適用時に「🔲 モザイク適用: キーワード「xxx」」、非適用時に「🖼 モザイクなし」をログ出力
+
+---
+
+## v2.328.0 — 2026-05-31
+
+### 会話モード — SD生成で表情タグも人物判定に含める
+
+- `public/app.js`:
+  - `_agruGenerateSDImageFromReply()` の `personRe` に表情キーワードを追加
+    （smile/sad/crying/angry/surprised/wink/blush 等）
+  - 表情タグが含まれる場合もキャラ定義タグを前置するよう対応
+
+---
+
+## v2.327.0 — 2026-05-31
+
+### 管理パネルからOllamaホストIPを設定できるように
+
+- `server.js`:
+  - `SERVER_CONFIG_PATH` (`data/server-config.json`) と `loadServerConfig` / `saveServerConfig` 追加
+  - `ollamaHost` を `let` に変更し起動時に `server-config.json` から復元
+  - `GET /api/ollama-host` — 現在のホストを返す
+  - `POST /api/ollama-host` — ホストを変更・永続化。空欄で `127.0.0.1` にフォールバック
+  - `MANAGED_SERVERS.ollama.host` を getter に変更し常に `ollamaHost` を参照
+- `public/admin.html`:
+  - AI設定セクション先頭に「ホストIP」入力欄を追加
+  - ページロード時に `/api/ollama-host` から値を取得して表示
+  - `saveOllamaHost()` 関数を追加
+
+---
+
+## v2.326.0 — 2026-05-31
+
+### Ollama接続先を別PCに変更できるよう対応
+
+- `server.js`:
+  - `OLLAMA_HOST` / `OLLAMA_PORT` 定数を追加（環境変数 `OLLAMA_HOST_ADDR` / `OLLAMA_PORT_NUM` で上書き可）
+  - `/api/ai-reply`・`/api/ollama-review` のOllama接続先を定数に変更（全3箇所）
+  - `checkPort()` に `host` 引数を追加
+  - `MANAGED_SERVERS.ollama` にも `host` フィールドを追加し、ステータス確認が別PCに対応
+
+---
+
+## v2.325.0 — 2026-05-31
+
+### 会話モード — 一人称を不要に使わないよう指示追加
+
+- `public/app.js`:
+  - `AGRU_DEFAULT_SYSTEM` に追記: 一人称（自分の名前）を不要に使わない
+
+---
+
+## v2.324.0 — 2026-05-31
+
+### 会話モード — アゲルちゃんのキャラクター挙動調整
+
+- `public/app.js`:
+  - `AGRU_DEFAULT_SYSTEM` に追記: 相手を「リスナーさん」と呼ぶ・一人と話しているようにふるまう
+
+---
+
+## v2.323.0 — 2026-05-31
+
+### 会話モード — system promptはAGRU_DEFAULT_SYSTEMに追記する形式に変更
+
+- `public/app.js`:
+  - `_agruSend()` / `_agruDebug()`: `systemPrompt` の生成を `agruSystem.trim() || AGRU_DEFAULT_SYSTEM` から `AGRU_DEFAULT_SYSTEM + '\n\n' + agruSystem` に変更
+  - 管理パネルでルールを入力しても `AGRU_DEFAULT_SYSTEM`（形式指定・感情リスト）は常に使用される
+
+---
+
+## v2.322.0 — 2026-05-31
+
+### 会話モード — 画像高さ上限・VoiceVox音量・SDサーバー管理
+
+- `public/style.css`:
+  - `.agru-photo-img`: `max-height: 300px` (モーダル高さ600pxの半分) + `object-fit: contain` 追加
+- `public/app.js`:
+  - `SETTINGS_KEYS` に `'agruVoicevoxVolume'` 追加
+  - `agruVoicevoxVolume` 変数を追加（デフォルト1.0）
+  - `_agruPlayVoicevox()`: `audio.volume = agruVoicevoxVolume` を適用
+  - `agruText` ハンドラに `agruVoicevoxVolume` の更新を追加
+- `public/admin.html`:
+  - VoiceVox設定パネルに音量スライダー（`agruVoicevoxVolume`）を追加
+  - `applyState` で `agruVoicevoxVolume` を反映
+  - `SRV_LABELS` に `sd: 'Stable Diffusion'` を追加
+- `server.js`:
+  - `MANAGED_SERVERS` に `sd` エントリを追加（port: 7860、cmd: `cmd.exe /c webui-user.bat`、cwd: `E:\\stable-diffusion-webui`）
+
+---
+
+## v2.321.0 — 2026-05-31
+
+### アゲルちゃん — SDプロンプト生成で物だけの写真に対応
+
+- `public/app.js`:
+  - `_agruGenerateSDImageFromReply()`: プロンプト生成用のsystem/userメッセージを改善
+    - 人物不要なシーン（物・風景・食べ物等）では woman/girl 等の人物タグを含めないよう明示指示
+    - 人物が必要な場合のみキャラの外見・感情・シーンを含める
+
+---
+
+## v2.320.0 — 2026-05-31
+
+### アゲルちゃん — 出してコマンドをOllama自動プロンプト生成に変更
+
+- `public/app.js`:
+  - `_agruSend()`: 画像キーワード検出をフラグ化し、即時SD送信をやめてOllama返答後に処理
+  - `_agruGenerateSDImageFromReply(replyText)`: 新関数。Ollamaの返答文をもとに第2のOllama呼び出しで英語SDプロンプトを自動生成し、`_agruGenerateSDImage()` へ渡す
+  - SDへの送信はポジティブ・ネガティブ設定（会話モード専用 or SD生成設定）を引き続き適用
+
+---
+
+## v2.319.0 — 2026-05-31
+
+### アゲルちゃん — 会話モード専用SD設定・モザイク対応
+
+- `public/app.js`:
+  - `agruSdWidth` / `agruSdHeight` / `agruSdPositiveSuffix` 変数追加、SETTINGS_KEYS に登録
+  - `_agruGenerateSDImage()`: 幅・高さ・ポジティブサフィックスを会話モード専用設定から取得（未設定時はSD生成設定の値にフォールバック）
+  - `_agruAddImageBubble(dataUrl, prompt, translatedPrompt)`: `img.onload` 内でモザイクキーワード判定 → マッチ時は `_applyMosaic()` を適用
+  - `agruText` WS ハンドラに新設定3件を追加
+- `public/admin.html`:
+  - アゲルちゃんセクションに「会話モード SD生成設定」パネル追加（幅・高さ・ポジティブ常時付加）
+  - `applyState()` に3設定のロード処理を追加
+
+---
+
+## v2.318.0 — 2026-05-31
+
+### アゲルちゃん — VoiceVoxスピーカー一覧取得
+
+- `server.js`:
+  - `/api/voicevox-speakers` エンドポイント追加。VoiceVox の `/speakers` API から取得し `{id, label}` のフラットリストで返す
+- `public/admin.html`:
+  - スピーカーID入力欄をドロップダウンに変更
+  - 「一覧取得」ボタンで VoiceVox から名前付きリストを取得・選択
+  - 選択済みIDは復元される（`_agruVvSavedSpeaker`）
+
+---
+
+## v2.317.0 — 2026-05-31
+
+### アゲルちゃん — VoiceVox 読み上げ対応
+
+- `server.js`:
+  - `/api/voicevox` エンドポイント追加。VoiceVox（port 50021）の audio_query → synthesis を2段階で呼び出し、WAV を base64 で返す
+- `public/app.js`:
+  - `agruVoicevoxEnabled` / `agruVoicevoxSpeaker` / `agruVoicevoxSpeed` 変数追加、SETTINGS_KEYS に登録
+  - `_agruPlayVoicevox(text)`: VoiceVox API を呼び出して再生（前の音声があれば停止）
+  - `_agruSend()`: Ollama 返答後に `_agruPlayVoicevox(replyText)` を呼び出し
+  - `agruText` WS ハンドラに新設定3件を追加
+- `public/admin.html`:
+  - アゲルちゃんセクションに VoiceVox 設定パネル追加（有効チェックボックス、スピーカーID、速度）
+  - `applyState()` に VoiceVox 設定のロード処理を追加
+
+---
+
+## v2.316.0 — 2026-05-31
+
+### アゲルちゃん — モーダル高さ固定・レイアウト崩れ修正
+
+- `public/style.css`:
+  - `.agru-modal-body`: `overflow: hidden; min-height: 0` を追加（flex子要素がコンテンツ量で高さを押し広げる問題を修正）
+  - `.agru-char-area`: `overflow: hidden` を追加（キャラ画像がエリア外に出ない）
+  - `.agru-chat-area`: `min-width: 0` を追加（flex縮小が正しく機能）
+  - `.agru-chat-log`: `min-height: 0` を追加（スクロール領域が正しく機能）
+
+---
+
+## v2.315.0 — 2026-05-31
+
+### アゲルちゃん — チャット自動スクロール修正
+
+- `public/style.css`:
+  - `.agru-chat-log`: `scroll-behavior: smooth` → `auto`（typewriter中の頻繁なscrollTop更新との干渉を解消）
+- `public/app.js`:
+  - `_agruAddImageBubble()`: `img.onload` でも `scrollTop = scrollHeight`（画像ロード前のスクロールがズレる問題を修正）
+
+---
+
+## v2.314.0 — 2026-05-31
+
+### アゲルちゃん — 会話モード中のSD画像生成・チャット表示
+
+- `public/app.js`:
+  - 出して/生成コマンド: `agruActive` 中はステージへの通常表示をブロック（`_agruSend` 側で処理）
+  - `_agruSend()`: 画像生成キーワード（出ろ/出して/生成/gen/自撮り/写真）を検出したら `_agruGenerateSDImage()` を並行起動
+  - `_agruGenerateSDImage(prompt)`: SD生成API呼び出し → 完了後 `_agruAddImageBubble()` でチャットに表示
+  - `_agruAddImageBubble(dataUrl)`: アゲルちゃん側（左）に写真バブルをチャットログに追加
+  - 会話モード限定: 「自撮り」「写真」もSD生成キーワードとして扱う
+- `public/style.css`:
+  - `.agru-photo-img`: チャット内写真バブル用スタイル追加
+
+---
+
+## v2.313.0 — 2026-05-31
+
+### アゲルちゃん — 会話モード中のコマンド禁止
+
+- `public/app.js`:
+  - `ランダムタイマン` コマンド: `agruActive` 中は無視
+  - `タイマン：xxx` コマンド: `agruActive` 中は無視
+  - `ステータス確認` コマンド: `agruActive` 中は無視
+  - 30分自動バトルロイヤル: `agruActive` 中は発動しない
+
+---
+
+## v2.312.0 — 2026-05-31
+
+### アゲルちゃん — モーダル縦幅600px固定
+
+- `public/style.css`:
+  - `.agru-modal`: `height: 600px; max-height: 96vh` を追加
+  - `.agru-modal-body`: `min-height`/`max-height` を削除し `flex: 1` で残り高さを埋める
+
+---
+
+## v2.311.0 — 2026-05-31
+
+### アゲルちゃん — チャットエリア幅600px固定
+
+- `public/style.css`:
+  - `.agru-chat-area`: `flex: 1` → `flex: 0 0 600px`（600px固定）
+  - `.agru-modal`: 幅 900px → 980px（キャラ380px + チャット600px）
+
+---
+
+## v2.310.0 — 2026-05-31
+
+### アゲルちゃん — モーダルキャラ画像を1.5倍サイズに・レイアウト修正
+
+- `public/style.css`:
+  - `.agru-char-img`: `max-height` 300px → 450px、`max-width` を `100%` に変更（コンテナ幅でクリップ、はみ出し防止）
+  - `.agru-char-area`: 幅 260px → 380px（1.5x画像に合わせて拡張）
+
+---
+
+## v2.309.0 — 2026-05-31
+
+### アゲルちゃん — 感情マッピング複数画像対応・UIサイズ2x
+
+- `public/app.js`:
+  - `_agruGetImage(emotion)`: 配列値に対応。複数画像がマッピングされている場合はランダム選択。文字列（旧形式）後方互換あり
+- `public/admin.html`:
+  - `agruEmotionMap` のデータ形式を `{ emotion: ["file1", "file2"] }` の配列形式に変更
+  - `_agruSelectInStrip(strip, files)`: 文字列（単一）・配列（複数）両方に対応
+  - `_agruEmotionClick()`: クリックでトグル（複数選択）、`✕` ボタンで全解除
+  - `_buildImgStrip()`: 画像高さ 32px → 64px、`×` ボタン高さも 64px に統一
+  - `saveAgruEmotionMap()`: 選択された全画像を配列として保存
+  - `initAgruEmotionMapUI()`: 旧文字列形式の保存データを配列に変換して読み込み
+
+---
+
+## v2.308.0 — 2026-05-31
+
+### アゲルちゃん — 感情通知をWebSocket経由に変更（OBS対応）
+
+- `public/app.js`:
+  - `_adminWs` をモジュールレベル変数として公開（IIFE内の `ws` → `_adminWs` に変更）
+  - `_agruLog()` / `_agruNotifyEmotion()`: BroadcastChannel のみから WebSocket優先に変更（WS接続時はWS送信、未接続時はBC）
+  - OBS ブラウザソース環境で admin.html のデバッグログ・感情パネルが更新されなかった問題を修正（BC は同一ブラウザプロセス内のみ有効なため）
+
+---
+
+## v2.307.0 — 2026-05-31
+
+### アゲルちゃん — 会話履歴20往復保持
+
+- `public/app.js`:
+  - `_agruConvHistory` 配列を追加
+  - `_agruSend()`: 送信メッセージに `_agruConvHistory` を前置して Ollama へ送信、返答後に user/assistant の2件を履歴に追加。40件超えで古い2件を削除（最大20往復）
+  - `openAgruModal()`: 起動時に `_agruConvHistory = []` でリセット
+  - ログに現在の履歴往復数を表示（`送信: xxx (履歴N往復)`）
+
+---
+
+## v2.306.0 — 2026-05-31
+
+### アゲルちゃん — デバッグ機能・感情リアルタイム表示
+
+- `public/app.js`:
+  - `_agruParseResponse(raw)` 関数を追加: `[感情]` 行のパース処理を `_agruSend` から切り出して共有化
+  - `_agruNotifyEmotion(emotion, replyText)` 関数を追加: 感情・画像・返答テキストを `agruEmotion` メッセージとして admin へプッシュ
+  - `_agruDebug(message)` 関数を追加: モーダルの状態に依存せず Ollama に直接問い合わせてデバッグログ出力
+  - WebSocketハンドラに `agruDebugSend` タイプを追加 → `_agruDebug()` を呼び出し
+
+- `public/admin.html`:
+  - アゲルちゃんセクションにデバッグパネルを追加:
+    - テストコメント入力欄（`#agruDebugInput`）＋送信ボタン（Enter キーでも送信）
+    - 現在の感情パネル: `#agruDbgEmotionName`（感情名大表示）・`#agruDbgEmotionImg`（画像サムネイル）・`#agruDbgReplyText`（返答テキスト先頭60文字）
+  - `sendAgruDebug()` 関数追加
+  - `handleReply()` に `agruEmotion` タイプを追加 → 感情パネルをリアルタイム更新
+
+---
+
+## v2.305.0 — 2026-05-31
+
+### アゲルちゃん — ログを管理パネルのdbgLogに表示
+
+- `public/app.js`:
+  - `_agruLog(msg, type)` 関数を追加: `console.log` + `_adminBC.postMessage({type:'agruLog',...})` を同時実行
+  - `_agruSend()` 内の `console.log/error` 呼び出しをすべて `_agruLog()` に置き換え
+  - ログ種別: 送信・raw・エラーは `''`/`'err'`、emotion/reply確定時は `'ok'`
+
+- `public/admin.html`:
+  - `channel.onmessage = (e) => handleReply(e.data)` を追加（BroadcastChannel受信対応）
+  - `handleReply()` に `agruLog` タイプを追加 → `dbgLog('[アゲルちゃん] ' + msg, logType)` を呼び出し
+
+---
+
+## v2.304.0 — 2026-05-31
+
+### アゲルちゃん — 感情マップを画像ピッカーUIに変更
+
+- `public/admin.html`:
+  - `<style>` に `.agru-img-strip` / `.agru-img-opt` / `.agru-img-none` / `.agru-selected` クラスを追加
+  - 感情マップのドロップダウンを廃止 → 全画像をサムネイル表示したインライン画像ピッカーに変更
+  - デフォルト画像セレクタも同様の画像ピッカーUIに変更（`#agruDefaultImgStrip`）
+  - `_buildImgStrip()`: ✕（なし）＋全画像サムネイルのストリップを生成するヘルパー追加
+  - `_agruSelectInStrip()`: ストリップ内選択状態を更新するヘルパー追加
+  - `_agruDefaultClick()` / `_agruEmotionClick()`: クリックハンドラ追加
+  - 画像ホバーで大プレビューパネルを更新
+  - `saveAgruEmotionMap()`: `.agru-selected` 要素から選択値を収集するよう変更
+  - settings読み込み: `_agruSelectInStrip()` で選択状態を反映するよう変更
+
+---
+
+## v2.303.0 — 2026-05-31
+
+### アゲルちゃん — 感情マップUIプレビュー・デフォルト画像設定
+
+- `public/admin.html`:
+  - 感情マップに画像プレビュー機能を追加
+    - 各行にサムネイル（28px）を表示・ドロップダウン変更時に自動更新
+    - 共有プレビューパネル（`#agruPreviewPanel`）を追加 — 選択/フォーカス時に大きく表示
+    - サムネイルクリックでも共有プレビューに反映
+  - デフォルト画像セレクタ（`#agruDefaultImgSelect`）を追加 — サムネイルプレビュー付き
+  - `onAgruDefaultChange()` / `onAgruEmotionSelect()` / `_agruShowPreview()` 関数追加
+  - settings読み込み時に `agruDefaultImage` を反映する処理を追加
+
+- `public/app.js`:
+  - `agruDefaultImage` 変数を追加（localStorage `agruDefaultImage` から初期化）
+  - `SETTINGS_KEYS` に `'agruDefaultImage'` を追加
+  - `_agruGetImage()`: `_agruDefaultImage` → `agruDefaultImage` 変数を使用するよう変更
+  - `openAgruModal()`: デフォルト画像自動検出ロジックを削除、`agruDefaultImage` を直接使用
+  - WebSocketハンドラ `agruText`: `agruDefaultImage` キーを処理するよう追加
+
+---
+
+## v2.302.0 — 2026-05-31
+
+### アゲルちゃん会話モード — チャットUI & ログ追加
+
+- `public/index.html`:
+  - `agru-text-area` → `agru-chat-area` / `#agruChatLog` に変更（LINEチャット形式）
+
+- `public/style.css`:
+  - `.agru-text-area` / `.agru-text` / `.agru-cursor-hidden` を削除
+  - `.agru-chat-area` / `.agru-chat-log` / `.agru-bubble-row` / `.agru-bubble` / `.agru-bubble-right` / `.agru-bubble-left` / `.agru-bubble-name`: LINEライクなチャットバブルスタイル追加
+
+- `public/app.js`:
+  - `_agruTypewrite()` を削除
+  - `_agruAddBubble(side, name, text, onDone)` を追加: 右（コメント）・左（返答）バブルを動的生成し、左バブルはタイプライター表示
+  - `_agruSend()`: コメント受信時に右バブル追加→Ollama返答時に左バブル（タイプライター）追加
+  - `_agruSend()`: `console.log('[アゲルちゃん] Ollama raw:', raw)` / `console.log('[アゲルちゃん] emotion:', ...)` を追加
+  - `openAgruModal()`: チャットログを `innerHTML = ''` でクリアするよう変更
+
+---
+
+## v2.301.0 — 2026-05-31
+
+### アゲルちゃん会話モード実装
+
+- `server.js`:
+  - `GET /api/ageru-images`: `public/ageru/` ディレクトリの画像一覧を返すエンドポイントを追加
+
+- `public/index.html`:
+  - `#agruModal`: アゲルちゃん会話モーダルHTML追加（キャラ画像エリア・テキスト表示エリア・感情ラベル・ステータス表示）
+
+- `public/style.css`:
+  - `.agru-overlay` / `.agru-modal` / `.agru-modal-header` / `.agru-modal-body`: モーダル全体のレイアウトスタイル追加
+  - `.agru-char-area` / `.agru-char-img` / `.agru-emotion-label` / `.agru-status`: キャラクター表示エリアのスタイル追加
+  - `.agru-text-area` / `.agru-text` / `.agru-cursor`: ノベルゲーム風テキスト表示・タイプライターカーソルのスタイル追加
+  - `@keyframes agru-blink`: カーソル点滅アニメーション追加
+
+- `public/app.js`:
+  - `AGRU_EMOTIONS`: 全感情リスト定数追加（54種類）
+  - `AGRU_DEFAULT_SYSTEM`: デフォルトsystem prompt（`[感情]\n[返答]`形式を指示）追加
+  - `agruSystem` / `agruEmotionMap` / `agruActive` / `agruIdle`: 状態変数追加
+  - `openAgruModal()`: モーダル表示・起動時挨拶送信・デフォルト画像自動決定
+  - `closeAgruModal()`: モーダル非表示・タイマークリア
+  - `_agruSend()`: Ollama API呼び出し・`[感情]\n[返答]`パース・感情画像切替・タイプライター表示・10秒後アイドル復帰
+  - `_agruTypewrite()`: 45ms間隔タイプライター表示（カーソル制御付き）
+  - `_agruSetImage()` / `_agruSetStatus()`: 感情画像・ステータス更新ヘルパー
+  - `handleComment()`: アゲルちゃんアクティブ＆アイドル時にコメントを`_agruSend()`へ転送
+  - WebSocketハンドラに `openAgeruChat` / `agruText` / `agruEmotionMap` メッセージ処理を追加
+  - `SETTINGS_KEYS` に `'agruSystem'`・`'agruEmotionMap'` を追加
+
+- `public/admin.html`:
+  - 💬 アゲルちゃん会話モードセクション追加
+    - 「会話モードを開く」ボタン（`openAgeruChat`メッセージ送信）
+    - `#agruSystemInput`: system promptテキストエリア
+    - `#agruEmotionMapGrid`: 感情→画像マッピングUI（全54感情×ドロップダウン）
+    - 「感情マップを保存」ボタン
+  - `sendAgruText()` / `saveAgruEmotionMap()` / `initAgruEmotionMapUI()`: 管理パネルJS関数追加
+  - settings読み込み時に `agruSystem` / `agruEmotionMap` を反映する処理を追加
+
+---
+
+## v2.300.0 — 2026-05-31
+
+### ボス撃破・消去時の位置保存 / ボスサイズスライダー修正
+
+- `public/app.js`:
+  - `defeatBoss()`: 関数先頭でボス位置を `panelKey('bossX'/'bossY')` に保存するよう追加（倒された時も次回スポーン位置が保持される）
+  - `dismissBossBtn` ハンドラ: 消去前にボス位置を `panelKey('bossX'/'bossY')` に保存するよう追加
+  - `bossSizeSlider` ハンドラ: `bossState.origSize * bossSizeScale`（二重乗算バグ）を `200 * bossSizeScale` に修正。`bossState.origSize` を更新。コンテンツモード中は `contentModeBossSizePct` を適用した表示サイズを使用。`contentModeBossSaved.px` も更新
+  - `contentModeBossSizePctSlider` ハンドラ: コンテンツモード中・ボス出現中にスライダーを動かした際、即座にボスサイズに反映するよう追加
+  - `toggleContentMode()` OFF時: `bossSizeScale = contentModeBossSaved.sizeScale`（スライダー変更を上書きするバグ）を削除。復元サイズを `Math.round(200 * bossSizeScale)` で計算し `bossState.origSize` を更新
+
+---
+
+## v2.299.0 — 2026-05-31
+
+### コンテンツモード専用のボス位置保存
+
+- `public/app.js`:
+  - `STATE_SAVE_KEYS`: `'bossX_cm'`・`'bossY_cm'` を追加
+  - ボスドラッグ保存: `localStorage.setItem('bossX', ...)` → `panelKey('bossX')` に変更し、コンテンツモード中は `bossX_cm`/`bossY_cm` に保存
+  - `spawnBoss()`: 生成位置を `panelKey('bossX')` から読み、コンテンツモード中は `bossX_cm`/`bossY_cm` を参照
+  - `gatherContentMode()`: ボス処理を `bossX_cm` 保存済みならその位置へ復元、未保存なら画面下部へ集合するよう変更
+  - `toggleContentMode()` OFF時: ボス位置を `bossX_cm` に保存してから通常位置へ復元
+
+---
+
+## v2.298.0 — 2026-05-31
+
+### コンテンツモード: ボス・キャラ出現時の下集合
+
+- `public/app.js`:
+  - `spawnBoss()`: コンテンツモード中はサイズ縮小後 350ms 待って `gatherContentMode()` を呼び出し、ボスを画面下部に移動
+  - `ensureCharOnStage()`: コンテンツモード中はキャラ生成後 400ms 待って `gatherContentMode()` を呼び出し、全キャラ（新規含む）をコンテンツモード専用下集合で配置
+    - `createCharacter()` 内の `gatherCharactersBottom` (500ms) とは別に、より早い 400ms で実行
+
+---
+
+## v2.297.0 — 2026-05-31
+
+### コンテンツモード: キャラ生成時の下集合 ＋ スロット・ガチャの縮小
+
+- `public/app.js`:
+  - `gatherContentMode()` 関数を新設（コンテンツモード専用の下集合ロジックをまとめた独立関数）
+  - `gatherCharactersBottom()`: `contentMode` が ON の場合 `gatherContentMode()` にリダイレクト
+    - コンテンツモード中の全 `gatherCharactersBottom` 呼び出し（キャラ生成後の500ms遅延含む）が自動的に正しい余白・位置で集合するようになった
+  - `toggleContentMode()`: `setTimeout(350ms)` 内の重複コードを `gatherContentMode()` 呼び出しに置き換え
+- `public/style.css`:
+  - `#stage.content-mode .slot-panel`: `transform: translateX(-50%) scale(0.5); transform-origin: bottom center` を追加（50%縮小）
+  - `#stage.content-mode .pet-gacha-panel`: 同様に 50% 縮小
+
+---
+
+## v2.296.0 — 2026-05-31
+
+### 管理パネル設定の保存修正 ＋ コンテンツモードでのキャラ生成サイズ修正
+
+- `public/app.js`:
+  - `getState` ハンドラ: `gatherMarginLeft/Right/Bottom`, `gatherRowMax`, `contentModeGatherMarginBottom/Left/Right`, `contentModeCharSizePct`, `contentModeBossSizePct` のステートキーを `Slider` サフィックス付きに修正
+    - admin.html の `applyState` が slider ID (`*Slider`) をキーとして参照するため、サフィックスなしでは undefined になり設定が復元されなかった
+  - `ensureCharOnStage()`: コンテンツモードのサイズ適用を `createCharacter()` 呼び出し**前**に移動
+    - 以前はキャラがフルサイズで生成されてから縮小アニメーションしていた問題を修正
+    - `createCharacter` 内の `applyAvatarStyle` / `renderPetBadge` が最初からコンテンツモードサイズで実行されるようになった
+
+---
+
+## v2.295.0 — 2026-05-31
+
+### 管理パネル余白スライダー 1px単位 ＋ コンテンツモードでボスも下寄せ
+
+- `public/admin.html`:
+  - `contentModeGatherMarginBottomSlider`: `step="5"` → `step="1"`
+  - `contentModeGatherMarginLeftSlider`: `step="10"` → `step="1"`
+  - `contentModeGatherMarginRightSlider`: `step="10"` → `step="1"`
+- `public/app.js`:
+  - `toggleContentMode()` ON時: キャラ下集合の `setTimeout(350)` 内でボスも `stageH - bossEl.offsetHeight - contentModeGatherMarginBottom` に移動（600ms アニメーション付き）
+  - `toggleContentMode()` OFF時: ボス復元に `transition: left/top 600ms` を追加してスムーズに元の位置へ戻るよう修正
+
+---
+
+## v2.294.0 — 2026-05-31
+
+### コンテンツモード: キャラ名非表示・下集合の底辺アライメント修正
+
+- `public/style.css`: `#stage.content-mode .char-name { display: none !important; }` を追加
+- `public/app.js`: `toggleContentMode()` ON時の下集合を `setTimeout(350ms)` で遅延実行するよう変更
+  - `.avatar` に `transition: width 0.3s, height 0.3s` があり `requestAnimationFrame` では縮小途中の高さを読んでしまう問題を修正
+  - トランジション完了後 (300ms) に `offsetHeight` を計測することでキャラが正確に画面下部に寄るよう修正
+
+---
+
+## v2.293.0 — 2026-05-31
+
+### コンテンツモード中のペットサイズをキャラに連動
+
+- `public/app.js`:
+  - `toggleContentMode()` ON時: `applyAvatarStyle(u)` 後に `renderPetBadge(u)` を呼び出し、ペットをキャラと同倍率で縮小
+  - `toggleContentMode()` OFF時: `applyAvatarStyle(u)` 後に `renderPetBadge(u)` を呼び出し、ペットを元のサイズに復元
+  - `ensureCharOnStage()`: コンテンツモード中に出現したキャラへの `applyAvatarStyle` 後に `renderPetBadge(user)` を呼び出し
+  - 下集合時にペットサイズが確定してから `offsetHeight` で底辺位置を計算するため、ボトムアライメントが正確になる
+
+---
+
+## v2.292.0 — 2026-05-31
+
+### コンテンツモード専用のキャラ・ボスサイズを設定可能に
+
+- `public/app.js`:
+  - `contentModeCharSizePct`（デフォルト70%）・`contentModeBossSizePct`（デフォルト10%）変数を追加
+  - `toggleContentMode()` のサイズ指定を変数参照に変更
+  - `ensureCharOnStage()`: コンテンツモード中に出現したキャラに即座にコンテンツモードサイズを適用し `contentModeSaved` に登録
+  - `spawnBoss()`: コンテンツモード中に出現したボスに即座にコンテンツモードサイズを適用し `contentModeBossSaved` に登録
+- `public/admin.html`: 「📺 コンテンツ キャラ大きさ」「📺 コンテンツ ボス大きさ」スライダーを追加（1〜100%）
+
+---
+
+## v2.291.0 — 2026-05-31
+
+### コンテンツモード専用の下集合 左余白・右余白を追加
+
+- `public/app.js`: `contentModeGatherMarginLeft` / `contentModeGatherMarginRight` 変数を追加（デフォルト0px）
+  - 下集合の横幅計算に左右余白を反映
+  - スライダーハンドラ・`getState`・`STATE_SAVE_KEYS` に追加
+- `public/admin.html`: 「📺 コンテンツ 左余白」「📺 コンテンツ 右余白」スライダーを追加（0〜1200px、step 10px）
+
+---
+
+## v2.290.0 — 2026-05-31
+
+### コンテンツモード大幅改修
+
+- `public/app.js`:
+  - ボスサイズを60% → **10%** に変更
+  - キャラの「左下集合（x=0固定）」を廃止し、横均等配置の**下集合**に変更
+  - コンテンツモード用の下余白 `contentModeGatherMarginBottom`（デフォルト10px）を追加
+  - `stage` 要素に `content-mode` クラスを付与/除去するよう変更
+  - `_swapPanelPositions()` を追加。コンテンツモード切替時にランキング・文字当て・クイズパネルの位置を独立したキー (`_cm` サフィックス) で保存・復元
+  - パネルドラッグの保存先をコンテンツモード中は `_cm` キーに切り替え (`panelKey()` ヘルパー追加)
+- `public/admin.html`: 「📺 コンテンツ 下余白」スライダーを追加
+- `public/style.css`:
+  - `#stage.content-mode` 時にキャラのステータス・装備・レベルバッジを非表示
+  - `#stage.content-mode #quizPanel` の幅を400pxに拡大
+
+---
+
+## v2.289.0 — 2026-05-31
+
+### 文字当てパネルの＋－ボタン削除・幅200px固定
+
+- `public/app.js`: `wordle-sz-btn` の生成・ハンドラ・`cellSize` 管理を全て削除
+- `public/style.css`: `#wordlePanel` を `min-width: 192px` → `width: 200px` に変更、`.wordle-sz-btn` スタイル削除
+- セルサイズをデフォルト32pxに調整（200px幅に5列がぴったり収まるサイズ）
+
+---
+
+## v2.288.0 — 2026-05-31
+
+### ダメージランキング・MPランキングを1パネルに統合（同時表示）
+
+- `public/app.js`: `#mpRankingPanel` を廃止し `#rankingPanel` に両ランキングを縦並びで同時表示
+  - 上段: ⚔️ ダメージ（ボス討伐後に更新）、下段: 💎 MP（常時リアルタイム）
+  - `showDamageRanking()` / `showMpRanking()` どちらでも同一パネルが開く
+  - タブ廃止、`setRankingTab()` 削除
+- `public/style.css`: `#mpRankingPanel`・タブ関連スタイルを削除、セクションヘッダースタイルを追加
+
+---
+
+## v2.287.0 — 2026-05-31
+
+### masterキャラを集合・下集合・コンテンツモードの対象に変更
+
+- `public/app.js`: `gatherCharacters` / `gatherCharactersBottom` のmaster除外フィルタを削除
+- コンテンツモードのmaster除外も削除
+- masterも他のキャラと同様に集合・下集合・コンテンツモードで移動するように
+
+---
+
+## v2.286.0 — 2026-05-31
+
+### masterキャラ識別を `comment.from === 'master'` ベースに変更
+
+- `public/app.js`: `isMasterUser(u)` ヘルパーを追加（`u?.isMaster === true` のみ判定）
+- `handleComment` で `comment.from === 'master'` の時に `user.isMaster = true` をセット
+- `isMaster` を `CHAR_SAVE_FIELDS` に追加し、ページリロード後も識別を維持
+- AFK・自動削除・ノベル起動・5分モードの全master判定を `isMasterUser()` に統一
+
+---
+
+## v2.279.0 — 2026-05-31
+
+### キャラ個別サイズの永続化
+
+- `public/app.js`: `CHAR_SAVE_FIELDS` に `sizeScaleBase` を追加
+  - `charIndivSize` ハンドラで `sizeScale` と `sizeScaleBase` を同時にセット
+  - ロード時のリセット行を `sizeScaleBase ?? 1.0` に変更
+  - タイマン中のリロード対策を維持しつつ、管理者が設定したサイズを復元するように
+  - タイマン・コンテンツモードは `sizeScale` のみ変更し `sizeScaleBase` は変更しない
+
+---
+
+## v2.285.0 — 2026-05-31
+
+### クイズ・ダメージランキング・MPランキングパネルを200px固定に変更
+
+- `public/style.css`: `#quizPanel`, `#rankingPanel`, `#mpRankingPanel` を `width: 200px` に統一
+
+---
+
+## v2.284.0 — 2026-05-31
+
+### MPランキングパネルの横幅を統一
+
+- `public/style.css`: `#mpRankingPanel` を `min-width: 200px` から `width: 240px` 固定に変更
+
+---
+
+## v2.283.0 — 2026-05-31
+
+### クイズパネルとダメージランキングパネルの横幅を統一
+
+- `public/style.css`: `#quizPanel` を `min-width/max-width` から `width: 240px` 固定に変更
+- `public/style.css`: `#rankingPanel` を `min-width: 200px` から `width: 240px` 固定に変更
+
+---
+
+## v2.282.0 — 2026-05-31
+
+### 自動BRのON/OFF状態を管理パネル・BR次回タイマーに反映
+
+- `public/app.js`: `brAutoBtn` クリック後に `brAutoEnabled` 状態を admin.html へ返信
+- `public/app.js`: `getState` に `brAutoEnabled` を追加（パネル接続時に同期）
+- `public/app.js`: `renderBRTimerPanel` でOFF時は「自動OFF」を赤文字で表示
+- `public/admin.html`: 状態受信時に「🔄 自動BR」ボタンのテキスト・背景色を更新
+  - ON: 通常表示、OFF: 「🔄 自動BR（OFF）」＋赤背景
+
+---
+
+## v2.281.0 — 2026-05-31
+
+### バトルロイヤル・タイマン終了時にmasterを元の位置に復元
+
+- `public/app.js`: `startBattleRoyale` で `brState.masterSavedPos` に開始時のmaster座標を保存
+- `public/app.js`: `endBattleRoyale` で `snapshot.masterSavedPos` から復元（0.6sトランジション）
+- `public/app.js`: `startTaiman` で `taimanState.masterSavedPos` に開始時のmaster座標を保存
+- `public/app.js`: `endTaiman` で `snapshot.masterSavedPos` から復元（0.6sトランジション）
+
+---
+
+## v2.280.0 — 2026-05-31
+
+### masterキャラ: コンテンツモードでも移動しないよう修正
+
+- `public/app.js`: `toggleContentMode()` のキャラ移動ループに `u.ipid === 'master'` の除外を追加
+  - コンテンツモードON時にmasterが x=0（左端）・画面底に移動してしまうバグを修正
+  - masterは `contentModeSaved` に保存されないため、OFF時の復元ループも自動的にスキップ
+
+---
+
+## v2.278.0 — 2026-05-31
+
+### 集合・下集合でmasterキャラを移動しないよう変更
+
+- `public/app.js`: `gatherCharacters` / `gatherCharactersBottom` のフィルタに `u.ipid !== 'master'` を追加
+
+---
+
+## v2.277.0 — 2026-05-31
+
+### 集合コマンドの1行あたり数を管理パネルから設定可能に
+
+- `public/app.js`: `gatherRowMax` 変数を追加（デフォルト10、localStorage永続化）
+  - `gatherCharacters()` 内のハードコード `ROW_MAX = 10` を `gatherRowMax` に変更
+  - SETTINGS_KEYS・getState に `gatherRowMax` を追加
+  - `type:'slider'` ハンドラに `gatherRowMaxSlider` を追加
+- `public/admin.html`: サイズ設定セクションに「🔔 集合 1行の数」スライダーを追加（1〜30体、デフォルト10）
+
+---
+
+## v2.276.0 — 2026-05-31
+
+### コンテンツモード: ボスサイズ復元バグ修正
+
+- `public/app.js`: `toggleContentMode` のボスサイズ復元を修正
+  - 旧: `origSize * bossSizeScale` で再計算 → スポーン時スケールと現在のスケールが二重適用されてサイズが大きくなるバグ
+  - 新: コンテンツモードON時に `ba.style.width`（実際のpx値）を保存し、OFF時はそのpxをそのまま復元
+  - ON時の縮小計算も `currentPx * 0.6` に変更（同様に実際の表示pxを基準に60%）
+
+---
+
+## v2.275.0 — 2026-05-31
+
+### コンテンツモード追加
+
+- `public/app.js`: `toggleContentMode()` 関数を追加
+  - ON時: 全キャラのsizeScaleを現在の70%に縮小、全キャラをx=0・画面底にピッタリ配置（余白なし）
+  - ON時: ボスが表示中の場合、bossSizeScaleを60%に縮小してx=0・画面底左端に移動
+  - OFF時: 保存していた各キャラの座標・sizeScale・ボスの座標・bossSizeScaleをすべて復元
+  - `contentMode`, `contentModeSaved`, `contentModeBossSaved` 変数を追加
+- `public/app.js`: コンテンツモード中はタイマンコマンド（指名・ランダム両方）を無視
+- `public/app.js`: コンテンツモード中はステータス確認コマンドを無視
+- `public/app.js`: 自動バトルロイヤルのインターバル処理でコンテンツモード中はスキップ
+- `public/app.js`: `handleAdminMessage` に `contentMode` タイプを追加
+- `public/admin.html`: ゲーム操作セクションに「📺 コンテンツ」ボタンを追加
+  - `btn-teal` スタイルクラスを追加（ON中は `.active` で明るいティール＋アウトライン表示）
+  - `toggleContentModeAdmin()` 関数を追加（クリックで送信＋ボタン状態トグル）
+
+---
+
+## v2.274.0 — 2026-05-31
+
+### クイズ問題追加（kukulu LIVE編）
+
+- `public/text/quiz.txt`: kukulu LIVEに関するクイズ問題を200問追記（1082行 → 1282行）
+  - プラットフォーム基本情報（無料・個人運営・aquapal）
+  - KP（Kukupo）仮想通貨システム
+  - ゲーム機能：Magical Collect（最大10000倍）、Magical Mahjong、Pluto game
+  - 補助サービス：FileNow、MagicalDraw、RemoteCam、Coffret
+  - 技術仕様：H.265/HEVC（帯域50%削減）、ブラウザ拡張、スマートフォンアプリ
+  - 音楽ライセンス：JASRAC（第9013518001Y45123号）、NexTone（000006415）
+  - AI Macaron、継承配信、コラボ配信、ファーストプッシュなどの各種機能
+  - 統計情報：エモーション6418個、MagicalDraw部屋数1876、最大72時間連続配信
+
+---
+
+## v2.273.0 — 2026-05-31
+
+### ステータス確認のDiscord連携バグ修正
+
+- `public/app.js`: Discord投稿時のモーダル自動クローズを修正
+  - `autoClose 5秒 < ollama 9秒タイムアウト` の競合でモーダルが消えキャプチャが走らないバグを修正
+  - `triggerCnum` ありの場合はキャプチャ完了後に `close()` を呼ぶよう変更（自動5秒クローズを廃止）
+  - フォールバックとして20秒後に強制close（エラー時にモーダルが残り続けるのを防ぐ）
+- `public/app.js`: キャプチャ前に画像ロード完了を待つように修正
+  - `captureAndPostDiscord` 内で未ロード画像を `Promise.all` で最大3秒待機
+  - これにより「画像が空白になる」「600ms以内に画像が来ない」問題を解消
+- `public/app.js`: ollama未設定時のキャプチャタイミングを改善
+  - 固定600ms → 「最低600ms + 全画像ロード完了」のどちらか遅い方まで待つよう変更
+
+---
+
+## v2.272.0 — 2026-05-29
+
+### タイマン観戦ベット機能追加
+
+- `public/app.js`: タイマン開始時に30秒間のベット受付フェーズを追加
+  - コマンド: `ベット 1 [MP数]`（挑戦者）または `ベット 2 [MP数]`（相手）
+  - MP不足時・0以下は拒否。重複ベット時は前ベット返金してから再ベット
+  - 的中で賭けMP 2倍返し、外れで没収、キャンセル・引き分けで全額返金
+  - HPバーにベット総額を常時表示（受付中は「🎰 受付中 XXX MP」）
+- `public/app.js`: `showTaimanBetBanner` 関数を追加（受付中バナー表示）
+- `public/style.css`: ベットバナー・ベット総額表示のCSSを追加
+
+---
+
+## v2.271.0 — 2026-05-29
+
+### タイマン応援機能追加
+
+- `public/app.js`: タイマン中に他ユーザーがコメントで戦士の名前を呼ぶと、そのキャラのHPが最大HPの30%回復
+  - 2文字未満の名前は対象外
+  - 自分で自分の名前を呼んでの回復は無効
+  - 回復時にダメージ数字（💪 HP+XX）・吹き出し・ログを表示
+
+---
+
+## v2.270.0 — 2026-05-29
+
+### 自動削除タイムアウトを管理パネルから設定可能に
+
+- `public/admin.html`: AFK設定セクションに「🗑 自動削除」スライダーを追加（5〜120分、5分刻み、デフォルト30分）
+- `public/app.js`: `autoDeleteMinutes` 変数を追加（localStorage永続化）
+- `public/app.js`: `SETTINGS_KEYS` に `'autoDeleteMinutes'` を追加
+- `public/app.js`: 自動削除インターバルの `DELETE_TIMEOUT` を `autoDeleteMinutes * 60 * 1000` に変更
+- `public/app.js`: `handleAdminMessage` に `d.type === 'autoDeleteTimeout'` ハンドラを追加
+- `public/app.js`: `getState` レスポンスに `state.autoDeleteMinutes` を追加
+- `public/admin.html`: 管理パネルリロード時にスライダー値を復元
+
+---
+
 ## v2.269.0 — 2026-05-29
 
 ### index.html 機能解説・コマンド一覧を最新仕様に更新
