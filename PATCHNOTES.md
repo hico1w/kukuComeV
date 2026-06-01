@@ -2,6 +2,19 @@
 
 ---
 
+## v2.407.0 — 2026-06-01
+
+### 会話モード — タイマン・ステータス確認を許可
+
+- `public/app.js`: ランダムタイマン・タイマン:XX・ステータス確認から `if (agruActive) return` を削除。会話モード中でも実行可能に。チャットログへの反映なし
+
+### YouTube URL 自動再生
+
+- `public/app.js`: `_agruOpenYtModal(videoId)` ヘルパーを抽出、`_agruPlayYouTube(videoId?)` でID直接指定に対応
+- `public/app.js`: コメントに `youtu.be/` または `?v=` / `&v=` 形式の YouTube URL が含まれていたら自動でモーダル再生。再生終了でモーダルを自動閉じ（既存動作）
+
+---
+
 ## v2.406.0 — 2026-06-01
 
 ### ボス — ダメージランキングのリアルタイム更新

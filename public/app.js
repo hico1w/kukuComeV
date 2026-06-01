@@ -3647,6 +3647,13 @@ function handleComment(comment) {
     }
   }
 
+  // ── YouTube URL 自動再生 ──
+  {
+    const _ytId = (message.match(/youtu\.be\/([A-Za-z0-9_-]{11})/) ||
+                   message.match(/[?&]v=([A-Za-z0-9_-]{11})/))?.[1];
+    if (_ytId) { _agruPlayYouTube(_ytId); return; }
+  }
+
   // ── アゲルちゃん会話モード ──
   if (agruActive && message.trim() === 'カフェオレ投与') {
     if ((user.mp ?? 0) < 50) {
@@ -3718,7 +3725,6 @@ function handleComment(comment) {
 
   // ── ランダムタイマン ──────────────────────────────
   if (message.includes('ランダムタイマン')) {
-    if (agruActive) return;
     if (compactMode || contentMode) return;
     ensureCharOnStage(user);
     if (taimanState) {
@@ -3748,7 +3754,6 @@ function handleComment(comment) {
   {
     const taimanM = message.trim().match(/^タイマン[：:](.+)$/);
     if (taimanM) {
-      if (agruActive) return;
       if (compactMode || contentMode) return;
       const targetName = taimanM[1].trim();
       ensureCharOnStage(user);
@@ -3949,7 +3954,6 @@ function handleComment(comment) {
 
   // ── ステータス確認 ────────────────────────────
   if (message.includes('ステータス確認')) {
-    if (agruActive) return;
     if (compactMode || contentMode) return;
     ensureCharOnStage(user);
     showStatusModal(user, true, comment.number);
@@ -5761,30 +5765,30 @@ function closeAgruModal() {
   document.getElementById('agruModal').classList.add('hidden');
 }
 
-function _agruPlayYouTube() {
+function _agruOpenYtModal(videoId) {
+  const modal  = document.getElementById('agruYtModal');
+  const iframe = document.getElementById('agruYtIframe');
+  if (!modal || !iframe) return;
+  _agruBgmPause();
+  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&enablejsapi=1`;
+  const sx = localStorage.getItem('agruYtModalX'), sy = localStorage.getItem('agruYtModalY');
+  if (sx && sy) { modal.style.left = sx; modal.style.top = sy; modal.style.transform = 'none'; }
+  else { modal.style.left = ''; modal.style.top = ''; modal.style.transform = ''; }
+  modal.classList.remove('hidden');
+  iframe.addEventListener('load', () => {
+    try {
+      iframe.contentWindow.postMessage('{"event":"listening","id":1}', '*');
+      iframe.contentWindow.postMessage('{"event":"command","func":"addEventListener","args":["onStateChange"]}', '*');
+      iframe.contentWindow.postMessage('{"event":"command","func":"addEventListener","args":["onReady"]}', '*');
+    } catch {}
+  }, { once: true });
+}
+
+function _agruPlayYouTube(videoId) {
+  if (videoId) { _agruOpenYtModal(videoId); return; }
   fetch('/api/yt-random-video')
     .then(r => r.json())
-    .then(d => {
-      if (!d.videoId) return;
-      const modal  = document.getElementById('agruYtModal');
-      const iframe = document.getElementById('agruYtIframe');
-      if (!modal || !iframe) return;
-      _agruBgmPause();
-      iframe.src = `https://www.youtube.com/embed/${d.videoId}?autoplay=1&rel=0&enablejsapi=1`;
-      // 保存済み位置を復元
-      const sx = localStorage.getItem('agruYtModalX'), sy = localStorage.getItem('agruYtModalY');
-      if (sx && sy) { modal.style.left = sx; modal.style.top = sy; modal.style.transform = 'none'; }
-      else { modal.style.left = ''; modal.style.top = ''; modal.style.transform = ''; }
-      modal.classList.remove('hidden');
-      // YouTube postMessage API でイベント購読・音量設定
-      iframe.addEventListener('load', () => {
-        try {
-          iframe.contentWindow.postMessage('{"event":"listening","id":1}', '*');
-          iframe.contentWindow.postMessage('{"event":"command","func":"addEventListener","args":["onStateChange"]}', '*');
-          iframe.contentWindow.postMessage('{"event":"command","func":"addEventListener","args":["onReady"]}', '*');
-        } catch {}
-      }, { once: true });
-    })
+    .then(d => { if (d.videoId) _agruOpenYtModal(d.videoId); })
     .catch(() => {});
 }
 
