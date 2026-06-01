@@ -2,11 +2,157 @@
 
 ---
 
+## v2.401.0 — 2026-06-01
+
+### アゲルちゃん — BGMフェードイン・フェードアウト
+
+- `public/app.js`: `_agruBgmFadeIn/Out` を実装（1.5秒、30msステップ）。再生・再開時はフェードイン、一時停止・停止時はフェードアウト後に `pause()`
+- `public/app.js`: フェード中に新たなフェードが始まった場合は前のタイマーをキャンセル
+
+---
+
+## v2.400.0 — 2026-06-01
+
+### アゲルちゃん — BGM音量を管理パネルから設定可能に
+
+- `public/app.js`: `agruBgmVolume` 変数を追加（localStorage保存、デフォルト50）、SETTINGS_KEYSに追加
+- `public/app.js`: BGMオブジェクトの初期音量を `agruBgmVolume/100` で設定、`agruText` ハンドラで即時反映
+- `public/admin.html`: BGM音量スライダー（`#agruBgmVolumeInput`、0〜100%）をYouTube音量の上に追加、状態復元対応
+
+---
+
+## v2.399.0 — 2026-06-01
+
+### アゲルちゃん — BGM再生（bgm.mp3）
+
+- `public/app.js`: `_agruBgm`（`/ageru/oto/bgm.mp3`、loop）を追加、`_agruBgmPlay/Pause/Stop` ヘルパーを定義
+- `public/app.js`: `openAgruModal` でBGMループ再生開始、`closeAgruModal` で停止（currentTime=0）
+- `public/app.js`: `_agruPlayYouTube` でBGMを一時停止、`closeAgruYtModal` でBGMを再開（会話モーダルが開いている場合のみ）
+
+---
+
+## v2.398.0 — 2026-06-01
+
+### アゲルちゃん — 自撮りロック中は全コメント無視・生成完了でコメント待ちへ
+
+- `public/app.js`: 自撮りロック中（`_agruSelfieLocked`）は自撮り以外のコメントも含め全て無視するよう変更
+- `public/app.js`: `_agruGenerateSDImage` の Promise 完了時（成功・失敗とも）にアイドルタイマーをキャンセルし、即座に `agruIdle=true` / `コメント待ち...` へ移行
+
+---
+
+## v2.397.0 — 2026-06-01
+
+### アゲルちゃん — 「止めて」でYouTube停止
+
+- `public/app.js`: チャットに「止めて」が含まれていたら `closeAgruYtModal()` を呼び出し、YouTubeモーダルを閉じて再生停止
+
+---
+
+## v2.396.0 — 2026-06-01
+
+### アゲルちゃん — YouTube音量設定・自撮りコマンドロック
+
+- `public/app.js`: `agruYtVolume` 変数を追加（localStorage保存、デフォルト100）、SETTINGS_KEYSに追加
+- `public/app.js`: YouTube `onReady` イベントで `setVolume` コマンドを送信して音量を反映
+- `public/app.js`: `_agruPlayYouTube` のload時に `onReady` も購読するよう変更
+- `public/app.js`: `_agruSelfieLocked` フラグを追加。自撮り生成中は新たな自撮りコマンドを無視、画像バブル表示後（成功・失敗とも）にロック解除
+- `public/app.js`: `closeAgruModal` でも `_agruSelfieLocked` をリセット
+- `public/admin.html`: YouTube音量スライダー（`#agruYtVolumeInput`、0〜100%）をVOICEVOX設定下に追加、状態復元対応
+
+---
+
+## v2.395.0 — 2026-06-01
+
+### アゲルちゃん — YouTube専用モーダル・位置保存
+
+- `public/index.html`: `#agruYtModal` を追加（会話モーダルとは独立した固定モーダル、`#agruYtIframe` を内包）
+- `public/style.css`: `.agru-yt-modal` スタイル追加（幅435px×高さ245px、すりガラス調、ドラッグヘッダー）
+- `public/app.js`: `_agruPlayYouTube` をチャットログ挿入から専用モーダル表示に変更、`enablejsapi=1` 追加
+- `public/app.js`: `closeAgruYtModal()` 追加、会話モーダルclose時にも呼ぶよう変更
+- `public/app.js`: YouTube再生終了（`onStateChange` info=0）を `window.message` で検知し自動クローズ
+- `public/app.js`: `#agruYtModal` にドラッグIIFEを追加、`mouseup` 時に `agruYtModalX/Y` を localStorage に保存
+- `public/app.js`: 会話モーダルのドラッグも `mouseup` 時に `agruModalX/Y` を保存、`openAgruModal` で復元
+
+---
+
+## v2.394.0 — 2026-06-01
+
+### アゲルちゃん — モザイク無限ログ修正・チャットDOM上限10件
+
+- `public/app.js`: `_agruAddImageBubble` の `img.onload` を `addEventListener('load', ..., { once: true })` に変更。`_applyMosaic` が `img.src` を書き換えるたびに再発火していた無限ループを解消
+- `public/app.js`: `_agruTrimLog()` 関数を追加。`#agruChatLog` の子要素（タイピングインジケーター除く）を最新10件に制限し、古いものを削除
+- `public/app.js`: `_agruAddBubble`・`_agruAddImageBubble`・`_agruPlayYouTube` の各 `appendChild` 後に `_agruTrimLog()` を呼び出し
+
+---
+
+## v2.393.0 — 2026-06-01
+
+### アゲルちゃん — 自撮り基本プロンプトを管理パネルから設定可能に
+
+- `public/app.js`: `const AGRU_CHAR_TAGS` を `const _AGRU_CHAR_TAGS_DEFAULT` + `let agruCharTags` に変更、localStorage から読み込んでデフォルト値にフォールバック
+- `public/app.js`: `SETTINGS_KEYS` に `'agruCharTags'` を追加（サーバー保存対象）
+- `public/app.js`: `agruText` ハンドラに `agruCharTags` の更新処理を追加
+- `public/app.js`: `getState` に `state.agruCharTags = agruCharTags` を追加
+- `public/admin.html`: SD設定セクションに自撮り基本プロンプト textarea (`#agruCharTagsInput`) を追加済み、状態復元処理も追加
+
+---
+
 ## v2.361.0 — 2026-05-31
 
 ### アゲルちゃん — チャット効果音が鳴らない問題を修正
 
 - `public/app.js`: `_agruPlayPopSound()` を `currentTime=0` + `play()` 方式から `cloneNode()` 方式に変更。連続チャット時に前の再生と競合して play() Promise が中断されていた問題を解消
+
+---
+
+## v2.392.0 — 2026-06-01
+
+### 会話モーダル — 半透明化
+
+- `public/style.css`: `.agru-modal` を `rgba(255,248,251,0.55)` + `backdrop-filter: blur(14px)` のすりガラス調に変更
+- `public/style.css`: `.agru-char-area` / `.agru-chat-area` / `.agru-chat-log` の背景も半透明に統一
+
+---
+
+## v2.391.0 — 2026-06-01
+
+### 会話モーダル — SNSアイコン削除・キャラ画像拡大
+
+- `public/index.html`: `.agru-sns-bar` を削除
+- `public/style.css`: `.agru-sns-bar` / `.agru-sns-icon` のスタイルを削除
+- `public/style.css`: `.agru-char-img` の `max-height` を 290px → 360px に拡大
+
+---
+
+## v2.390.0 — 2026-06-01
+
+### 会話モーダル — サイズ調整・好感度をキャラ画像に重ねて表示
+
+- `public/style.css`: モーダル幅 890px → 870px、高さ 400px → 430px
+- `public/index.html`: `.agru-char-inner` ラッパーを追加し、frame と affinity を内包
+- `public/style.css`: `.agru-char-inner` を `position: relative; display: inline-block` に設定
+- `public/style.css`: `.agru-affinity-display` を `position: absolute; bottom: 14px` でキャラ画像下部に重ねて表示。半透明白背景＋backdropBlur付き
+- `public/style.css`: `.agru-char-img` の `max-height` を 450px → 290px に縮小してモーダル高さに合わせる
+
+---
+
+## v2.389.0 — 2026-06-01
+
+### 会話モーダル — サイズ調整・チャット表示修正
+
+- `public/style.css`: `.agru-modal` の幅 900px → 890px、高さ 600px → 400px
+- `public/style.css`: `.agru-chat-area` を `flex: 0 0 600px`（固定幅）から `flex: 1`（残り幅を占有）に変更。モーダル幅縮小によりチャット欄が見えなくなっていた問題を修正
+
+---
+
+## v2.388.0 — 2026-06-01
+
+### 会話モーダル — 背景暗化なし・幅調整・ドラッグ移動対応
+
+- `public/style.css`: `.agru-overlay` の背景を `rgba(0,0,0,0.4)` → `rgba(0,0,0,0)` に変更。`pointer-events: none` でオーバーレイ自体はクリックを透過
+- `public/style.css`: `.agru-modal` の幅を 980px → 900px に変更。`position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%)` でオーバーレイ内に中央配置。`pointer-events: all` でクリックを受け取る
+- `public/style.css`: `.agru-modal-header` に `cursor: move; user-select: none` を追加
+- `public/app.js`: IIFE でドラッグ処理を初期化。ヘッダーのmousedownで `transform` を解除してpx位置に変換しdrag開始
 
 ---
 

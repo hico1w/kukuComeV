@@ -372,7 +372,7 @@ const SETTINGS_KEYS = [
   'agruSystem','agruDefaultImage','agruEmotionMap',
   'agruVoicevoxEnabled','agruVoicevoxSpeaker','agruVoicevoxSpeed','agruVoicevoxVolume',
   'agruSdWidth','agruSdHeight','agruSdSteps','agruSdCfgScale','agruSdPositiveSuffix','agruIdleDelay','agruIdleDelayImage',
-  'agruChatFontSize','agruFontLeft','agruFontRight',
+  'agruChatFontSize','agruFontLeft','agruFontRight','agruCharTags','agruYtVolume','agruBgmVolume',
   'bombHidden','trashHidden',
   'afkOpacity','afkGrayscale','afkBrightness',
 ];
@@ -3646,7 +3646,7 @@ function handleComment(comment) {
   }
 
   // ── アゲルちゃん会話モード ──
-  if (agruActive && agruIdle && message.trim()) {
+  if (agruActive && agruIdle && message.trim() && !/^[ァ-ヶー]{5}$/.test(message.trim())) {
     _agruSend(message, user.name);
   }
 
@@ -5120,6 +5120,9 @@ let agruSdHeight         = parseInt(localStorage.getItem('agruSdHeight')) || 512
 let agruSdSteps          = parseInt(localStorage.getItem('agruSdSteps'))   || 0;
 let agruSdCfgScale       = parseFloat(localStorage.getItem('agruSdCfgScale')) || 0;
 let agruSdPositiveSuffix = localStorage.getItem('agruSdPositiveSuffix') || '';
+let agruYtVolume         = parseInt(localStorage.getItem('agruYtVolume') ?? '100');
+let agruBgmVolume        = parseInt(localStorage.getItem('agruBgmVolume') ?? '50');
+let _agruSelfieLocked    = false;
 let agruIdleDelay        = parseInt(localStorage.getItem('agruIdleDelay')) || 10;
 let agruIdleDelayImage   = parseInt(localStorage.getItem('agruIdleDelayImage')) || 30;
 let agruChatFontSize     = parseInt(localStorage.getItem('agruChatFontSize')) || 14;
@@ -5188,7 +5191,7 @@ function _agruAddImageBubble(dataUrl, prompt, translatedPrompt) {
   const img = document.createElement('img');
   img.src = dataUrl;
   img.className = 'agru-photo-img';
-  img.onload = () => {
+  img.addEventListener('load', () => {
     const cfg = _sdReadSettings();
     const _mosaicHit = prompt ? _sdNeedsMosaic(prompt, translatedPrompt || prompt, cfg.mosaicKeywords) : null;
     if (_mosaicHit) {
@@ -5198,15 +5201,17 @@ function _agruAddImageBubble(dataUrl, prompt, translatedPrompt) {
       _agruLog('🖼 モザイクなし / keywords: ' + (cfg.mosaicKeywords || '未設定'));
     }
     _agruScrollBottom();
-  };
+  }, { once: true });
   bubble.appendChild(img);
   wrapper.appendChild(bubble);
   row.appendChild(wrapper);
   log.appendChild(row);
+  _agruTrimLog();
   _agruScrollBottom();
 }
 
-const AGRU_CHAR_TAGS = '<lora:Cosmic Princess Kaguya anime [Style]-Illus:1.3>,(burgundy hair:1.3),(aegyo sal:1.2),blue eyes,grey eyes,multicolored eyes,red eyeliner,(colored inner hair:1.2),long hair,(white streaked hair white streaked bangs:1.2),Cosmic Princess Kaguya anime Style,anime coloring,star jewelry,hat,long hair,black bow,cat ears,bangs,necklace,bowtie,cross,fang,two side up,lower eyelashes,white streaked hair,eyelashes,blush,(wind:1.3),cleavage,virtual youtuber,miniskirt,thighhighs,garter straps,huge breasts,earrings,detailed,1girl,wide hips,narrow waist,shiny skin,hair ribbon,perky breasts,cross hair ornament,ring,star \\(symbol\\),__expression__,__zidoriPose__,__background__,looking at viewer';
+const _agruCharTags_DEFAULT = '<lora:Cosmic Princess Kaguya anime [Style]-Illus:1.3>,(burgundy hair:1.3),(aegyo sal:1.2),blue eyes,grey eyes,multicolored eyes,red eyeliner,(colored inner hair:1.2),long hair,(white streaked hair white streaked bangs:1.2),Cosmic Princess Kaguya anime Style,anime coloring,star jewelry,hat,long hair,black bow,cat ears,bangs,necklace,bowtie,cross,fang,two side up,lower eyelashes,white streaked hair,eyelashes,blush,(wind:1.3),cleavage,virtual youtuber,miniskirt,thighhighs,garter straps,huge breasts,earrings,detailed,1girl,wide hips,narrow waist,shiny skin,hair ribbon,perky breasts,cross hair ornament,ring,star \\(symbol\\),__expression__,__zidoriPose__,__background__,looking at viewer';
+let agruCharTags = localStorage.getItem('agruCharTags') || _agruCharTags_DEFAULT;
 
 async function _agruGenerateSDImageFromReply(replyText, isSelfie = false) {
   _agruLog('📷 SDプロンプト生成中...');
@@ -5234,7 +5239,7 @@ async function _agruGenerateSDImageFromReply(replyText, isSelfie = false) {
       const stripped = sdPrompt
         .replace(/\b(1girl|1boy|2girls|girl|woman|man|person|human|character)\b,?\s*/gi, '')
         .replace(/^[, ]+|[, ]+$/g, '');
-      sdPrompt = AGRU_CHAR_TAGS + ',selfie pose' + (stripped ? ', ' + stripped : '');
+      sdPrompt = agruCharTags + ',selfie pose' + (stripped ? ', ' + stripped : '');
     } else {
       // 人物タグ or 表情タグが含まれるなら固定キャラタグを前置（表情があれば人物がいる）
       const personRe = /\b(1girl|1boy|2girls|girl|woman|man|person|human|character|selfie|portrait|anime|smile|smiling|grin|happy|sad|crying|tears|angry|frown|surprised|shocked|laughing|wink|winking|blush|blushing|pout|embarrassed|nervous|expressionless|open mouth|closed eyes|looking at viewer|looking at camera)\b/i;
@@ -5242,7 +5247,7 @@ async function _agruGenerateSDImageFromReply(replyText, isSelfie = false) {
         const stripped = sdPrompt
           .replace(/\b(1girl|1boy|2girls|girl|woman|man|person|human|character)\b,?\s*/gi, '')
           .replace(/^[, ]+|[, ]+$/g, '');
-        sdPrompt = AGRU_CHAR_TAGS + (stripped ? ', ' + stripped : '');
+        sdPrompt = agruCharTags + (stripped ? ', ' + stripped : '');
       }
     }
 
@@ -5286,12 +5291,60 @@ function _agruScrollBottom() {
   if (log) requestAnimationFrame(() => { log.scrollTop = log.scrollHeight; });
 }
 
+const _agruBgm = new Audio('/ageru/oto/bgm.mp3');
+_agruBgm.loop   = true;
+_agruBgm.volume = 0;
+let _agruBgmFadeTimer = null;
+const _AGRU_BGM_FADEIN_MS  = 2000;
+const _AGRU_BGM_FADEOUT_MS = 1000;
+const _AGRU_BGM_STEP_MS = 30;
+
+function _agruBgmFadeIn() {
+  clearInterval(_agruBgmFadeTimer);
+  _agruBgm.volume = 0;
+  _agruBgm.play().catch(() => {});
+  const target = agruBgmVolume / 100;
+  const steps  = _AGRU_BGM_FADEIN_MS / _AGRU_BGM_STEP_MS;
+  const delta  = target / steps;
+  _agruBgmFadeTimer = setInterval(() => {
+    const next = Math.min(_agruBgm.volume + delta, target);
+    _agruBgm.volume = next;
+    if (next >= target) clearInterval(_agruBgmFadeTimer);
+  }, _AGRU_BGM_STEP_MS);
+}
+
+function _agruBgmFadeOut(onDone) {
+  clearInterval(_agruBgmFadeTimer);
+  const start = _agruBgm.volume;
+  const steps = _AGRU_BGM_FADEOUT_MS / _AGRU_BGM_STEP_MS;
+  const delta = start / steps;
+  _agruBgmFadeTimer = setInterval(() => {
+    const next = Math.max(_agruBgm.volume - delta, 0);
+    _agruBgm.volume = next;
+    if (next <= 0) {
+      clearInterval(_agruBgmFadeTimer);
+      onDone();
+    }
+  }, _AGRU_BGM_STEP_MS);
+}
+
+function _agruBgmPlay()  { _agruBgmFadeIn(); }
+function _agruBgmPause() { _agruBgmFadeOut(() => { _agruBgm.pause(); }); }
+function _agruBgmStop()  { _agruBgmFadeOut(() => { _agruBgm.pause(); _agruBgm.currentTime = 0; }); }
+
 const _agruPopAudio = new Audio('/ageru/oto/pop.mp3');
 _agruPopAudio.volume = 0.5;
 function _agruPlayPopSound() {
   const a = _agruPopAudio.cloneNode();
   a.volume = _agruPopAudio.volume;
   a.play().catch(e => console.warn('[agru] pop sound error:', e));
+}
+
+function _agruTrimLog() {
+  const log = document.getElementById('agruChatLog');
+  if (!log) return;
+  const rows = [...log.children].filter(el => el.id !== 'agruTypingIndicator');
+  while (rows.length > 10) rows.shift().remove();
 }
 
 function _agruAddBubble(side, name, text, onDone) {
@@ -5322,6 +5375,7 @@ function _agruAddBubble(side, name, text, onDone) {
   wrapper.appendChild(bubble);
   row.appendChild(wrapper);
   log.appendChild(row);
+  _agruTrimLog();
   _agruScrollBottom();
   _agruPlayPopSound();
 
@@ -5428,6 +5482,7 @@ function _agruNotifyEmotion(emotion, replyText) {
 
 async function _agruSend(message, commenter) {
   if (!agruActive) return;
+  if (_agruSelfieLocked) return;
   agruIdle = false;
   clearTimeout(_agruIdleTimer);
 
@@ -5441,8 +5496,9 @@ async function _agruSend(message, commenter) {
   const _needsImage = /出ろ|出して|生成|gen|自撮り|写真/i.test(message);
   const _isSelfie   = /自撮り/i.test(message);
 
-  // 音楽キーワード検出 → YouTubeランダム再生
-  if (/曲|歌/.test(message)) _agruPlayYouTube();
+  // 音楽キーワード検出 → YouTubeランダム再生 / 停止
+  if (/止めて/.test(message)) closeAgruYtModal();
+  else if (/曲|歌/.test(message)) _agruPlayYouTube();
 
   try {
     const messages = [..._agruConvHistory, { role: 'user', content: message }];
@@ -5471,20 +5527,27 @@ async function _agruSend(message, commenter) {
     if (_needsImage) {
       // Ollama不使用: コメントをそのまま翻訳して生成
       const _ctx = message.replace(/出ろ|出して|生成|gen|自撮り|写真/gi, '').trim();
+      if (_isSelfie) _agruSelfieLocked = true;
+      const _selfieFinally = () => {
+        _agruSelfieLocked = false;
+        clearTimeout(_agruIdleTimer);
+        if (agruActive) { agruIdle = true; _agruSetStatus('コメント待ち...'); }
+      };
       if (_isSelfie && _ctx) {
-        // 自撮り: _ctx だけ先に翻訳してから AGRU_CHAR_TAGS と結合
+        // 自撮り: _ctx だけ先に翻訳してから agruCharTags と結合
         fetch('/api/translate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: _ctx }),
         }).then(r => r.json()).then(d => {
           const _translated = d.result || _ctx;
-          _agruGenerateSDImage(AGRU_CHAR_TAGS + ', ' + _translated);
+          _agruGenerateSDImage(agruCharTags + ', ' + _translated).finally(_selfieFinally);
         }).catch(() => {
-          _agruGenerateSDImage(AGRU_CHAR_TAGS + ', ' + _ctx);
+          _agruGenerateSDImage(agruCharTags + ', ' + _ctx).finally(_selfieFinally);
         });
       } else {
-        _agruGenerateSDImage(_isSelfie ? AGRU_CHAR_TAGS : (_ctx || '1girl, anime'));
+        const _p = _agruGenerateSDImage(_isSelfie ? agruCharTags : (_ctx || '1girl, anime'));
+        if (_isSelfie) _p.finally(_selfieFinally);
       }
     }
 
@@ -5540,6 +5603,86 @@ async function _agruDebug(message) {
   }
 }
 
+// モーダルのドラッグ操作を初期化
+(function () {
+  const overlay = document.getElementById('agruModal');
+  const modal   = overlay?.querySelector('.agru-modal');
+  const header  = modal?.querySelector('.agru-modal-header');
+  if (!modal || !header) return;
+
+  let dragging = false, ox = 0, oy = 0;
+
+  header.addEventListener('mousedown', e => {
+    if (e.target.closest('button')) return;
+    dragging = true;
+    const rect = modal.getBoundingClientRect();
+    // transform ベースの初期位置を px に変換
+    modal.style.left      = rect.left + 'px';
+    modal.style.top       = rect.top  + 'px';
+    modal.style.transform = 'none';
+    ox = e.clientX - rect.left;
+    oy = e.clientY - rect.top;
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    modal.style.left = (e.clientX - ox) + 'px';
+    modal.style.top  = (e.clientY - oy) + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (dragging) {
+      localStorage.setItem('agruModalX', modal.style.left);
+      localStorage.setItem('agruModalY', modal.style.top);
+    }
+    dragging = false;
+  });
+})();
+
+// YouTubeモーダルのドラッグ操作
+(function () {
+  const modal  = document.getElementById('agruYtModal');
+  const header = modal?.querySelector('.agru-yt-modal-header');
+  if (!modal || !header) return;
+  let dragging = false, ox = 0, oy = 0;
+  header.addEventListener('mousedown', e => {
+    if (e.target.closest('button')) return;
+    dragging = true;
+    const rect = modal.getBoundingClientRect();
+    modal.style.left      = rect.left + 'px';
+    modal.style.top       = rect.top  + 'px';
+    modal.style.transform = 'none';
+    ox = e.clientX - rect.left;
+    oy = e.clientY - rect.top;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    modal.style.left = (e.clientX - ox) + 'px';
+    modal.style.top  = (e.clientY - oy) + 'px';
+  });
+  document.addEventListener('mouseup', () => {
+    if (dragging) {
+      localStorage.setItem('agruYtModalX', modal.style.left);
+      localStorage.setItem('agruYtModalY', modal.style.top);
+    }
+    dragging = false;
+  });
+})();
+
+// YouTube再生終了時に自動閉じ・音量設定
+window.addEventListener('message', e => {
+  try {
+    const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+    if (data.event === 'onStateChange' && data.info === 0) closeAgruYtModal();
+    if (data.event === 'onReady') {
+      const iframe = document.getElementById('agruYtIframe');
+      if (iframe) iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [agruYtVolume] }), '*');
+    }
+  } catch {}
+});
+
 async function openAgruModal() {
   if (agruActive) return;
   agruActive = true;
@@ -5558,6 +5701,13 @@ async function openAgruModal() {
   _agruUpdateAffinityDisplay();
   _agruSetStatus('起動中...');
   document.getElementById('agruModal').classList.remove('hidden');
+  _agruBgmPlay();
+  const _cm = document.querySelector('#agruModal .agru-modal');
+  if (_cm) {
+    const _cx = localStorage.getItem('agruModalX'), _cy = localStorage.getItem('agruModalY');
+    if (_cx && _cy) { _cm.style.left = _cx; _cm.style.top = _cy; _cm.style.transform = 'none'; }
+    else { _cm.style.left = ''; _cm.style.top = ''; _cm.style.transform = ''; }
+  }
 
   // 起動挨拶
   _agruSend('配信が始まりました。視聴者に向けて元気よく挨拶してください。', null);
@@ -5566,9 +5716,11 @@ async function openAgruModal() {
 function closeAgruModal() {
   agruActive = false;
   agruIdle   = true;
+  _agruSelfieLocked = false;
   clearTimeout(_agruIdleTimer);
   clearInterval(_agruTypeTimer);
-  closeAgruYt();
+  closeAgruYtModal();
+  _agruBgmStop();
   document.getElementById('agruModal').classList.add('hidden');
 }
 
@@ -5577,30 +5729,34 @@ function _agruPlayYouTube() {
     .then(r => r.json())
     .then(d => {
       if (!d.videoId) return;
-      const log = document.getElementById('agruChatLog');
-      if (!log) return;
-      // 既存のYouTubeバブルを停止・削除
-      log.querySelectorAll('.agru-yt-bubble').forEach(el => {
-        const f = el.querySelector('iframe');
-        if (f) f.src = '';
-        el.remove();
-      });
-      const wrap = document.createElement('div');
-      wrap.className = 'agru-yt-bubble';
-      const iframe = document.createElement('iframe');
-      iframe.src = `https://www.youtube.com/embed/${d.videoId}?autoplay=1&rel=0`;
-      iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-      iframe.allowFullscreen = true;
-      iframe.frameBorder = '0';
-      wrap.appendChild(iframe);
-      log.appendChild(wrap);
-      requestAnimationFrame(() => { log.scrollTop = log.scrollHeight; });
+      const modal  = document.getElementById('agruYtModal');
+      const iframe = document.getElementById('agruYtIframe');
+      if (!modal || !iframe) return;
+      _agruBgmPause();
+      iframe.src = `https://www.youtube.com/embed/${d.videoId}?autoplay=1&rel=0&enablejsapi=1`;
+      // 保存済み位置を復元
+      const sx = localStorage.getItem('agruYtModalX'), sy = localStorage.getItem('agruYtModalY');
+      if (sx && sy) { modal.style.left = sx; modal.style.top = sy; modal.style.transform = 'none'; }
+      else { modal.style.left = ''; modal.style.top = ''; modal.style.transform = ''; }
+      modal.classList.remove('hidden');
+      // YouTube postMessage API でイベント購読・音量設定
+      iframe.addEventListener('load', () => {
+        try {
+          iframe.contentWindow.postMessage('{"event":"listening","id":1}', '*');
+          iframe.contentWindow.postMessage('{"event":"command","func":"addEventListener","args":["onStateChange"]}', '*');
+          iframe.contentWindow.postMessage('{"event":"command","func":"addEventListener","args":["onReady"]}', '*');
+        } catch {}
+      }, { once: true });
     })
     .catch(() => {});
 }
 
-function closeAgruYt() {
-  document.querySelectorAll('.agru-yt-bubble iframe').forEach(f => { f.src = ''; });
+function closeAgruYtModal() {
+  const modal  = document.getElementById('agruYtModal');
+  const iframe = document.getElementById('agruYtIframe');
+  if (modal)  modal.classList.add('hidden');
+  if (iframe) iframe.src = '';
+  if (agruActive) _agruBgmPlay();
 }
 
 async function askAI(user, question) {
@@ -6969,6 +7125,12 @@ function checkQuizAnswer(guess, answer) {
   if (!g) return false;
   if (g === a) return true;
   if (g.length >= 2 && (a.includes(g) || g.includes(a))) return true;
+  // 表記揺れ対応：回答の4文字以上の連続部分文字列がコメントに含まれていれば正解
+  if (a.length >= 4) {
+    for (let i = 0; i <= a.length - 4; i++) {
+      if (g.includes(a.slice(i, i + 4))) return true;
+    }
+  }
   return false;
 }
 
@@ -8295,6 +8457,9 @@ function handleAdminMessage(d, replyFn) {
     state.agruFontRight          = agruFontRight;
     state.agruDefaultImage       = agruDefaultImage;
     state.agruEmotionMap         = localStorage.getItem('agruEmotionMap') || '{}';
+    state.agruCharTags           = agruCharTags;
+    state.agruYtVolume           = agruYtVolume;
+    state.agruBgmVolume          = agruBgmVolume;
     state.autoDeleteMinutes   = autoDeleteMinutes;
     state.fiveMinMode   = fiveMinMode;
     state.brAutoEnabled = brAutoEnabled;
@@ -8396,6 +8561,9 @@ function handleAdminMessage(d, replyFn) {
     if (d.key === 'agruChatFontSize')       agruChatFontSize       = parseInt(d.value) || 14;
     if (d.key === 'agruFontLeft')           agruFontLeft           = d.value;
     if (d.key === 'agruFontRight')          agruFontRight          = d.value;
+    if (d.key === 'agruCharTags')           agruCharTags           = d.value;
+    if (d.key === 'agruYtVolume')           agruYtVolume           = parseInt(d.value) || 100;
+    if (d.key === 'agruBgmVolume')          { agruBgmVolume = parseInt(d.value) ?? 50; if (!_agruBgm.paused) _agruBgm.volume = agruBgmVolume / 100; }
     const elMap = { agruSystem: 'agruSystemInput' };
     const el = elMap[d.key] ? document.getElementById(elMap[d.key]) : null;
     if (el) el.value = d.value;

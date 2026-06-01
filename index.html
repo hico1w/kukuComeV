@@ -242,7 +242,7 @@
     <a class="sidebar-link" href="#sec-style">✏️ コメントスタイル</a>
     <a class="sidebar-link" href="#sec-font">🔤 フォント一覧</a>
     <a class="sidebar-link" href="#sec-media">🖼 メディア</a>
-    <a class="sidebar-link" href="#sec-ui">🖱 UIボタン</a>
+    <a class="sidebar-link" href="#sec-ageru">🌸 アゲルちゃん</a>
     <a class="sidebar-link" href="#sec-titles">⭐ 称号一覧</a>
     <a class="sidebar-link" href="#sec-examples">💡 組み合わせ例</a>
     <a class="sidebar-link" href="#sec-cmdref">📋 コマンド一覧</a>
@@ -584,6 +584,15 @@
           次にコメントすると自動で復帰します。<br>
           <b>30分間コメントがないキャラは自動でステージから削除</b>されます（セーブデータは保持されるため、次回コメント時に復元）。<br>
           ただし <b>手動でAFK・放置・無明コマンドを入力したキャラは自動削除の対象外</b>です。masterキャラも対象外。
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#f472b6">🌸 アゲルちゃん会話モード</div>
+        <div class="feature-card-body">
+          配信中にリアルタイムで視聴者コメントに返答するAIキャラ「<b>星井野アゲル</b>」を呼び出せます。<br>
+          Ollamaによる感情・好感度付き返答、VOICEVOX読み上げ、SD画像生成（自撮り）、YouTube再生、BGMループに対応。<br>
+          詳細は <a href="#sec-ageru">🌸 アゲルちゃん</a> セクションを参照。
         </div>
       </div>
 
@@ -1273,34 +1282,99 @@
     </div>
   </div>
 
-  <!-- ── UI操作 ── -->
-  <div class="section" id="sec-ui">
-    <div class="section-title">🖱 UIボタン・操作</div>
-    <div class="btn-table">
-      <div class="btn-row"><div class="btn-label">▶ 開始</div><div class="btn-desc2">APIキーとハッシュを使ってコメント取得を開始</div></div>
-      <div class="btn-row"><div class="btn-label">■ 停止</div><div class="btn-desc2">コメント取得と自動早押しを停止</div></div>
-      <div class="btn-row"><div class="btn-label">💬 ログ</div><div class="btn-desc2">画面右下にコメントログパネルを表示/非表示</div></div>
-      <div class="btn-row"><div class="btn-label">🖼 キャラ画像</div><div class="btn-desc2">キャラ1〜500に画像を割り当てるモーダルを開く</div></div>
-      <div class="btn-row"><div class="btn-label">🔔 集合</div><div class="btn-desc2">全キャラを画面下部中央に横並びで集合させる</div></div>
-      <div class="btn-row"><div class="btn-label">💀 ボス消去</div><div class="btn-desc2">現在のボスを消去（次のボスは自動召喚されない）</div></div>
-      <div class="btn-row"><div class="btn-label">🔒 移動制限</div><div class="btn-desc2">ON時：移動コマンドと方向移動をすべて無効化</div></div>
-      <div class="btn-row"><div class="btn-label">📝 Wordle</div><div class="btn-desc2">Wordleパネルを表示/終了</div></div>
-      <div class="btn-row"><div class="btn-label">⚡ 早押し</div><div class="btn-desc2">早押しゲームを手動起動/停止</div></div>
-      <div class="btn-row"><div class="btn-label">🐛 DEBUG</div><div class="btn-desc2">ON時：全キャラのATKを強制的に50にする（テスト用）</div></div>
-      <div class="btn-row"><div class="btn-label">⏹ 全停止</div><div class="btn-desc2">全キャラのランダム移動とモーションを即時停止</div></div>
-      <div class="btn-row"><div class="btn-label">🗑 リセット</div><div class="btn-desc2">ステージ上の全キャラを退場＆コメント番号リセット</div></div>
-      <div class="btn-row"><div class="btn-label">📋 OBS URL</div><div class="btn-desc2">OBSブラウザソース用URL（/?obs=1）をコピー。設定バー非表示で自動スタート</div></div>
-      <div class="btn-row"><div class="btn-label">BG色</div><div class="btn-desc2">ステージ背景色をカラーピッカーで変更（デフォルト:#00FF00）。OBSクロマキーに合わせて設定</div></div>
-      <div class="btn-row"><div class="btn-label">🖼 BG画像</div><div class="btn-desc2">背景画像をアップロード（全画面表示）。ファイルはサーバーに保存されブラウザ再起動後も保持</div></div>
-      <div class="btn-row"><div class="btn-label">✕BG</div><div class="btn-desc2">背景画像を削除して背景色に戻す</div></div>
-      <div class="btn-row"><div class="btn-label">移動エリア</div><div class="btn-desc2">ランダム移動の範囲を制限（全体/下半分/上半分/左半分/右半分/左下/右下）</div></div>
-      <div class="btn-row"><div class="btn-label">❓ コマンド</div><div class="btn-desc2">このページを新しいタブで開く</div></div>
+  <!-- ── アゲルちゃん会話モード ── -->
+  <div class="section" id="sec-ageru">
+    <div class="section-title">🌸 アゲルちゃん会話モード</div>
+
+    <div class="purple-box" style="margin-bottom:16px">
+      <b>星井野アゲル</b>はOllamaで動作するAI配信キャラです。会話モーダルを開くと視聴者コメントにリアルタイムで返答し、感情・好感度・画像生成・音楽再生などを行います。<br>
+      <b>カタカナ5文字のコメントはアゲルちゃんへ渡されません</b>（Wordleゲームとの競合を防ぐため）。
     </div>
-    <div class="info-box" style="margin-top:12px">
-      <b>ドラッグ操作</b>：キャラをマウスでつかんで自由に移動できます（効果音あり）。<br>
-      <b>🗑 ゴミ箱</b>：キャラをゴミ箱に重ねてドロップするとキャラが消えます。ゴミ箱もドラッグで移動可（位置保存）。<br>
-      <b>ボスもドラッグ</b>で移動できます。<br>
-      <b>ランキングパネル・Wordleパネル</b>もドラッグで移動でき、位置はブラウザに保存されます。
+
+    <div class="feature-grid">
+
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#f472b6">💬 会話モーダル</div>
+        <div class="feature-card-body">
+          幅870px × 高さ460pxの<b>半透明すりガラス</b>モーダル（rgba 0.45 + backdrop-filter:blur(14px)）。<br>
+          ヘッダーをドラッグして自由に移動でき、<b>位置はlocalStorageに保存</b>されます（次回起動時に復元）。<br>
+          左エリアにキャラ画像（グラデーションフレーム付き）、右エリアにチャットログ。チャットは<b>最新10件</b>を保持（古いものは自動削除）。<br>
+          キャラ画像の後ろに<code>ageru/haikei.png</code>をblur(4px)でぼかして背景表示。好感度はキャラ画像に重ねてオーバーレイ表示。
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#a78bfa">🤖 AI返答システム</div>
+        <div class="feature-card-body">
+          Ollamaで動作。視聴者コメントを受け取り、<b>感情・好感度変化・返答テキスト</b>をJSONで返します。<br>
+          <b>感情は20種類</b>：安心・愛しさ・感謝・性的興奮・興奮・感動・好奇心・驚き・尊敬・不安・恐怖・困惑・冷静・軽蔑・殺意・悲しみ・諦め・苦しみ・嫉妬・恥。<br>
+          感情に対応したフォルダ（<code>public/ageru/感情名/</code>）から画像をランダム選択して表示。<br>
+          <b>ひこいち（配信者）への言及には極端に辛辣な返答</b>をするよう設定済み。
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#fbbf24">💗 好感度システム</div>
+        <div class="feature-card-body">
+          0〜100の好感度スコアを管理。コメントの内容に応じてAIが±で変動させます。<br>
+          好感度はキャラ画像の下部にハートアイコン列で表示（10段階視覚化）。<br>
+          会話履歴は最大100往復保持。モーダルを閉じるとリセット。
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#f472b6">📷 自撮りコマンド（SD画像生成）</div>
+        <div class="feature-card-body">
+          コメントに<b>自撮り</b>を含めるとStable Diffusionでアゲルちゃんの画像を生成してチャットに表示します。<br>
+          基本プロンプト（LoRA・外見タグ）は管理パネルの「自撮り基本プロンプト」で設定可能。<br>
+          <b>生成中は新たなコメントをすべて無視</b>（ロック）。画像表示完了後にロック解除→コメント待ちへ移行。<br>
+          追加テキストがある場合（例：「自撮り 笑顔で」）は英語に翻訳してからプロンプトと結合。
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#f87171">🎵 YouTube再生</div>
+        <div class="feature-card-body">
+          コメントに<b>曲</b>または<b>歌</b>が含まれると<code>@hico1w/videos</code>からランダムに1動画を再生。<br>
+          <b>専用YouTubeモーダル</b>（435×245px）がフローティング表示。ドラッグ可能で<b>位置保存</b>あり。<br>
+          <b>動画終了時に自動クローズ</b>（YouTube postMessage API経由）。<br>
+          コメントに<b>止めて</b>が含まれると即停止。次の動画を再生すると前の動画は自動削除。<br>
+          YouTube再生中はBGMを一時停止し、モーダルが閉じると自動的にBGMを再開。
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#22c55e">🎵 BGM</div>
+        <div class="feature-card-body">
+          会話モーダルを開くと<code>ageru/oto/bgm.mp3</code>を<b>ループ再生</b>（フェードイン2秒）。<br>
+          モーダルを閉じると<b>フェードアウト1秒</b>して停止。YouTube再生時はフェードアウトして一時停止、YouTube終了後にフェードイン再開。<br>
+          BGM音量・YouTube音量はそれぞれ管理パネルから設定可能（0〜100%）。
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#7dd3fc">🔊 VOICEVOX読み上げ</div>
+        <div class="feature-card-body">
+          アゲルちゃんの返答テキストをVOICEVOX（ローカル起動必須）で音声合成して読み上げます。<br>
+          話者ID・速度・音量は管理パネルから設定可能。無効にすることもできます。
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#fb923c">⏱ アイドル動作</div>
+        <div class="feature-card-body">
+          返答後は設定した秒数待ってコメント待ちモードへ移行。画像生成時はより長いタイムアウトを使用。<br>
+          アイドル時間が続くと定期的にアゲルちゃんが自発的にコメントをします。<br>
+          <b>コメント待ちモード中のみ新しいコメントを受け付け</b>ます。自撮りロック中はすべてのコメントを無視。
+        </div>
+      </div>
+
+    </div>
+
+    <div class="info-box" style="margin-top:16px">
+      <b>フォルダ構成</b>：<code>public/ageru/感情名/</code>に画像を入れると感情に対応した画像として自動認識。<code>public/ageru/oto/bgm.mp3</code>がBGM、<code>public/ageru/oto/pop.mp3</code>がチャットポップ音。<br>
+      <b>デフォルト画像</b>：管理パネルの「アゲルちゃん設定」から初期表示画像を選択可能。<br>
+      <b>セキュリティ</b>：会話モーダルへのアクセスは配信者のみ。視聴者はコメントを通じてのみ会話に参加。
     </div>
   </div>
 

@@ -931,6 +931,21 @@
       <span id="agruVoicevoxVolumeVal" style="font-size:11px;color:#e2e8f0;min-width:36px;text-align:right">100%</span>
     </div>
   </div>
+  <!-- BGM・YouTube音量 -->
+  <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+    <label style="font-size:11px;color:#94a3b8;min-width:72px">BGM音量</label>
+    <input type="range" id="agruBgmVolumeInput" min="0" max="100" step="5" value="50"
+           style="flex:1;accent-color:#f43f5e"
+           oninput="document.getElementById('agruBgmVolumeVal').textContent=this.value+'%';sendAgruText('agruBgmVolume',this.value)">
+    <span id="agruBgmVolumeVal" style="font-size:11px;color:#e2e8f0;min-width:36px;text-align:right">50%</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+    <label style="font-size:11px;color:#94a3b8;min-width:72px">YouTube音量</label>
+    <input type="range" id="agruYtVolumeInput" min="0" max="100" step="5" value="100"
+           style="flex:1;accent-color:#f43f5e"
+           oninput="document.getElementById('agruYtVolumeVal').textContent=this.value+'%';sendAgruText('agruYtVolume',this.value)">
+    <span id="agruYtVolumeVal" style="font-size:11px;color:#e2e8f0;min-width:36px;text-align:right">100%</span>
+  </div>
   <!-- 会話モード SD設定 -->
   <div style="margin-top:10px;padding:8px;background:rgba(15,23,42,0.6);border:1px solid #1e293b;border-radius:6px">
     <div style="font-size:10px;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">会話モード SD生成設定</div>
@@ -957,6 +972,12 @@
       <input id="agruSdPositiveSuffixInput" type="text" placeholder="空欄でSD生成設定の値を使用"
              style="width:100%;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:3px 6px;box-sizing:border-box"
              onchange="sendAgruText('agruSdPositiveSuffix',this.value)">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px;margin-top:6px">
+      <span style="font-size:10px;color:#94a3b8">自撮り基本プロンプト</span>
+      <textarea id="agruCharTagsInput" rows="3" placeholder="自撮りコマンド時の基本プロンプト"
+                style="width:100%;font-size:10px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:3px 6px;box-sizing:border-box;resize:vertical;font-family:monospace"
+                onchange="sendAgruText('agruCharTags',this.value)"></textarea>
     </div>
     <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="font-size:10px;color:#94a3b8">コメント待ち移行（秒）</span>
@@ -1710,6 +1731,9 @@
     if (s.agruChatFontSize    !== undefined) { const el = document.getElementById('agruChatFontSizeInput');    if (el) el.value = s.agruChatFontSize; }
     if (s.agruFontLeft        !== undefined) { const el = document.getElementById('agruFontLeftInput');        if (el) el.value = s.agruFontLeft; }
     if (s.agruFontRight       !== undefined) { const el = document.getElementById('agruFontRightInput');       if (el) el.value = s.agruFontRight; }
+    if (s.agruCharTags        !== undefined) { const el = document.getElementById('agruCharTagsInput');        if (el) el.value = s.agruCharTags; }
+    if (s.agruBgmVolume       !== undefined) { const el = document.getElementById('agruBgmVolumeInput'); if (el) { el.value = s.agruBgmVolume; const v = document.getElementById('agruBgmVolumeVal'); if (v) v.textContent = s.agruBgmVolume + '%'; } }
+    if (s.agruYtVolume        !== undefined) { const el = document.getElementById('agruYtVolumeInput'); if (el) { el.value = s.agruYtVolume; const v = document.getElementById('agruYtVolumeVal'); if (v) v.textContent = s.agruYtVolume + '%'; } }
     if (s.agruDefaultImage !== undefined) {
       localStorage.setItem('agruDefaultImage', s.agruDefaultImage);
       _refreshDefaultThumb(s.agruDefaultImage);
