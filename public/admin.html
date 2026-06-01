@@ -943,12 +943,80 @@
       <input id="agruSdHeightInput" type="number" min="64" max="2048" step="64" value="512"
              style="width:70px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
              onchange="sendAgruText('agruSdHeight',this.value)">
+      <span class="size-label">Steps</span>
+      <input id="agruSdStepsInput" type="number" min="1" max="100" step="1" placeholder="SD設定値"
+             style="width:65px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
+             onchange="sendAgruText('agruSdSteps',this.value||'0')">
+      <span class="size-label">CFG</span>
+      <input id="agruSdCfgScaleInput" type="number" min="1" max="30" step="0.5" placeholder="SD設定値"
+             style="width:65px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
+             onchange="sendAgruText('agruSdCfgScale',this.value||'0')">
     </div>
     <div style="display:flex;flex-direction:column;gap:3px">
       <span style="font-size:10px;color:#94a3b8">ポジティブ（常時付加）</span>
       <input id="agruSdPositiveSuffixInput" type="text" placeholder="空欄でSD生成設定の値を使用"
              style="width:100%;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:3px 6px;box-sizing:border-box"
              onchange="sendAgruText('agruSdPositiveSuffix',this.value)">
+    </div>
+    <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:10px;color:#94a3b8">コメント待ち移行（秒）</span>
+      <input id="agruIdleDelayInput" type="number" min="1" max="300" step="1" value="10"
+             style="width:55px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
+             onchange="sendAgruText('agruIdleDelay',this.value)">
+      <span style="font-size:10px;color:#94a3b8">画像生成時（秒）</span>
+      <input id="agruIdleDelayImageInput" type="number" min="1" max="300" step="1" value="30"
+             style="width:55px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
+             onchange="sendAgruText('agruIdleDelayImage',this.value)">
+    </div>
+  </div>
+  <!-- 会話モード チャットフォント設定 -->
+  <div style="margin-top:10px;padding:8px;background:rgba(15,23,42,0.6);border:1px solid #1e293b;border-radius:6px">
+    <div style="font-size:10px;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">会話モード チャットフォント</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+      <span style="font-size:10px;color:#94a3b8">文字サイズ（px）</span>
+      <input id="agruChatFontSizeInput" type="number" min="8" max="32" step="1" value="14"
+             style="width:50px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
+             onchange="sendAgruText('agruChatFontSize',this.value)">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:10px;color:#ec4899;min-width:90px">🌸 アゲルちゃん</span>
+        <select id="agruFontLeftInput"
+                style="flex:1;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
+                onchange="sendAgruText('agruFontLeft',this.value)">
+          <option value="">デフォルト</option>
+          <option value="'Noto Sans JP', sans-serif">Noto Sans JP</option>
+          <option value="'M PLUS Rounded 1c', sans-serif">M PLUS Rounded 1c</option>
+          <option value="'Zen Maru Gothic', sans-serif">Zen Maru Gothic</option>
+          <option value="'Kosugi Maru', sans-serif">Kosugi Maru</option>
+          <option value="'Reggae One', cursive">Reggae One</option>
+          <option value="'Kaisei Opti', serif">Kaisei Opti</option>
+          <option value="'Yuji Syuku', serif">Yuji Syuku</option>
+          <option value="'RocknRoll One', sans-serif">RocknRoll One</option>
+          <option value="'Stick', sans-serif">Stick</option>
+          <option value="serif">serif</option>
+          <option value="monospace">monospace</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:10px;color:#3b82f6;min-width:90px">💬 コメント</span>
+        <select id="agruFontRightInput"
+                style="flex:1;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
+                onchange="sendAgruText('agruFontRight',this.value)">
+          <option value="">デフォルト</option>
+          <option value="'Noto Sans JP', sans-serif">Noto Sans JP</option>
+          <option value="'M PLUS Rounded 1c', sans-serif">M PLUS Rounded 1c</option>
+          <option value="'Zen Maru Gothic', sans-serif">Zen Maru Gothic</option>
+          <option value="'Kosugi Maru', sans-serif">Kosugi Maru</option>
+          <option value="'Reggae One', cursive">Reggae One</option>
+          <option value="'Kaisei Opti', serif">Kaisei Opti</option>
+          <option value="'Yuji Syuku', serif">Yuji Syuku</option>
+          <option value="'RocknRoll One', sans-serif">RocknRoll One</option>
+          <option value="'Stick', sans-serif">Stick</option>
+          <option value="serif">serif</option>
+          <option value="monospace">monospace</option>
+        </select>
+      </div>
     </div>
   </div>
   <!-- デバッグ -->
@@ -977,25 +1045,41 @@
   <!-- デフォルト画像 -->
   <div style="margin-top:10px">
     <div style="font-size:10px;color:#64748b;margin-bottom:4px">デフォルト画像（感情マップ未設定時）</div>
-    <div id="agruDefaultImgStrip" class="agru-img-strip"></div>
+    <div id="agruDefaultImgRow" style="border:1px solid #1e293b;border-radius:4px;overflow:hidden">
+      <div id="agruDefaultImgSummary"
+           style="display:flex;align-items:center;gap:6px;padding:5px 8px;cursor:pointer;background:rgba(15,23,42,0.6)"
+           onclick="toggleDefaultImgPicker()">
+        <span style="font-size:10px;color:#94a3b8;flex-shrink:0">選択中</span>
+        <div id="agruDefaultThumb" style="display:flex;gap:2px;align-items:center;flex:1;font-size:10px;color:#475569">なし</div>
+        <span id="agruDefaultArrow" style="font-size:9px;color:#475569">▶</span>
+      </div>
+      <div id="agruDefaultPicker" style="display:none;padding:4px 6px;background:rgba(15,23,42,0.4)">
+        <div id="agruDefaultImgStrip" class="agru-img-strip"></div>
+      </div>
+    </div>
   </div>
-  <!-- 感情マップ -->
+  <!-- 感情フォルダ -->
   <div style="margin-top:10px">
-    <div style="font-size:10px;color:#64748b;margin-bottom:4px">感情マップ</div>
-    <!-- 大プレビュー -->
-    <div id="agruPreviewPanel" style="display:none;text-align:center;margin-bottom:8px;padding:6px;background:rgba(88,28,135,0.15);border:1px solid rgba(192,132,252,0.15);border-radius:6px">
-      <img id="agruPreviewImg" src="" alt=""
-           style="max-height:130px;max-width:100%;border-radius:4px;object-fit:contain">
-      <div id="agruPreviewLabel" style="font-size:10px;color:#c084fc;margin-top:3px"></div>
+    <div style="font-size:10px;color:#64748b;margin-bottom:4px">感情フォルダ（public/ageru/感情名/）</div>
+    <!-- 左右レイアウト -->
+    <div style="display:flex;gap:8px;align-items:flex-start">
+      <!-- 左：感情リスト -->
+      <div style="flex:1;min-width:0">
+        <div id="agruEmotionMapGrid"
+             style="display:flex;flex-direction:column;gap:4px;max-height:480px;overflow-y:auto;padding-right:2px">
+        </div>
+        <button onclick="initAgruEmotionMapUI()"
+                style="margin-top:8px;padding:4px 14px;font-size:11px;background:#1e3a5f;color:#93c5fd;border:1px solid #1e40af;border-radius:4px;cursor:pointer">
+          表示を更新
+        </button>
+      </div>
+      <!-- 右：プレビュー -->
+      <div id="agruPreviewPanel" style="display:none;width:500px;flex-shrink:0;position:sticky;top:0;text-align:center;padding:6px;background:rgba(88,28,135,0.15);border:1px solid rgba(192,132,252,0.15);border-radius:6px">
+        <img id="agruPreviewImg" src="" alt=""
+             style="max-height:600px;max-width:100%;border-radius:4px;object-fit:contain">
+        <div id="agruPreviewLabel" style="font-size:10px;color:#c084fc;margin-top:3px;word-break:break-all"></div>
+      </div>
     </div>
-    <!-- 感情リスト -->
-    <div id="agruEmotionMapGrid"
-         style="display:flex;flex-direction:column;gap:4px;max-height:320px;overflow-y:auto;padding-right:2px">
-    </div>
-    <button onclick="saveAgruEmotionMap()"
-            style="margin-top:8px;padding:4px 14px;font-size:11px;background:#1e3a5f;color:#93c5fd;border:1px solid #1e40af;border-radius:4px;cursor:pointer">
-      感情マップを保存
-    </button>
   </div>
 </div>
 
@@ -1010,8 +1094,13 @@
   <div style="font-size:10px;color:#64748b;margin-bottom:6px">別PCのOllamaを使う場合はIPアドレスを入力。別PC側は OLLAMA_HOST=0.0.0.0 で起動すること。</div>
   <div class="size-row">
     <span class="size-label">モデル</span>
-    <input id="aiModelInput" type="text" value="gemma3:12b" class="admin-text-input"
-           oninput="sendAIText('aiModel',this.value)">
+    <select id="aiModelInput" class="admin-text-input"
+            onchange="sendAIText('aiModel',this.value)">
+      <option value="gemma3:4b">gemma3:4b</option>
+      <option value="gemma3:12b" selected>gemma3:12b</option>
+      <option value="qwen2.5:7b">qwen2.5:7b</option>
+      <option value="gemma4:e4b">gemma4:e4b</option>
+    </select>
   </div>
   <div class="size-row" style="align-items:flex-start">
     <span class="size-label" style="padding-top:4px">ルール</span>
@@ -1047,6 +1136,32 @@
     <input type="range" id="sdStepsSlider" min="1" max="50" value="20" class="size-slider"
            oninput="document.getElementById('sdStepsVal').textContent=this.value;sendSDText('sdSteps',this.value)">
     <span id="sdStepsVal" class="size-val">20</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">CFG Scale</span>
+    <input type="number" id="sdCfgScaleInput" min="1" max="30" step="0.5" value="3"
+           style="width:60px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:2px 6px"
+           onchange="sendSDText('sdCfgScale',this.value)">
+  </div>
+  <div class="size-row">
+    <span class="size-label">Sampler</span>
+    <select id="sdSamplerInput"
+            style="flex:1;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:2px 6px;font-size:12px"
+            onchange="sendSDText('sdSampler',this.value)">
+      <option value="Euler a">Euler a</option>
+      <option value="Euler">Euler</option>
+      <option value="DPM++ 2M">DPM++ 2M</option>
+      <option value="DPM++ 2M Karras">DPM++ 2M Karras</option>
+      <option value="DPM++ SDE">DPM++ SDE</option>
+      <option value="DPM++ SDE Karras">DPM++ SDE Karras</option>
+      <option value="DPM++ 2S a">DPM++ 2S a</option>
+      <option value="DPM++ 2S a Karras">DPM++ 2S a Karras</option>
+      <option value="Heun">Heun</option>
+      <option value="LMS">LMS</option>
+      <option value="LMS Karras">LMS Karras</option>
+      <option value="DDIM">DDIM</option>
+      <option value="UniPC">UniPC</option>
+    </select>
   </div>
   <div class="size-row">
     <span class="size-label">表示サイズ</span>
@@ -1213,6 +1328,11 @@
         if (d.image) { imgEl.src = '/ageru/' + encodeURIComponent(d.image); imgEl.style.display = ''; }
         else imgEl.style.display = 'none';
       }
+      return;
+    }
+    if (d.type === 'mainConnected') {
+      // main ページ(OBS等)が新たに接続 → 設定を再送
+      adminSend({ type: 'getState' });
       return;
     }
     if (d.type === 'state') {
@@ -1548,12 +1668,13 @@
         if (ttsValMap[key]) { const v = document.getElementById(ttsValMap[key]); if (v) v.textContent = key === 'ttsVolume' ? Math.round(s[key] * 100) + '%' : s[key]; }
       }
     });
-    const sdFields = ['sdWidth','sdHeight','sdSteps','sdPopWidth','sdPositiveSuffix','sdNegative','sdDisplayTime','sdMosaicKeywords','sdMosaicBlock'];
+    const sdFields = ['sdWidth','sdHeight','sdSteps','sdPopWidth','sdPositiveSuffix','sdNegative','sdDisplayTime','sdMosaicKeywords','sdMosaicBlock','sdCfgScale','sdSampler'];
     const sdElMap = { sdWidth:'sdWidthInput', sdHeight:'sdHeightInput', sdSteps:'sdStepsSlider',
                       sdPopWidth:'sdPopWidthSlider',
                       sdPositiveSuffix:'sdPositiveSuffixInput', sdNegative:'sdNegativeInput',
                       sdDisplayTime:'sdDisplayTimeSlider', sdMosaicKeywords:'sdMosaicKeywordsInput',
-                      sdMosaicBlock:'sdMosaicBlockSlider' };
+                      sdMosaicBlock:'sdMosaicBlockSlider',
+                      sdCfgScale:'sdCfgScaleInput', sdSampler:'sdSamplerInput' };
     sdFields.forEach(key => {
       if (s[key] !== undefined) {
         const el = document.getElementById(sdElMap[key]);
@@ -1581,21 +1702,22 @@
     if (s.agruVoicevoxVolume  !== undefined) { const el = document.getElementById('agruVoicevoxVolume'); if (el) { el.value = s.agruVoicevoxVolume; const v = document.getElementById('agruVoicevoxVolumeVal'); if (v) v.textContent = Math.round(s.agruVoicevoxVolume * 100) + '%'; } }
     if (s.agruSdWidth          !== undefined) { const el = document.getElementById('agruSdWidthInput');          if (el) el.value = s.agruSdWidth; }
     if (s.agruSdHeight         !== undefined) { const el = document.getElementById('agruSdHeightInput');         if (el) el.value = s.agruSdHeight; }
+    if (s.agruSdSteps          !== undefined) { const el = document.getElementById('agruSdStepsInput');          if (el) el.value = s.agruSdSteps    || ''; }
+    if (s.agruSdCfgScale       !== undefined) { const el = document.getElementById('agruSdCfgScaleInput');       if (el) el.value = s.agruSdCfgScale || ''; }
     if (s.agruSdPositiveSuffix !== undefined) { const el = document.getElementById('agruSdPositiveSuffixInput'); if (el) el.value = s.agruSdPositiveSuffix; }
+    if (s.agruIdleDelay       !== undefined) { const el = document.getElementById('agruIdleDelayInput');       if (el) el.value = s.agruIdleDelay; }
+    if (s.agruIdleDelayImage  !== undefined) { const el = document.getElementById('agruIdleDelayImageInput');  if (el) el.value = s.agruIdleDelayImage; }
+    if (s.agruChatFontSize    !== undefined) { const el = document.getElementById('agruChatFontSizeInput');    if (el) el.value = s.agruChatFontSize; }
+    if (s.agruFontLeft        !== undefined) { const el = document.getElementById('agruFontLeftInput');        if (el) el.value = s.agruFontLeft; }
+    if (s.agruFontRight       !== undefined) { const el = document.getElementById('agruFontRightInput');       if (el) el.value = s.agruFontRight; }
     if (s.agruDefaultImage !== undefined) {
       localStorage.setItem('agruDefaultImage', s.agruDefaultImage);
-      const defStrip = document.getElementById('agruDefaultImgStrip');
-      if (defStrip) _agruSelectInStrip(defStrip, s.agruDefaultImage);
+      _refreshDefaultThumb(s.agruDefaultImage);
+      const strip = document.getElementById('agruDefaultImgStrip');
+      if (strip && _defaultPickerBuilt) _agruSelectInStrip(strip, s.agruDefaultImage);
     }
     if (s.agruEmotionMap !== undefined) {
-      try {
-        _agruEmotionMapLocal = JSON.parse(s.agruEmotionMap);
-        localStorage.setItem('agruEmotionMap', s.agruEmotionMap);
-        document.querySelectorAll('#agruEmotionMapGrid .agru-img-strip[data-emotion]').forEach(strip => {
-          const val = _agruEmotionMapLocal[strip.dataset.emotion] || '';
-          _agruSelectInStrip(strip, val);
-        });
-      } catch {}
+      try { localStorage.setItem('agruEmotionMap', s.agruEmotionMap); } catch {}
     }
     if (s.charExcludeIds !== undefined)      { const el = document.getElementById('charExcludeInput');      if (el) el.value = s.charExcludeIds; }
     if (s.taimanDefeatCommand !== undefined) { const el = document.getElementById('taimanDefeatCmdInput'); if (el) el.value = s.taimanDefeatCommand; }
@@ -1898,29 +2020,24 @@
   });
 
   const AGRU_EMOTIONS = [
-    '安心','不安','感謝','興奮','性的興奮','好奇心','性的好奇心','冷静','焦燥','不思議',
-    '困惑','幸福','幸運','リラックス','緊張','名誉','責任','尊敬','親近感','憧れ',
-    '欲望','意欲','恐怖','勇気','快感','後悔','満足','不満','無念','嫌悪',
-    '恥','軽蔑','嫉妬','罪悪感','殺意','期待','優越感','劣等感','恨','怨み',
-    '苦しみ','悲しみ','切なさ','感動','怒り','悩み','諦め','絶望','希望','憎悪',
-    '愛憎','愛しさ','空虚','驚き',
+    '安心','愛しさ','感謝','性的興奮','興奮','感動','好奇心','驚き','尊敬','不安',
+    '恐怖','困惑','冷静','軽蔑','殺意','悲しみ','諦め','苦しみ','嫉妬','恥',
   ];
 
   let _agruImages = [];
-  let _agruEmotionMapLocal = {};
 
   function _agruImgUrl(file) {
     return file ? `/ageru/${encodeURIComponent(file)}` : '';
   }
 
-  function _agruShowPreview(file, label) {
+  function _agruShowPreview(fileOrUrl, label) {
     const panel = document.getElementById('agruPreviewPanel');
     const img   = document.getElementById('agruPreviewImg');
     const lbl   = document.getElementById('agruPreviewLabel');
-    if (!file) { if (panel) panel.style.display = 'none'; return; }
+    if (!fileOrUrl) { if (panel) panel.style.display = 'none'; return; }
     if (panel) panel.style.display = '';
-    if (img)   img.src = _agruImgUrl(file);
-    if (lbl)   lbl.textContent = label || file;
+    if (img)   img.src = fileOrUrl.startsWith('/') ? fileOrUrl : _agruImgUrl(fileOrUrl);
+    if (lbl)   lbl.textContent = label || fileOrUrl;
   }
 
   // strip内の選択を更新（files: 文字列=単一選択 / 配列=複数選択）
@@ -1934,111 +2051,164 @@
     });
   }
 
+  // デフォルト画像サマリーを更新
+  function _refreshDefaultThumb(file) {
+    const thumb = document.getElementById('agruDefaultThumb');
+    if (!thumb) return;
+    thumb.innerHTML = '';
+    if (file) {
+      const img = document.createElement('img');
+      img.src = _agruImgUrl(file); img.style.cssText = 'height:28px;border-radius:2px;';
+      thumb.appendChild(img);
+      const lbl = document.createElement('span');
+      lbl.style.cssText = 'font-size:10px;color:#94a3b8;margin-left:4px';
+      lbl.textContent = file;
+      thumb.appendChild(lbl);
+    } else {
+      thumb.textContent = 'なし';
+      thumb.style.color = '#475569';
+    }
+  }
+
+  // デフォルト画像ピッカーのトグル
+  let _defaultPickerBuilt = false;
+  function toggleDefaultImgPicker() {
+    const picker = document.getElementById('agruDefaultPicker');
+    const arrow  = document.getElementById('agruDefaultArrow');
+    if (!picker) return;
+    const isOpen = picker.style.display !== 'none';
+    picker.style.display = isOpen ? 'none' : 'block';
+    arrow.textContent = isOpen ? '▶' : '▼';
+    if (!isOpen && !_defaultPickerBuilt) {
+      _defaultPickerBuilt = true;
+      const strip = document.getElementById('agruDefaultImgStrip');
+      if (strip) _buildDefaultStripContent(strip, localStorage.getItem('agruDefaultImage') || '');
+    }
+  }
+
   // デフォルト画像ストリップのクリック（単一選択）
   function _agruDefaultClick(file) {
     const strip = document.getElementById('agruDefaultImgStrip');
     if (strip) _agruSelectInStrip(strip, file);
     sendAgruText('agruDefaultImage', file);
+    _refreshDefaultThumb(file);
     _agruShowPreview(file, 'デフォルト' + (file ? ': ' + file : ': なし'));
   }
 
-  // 感情行のクリック（複数選択トグル）
-  function _agruEmotionClick(strip, em, file) {
-    if (file === '') {
-      strip.querySelectorAll('.agru-img-opt').forEach(el => el.classList.remove('agru-selected'));
-      strip.querySelectorAll('.agru-img-none').forEach(el => el.classList.add('agru-selected'));
-      _agruShowPreview('', em + ' → なし');
-    } else {
-      const imgEl = strip.querySelector(`.agru-img-opt[data-file="${CSS.escape(file)}"]`);
-      if (imgEl) imgEl.classList.toggle('agru-selected');
-      const anySelected = !!strip.querySelector('.agru-img-opt.agru-selected');
-      strip.querySelectorAll('.agru-img-none').forEach(el => el.classList.toggle('agru-selected', !anySelected));
-      _agruShowPreview(file, em + ' → ' + file);
-    }
-  }
-
-  // ストリップを構築して返す（defVal: 文字列または配列）
-  function _buildImgStrip(defVal, onClickFn) {
-    const strip = document.createElement('div');
-    strip.className = 'agru-img-strip';
+  // デフォルト画像ストリップ内容を構築（オンデマンド）
+  function _buildDefaultStripContent(strip, defVal) {
+    strip.innerHTML = '';
     const arr = Array.isArray(defVal) ? defVal : (defVal ? [defVal] : []);
-
-    // ×（全解除）ボタン
     const noneEl = document.createElement('div');
     noneEl.className = 'agru-img-none' + (arr.length === 0 ? ' agru-selected' : '');
-    noneEl.dataset.file = '';
-    noneEl.title = '全解除';
-    noneEl.textContent = '✕';
-    noneEl.addEventListener('click', () => onClickFn(strip, ''));
+    noneEl.title = '全解除'; noneEl.textContent = '✕';
+    noneEl.addEventListener('click', () => _agruDefaultClick(''));
     strip.appendChild(noneEl);
-
     _agruImages.forEach(f => {
       const img = document.createElement('img');
       img.className = 'agru-img-opt' + (arr.includes(f) ? ' agru-selected' : '');
-      img.dataset.file = f;
-      img.src = _agruImgUrl(f);
-      img.style.height = '64px';
-      img.title = f;
-      img.addEventListener('click',      () => onClickFn(strip, f));
+      img.dataset.file = f; img.src = _agruImgUrl(f); img.style.height = '64px'; img.title = f;
+      img.addEventListener('click',      () => _agruDefaultClick(f));
       img.addEventListener('mouseenter', () => _agruShowPreview(f, f));
       strip.appendChild(img);
     });
-    return strip;
+  }
+
+  // フォルダ感情行のトグル
+  let _openEmotionRow = null;
+  function _toggleEmotionFolderRow(em, row, files) {
+    if (!files.length) return;
+    const existing = row.querySelector('.em-picker');
+    if (_openEmotionRow && _openEmotionRow !== row) {
+      const prev = _openEmotionRow.querySelector('.em-picker');
+      if (prev) prev.remove();
+      const prevArrow = _openEmotionRow.querySelector('.em-arrow');
+      if (prevArrow) prevArrow.textContent = '▶';
+    }
+    if (existing) {
+      existing.remove();
+      row.querySelector('.em-arrow').textContent = '▶';
+      _openEmotionRow = null;
+    } else {
+      const strip = document.createElement('div');
+      strip.className = 'agru-img-strip em-picker';
+      strip.style.cssText = 'flex-wrap:wrap;padding:4px 0;';
+      files.forEach(f => {
+        const img = document.createElement('img');
+        const url = `/ageru/${encodeURIComponent(em)}/${encodeURIComponent(f)}`;
+        img.className = 'agru-img-opt';
+        img.src = url;
+        img.style.height = '56px';
+        img.title = f;
+        img.addEventListener('mouseenter', () => _agruShowPreview(url, em + ' / ' + f));
+        strip.appendChild(img);
+      });
+      row.appendChild(strip);
+      row.querySelector('.em-arrow').textContent = '▼';
+      _openEmotionRow = row;
+    }
   }
 
   async function initAgruEmotionMapUI() {
+    let folderMap = {};
     try {
-      const r = await fetch('/api/ageru-images');
-      const d = await r.json();
-      _agruImages = d.images || [];
+      const r = await fetch('/api/ageru-emotion-map');
+      folderMap = await r.json();
     } catch {}
 
-    const saved = localStorage.getItem('agruEmotionMap');
-    try { _agruEmotionMapLocal = JSON.parse(saved || '{}'); } catch {}
-    const defVal = localStorage.getItem('agruDefaultImage') || '';
+    // デフォルト画像も更新
+    try {
+      const ri = await fetch('/api/ageru-images');
+      const di = await ri.json();
+      _agruImages = di.images || [];
+    } catch {}
+    _refreshDefaultThumb(localStorage.getItem('agruDefaultImage') || '');
 
-    // デフォルト画像ストリップ
-    const defContainer = document.getElementById('agruDefaultImgStrip');
-    if (defContainer) {
-      defContainer.innerHTML = '';
-      defContainer.appendChild(_buildImgStrip(defVal, (strip, f) => _agruDefaultClick(f)));
-    }
-
-    // 感情グリッドを構築
     const grid = document.getElementById('agruEmotionMapGrid');
     if (!grid) return;
     grid.innerHTML = '';
+    _openEmotionRow = null;
 
     AGRU_EMOTIONS.forEach(em => {
+      const files = folderMap[em] || [];
       const row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:flex-start;gap:6px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.04)';
+      row.dataset.emotionRow = em;
+      row.style.cssText = 'border-bottom:1px solid rgba(255,255,255,0.04)';
+
+      const summary = document.createElement('div');
+      summary.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 2px;cursor:pointer;';
+      summary.addEventListener('click', () => _toggleEmotionFolderRow(em, row, files));
 
       const nameEl = document.createElement('span');
-      nameEl.style.cssText = 'font-size:10px;color:#94a3b8;width:52px;flex-shrink:0;padding-top:8px';
+      nameEl.style.cssText = 'font-size:10px;color:#94a3b8;width:52px;flex-shrink:0';
       nameEl.textContent = em;
 
-      const rawVal = _agruEmotionMapLocal[em];
-      const curArr = Array.isArray(rawVal) ? rawVal : (rawVal ? [rawVal] : []);
-      const strip = _buildImgStrip(curArr, (s, f) => _agruEmotionClick(s, em, f));
-      strip.dataset.emotion = em;
-      strip.style.flex = '1';
+      const countEl = document.createElement('span');
+      countEl.style.cssText = 'font-size:9px;color:#475569;flex-shrink:0;width:28px';
+      countEl.textContent = files.length ? `${files.length}枚` : 'なし';
 
-      row.appendChild(nameEl);
-      row.appendChild(strip);
+      const thumb = document.createElement('div');
+      thumb.className = 'em-thumb';
+      thumb.style.cssText = 'display:flex;gap:2px;align-items:center;flex:1;overflow:hidden';
+      files.slice(0, 5).forEach(f => {
+        const img = document.createElement('img');
+        img.src = `/ageru/${encodeURIComponent(em)}/${encodeURIComponent(f)}`;
+        img.style.cssText = 'height:28px;border-radius:2px;';
+        thumb.appendChild(img);
+      });
+
+      const arrow = document.createElement('span');
+      arrow.className = 'em-arrow';
+      arrow.style.cssText = 'font-size:9px;color:#475569;margin-left:auto;flex-shrink:0';
+      arrow.textContent = files.length ? '▶' : '';
+
+      summary.appendChild(nameEl);
+      summary.appendChild(countEl);
+      summary.appendChild(thumb);
+      summary.appendChild(arrow);
+      row.appendChild(summary);
       grid.appendChild(row);
     });
-  }
-
-  function saveAgruEmotionMap() {
-    const map = {};
-    document.querySelectorAll('#agruEmotionMapGrid .agru-img-strip[data-emotion]').forEach(strip => {
-      const em    = strip.dataset.emotion;
-      const files = [...strip.querySelectorAll('.agru-img-opt.agru-selected')].map(el => el.dataset.file).filter(Boolean);
-      if (files.length) map[em] = files;
-    });
-    _agruEmotionMapLocal = map;
-    localStorage.setItem('agruEmotionMap', JSON.stringify(map));
-    adminSend({ type: 'agruEmotionMap', map });
   }
 
   initAgruEmotionMapUI();

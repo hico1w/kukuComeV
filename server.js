@@ -73,6 +73,18 @@ async function translateToEnglish(text) {
   return data[0].map(seg => seg[0]).join('');
 }
 
+app.post('/api/translate', async (req, res) => {
+  const { text } = req.body || {};
+  if (!text) return res.json({ result: '' });
+  if (!hasJapanese(text)) return res.json({ result: text });
+  try {
+    const result = await translateToEnglish(text);
+    res.json({ result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/live-info', async (req, res) => {
   const { apikey } = req.query;
   if (!apikey) return res.status(400).json({ error: 'apikey が必要です' });
@@ -220,6 +232,69 @@ app.get('/api/ageru-images', (req, res) => {
   }
 });
 
+app.get('/api/yt-random-video', async (req, res) => {
+  try {
+    const html = await new Promise((resolve, reject) => {
+      https.get({
+        hostname: 'www.youtube.com',
+        path: '/@hico1w/videos',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+      }, r => {
+        let d = '';
+        r.on('data', c => { d += c; });
+        r.on('end', () => resolve(d));
+      }).on('error', reject);
+    });
+
+    const marker = 'var ytInitialData = ';
+    const idx = html.indexOf(marker);
+    if (idx === -1) return res.status(404).json({ error: 'no ytInitialData' });
+
+    let depth = 0, start = idx + marker.length, end = start;
+    for (let i = start; i < html.length; i++) {
+      if (html[i] === '{') depth++;
+      else if (html[i] === '}') { depth--; if (depth === 0) { end = i + 1; break; } }
+    }
+
+    const data = JSON.parse(html.slice(start, end));
+    const videoIds = [];
+    function _findIds(obj) {
+      if (!obj || typeof obj !== 'object') return;
+      if (typeof obj.videoId === 'string' && obj.videoId.length === 11) videoIds.push(obj.videoId);
+      for (const v of Object.values(obj)) _findIds(v);
+    }
+    const tabs = data?.contents?.twoColumnBrowseResultsRenderer?.tabs || [];
+    for (const tab of tabs) _findIds(tab);
+
+    if (!videoIds.length) return res.status(404).json({ error: 'no videos' });
+    const videoId = videoIds[Math.floor(Math.random() * videoIds.length)];
+    res.json({ videoId });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/ageru-emotion-map', (req, res) => {
+  const dir = path.join(__dirname, 'public', 'ageru');
+  const result = {};
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      try {
+        const files = fs.readdirSync(path.join(dir, entry.name))
+          .filter(f => /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(f))
+          .sort();
+        result[entry.name] = files;
+      } catch {}
+    }
+  } catch {}
+  res.json(result);
+});
+
 // Discord Webhook 連携
 const DISCORD_CONFIG_PATH = path.join(__dirname, 'data', 'discord.json');
 
@@ -305,7 +380,7 @@ const SD_IDX = { PROMPT:1, NEGATIVE:2, BATCH_COUNT:4, BATCH_SIZE:5, CFG:6, HEIGH
 const SD_NEGATIVE = '(worst quality:2),(low quality:2),(normal quality:2),lowres,extra fingers,fewer fingers,monochrome,grayscale,text,watermark,logo,';
 
 app.post('/api/sd-generate', async (req, res) => {
-  const { prompt, charName, width, height, steps, positiveSuffix, negative } = req.body || {};
+  const { prompt, charName, width, height, steps, cfgScale, sampler, positiveSuffix, negative } = req.body || {};
   if (!prompt) return res.status(400).json({ error: 'prompt is required' });
 
   let fn_index, defaults;
@@ -331,8 +406,8 @@ app.post('/api/sd-generate', async (req, res) => {
   data[SD_IDX.WIDTH]       = parseInt(width)  || 1600;
   data[SD_IDX.HEIGHT]      = parseInt(height) || 1000;
   data[SD_IDX.STEPS]       = parseInt(steps)  || 20;
-  data[SD_IDX.CFG]         = 3;
-  data[SD_IDX.SAMPLER]     = 'Euler a';
+  data[SD_IDX.CFG]         = parseFloat(cfgScale) || 3;
+  data[SD_IDX.SAMPLER]     = sampler || 'Euler a';
   data[SD_IDX.BATCH_COUNT] = 1;
   data[SD_IDX.BATCH_SIZE]  = 1;
   data[SD_IDX.HIRES_FIX]   = false;
@@ -890,6 +965,11 @@ wss.on('connection', ws => {
     if (msg.type === 'identify') {
       role = msg.role;
       if (role === 'main' || role === 'admin') wsClients[role].add(ws);
+      // main が接続したら admin 全員に通知 → admin が getState を再送する
+      if (role === 'main') {
+        const note = JSON.stringify({ type: 'mainConnected' });
+        wsClients.admin.forEach(c => { if (c.readyState === 1) c.send(note); });
+      }
       return;
     }
     // admin→main、main→admin に中継

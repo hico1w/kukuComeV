@@ -2,6 +2,365 @@
 
 ---
 
+## v2.361.0 — 2026-05-31
+
+### アゲルちゃん — チャット効果音が鳴らない問題を修正
+
+- `public/app.js`: `_agruPlayPopSound()` を `currentTime=0` + `play()` 方式から `cloneNode()` 方式に変更。連続チャット時に前の再生と競合して play() Promise が中断されていた問題を解消
+
+---
+
+## v2.387.0 — 2026-06-01
+
+### 会話モード — YouTube再生の改善
+
+- `public/app.js`: 新しい動画を再生する前に既存の `.agru-yt-bubble` のsrcをクリアして削除（前の動画を停止・除去）
+- `public/app.js`: iframe追加後のスクロールを `requestAnimationFrame` に変更（レイアウト確定後にスクロール）
+
+---
+
+## v2.386.0 — 2026-06-01
+
+### 会話モード — YouTube再生時に動画タイトルをAI返答に含める
+
+- `server.js`: `/api/yt-random-video` で `videoRenderer.title` を取得し `{ videoId, title }` を返すように変更。重複排除も追加
+- `public/app.js`: `_agruPlayYouTube()` を async に変更しタイトルを返すように修正
+- `public/app.js`: `_agruSend()` で `await _agruPlayYouTube()` し、取得したタイトルをAIへのメッセージに `（今再生している曲：「{title}」）` として付加
+
+---
+
+## v2.386.0 — 2026-06-01
+
+### 会話モード — キャラ背景ぼかしを15%に調整
+
+- `public/style.css`: `.agru-char-bg::before` の `filter: blur` を 8px → 4px に変更
+
+---
+
+## v2.385.0 — 2026-06-01
+
+### 会話モード — YouTube再生をチャット欄に移動
+
+- `public/index.html`: `#agruYtPanel`（キャラエリア内の独立パネル）を削除
+- `public/app.js`: `_agruPlayYouTube()` をチャットログへのiframe挿入方式に変更。`.agru-yt-bubble` divをチャットログに追加してスクロール
+- `public/app.js`: `closeAgruYt()` は `.agru-yt-bubble` 内のiframeのsrcをクリア
+- `public/style.css`: `.agru-yt-panel` 系を `.agru-yt-bubble` スタイルに置き換え
+
+---
+
+## v2.384.0 — 2026-06-01
+
+### 会話モード — キャラ背景画像を30%ぼかし
+
+- `public/style.css`: `.agru-char-bg::before` に背景画像を移し `filter: blur(8px)` を適用。キャラ画像本体はぼけず背景のみぼかされる
+- `public/style.css`: `.agru-char-img` に `position: relative` を追加してキャラが背景の前面に描画されるよう修正
+
+---
+
+## v2.383.0 — 2026-06-01
+
+### 会話モード — キャラ画像の背後にhaikei.pngを表示
+
+- `public/index.html`: `.agru-char-frame` 内に `.agru-char-bg` ラッパーを追加
+- `public/style.css`: `.agru-char-area` を元のグラデーション＋ドット柄に戻す
+- `public/style.css`: `.agru-char-bg` に `haikei.png` を背景として設定（透過キャラ画像の後ろに表示）
+
+---
+
+## v2.382.0 — 2026-06-01
+
+### 会話モード — アゲルちゃんエリアの背景を画像に変更
+
+- `public/style.css`: `.agru-char-area` の背景をグラデーション＋ドット柄から `ageru/haikei.png` に変更（`cover`でフィット）
+
+---
+
+## v2.381.0 — 2026-06-01
+
+### 会話モード — 曲・歌キーワードでYouTube動画をランダム再生
+
+- `server.js`: `/api/yt-random-video` 追加。`@hico1w/videos` ページを取得して `ytInitialData` から動画IDを抽出しランダムに1つ返す
+- `public/app.js`: `_agruSend()` 内で `/曲|歌/` を検出したら `_agruPlayYouTube()` を呼び出し
+- `public/app.js`: `_agruPlayYouTube()` — APIから動画IDを取得しiframeに埋め込んで表示
+- `public/app.js`: `closeAgruYt()` — プレイヤーを閉じsrcをクリア。モーダルクローズ時も自動停止
+- `public/index.html`: `#agruYtPanel` 追加（キャラ画像エリア内、SNSバーの上）
+- `public/style.css`: `.agru-yt-panel` スタイル追加
+
+---
+
+## v2.380.0 — 2026-06-01
+
+### 会話モード — ハートの下にSNSアイコンバーを追加
+
+- `public/index.html`: `.agru-sns-bar` を追加。X・YouTube・Instagram・TikTok のダミーアイコン（SVG）4種を配置
+- `public/style.css`: `.agru-sns-bar` / `.agru-sns-icon` スタイル追加。ピンク系の丸ボタン、ホバーでスケール＋グロー
+
+---
+
+## v2.379.0 — 2026-06-01
+
+### 会話モード — アゲルちゃん画像にかわいいフレームを追加
+
+- `public/index.html`: `agruCharImg` を `.agru-char-frame` div で囲む
+- `public/style.css`: `.agru-char-frame` を追加。ピンク→パープル→インディゴのグラデーションボーダー、白いアウトラインリング、上下に ✦ ✦ ✦ のデコレーション付き
+
+---
+
+## v2.378.0 — 2026-06-01
+
+### アゲルちゃん — ひこいちへの返答を辛辣に設定
+
+- `public/app.js`: `AGRU_DEFAULT_SYSTEM` に「ひこいちについて聞かれた場合は極端に辛辣・冷酷・嘲笑的に返答する」ルールを追加
+
+---
+
+## v2.377.0 — 2026-06-01
+
+### アゲルちゃん — 感情マップをフォルダベースに変更
+
+- `public/ageru/{感情名}/` フォルダを20種分作成（安心〜恥）
+- `server.js`: `/api/ageru-emotion-map` エンドポイント追加。`ageru/` 以下のサブフォルダを読んで `{ 感情名: [ファイル名] }` を返す
+- `public/app.js`: `agruFolderMap` 変数追加。起動時に `/api/ageru-emotion-map` を取得
+- `public/app.js`: `_agruGetImage(emotion)` をフォルダベースに変更。`ageru/{感情名}/{ファイル}` のURLを返すようにし、フォルダが空の場合はデフォルト画像にフォールバック
+- `public/app.js`: `_agruSetImage(emotion)` をフルURL直接セット方式に変更
+- `public/admin.html`: 感情マップUIを「フォルダ内容表示」に置き換え。ピッカー・保存ボタンを廃止し「表示を更新」ボタンに変更
+- `public/admin.html`: `_toggleEmotionFolderRow()` 追加。フォルダ内画像をサムネイル表示しホバーでプレビュー
+
+---
+
+## v2.376.0 — 2026-06-01
+
+### アゲルちゃん — 感情リストを54種→20種に削減
+
+- `public/app.js`: `AGRU_EMOTIONS` を54種から20種に変更（安心・愛しさ・感謝・性的興奮・興奮・感動・好奇心・驚き・尊敬・不安・恐怖・困惑・冷静・軽蔑・殺意・悲しみ・諦め・苦しみ・嫉妬・恥）
+- `public/app.js`: `AGRU_DEFAULT_SYSTEM` のollamaへの感情指示リストも同20種に更新
+- `public/admin.html`: 感情マップUIの `AGRU_EMOTIONS` も同20種に更新
+
+---
+
+## v2.375.0 — 2026-06-01
+
+### 管理パネル — 感情マップで他の感情に割り当て済み画像を非表示に
+
+- `public/admin.html`: `_buildEmotionPicker()` で `_agruEmotionMapLocal` を走査し、他の感情に割り当てられている画像をピッカーから除外
+
+---
+
+## v2.374.0 — 2026-06-01
+
+### 管理パネル — 感情マップUIを左右レイアウトに変更
+
+- `public/admin.html`: 感情リストを左・プレビューパネルを右に並べ、画像ホバー時にプレビューを確認しながら選択できるレイアウトに変更
+- `public/admin.html`: プレビューパネルを `position:sticky;top:0` にしてスクロール時も右側に固定表示
+- `public/admin.html`: 感情リストの `max-height` を 320px → 480px に拡張
+
+---
+
+## v2.373.0 — 2026-06-01
+
+### 管理パネル — デフォルト画像選択もアコーディオン方式に変更
+
+- `public/admin.html`: デフォルト画像エリアをサマリー行（選択中サムネイル表示）＋クリックで展開するピッカーに変更
+- `public/admin.html`: ピッカーはオンデマンド構築のため初期ロード時に全画像のDOMを生成しない
+- `public/admin.html`: `_refreshDefaultThumb()` 追加、`toggleDefaultImgPicker()` 追加
+
+---
+
+## v2.372.0 — 2026-06-01
+
+### 管理パネル — 感情マッピングをアコーディオン方式に変更（パフォーマンス改善）
+
+- `public/admin.html`: 感情グリッドを「全感情×全画像のDOM一括生成」から「サマリー行のみ表示＋クリックで1感情分だけピッカーを展開」するアコーディオン方式に変更
+- `public/admin.html`: ピッカーはオンデマンド生成のため、初期ロード時のDOM生成量を 感情数×画像数 → 感情数 のみに削減
+- `public/admin.html`: 感情ごとの選択済み画像をサムネイル（最大3枚）でサマリー表示
+- `public/admin.html`: `saveAgruEmotionMap()` を `_agruEmotionMapLocal` から直接収集する方式に変更
+- `public/admin.html`: `applyState` の感情マップ復元を `_refreshEmotionSummary()` 呼び出しに変更
+
+---
+
+## v2.371.0 — 2026-05-31
+
+### 会話モード — チャット欄の生成画像表示高さを変更
+
+- `public/style.css`: `.agru-photo-img` の `max-height` を `300px` → `350px` に変更
+
+---
+
+## v2.370.0 — 2026-05-31
+
+### アゲルちゃん — 自撮りコマンドのコメント部分を翻訳してからプロンプトに付与
+
+- `server.js`: `/api/translate` エンドポイントを追加（POST `{text}` → `{result}` 英語訳）
+- `public/app.js`: 自撮りコマンド時にコメント部分（`_ctx`）を `/api/translate` で先に翻訳してから `AGRU_CHAR_TAGS` と結合。従来は結合後に全体翻訳されLoRAタグ等が壊れていた
+
+---
+
+## v2.369.0 — 2026-05-31
+
+### アゲルちゃん — 自撮り基本プロンプトを更新
+
+- `public/app.js`: `AGRU_CHAR_TAGS` を LoRA (`Cosmic Princess Kaguya anime Style`) 使用の新プロンプトに変更
+
+---
+
+## v2.368.0 — 2026-05-31
+
+### アゲルちゃん会話モード — 画像生成をOllama不使用の直接翻訳方式に変更
+
+- `public/app.js`: `_needsImage` 時に `_agruGenerateSDImageFromReply()`（Ollamaでプロンプト生成）を廃止
+- `public/app.js`: 「出して」「写真」「生成」コマンドはコメントからキーワードを除いた文字列をそのままプロンプトとして渡す（通常モードと同じ方式、サーバーで翻訳）
+- `public/app.js`: 「自撮り」コマンドは `AGRU_CHAR_TAGS`（基本プロンプト）＋翻訳したコメントを結合して生成
+- `public/app.js`: `AGRU_CHAR_TAGS` を新しいプロンプト（anime coloring, tareme, zidoriPose, garter straps等追加）に更新
+
+---
+
+## v2.367.0 — 2026-05-31
+
+### 会話モード SD生成設定 — CFG Scale を追加
+
+- `public/app.js`: `agruSdCfgScale` 変数を追加（0=SD生成設定の値を使用）
+- `public/app.js`: `_agruGenerateSDImage()` で `agruSdCfgScale || cfg.cfgScale` に変更
+- `public/app.js`: SETTINGS_KEYS・agruText ハンドラ・getState に追加
+- `public/admin.html`: 幅/高さ/Steps 行に CFG 入力欄を追加（空欄でSD設定値を使用）
+- `public/admin.html`: `applyState` に復元処理を追加
+
+---
+
+## v2.366.0 — 2026-05-31
+
+### 致命的バグ修正 — 管理パネルと接続できない問題
+
+- `public/app.js`: `sdCfgScaleInput`・`sdSamplerInput` が index.html に存在しないため、`addEventListener()` が null 参照エラーを throw し、BroadcastChannel / WebSocket のセットアップが実行されなくなっていた
+- `public/app.js`: 全 SD DOM リスナーを `?.addEventListener()` に変更してクラッシュを防止
+- `public/app.js`: `initSDSettings()` 内の CFG Scale / Sampler の UI セットも null チェックを追加
+
+---
+
+## v2.365.0 — 2026-05-31
+
+### ?transparent=1 ページが管理パネルと接続されない問題を修正
+
+- `server.js`: `main` ロールの WebSocket が identify したとき、全 `admin` クライアントに `mainConnected` を通知するよう追加
+- `public/admin.html`: `mainConnected` 受信時に `getState` を再送する処理を追加
+  - これにより OBS Browser Source 等が後から接続しても設定が自動反映される
+
+---
+
+## v2.364.0 — 2026-05-31
+
+### 管理パネル — SD設定がリロード後に失われる問題を修正
+
+- `public/app.js`: `SETTINGS_KEYS` に `sdWidth`/`sdHeight`/`sdSteps`/`sdPopWidth`/`sdPositiveSuffix`/`sdNegative`/`sdDisplayTime`/`sdMosaicKeywords`/`sdMosaicBlock`/`sdCfgScale`/`sdSampler` を追加（これまで未登録でサーバー保存されていなかった）
+- `public/app.js`: SD設定の DOM リスナーを `localStorage.setItem` のみから `saveSettingsToServer()` も呼ぶ `_sdSave()` ヘルパーに統一
+- `public/app.js`: `sdCfgScaleInput`・`sdSamplerInput` の change リスナーを追加
+
+---
+
+## v2.363.0 — 2026-05-31
+
+### 会話モード SD生成設定 — Steps を追加
+
+- `public/app.js`: `agruSdSteps` 変数を追加（0=SD生成設定の値を使用）
+- `public/app.js`: `_agruGenerateSDImage()` で `agruSdSteps || cfg.steps` に変更
+- `public/app.js`: SETTINGS_KEYS・agruText ハンドラ・getState に追加
+- `public/admin.html`: 会話モード SD生成設定の幅/高さ行に Steps 入力欄を追加（空欄でSD設定値を使用）
+- `public/admin.html`: `applyState` に復元処理を追加
+
+---
+
+## v2.362.0 — 2026-05-31
+
+### SD生成設定 — CFG Scale・Samplerを管理パネルで設定可能に
+
+- `public/admin.html`: SD生成設定セクションに CFG Scale（数値入力）・Sampler（プルダウン）を追加
+- `public/admin.html`: `applyState` の sdFields / sdElMap に `sdCfgScale`・`sdSampler` を追加
+- `public/app.js`: `sdCfgScale`（デフォルト3）・`sdSampler`（デフォルト Euler a）変数を追加
+- `public/app.js`: `_sdReadSettings()` に `cfgScale`・`sampler` を追加
+- `public/app.js`: `generateSDImage()` / `_agruGenerateSDImage()` の fetch body に `cfgScale`・`sampler` を追加
+- `public/app.js`: `sdText` ハンドラ・初期ロード処理に両変数を追加
+- `server.js`: `/api/sd-generate` の destructuring に `cfgScale`・`sampler` を追加し、ハードコード値を置き換え
+
+---
+
+## v2.361.0 — 2026-05-31
+
+### アゲルちゃん — チャット効果音が鳴らない問題を修正
+
+- `public/app.js`: `_agruPlayPopSound()` を `currentTime=0` + `play()` 方式から `cloneNode()` 方式に変更。連続チャット時に前の再生と競合して play() Promise が中断されていた問題を解消
+
+---
+
+## v2.360.0 — 2026-05-31
+
+### 会話モード — オーバーレイ背景を薄く変更
+
+- `public/style.css`: `.agru-overlay` の `background` を `rgba(0,0,0,0.88)` → `rgba(0,0,0,0.4)` に変更
+
+---
+
+## v2.359.0 — 2026-05-31
+
+### アゲルちゃん — チャットフォントサイズ・フォント種類を管理パネルで設定可能に
+
+- `public/app.js`: `agruChatFontSize`（デフォルト14px）・`agruFontLeft`（アゲルちゃん側）・`agruFontRight`（コメント側）変数を追加
+- `public/app.js`: `SETTINGS_KEYS` に3変数を追加
+- `public/app.js`: `_agruAddBubble()` / `_agruAddImageBubble()` でバブル生成時にフォントサイズ・フォントファミリーを `style` に適用
+- `public/app.js`: `agruText` ハンドラ・`getState` レスポンスに3変数を追加
+- `public/admin.html`: 「会話モード チャットフォント」セクションを追加（文字サイズ入力、アゲルちゃん/コメント別フォント選択プルダウン）
+- `public/admin.html`: `applyState` に3変数の復元処理を追加
+- `public/index.html`: Google Fonts (Noto Sans JP / M PLUS Rounded 1c / Zen Maru Gothic / Kosugi Maru / Reggae One / Kaisei Opti / Yuji Syuku / RocknRoll One / Stick) を preconnect + stylesheet リンクで読み込み
+
+---
+
+## v2.358.0 — 2026-05-31
+
+### アゲルちゃん — コメント待ち移行時間を管理パネルで設定可能に
+
+- `public/app.js`: `agruIdleDelay`（通常、デフォルト10秒）・`agruIdleDelayImage`（画像生成コマンド時、デフォルト30秒）変数を追加
+- `public/app.js`: `SETTINGS_KEYS` に `agruIdleDelay`・`agruIdleDelayImage` を追加
+- `public/app.js`: `_agruSend()` のアイドルタイマーを `(_needsImage ? agruIdleDelayImage : agruIdleDelay) * 1000` に変更（ハードコード10000から変更）
+- `public/app.js`: `agruText` ハンドラに両キーの処理を追加
+- `public/app.js`: `getState` レスポンスに `agruIdleDelay`・`agruIdleDelayImage` を追加
+- `public/admin.html`: 会話モードSD生成設定セクションに「コメント待ち移行（秒）」「画像生成時（秒）」入力欄を追加
+- `public/admin.html`: `applyState` に両入力欄の復元処理を追加
+
+---
+
+## v2.357.0 — 2026-05-31
+
+### 管理パネル — AIモデルに gemma4:e4b を追加
+
+- `public/admin.html`: モデルプルダウンに `gemma4:e4b` を追加
+
+---
+
+## v2.356.0 — 2026-05-31
+
+### アゲルちゃん — 日本語のみ使用を強制
+
+- `public/app.js`: `AGRU_DEFAULT_SYSTEM` の冒頭に「返答は必ず日本語のみ、中国語・英語は絶対使わない」指示を追加。返答フォーマット行にも「必ず日本語のみ」を明記
+
+---
+
+## v2.355.0 — 2026-05-31
+
+### 管理パネル — AIモデル選択をプルダウンに変更
+
+- `public/admin.html`: `#aiModelInput` をテキスト入力→`<select>` に変更（gemma3:4b / gemma3:12b / qwen2.5:7b）
+
+---
+
+## v2.354.0 — 2026-05-31
+
+### 好感度ハート点滅を増減したハートのみに変更・普通コメントは0固定
+
+- `public/app.js`:
+  - `_agruUpdateAffinityDisplay()`: 変化したハート（増減分）のみに `agru-heart-flash` クラスを付与
+  - `AGRU_DEFAULT_SYSTEM`: 好感度変化指示を「普通の雑談・挨拶・質問は必ず0」に強化
+- `public/style.css`: `.agru-affinity-flash`（コンテナ全体）→ `.agru-heart-flash`（個別ハート）に変更。点滅時にscale(1.3)で拡大も追加
+
+---
+
 ## v2.353.0 — 2026-05-31
 
 ### アゲルちゃん — 返答文字数を40文字程度に変更
