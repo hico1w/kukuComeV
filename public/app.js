@@ -3657,6 +3657,16 @@ function handleComment(comment) {
       _agruUpdateAffinityDisplay(10);
       _agruAddSystemMsg(`${user.name || '名無し'}がカフェオレをプレゼントした！好感度あがった！`);
     }
+  } else if (agruActive && message.trim() === '水道水投与') {
+    if ((user.mp ?? 0) < 10) {
+      showBubble(user, `MPが足りない… (${user.mp ?? 0}/10)`, {});
+    } else {
+      user.mp -= 10;
+      updateStatsDisplay(user);
+      agruAffinity = Math.max(0, agruAffinity - 10);
+      _agruUpdateAffinityDisplay(-10);
+      _agruAddSystemMsg(`${user.name || '名無し'}が水道水を投与した…好感度さがった…`);
+    }
   } else if (agruActive && agruIdle && message.trim() && !/^[ァ-ヶー]{5}$/.test(message.trim())) {
     _agruSend(message, user.name);
   }
