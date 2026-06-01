@@ -3650,6 +3650,7 @@ function handleComment(comment) {
   // ── YouTube URL 自動再生 ──
   {
     const _ytId = (message.match(/youtu\.be\/([A-Za-z0-9_-]{11})/) ||
+                   message.match(/youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/) ||
                    message.match(/[?&]v=([A-Za-z0-9_-]{11})/))?.[1];
     if (_ytId) { _agruPlayYouTube(_ytId); return; }
   }
