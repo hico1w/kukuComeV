@@ -2,6 +2,15 @@
 
 ---
 
+## v2.406.0 — 2026-06-01
+
+### ボス — ダメージランキングのリアルタイム更新
+
+- `public/app.js`: `renderRankingPanel` でボス戦中は `bossDamageMap` を直接参照するよう変更。攻撃のたびに1秒インターバルで反映
+- `public/app.js`: `spawnBoss` でボス召喚時に `bossDamageMap` をリセット
+
+---
+
 ## v2.405.0 — 2026-06-01
 
 ### アゲルちゃん — BGMループ修正

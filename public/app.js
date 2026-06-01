@@ -2867,6 +2867,7 @@ function toggleContentMode() {
 
 function spawnBoss(maxHp) {
   bossManuallyCleared = false;
+  bossDamageMap = {};
   if (bossState) {
     if (bossState.el) bossState.el.remove();
   }
@@ -6877,7 +6878,7 @@ function renderRankingPanel() {
 
   const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
 
-  const dmgEntries = Object.values(rankingState.dmgMap || {})
+  const dmgEntries = Object.values(bossState ? bossDamageMap : (rankingState.dmgMap || {}))
     .sort((a, b) => b.totalDmg - a.totalDmg).slice(0, 5);
   let dmgRows = dmgEntries.length
     ? dmgEntries.map((e, i) => `<div class="ranking-row"><span class="ranking-medal">${medals[i]}</span><span class="ranking-name">${escapeHtml(e.name)}</span><span class="ranking-dmg">${e.totalDmg.toLocaleString()}</span></div>`).join('')
