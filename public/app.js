@@ -347,6 +347,7 @@ function _saveServer(url, data) {
 })();
 
 let _charSaveData = _loadServerSync('/api/char-save');
+const _goshiariCooldown = new Map();
 
 const SETTINGS_KEYS = [
   'charSizeScale','bossSizeScale','moveArea','bossHpScale','bossAtkCoeff','bossCounterRate',
@@ -3646,7 +3647,17 @@ function handleComment(comment) {
   }
 
   // ── アゲルちゃん会話モード ──
-  if (agruActive && agruIdle && message.trim() && !/^[ァ-ヶー]{5}$/.test(message.trim())) {
+  if (agruActive && message.trim() === 'カフェオレ投与') {
+    if ((user.mp ?? 0) < 50) {
+      showBubble(user, `MPが足りない… (${user.mp ?? 0}/50)`, {});
+    } else {
+      user.mp -= 50;
+      updateStatsDisplay(user);
+      agruAffinity = Math.min(100, agruAffinity + 10);
+      _agruUpdateAffinityDisplay(10);
+      _agruAddSystemMsg(`${user.name || '名無し'}がカフェオレをプレゼントした！好感度あがった！`);
+    }
+  } else if (agruActive && agruIdle && message.trim() && !/^[ァ-ヶー]{5}$/.test(message.trim())) {
     _agruSend(message, user.name);
   }
 
@@ -4075,6 +4086,9 @@ function handleComment(comment) {
 
   if (/ごしありｗ/.test(display)) {
     const ipid = user.ipid;
+    const _now = Date.now();
+    if ((_goshiariCooldown.get(ipid) ?? 0) + 5 * 60 * 1000 > _now) return;
+    _goshiariCooldown.set(ipid, _now);
     addToLog(user, '[ごしありｗ → 自キャラ削除]', '#ef4444');
     if (user.el) {
       user.el.style.transition = 'transform 0.4s ease-in, opacity 0.4s ease-in';
@@ -5345,6 +5359,17 @@ function _agruTrimLog() {
   if (!log) return;
   const rows = [...log.children].filter(el => el.id !== 'agruTypingIndicator');
   while (rows.length > 10) rows.shift().remove();
+}
+
+function _agruAddSystemMsg(text) {
+  const log = document.getElementById('agruChatLog');
+  if (!log) return;
+  const el = document.createElement('div');
+  el.className = 'agru-system-msg';
+  el.textContent = text;
+  log.appendChild(el);
+  _agruTrimLog();
+  _agruScrollBottom();
 }
 
 function _agruAddBubble(side, name, text, onDone) {
