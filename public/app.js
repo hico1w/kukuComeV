@@ -3648,6 +3648,9 @@ function handleComment(comment) {
     }
   }
 
+  // ── YouTube停止（会話モード外でも有効）──
+  if (/止めて/.test(message)) { closeAgruYtModal(); }
+
   // ── アゲルちゃん会話モード ──
   if (agruActive && message.trim() === 'カフェオレ投与') {
     if ((user.mp ?? 0) < 50) {
