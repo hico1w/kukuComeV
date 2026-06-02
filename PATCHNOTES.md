@@ -2,6 +2,20 @@
 
 ---
 
+## v2.414.0 — 2026-06-02
+
+### アゲルちゃん — 会話モーダル外観を管理パネルから設定可能に
+
+- `public/admin.html`: 会話モーダル幅・高さ入力欄を追加（デフォルト 870×460）
+- `public/admin.html`: 会話背景透明度スライダーを追加（デフォルト 45%）
+- `public/admin.html`: チャット画像最大高さ入力欄を追加（デフォルト 350px）
+- `public/app.js`: `agruModalWidth` / `agruModalHeight` / `agruModalBgOpacity` / `agruChatImgSize` 変数追加
+- `public/app.js`: `openAgruModal` でモーダルのサイズと背景色を動的に適用
+- `public/app.js`: `agruChatImgSize` は CSS 変数 `--agru-chat-img-maxh` で `.agru-photo-img` に即時反映
+- `public/style.css`: `.agru-photo-img` の `max-height` を CSS 変数化
+
+---
+
 ## v2.413.0 — 2026-06-02
 
 ### アゲルちゃん — 会話モーダルZ軸を管理パネルから設定可能に

@@ -374,6 +374,7 @@ const SETTINGS_KEYS = [
   'agruVoicevoxEnabled','agruVoicevoxSpeaker','agruVoicevoxSpeed','agruVoicevoxVolume',
   'agruSdWidth','agruSdHeight','agruSdSteps','agruSdCfgScale','agruSdPositiveSuffix','agruIdleDelay','agruIdleDelayImage',
   'agruChatFontSize','agruFontLeft','agruFontRight','agruCharTags','agruYtVolume','agruBgmVolume','agruYtWidth','agruYtHeight','agruYtOpacity','agruModalZ',
+  'agruModalWidth','agruModalHeight','agruModalBgOpacity','agruChatImgSize',
   'bombHidden','trashHidden',
   'afkOpacity','afkGrayscale','afkBrightness',
 ];
@@ -5152,6 +5153,11 @@ let agruYtWidth          = parseInt(localStorage.getItem('agruYtWidth')   ?? '43
 let agruYtHeight         = parseInt(localStorage.getItem('agruYtHeight')  ?? '245');
 let agruYtOpacity        = parseInt(localStorage.getItem('agruYtOpacity') ?? '100');
 let agruModalZ           = parseInt(localStorage.getItem('agruModalZ')    ?? '300');
+let agruModalWidth       = parseInt(localStorage.getItem('agruModalWidth')     ?? '870');
+let agruModalHeight      = parseInt(localStorage.getItem('agruModalHeight')    ?? '460');
+let agruModalBgOpacity   = parseInt(localStorage.getItem('agruModalBgOpacity') ?? '45');
+let agruChatImgSize      = parseInt(localStorage.getItem('agruChatImgSize')    ?? '350');
+document.documentElement.style.setProperty('--agru-chat-img-maxh', agruChatImgSize + 'px');
 let _agruSelfieLocked    = false;
 let agruIdleDelay        = parseInt(localStorage.getItem('agruIdleDelay')) || 10;
 let agruIdleDelayImage   = parseInt(localStorage.getItem('agruIdleDelayImage')) || 30;
@@ -5750,6 +5756,9 @@ async function openAgruModal() {
   _agruBgmPlay();
   const _cm = document.querySelector('#agruModal .agru-modal');
   if (_cm) {
+    _cm.style.width      = agruModalWidth + 'px';
+    _cm.style.height     = agruModalHeight + 'px';
+    _cm.style.background = `rgba(255,248,251,${agruModalBgOpacity / 100})`;
     const _cx = localStorage.getItem('agruModalX'), _cy = localStorage.getItem('agruModalY');
     if (_cx && _cy) { _cm.style.left = _cx; _cm.style.top = _cy; _cm.style.transform = 'none'; }
     else { _cm.style.left = ''; _cm.style.top = ''; _cm.style.transform = ''; }
@@ -8524,6 +8533,10 @@ function handleAdminMessage(d, replyFn) {
     state.agruYtHeight           = agruYtHeight;
     state.agruYtOpacity          = agruYtOpacity;
     state.agruModalZ             = agruModalZ;
+    state.agruModalWidth         = agruModalWidth;
+    state.agruModalHeight        = agruModalHeight;
+    state.agruModalBgOpacity     = agruModalBgOpacity;
+    state.agruChatImgSize        = agruChatImgSize;
     state.autoDeleteMinutes   = autoDeleteMinutes;
     state.fiveMinMode   = fiveMinMode;
     state.brAutoEnabled = brAutoEnabled;
@@ -8632,6 +8645,10 @@ function handleAdminMessage(d, replyFn) {
     if (d.key === 'agruYtHeight')           agruYtHeight           = parseInt(d.value) || 245;
     if (d.key === 'agruYtOpacity')          agruYtOpacity          = parseInt(d.value) ?? 100;
     if (d.key === 'agruModalZ')             { agruModalZ = parseInt(d.value) || 300; const _mo = document.getElementById('agruModal'); if (_mo) _mo.style.zIndex = agruModalZ; }
+    if (d.key === 'agruModalWidth')         { agruModalWidth = parseInt(d.value) || 870; const _mc = document.querySelector('#agruModal .agru-modal'); if (_mc) _mc.style.width = agruModalWidth + 'px'; }
+    if (d.key === 'agruModalHeight')        { agruModalHeight = parseInt(d.value) || 460; const _mc = document.querySelector('#agruModal .agru-modal'); if (_mc) _mc.style.height = agruModalHeight + 'px'; }
+    if (d.key === 'agruModalBgOpacity')     { agruModalBgOpacity = parseInt(d.value) ?? 45; const _mc = document.querySelector('#agruModal .agru-modal'); if (_mc) _mc.style.background = `rgba(255,248,251,${agruModalBgOpacity / 100})`; }
+    if (d.key === 'agruChatImgSize')        { agruChatImgSize = parseInt(d.value) || 350; document.documentElement.style.setProperty('--agru-chat-img-maxh', agruChatImgSize + 'px'); }
     const elMap = { agruSystem: 'agruSystemInput' };
     const el = elMap[d.key] ? document.getElementById(elMap[d.key]) : null;
     if (el) el.value = d.value;

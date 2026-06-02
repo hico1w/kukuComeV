@@ -501,7 +501,7 @@ body {
 .agru-photo-img {
   display: block;
   max-width: 100%;
-  max-height: 350px;
+  max-height: var(--agru-chat-img-maxh, 350px);
   object-fit: contain;
   border-radius: 10px;
   margin-top: 4px;

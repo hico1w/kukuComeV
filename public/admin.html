@@ -971,6 +971,32 @@
            style="width:70px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
            onchange="sendAgruText('agruModalZ',this.value)">
   </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">
+    <label style="font-size:11px;color:#94a3b8;min-width:72px">会話モーダル</label>
+    <span class="size-label">幅</span>
+    <input id="agruModalWidthInput" type="number" min="300" max="3000" step="10" value="870"
+           style="width:65px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
+           onchange="sendAgruText('agruModalWidth',this.value)">
+    <span class="size-label">高さ</span>
+    <input id="agruModalHeightInput" type="number" min="200" max="2000" step="10" value="460"
+           style="width:65px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
+           onchange="sendAgruText('agruModalHeight',this.value)">
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+    <label style="font-size:11px;color:#94a3b8;min-width:72px">会話背景透明</label>
+    <input type="range" id="agruModalBgOpacityInput" min="0" max="100" step="5" value="45"
+           style="flex:1;accent-color:#f43f5e"
+           oninput="document.getElementById('agruModalBgOpacityVal').textContent=this.value+'%';sendAgruText('agruModalBgOpacity',this.value)">
+    <span id="agruModalBgOpacityVal" style="font-size:11px;color:#e2e8f0;min-width:36px;text-align:right">45%</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+    <label style="font-size:11px;color:#94a3b8;min-width:72px">チャット画像</label>
+    <span class="size-label">最大高さ</span>
+    <input id="agruChatImgSizeInput" type="number" min="50" max="1000" step="10" value="350"
+           style="width:65px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
+           onchange="sendAgruText('agruChatImgSize',this.value)">
+    <span style="font-size:11px;color:#64748b">px</span>
+  </div>
   <!-- 会話モード SD設定 -->
   <div style="margin-top:10px;padding:8px;background:rgba(15,23,42,0.6);border:1px solid #1e293b;border-radius:6px">
     <div style="font-size:10px;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">会話モード SD生成設定</div>
@@ -1763,6 +1789,10 @@
     if (s.agruYtHeight        !== undefined) { const el = document.getElementById('agruYtHeightInput'); if (el) el.value = s.agruYtHeight; }
     if (s.agruYtOpacity       !== undefined) { const el = document.getElementById('agruYtOpacityInput'); if (el) { el.value = s.agruYtOpacity; const v = document.getElementById('agruYtOpacityVal'); if (v) v.textContent = s.agruYtOpacity + '%'; } }
     if (s.agruModalZ          !== undefined) { const el = document.getElementById('agruModalZInput'); if (el) el.value = s.agruModalZ; }
+    if (s.agruModalWidth      !== undefined) { const el = document.getElementById('agruModalWidthInput'); if (el) el.value = s.agruModalWidth; }
+    if (s.agruModalHeight     !== undefined) { const el = document.getElementById('agruModalHeightInput'); if (el) el.value = s.agruModalHeight; }
+    if (s.agruModalBgOpacity  !== undefined) { const el = document.getElementById('agruModalBgOpacityInput'); if (el) { el.value = s.agruModalBgOpacity; const v = document.getElementById('agruModalBgOpacityVal'); if (v) v.textContent = s.agruModalBgOpacity + '%'; } }
+    if (s.agruChatImgSize     !== undefined) { const el = document.getElementById('agruChatImgSizeInput'); if (el) el.value = s.agruChatImgSize; }
     if (s.agruDefaultImage !== undefined) {
       localStorage.setItem('agruDefaultImage', s.agruDefaultImage);
       _refreshDefaultThumb(s.agruDefaultImage);
