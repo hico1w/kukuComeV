@@ -1071,9 +1071,9 @@
         </select>
       </div>
       <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:10px;color:#64748b;min-width:90px">　PCフォント</span>
-        <input id="agruFontLeftCustom" type="text" placeholder="インストール済みフォント名を入力..."
-               style="flex:1;font-size:11px;background:#1e293b;border:1px solid #475569;border-radius:3px;color:#e2e8f0;padding:2px 5px"
+        <span style="font-size:10px;color:#475569;min-width:90px">　直接入力</span>
+        <input id="agruFontLeftCustom" type="text" placeholder="フォント名を直接入力（↑に無い場合）"
+               style="flex:1;font-size:11px;background:#0f172a;border:1px solid #334155;border-radius:3px;color:#94a3b8;padding:2px 5px"
                onchange="if(this.value.trim()){document.getElementById('agruFontLeftInput').value='';sendAgruText('agruFontLeft',this.value.trim())}">
       </div>
       <div style="display:flex;align-items:center;gap:6px">
@@ -1096,9 +1096,9 @@
         </select>
       </div>
       <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:10px;color:#64748b;min-width:90px">　PCフォント</span>
-        <input id="agruFontRightCustom" type="text" placeholder="インストール済みフォント名を入力..."
-               style="flex:1;font-size:11px;background:#1e293b;border:1px solid #475569;border-radius:3px;color:#e2e8f0;padding:2px 5px"
+        <span style="font-size:10px;color:#475569;min-width:90px">　直接入力</span>
+        <input id="agruFontRightCustom" type="text" placeholder="フォント名を直接入力（↑に無い場合）"
+               style="flex:1;font-size:11px;background:#0f172a;border:1px solid #334155;border-radius:3px;color:#94a3b8;padding:2px 5px"
                onchange="if(this.value.trim()){document.getElementById('agruFontRightInput').value='';sendAgruText('agruFontRight',this.value.trim())}">
       </div>
     </div>
@@ -2373,6 +2373,41 @@
   function openNovel() {
     adminSend({ type: 'openNovel' });
   }
+
+  // PCインストール済みフォントをプルダウンに追加（Font Access API）
+  (async function loadLocalFonts() {
+    if (!('queryLocalFonts' in window)) return;
+    try {
+      const fonts = await window.queryLocalFonts();
+      const families = [...new Set(fonts.map(f => f.family))].sort((a, b) => a.localeCompare(b, 'ja'));
+      ['agruFontLeftInput', 'agruFontRightInput'].forEach(selId => {
+        const sel = document.getElementById(selId);
+        if (!sel) return;
+        const grp = document.createElement('optgroup');
+        grp.label = 'PCインストール済み (' + families.length + '件)';
+        families.forEach(family => {
+          const opt = document.createElement('option');
+          opt.value = family.includes(' ') ? '"' + family + '"' : family;
+          opt.textContent = family;
+          grp.appendChild(opt);
+        });
+        sel.appendChild(grp);
+      });
+      // フォント読み込み後に現在値を再セット（optgroupが後から追加されるため）
+      ['agruFontLeft', 'agruFontRight'].forEach(key => {
+        const val = localStorage.getItem(key);
+        if (!val) return;
+        const selId = key === 'agruFontLeft' ? 'agruFontLeftInput' : 'agruFontRightInput';
+        const inpId = key === 'agruFontLeft' ? 'agruFontLeftCustom' : 'agruFontRightCustom';
+        const sel = document.getElementById(selId);
+        const inp = document.getElementById(inpId);
+        if (sel) {
+          sel.value = val;
+          if (inp && sel.value === val) inp.value = '';
+        }
+      });
+    } catch (e) { /* 権限拒否など */ }
+  })();
 </script>
 </body>
 </html>
