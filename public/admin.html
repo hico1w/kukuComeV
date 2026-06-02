@@ -1055,7 +1055,7 @@
         <span style="font-size:10px;color:#ec4899;min-width:90px">🌸 アゲルちゃん</span>
         <select id="agruFontLeftInput"
                 style="flex:1;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
-                onchange="sendAgruText('agruFontLeft',this.value)">
+                onchange="document.getElementById('agruFontLeftCustom').value='';sendAgruText('agruFontLeft',this.value)">
           <option value="">デフォルト</option>
           <option value="'Noto Sans JP', sans-serif">Noto Sans JP</option>
           <option value="'M PLUS Rounded 1c', sans-serif">M PLUS Rounded 1c</option>
@@ -1071,10 +1071,16 @@
         </select>
       </div>
       <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:10px;color:#64748b;min-width:90px">　PCフォント</span>
+        <input id="agruFontLeftCustom" type="text" placeholder="インストール済みフォント名を入力..."
+               style="flex:1;font-size:11px;background:#1e293b;border:1px solid #475569;border-radius:3px;color:#e2e8f0;padding:2px 5px"
+               onchange="if(this.value.trim()){document.getElementById('agruFontLeftInput').value='';sendAgruText('agruFontLeft',this.value.trim())}">
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:10px;color:#3b82f6;min-width:90px">💬 コメント</span>
         <select id="agruFontRightInput"
                 style="flex:1;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
-                onchange="sendAgruText('agruFontRight',this.value)">
+                onchange="document.getElementById('agruFontRightCustom').value='';sendAgruText('agruFontRight',this.value)">
           <option value="">デフォルト</option>
           <option value="'Noto Sans JP', sans-serif">Noto Sans JP</option>
           <option value="'M PLUS Rounded 1c', sans-serif">M PLUS Rounded 1c</option>
@@ -1088,6 +1094,12 @@
           <option value="serif">serif</option>
           <option value="monospace">monospace</option>
         </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:10px;color:#64748b;min-width:90px">　PCフォント</span>
+        <input id="agruFontRightCustom" type="text" placeholder="インストール済みフォント名を入力..."
+               style="flex:1;font-size:11px;background:#1e293b;border:1px solid #475569;border-radius:3px;color:#e2e8f0;padding:2px 5px"
+               onchange="if(this.value.trim()){document.getElementById('agruFontRightInput').value='';sendAgruText('agruFontRight',this.value.trim())}">
       </div>
     </div>
   </div>
@@ -1780,8 +1792,8 @@
     if (s.agruIdleDelay       !== undefined) { const el = document.getElementById('agruIdleDelayInput');       if (el) el.value = s.agruIdleDelay; }
     if (s.agruIdleDelayImage  !== undefined) { const el = document.getElementById('agruIdleDelayImageInput');  if (el) el.value = s.agruIdleDelayImage; }
     if (s.agruChatFontSize    !== undefined) { const el = document.getElementById('agruChatFontSizeInput');    if (el) el.value = s.agruChatFontSize; }
-    if (s.agruFontLeft        !== undefined) { const el = document.getElementById('agruFontLeftInput');        if (el) el.value = s.agruFontLeft; }
-    if (s.agruFontRight       !== undefined) { const el = document.getElementById('agruFontRightInput');       if (el) el.value = s.agruFontRight; }
+    if (s.agruFontLeft  !== undefined) { const sel = document.getElementById('agruFontLeftInput');  const inp = document.getElementById('agruFontLeftCustom');  if (sel) { sel.value = s.agruFontLeft;  if (inp) inp.value = (s.agruFontLeft && sel.value !== s.agruFontLeft)  ? s.agruFontLeft  : ''; } }
+    if (s.agruFontRight !== undefined) { const sel = document.getElementById('agruFontRightInput'); const inp = document.getElementById('agruFontRightCustom'); if (sel) { sel.value = s.agruFontRight; if (inp) inp.value = (s.agruFontRight && sel.value !== s.agruFontRight) ? s.agruFontRight : ''; } }
     if (s.agruCharTags        !== undefined) { const el = document.getElementById('agruCharTagsInput');        if (el) el.value = s.agruCharTags; }
     if (s.agruBgmVolume       !== undefined) { const el = document.getElementById('agruBgmVolumeInput'); if (el) { el.value = s.agruBgmVolume; const v = document.getElementById('agruBgmVolumeVal'); if (v) v.textContent = s.agruBgmVolume + '%'; } }
     if (s.agruYtVolume        !== undefined) { const el = document.getElementById('agruYtVolumeInput'); if (el) { el.value = s.agruYtVolume; const v = document.getElementById('agruYtVolumeVal'); if (v) v.textContent = s.agruYtVolume + '%'; } }
