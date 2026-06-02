@@ -5762,8 +5762,15 @@ async function openAgruModal() {
     _cm.style.height     = agruModalHeight + 'px';
     _cm.style.background = `rgba(255,248,251,${agruModalBgOpacity / 100})`;
     const _cx = localStorage.getItem('agruModalX'), _cy = localStorage.getItem('agruModalY');
-    if (_cx && _cy) { _cm.style.left = _cx; _cm.style.top = _cy; _cm.style.transform = 'none'; }
-    else { _cm.style.left = ''; _cm.style.top = ''; _cm.style.transform = ''; }
+    if (_cx && _cy) {
+      const _lx = parseFloat(_cx), _ly = parseFloat(_cy);
+      if (_lx >= 0 && _ly >= 0 && _lx < window.innerWidth - 60 && _ly < window.innerHeight - 40) {
+        _cm.style.left = _cx; _cm.style.top = _cy; _cm.style.transform = 'none';
+      } else {
+        localStorage.removeItem('agruModalX'); localStorage.removeItem('agruModalY');
+        _cm.style.left = ''; _cm.style.top = ''; _cm.style.transform = '';
+      }
+    } else { _cm.style.left = ''; _cm.style.top = ''; _cm.style.transform = ''; }
   }
 
   // 起動挨拶
