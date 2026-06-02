@@ -543,6 +543,7 @@ body {
   color: #1e3a5f;
   border-bottom-right-radius: 3px;
   box-shadow: 0 1px 4px rgba(59,130,246,0.08);
+  font-family: var(--agru-font-right, inherit);
 }
 .agru-bubble-left {
   background: linear-gradient(135deg, #fdf2f8, #fce7f3);
@@ -550,6 +551,7 @@ body {
   color: #831843;
   border-bottom-left-radius: 3px;
   box-shadow: 0 1px 6px rgba(236,72,153,0.1);
+  font-family: var(--agru-font-left, inherit);
 }
 .agru-bubble-name {
   font-size: 10px;

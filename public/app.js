@@ -5164,6 +5164,8 @@ let agruIdleDelayImage   = parseInt(localStorage.getItem('agruIdleDelayImage')) 
 let agruChatFontSize     = parseInt(localStorage.getItem('agruChatFontSize')) || 14;
 let agruFontLeft         = localStorage.getItem('agruFontLeft')  || '';
 let agruFontRight        = localStorage.getItem('agruFontRight') || '';
+if (agruFontLeft)  document.documentElement.style.setProperty('--agru-font-left',  agruFontLeft);
+if (agruFontRight) document.documentElement.style.setProperty('--agru-font-right', agruFontRight);
 
 function _agruGetImage(emotion) {
   const files = agruFolderMap[emotion];
@@ -8645,8 +8647,8 @@ function handleAdminMessage(d, replyFn) {
     if (d.key === 'agruIdleDelay')          agruIdleDelay          = parseInt(d.value) || 10;
     if (d.key === 'agruIdleDelayImage')     agruIdleDelayImage     = parseInt(d.value) || 30;
     if (d.key === 'agruChatFontSize')       agruChatFontSize       = parseInt(d.value) || 14;
-    if (d.key === 'agruFontLeft')           agruFontLeft           = d.value;
-    if (d.key === 'agruFontRight')          agruFontRight          = d.value;
+    if (d.key === 'agruFontLeft')  { agruFontLeft  = d.value; document.documentElement.style.setProperty('--agru-font-left',  d.value || 'inherit'); }
+    if (d.key === 'agruFontRight') { agruFontRight = d.value; document.documentElement.style.setProperty('--agru-font-right', d.value || 'inherit'); }
     if (d.key === 'agruCharTags')           agruCharTags           = d.value;
     if (d.key === 'agruYtVolume')           agruYtVolume           = parseInt(d.value) || 100;
     if (d.key === 'agruBgmVolume')          { agruBgmVolume = parseInt(d.value) ?? 50; if (!_agruBgm.paused) _agruBgm.volume = agruBgmVolume / 100; }

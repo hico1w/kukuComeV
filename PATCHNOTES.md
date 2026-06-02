@@ -2,6 +2,18 @@
 
 ---
 
+## v2.419.0 — 2026-06-02
+
+### アゲルちゃん — チャットフォント変更をCSS変数方式に変更（即時全体反映）
+
+- **原因**: インラインスタイルで新規バブルにのみフォントを適用していたため、既存バブルが変わらず見た目に変化が分かりにくかった
+- `public/style.css`: `.agru-bubble-left` に `font-family: var(--agru-font-left, inherit)` を追加
+- `public/style.css`: `.agru-bubble-right` に `font-family: var(--agru-font-right, inherit)` を追加
+- `public/app.js`: `agruFontLeft`/`agruFontRight` 変更時に CSS変数 `--agru-font-left`/`--agru-font-right` を即時更新 → 既存バブルも含め全体に即時反映
+- `public/app.js`: 起動時も localStorage の値から CSS変数を初期設定
+
+---
+
 ## v2.418.0 — 2026-06-02
 
 ### アゲルちゃん — キャラ画像上寄せ・SNSアイコン復活
