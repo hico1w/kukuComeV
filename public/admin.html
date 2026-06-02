@@ -946,7 +946,7 @@
            oninput="document.getElementById('agruYtVolumeVal').textContent=this.value+'%';sendAgruText('agruYtVolume',this.value)">
     <span id="agruYtVolumeVal" style="font-size:11px;color:#e2e8f0;min-width:36px;text-align:right">100%</span>
   </div>
-  <!-- YouTubeモーダルサイズ -->
+  <!-- YouTubeモーダルサイズ・透明度 -->
   <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">
     <label style="font-size:11px;color:#94a3b8;min-width:72px">YTモーダル</label>
     <span class="size-label">幅</span>
@@ -957,6 +957,13 @@
     <input id="agruYtHeightInput" type="number" min="100" max="1080" step="10" value="245"
            style="width:60px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
            onchange="sendAgruText('agruYtHeight',this.value)">
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+    <label style="font-size:11px;color:#94a3b8;min-width:72px">YT透明度</label>
+    <input type="range" id="agruYtOpacityInput" min="10" max="100" step="5" value="100"
+           style="flex:1;accent-color:#f43f5e"
+           oninput="document.getElementById('agruYtOpacityVal').textContent=this.value+'%';sendAgruText('agruYtOpacity',this.value)">
+    <span id="agruYtOpacityVal" style="font-size:11px;color:#e2e8f0;min-width:36px;text-align:right">100%</span>
   </div>
   <!-- 会話モード SD設定 -->
   <div style="margin-top:10px;padding:8px;background:rgba(15,23,42,0.6);border:1px solid #1e293b;border-radius:6px">
@@ -1748,6 +1755,7 @@
     if (s.agruYtVolume        !== undefined) { const el = document.getElementById('agruYtVolumeInput'); if (el) { el.value = s.agruYtVolume; const v = document.getElementById('agruYtVolumeVal'); if (v) v.textContent = s.agruYtVolume + '%'; } }
     if (s.agruYtWidth         !== undefined) { const el = document.getElementById('agruYtWidthInput');  if (el) el.value = s.agruYtWidth; }
     if (s.agruYtHeight        !== undefined) { const el = document.getElementById('agruYtHeightInput'); if (el) el.value = s.agruYtHeight; }
+    if (s.agruYtOpacity       !== undefined) { const el = document.getElementById('agruYtOpacityInput'); if (el) { el.value = s.agruYtOpacity; const v = document.getElementById('agruYtOpacityVal'); if (v) v.textContent = s.agruYtOpacity + '%'; } }
     if (s.agruDefaultImage !== undefined) {
       localStorage.setItem('agruDefaultImage', s.agruDefaultImage);
       _refreshDefaultThumb(s.agruDefaultImage);
