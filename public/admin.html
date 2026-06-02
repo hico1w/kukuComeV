@@ -328,7 +328,8 @@
 <div class="section">
   <div class="section-title">💾 セーブ管理</div>
   <div class="btn-row">
-    <button class="btn-red" onclick="deleteAllSave()">🗑 全キャラセーブ削除</button>
+    <button class="btn-red" onclick="deleteUnprotectedSave()">🗑 保護以外を削除</button>
+    <button class="btn-red" onclick="deleteAllSave()">🗑 全削除</button>
     <button onclick="loadSaveList()">🔄 一覧を更新</button>
   </div>
   <div id="saveListWrap" style="margin-top:6px;max-height:220px;overflow-y:auto"></div>
@@ -397,6 +398,7 @@
 <div class="section">
   <div class="section-title">⚔️ ボス設定</div>
   <div class="btn-row">
+    <button onclick="adminSend({type:'processComment',comment:{ipid:'admin',icon_name:'管理者',message:'ボス召喚',type:'comment',cnum:Date.now()}})" style="background:#7f1d1d;color:#fca5a5;border:1px solid #991b1b;font-weight:bold;">⚔️ ボス召喚</button>
     <button onclick="cmd('spikiBossBtn')" style="background:#7c3aed;color:#fff;font-weight:bold;">👾 スピキ生成</button>
     <button onclick="cmd('dismissBossBtn')" class="btn-red">💀 ボス消去</button>
   </div>
@@ -887,6 +889,10 @@
             style="flex:1;padding:6px 10px;font-size:12px;background:#3b0764;color:#e9d5ff;border:1px solid #7c3aed;border-radius:6px;cursor:pointer">
       💬 会話モードを開く
     </button>
+    <button onclick="adminSend({type:'closeAgeruChat'})"
+            style="flex:1;padding:6px 10px;font-size:12px;background:#1e293b;color:#94a3b8;border:1px solid #475569;border-radius:6px;cursor:pointer">
+      ✕ 会話モードを閉じる
+    </button>
   </div>
   <div class="size-row" style="align-items:flex-start;margin-top:8px">
     <span class="size-label" style="padding-top:4px">ルール</span>
@@ -946,6 +952,21 @@
            oninput="document.getElementById('agruYtVolumeVal').textContent=this.value+'%';sendAgruText('agruYtVolume',this.value)">
     <span id="agruYtVolumeVal" style="font-size:11px;color:#e2e8f0;min-width:36px;text-align:right">100%</span>
   </div>
+  <!-- YouTube自動再生ON/OFF -->
+  <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+    <label style="font-size:11px;color:#94a3b8;min-width:72px">YT自動再生</label>
+    <button id="agruYtEnabledBtn"
+            style="padding:2px 12px;font-size:11px;border-radius:4px;border:1px solid #334155;cursor:pointer;background:#166534;color:#86efac"
+            onclick="
+              const on = this.dataset.on==='1' ? '0' : '1';
+              this.dataset.on = on;
+              this.textContent = on==='1' ? '受付中' : '無視';
+              this.style.background = on==='1' ? '#166534' : '#7f1d1d';
+              this.style.color      = on==='1' ? '#86efac' : '#fca5a5';
+              this.style.borderColor= on==='1' ? '#16a34a' : '#991b1b';
+              sendAgruText('agruYtEnabled', on);"
+            data-on="1">受付中</button>
+  </div>
   <!-- YouTubeモーダルサイズ・透明度 -->
   <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">
     <label style="font-size:11px;color:#94a3b8;min-width:72px">YTモーダル</label>
@@ -956,7 +977,11 @@
     <span class="size-label">高さ</span>
     <input id="agruYtHeightInput" type="number" min="100" max="1080" step="10" value="245"
            style="width:60px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
-           onchange="sendAgruText('agruYtHeight',this.value)">
+           onchange="
+             const w = Math.round(parseInt(this.value) * 16 / 9);
+             document.getElementById('agruYtWidthInput').value = w;
+             sendAgruText('agruYtHeight', this.value);
+             sendAgruText('agruYtWidth', w);">
   </div>
   <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
     <label style="font-size:11px;color:#94a3b8;min-width:72px">YT透明度</label>
@@ -967,7 +992,7 @@
   </div>
   <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
     <label style="font-size:11px;color:#94a3b8;min-width:72px">会話モーダルZ</label>
-    <input id="agruModalZInput" type="number" min="1" max="9999" step="10" value="300"
+    <input id="agruModalZInput" type="number" min="-9999" max="9999" step="10" value="300"
            style="width:70px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
            onchange="sendAgruText('agruModalZ',this.value)">
   </div>
@@ -981,6 +1006,11 @@
     <input id="agruModalHeightInput" type="number" min="200" max="2000" step="10" value="460"
            style="width:65px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
            onchange="sendAgruText('agruModalHeight',this.value)">
+    <span class="size-label" style="margin-left:6px">キャラ画像高さ</span>
+    <input id="agruCharImgHeightInput" type="number" min="100" max="1200" step="10" value="360"
+           style="width:65px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
+           onchange="sendAgruText('agruCharImgHeight',this.value)">
+    <span style="font-size:11px;color:#64748b">px</span>
   </div>
   <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
     <label style="font-size:11px;color:#94a3b8;min-width:72px">会話背景透明</label>
@@ -1049,6 +1079,18 @@
       <input id="agruChatFontSizeInput" type="number" min="8" max="32" step="1" value="14"
              style="width:50px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
              onchange="sendAgruText('agruChatFontSize',this.value)">
+      <button id="agruChatBoldBtn"
+              style="padding:2px 10px;font-size:11px;border-radius:4px;border:1px solid #334155;cursor:pointer;background:#1e293b;color:#64748b"
+              onclick="
+                const on = this.dataset.on==='1' ? '0' : '1';
+                this.dataset.on = on;
+                this.textContent = on==='1' ? '太字 ON' : '太字 OFF';
+                this.style.background   = on==='1' ? '#1e3a5f' : '#1e293b';
+                this.style.color        = on==='1' ? '#93c5fd' : '#64748b';
+                this.style.borderColor  = on==='1' ? '#1e40af' : '#334155';
+                this.style.fontWeight   = on==='1' ? 'bold'    : 'normal';
+                sendAgruText('agruChatBold', on);"
+              data-on="0">太字 OFF</button>
     </div>
     <div style="display:flex;flex-direction:column;gap:4px">
       <div style="display:flex;align-items:center;gap:6px">
@@ -1057,17 +1099,86 @@
                 style="flex:1;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
                 onchange="document.getElementById('agruFontLeftCustom').value='';sendAgruText('agruFontLeft',this.value)">
           <option value="">デフォルト</option>
-          <option value="'Noto Sans JP', sans-serif">Noto Sans JP</option>
-          <option value="'M PLUS Rounded 1c', sans-serif">M PLUS Rounded 1c</option>
-          <option value="'Zen Maru Gothic', sans-serif">Zen Maru Gothic</option>
-          <option value="'Kosugi Maru', sans-serif">Kosugi Maru</option>
-          <option value="'Reggae One', cursive">Reggae One</option>
-          <option value="'Kaisei Opti', serif">Kaisei Opti</option>
-          <option value="'Yuji Syuku', serif">Yuji Syuku</option>
-          <option value="'RocknRoll One', sans-serif">RocknRoll One</option>
-          <option value="'Stick', sans-serif">Stick</option>
-          <option value="serif">serif</option>
-          <option value="monospace">monospace</option>
+          <optgroup label="Webフォント">
+            <option value="'Noto Sans JP', sans-serif">Noto Sans JP</option>
+            <option value="'M PLUS Rounded 1c', sans-serif">M PLUS Rounded 1c</option>
+            <option value="'Zen Maru Gothic', sans-serif">Zen Maru Gothic</option>
+            <option value="'Kosugi Maru', sans-serif">Kosugi Maru</option>
+            <option value="'Reggae One', cursive">Reggae One</option>
+            <option value="'Kaisei Opti', serif">Kaisei Opti</option>
+            <option value="'Yuji Syuku', serif">Yuji Syuku</option>
+            <option value="'RocknRoll One', sans-serif">RocknRoll One</option>
+            <option value="'Stick', sans-serif">Stick</option>
+          </optgroup>
+          <optgroup label="Windows 日本語">
+            <option value="Meiryo">メイリオ</option>
+            <option value='"Meiryo UI"'>メイリオUI</option>
+            <option value='"MS Gothic"'>MSゴシック</option>
+            <option value='"MS PGothic"'>MSPゴシック</option>
+            <option value='"MS UI Gothic"'>MS UIゴシック</option>
+            <option value='"MS Mincho"'>MS明朝</option>
+            <option value='"MS PMincho"'>MSP明朝</option>
+            <option value='"Yu Gothic"'>游ゴシック</option>
+            <option value='"Yu Gothic Light"'>游ゴシック Light</option>
+            <option value='"Yu Gothic Medium"'>游ゴシック Medium</option>
+            <option value='"Yu Gothic UI"'>游ゴシック UI</option>
+            <option value='"Yu Mincho"'>游明朝</option>
+            <option value='"Yu Mincho Light"'>游明朝 Light</option>
+            <option value='"Yu Mincho Demibold"'>游明朝 Demibold</option>
+            <option value='"BIZ UDGothic"'>BIZ UDゴシック</option>
+            <option value='"BIZ UDPGothic"'>BIZ UDPゴシック</option>
+            <option value='"BIZ UDMincho Medium"'>BIZ UD明朝</option>
+            <option value='"BIZ UDPMincho Medium"'>BIZ UDP明朝</option>
+            <option value='"UD Digi Kyokasho N"'>UD教科書体N</option>
+            <option value='"UD Digi Kyokasho NK"'>UD教科書体NK</option>
+            <option value='"UD Digi Kyokasho NP"'>UD教科書体NP</option>
+          </optgroup>
+          <optgroup label="Windows 英語">
+            <option value='"Arial Black"'>Arial Black</option>
+            <option value='"Cascadia Code"'>Cascadia Code</option>
+            <option value='"Comic Sans MS"'>Comic Sans</option>
+            <option value='"Courier New"'>Courier New</option>
+            <option value='"Franklin Gothic Medium"'>Franklin Gothic</option>
+            <option value='"Ink Free"'>Ink Free</option>
+            <option value='"Segoe Print"'>Segoe Print</option>
+            <option value='"Segoe Script"'>Segoe Script</option>
+            <option value='"Segoe UI"'>Segoe UI</option>
+            <option value='"Times New Roman"'>Times New Roman</option>
+            <option value='"Trebuchet MS"'>Trebuchet MS</option>
+          </optgroup>
+          <optgroup label="カスタム（/user-fonts/）">
+            <option value='"Dela Gothic One"'>Dela Gothic One</option>
+            <option value='"851MkPOP"'>851POP</option>
+            <option value='"27_kurundeco"'>くるんデコ</option>
+            <option value="omatsuri">おまつり</option>
+            <option value="KazukiReiwa">かずき令和</option>
+            <option value='"KazukiReiwa Light"'>かずき令和 Light</option>
+            <option value='"07TetsubinGothic"'>鉄瓶ゴシック</option>
+            <option value='"07ReallyScaryMinchotai"'>ホラー明朝</option>
+            <option value="mitubachi">みつばち</option>
+            <option value="Genkaimincho">源界明朝</option>
+            <option value="SoukouMincho">蒼空明朝</option>
+            <option value="MatatakinoMincho">またたき明朝</option>
+            <option value='"ShokakiUtage-FreeVer."'>書楽宴</option>
+            <option value="sushiki">数式フォント</option>
+            <option value='"MOBO-ExtraLight"'>MOBO</option>
+            <option value='"Kotonoru Muryou-Shiyou Kw-N Black"'>コトノル</option>
+            <option value='"SmartFont UI"'>SmartFont</option>
+            <option value='"02UtsukushiMincho"'>美しい明朝</option>
+            <option value='"kurobara gothic bold"'>黒薔薇</option>
+            <option value='"kurobara gothic black"'>黒薔薇ブラック</option>
+            <option value='"kurobara gothic heavy"'>黒薔薇ヘビー</option>
+            <option value='"kurobara gothic thin"'>黒薔薇シン</option>
+            <option value='"fontopoBOKU"'>fontopoBOKU</option>
+            <option value='"fontopoKEISEN"'>fontopoKEISEN</option>
+            <option value='"fontopoSOLID"'>fontopoSOLID</option>
+            <option value='"FontopoORIENTAL"'>ORIENTAL</option>
+            <option value='"FontopoNIKUKYU"'>NIKUKYU</option>
+          </optgroup>
+          <optgroup label="汎用">
+            <option value="serif">serif</option>
+            <option value="monospace">monospace</option>
+          </optgroup>
         </select>
       </div>
       <div style="display:flex;align-items:center;gap:6px">
@@ -1082,17 +1193,86 @@
                 style="flex:1;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
                 onchange="document.getElementById('agruFontRightCustom').value='';sendAgruText('agruFontRight',this.value)">
           <option value="">デフォルト</option>
-          <option value="'Noto Sans JP', sans-serif">Noto Sans JP</option>
-          <option value="'M PLUS Rounded 1c', sans-serif">M PLUS Rounded 1c</option>
-          <option value="'Zen Maru Gothic', sans-serif">Zen Maru Gothic</option>
-          <option value="'Kosugi Maru', sans-serif">Kosugi Maru</option>
-          <option value="'Reggae One', cursive">Reggae One</option>
-          <option value="'Kaisei Opti', serif">Kaisei Opti</option>
-          <option value="'Yuji Syuku', serif">Yuji Syuku</option>
-          <option value="'RocknRoll One', sans-serif">RocknRoll One</option>
-          <option value="'Stick', sans-serif">Stick</option>
-          <option value="serif">serif</option>
-          <option value="monospace">monospace</option>
+          <optgroup label="Webフォント">
+            <option value="'Noto Sans JP', sans-serif">Noto Sans JP</option>
+            <option value="'M PLUS Rounded 1c', sans-serif">M PLUS Rounded 1c</option>
+            <option value="'Zen Maru Gothic', sans-serif">Zen Maru Gothic</option>
+            <option value="'Kosugi Maru', sans-serif">Kosugi Maru</option>
+            <option value="'Reggae One', cursive">Reggae One</option>
+            <option value="'Kaisei Opti', serif">Kaisei Opti</option>
+            <option value="'Yuji Syuku', serif">Yuji Syuku</option>
+            <option value="'RocknRoll One', sans-serif">RocknRoll One</option>
+            <option value="'Stick', sans-serif">Stick</option>
+          </optgroup>
+          <optgroup label="Windows 日本語">
+            <option value="Meiryo">メイリオ</option>
+            <option value='"Meiryo UI"'>メイリオUI</option>
+            <option value='"MS Gothic"'>MSゴシック</option>
+            <option value='"MS PGothic"'>MSPゴシック</option>
+            <option value='"MS UI Gothic"'>MS UIゴシック</option>
+            <option value='"MS Mincho"'>MS明朝</option>
+            <option value='"MS PMincho"'>MSP明朝</option>
+            <option value='"Yu Gothic"'>游ゴシック</option>
+            <option value='"Yu Gothic Light"'>游ゴシック Light</option>
+            <option value='"Yu Gothic Medium"'>游ゴシック Medium</option>
+            <option value='"Yu Gothic UI"'>游ゴシック UI</option>
+            <option value='"Yu Mincho"'>游明朝</option>
+            <option value='"Yu Mincho Light"'>游明朝 Light</option>
+            <option value='"Yu Mincho Demibold"'>游明朝 Demibold</option>
+            <option value='"BIZ UDGothic"'>BIZ UDゴシック</option>
+            <option value='"BIZ UDPGothic"'>BIZ UDPゴシック</option>
+            <option value='"BIZ UDMincho Medium"'>BIZ UD明朝</option>
+            <option value='"BIZ UDPMincho Medium"'>BIZ UDP明朝</option>
+            <option value='"UD Digi Kyokasho N"'>UD教科書体N</option>
+            <option value='"UD Digi Kyokasho NK"'>UD教科書体NK</option>
+            <option value='"UD Digi Kyokasho NP"'>UD教科書体NP</option>
+          </optgroup>
+          <optgroup label="Windows 英語">
+            <option value='"Arial Black"'>Arial Black</option>
+            <option value='"Cascadia Code"'>Cascadia Code</option>
+            <option value='"Comic Sans MS"'>Comic Sans</option>
+            <option value='"Courier New"'>Courier New</option>
+            <option value='"Franklin Gothic Medium"'>Franklin Gothic</option>
+            <option value='"Ink Free"'>Ink Free</option>
+            <option value='"Segoe Print"'>Segoe Print</option>
+            <option value='"Segoe Script"'>Segoe Script</option>
+            <option value='"Segoe UI"'>Segoe UI</option>
+            <option value='"Times New Roman"'>Times New Roman</option>
+            <option value='"Trebuchet MS"'>Trebuchet MS</option>
+          </optgroup>
+          <optgroup label="カスタム（/user-fonts/）">
+            <option value='"Dela Gothic One"'>Dela Gothic One</option>
+            <option value='"851MkPOP"'>851POP</option>
+            <option value='"27_kurundeco"'>くるんデコ</option>
+            <option value="omatsuri">おまつり</option>
+            <option value="KazukiReiwa">かずき令和</option>
+            <option value='"KazukiReiwa Light"'>かずき令和 Light</option>
+            <option value='"07TetsubinGothic"'>鉄瓶ゴシック</option>
+            <option value='"07ReallyScaryMinchotai"'>ホラー明朝</option>
+            <option value="mitubachi">みつばち</option>
+            <option value="Genkaimincho">源界明朝</option>
+            <option value="SoukouMincho">蒼空明朝</option>
+            <option value="MatatakinoMincho">またたき明朝</option>
+            <option value='"ShokakiUtage-FreeVer."'>書楽宴</option>
+            <option value="sushiki">数式フォント</option>
+            <option value='"MOBO-ExtraLight"'>MOBO</option>
+            <option value='"Kotonoru Muryou-Shiyou Kw-N Black"'>コトノル</option>
+            <option value='"SmartFont UI"'>SmartFont</option>
+            <option value='"02UtsukushiMincho"'>美しい明朝</option>
+            <option value='"kurobara gothic bold"'>黒薔薇</option>
+            <option value='"kurobara gothic black"'>黒薔薇ブラック</option>
+            <option value='"kurobara gothic heavy"'>黒薔薇ヘビー</option>
+            <option value='"kurobara gothic thin"'>黒薔薇シン</option>
+            <option value='"fontopoBOKU"'>fontopoBOKU</option>
+            <option value='"fontopoKEISEN"'>fontopoKEISEN</option>
+            <option value='"fontopoSOLID"'>fontopoSOLID</option>
+            <option value='"FontopoORIENTAL"'>ORIENTAL</option>
+            <option value='"FontopoNIKUKYU"'>NIKUKYU</option>
+          </optgroup>
+          <optgroup label="汎用">
+            <option value="serif">serif</option>
+            <option value="monospace">monospace</option>
+          </optgroup>
         </select>
       </div>
       <div style="display:flex;align-items:center;gap:6px">
@@ -1114,6 +1294,37 @@
               style="padding:3px 10px;font-size:11px;background:#1e3a5f;color:#93c5fd;border:1px solid #1e40af;border-radius:4px;cursor:pointer;flex-shrink:0">
         送信
       </button>
+    </div>
+    <!-- パラメータ強制設定 -->
+    <div style="font-size:10px;color:#64748b;margin-bottom:4px">パラメータ強制設定</div>
+    <div style="display:grid;grid-template-columns:60px 1fr 36px 38px;gap:3px 5px;align-items:center;margin-bottom:8px">
+      <span style="font-size:11px;color:#94a3b8">空腹度</span>
+      <input id="dbgHungerRange" type="range" min="0" max="100" step="1" value="100" style="accent-color:#f97316"
+             oninput="document.getElementById('dbgHungerVal').textContent=this.value">
+      <span id="dbgHungerVal" style="font-size:11px;color:#e2e8f0;text-align:right">100</span>
+      <button onclick="adminSend({type:'agruSetParam',param:'hunger',value:document.getElementById('dbgHungerRange').value})"
+              style="padding:2px 6px;font-size:10px;background:#7c2d12;color:#fed7aa;border:1px solid #9a3412;border-radius:3px;cursor:pointer">SET</button>
+
+      <span style="font-size:11px;color:#94a3b8">眠気度</span>
+      <input id="dbgSleepRange" type="range" min="0" max="100" step="1" value="0" style="accent-color:#6366f1"
+             oninput="document.getElementById('dbgSleepVal').textContent=this.value">
+      <span id="dbgSleepVal" style="font-size:11px;color:#e2e8f0;text-align:right">0</span>
+      <button onclick="adminSend({type:'agruSetParam',param:'sleepiness',value:document.getElementById('dbgSleepRange').value})"
+              style="padding:2px 6px;font-size:10px;background:#1e1b4b;color:#a5b4fc;border:1px solid #3730a3;border-radius:3px;cursor:pointer">SET</button>
+
+      <span style="font-size:11px;color:#94a3b8">性欲度</span>
+      <input id="dbgLibidoRange" type="range" min="0" max="100" step="1" value="30" style="accent-color:#ec4899"
+             oninput="document.getElementById('dbgLibidoVal').textContent=this.value">
+      <span id="dbgLibidoVal" style="font-size:11px;color:#e2e8f0;text-align:right">30</span>
+      <button onclick="adminSend({type:'agruSetParam',param:'libido',value:document.getElementById('dbgLibidoRange').value})"
+              style="padding:2px 6px;font-size:10px;background:#4a044e;color:#f0abfc;border:1px solid #7e22ce;border-radius:3px;cursor:pointer">SET</button>
+
+      <span style="font-size:11px;color:#94a3b8">好感度</span>
+      <input id="dbgAffinityRange" type="range" min="0" max="100" step="1" value="50" style="accent-color:#f43f5e"
+             oninput="document.getElementById('dbgAffinityVal').textContent=this.value">
+      <span id="dbgAffinityVal" style="font-size:11px;color:#e2e8f0;text-align:right">50</span>
+      <button onclick="adminSend({type:'agruSetParam',param:'affinity',value:document.getElementById('dbgAffinityRange').value})"
+              style="padding:2px 6px;font-size:10px;background:#4c0519;color:#fda4af;border:1px solid #9f1239;border-radius:3px;cursor:pointer">SET</button>
     </div>
     <!-- 現在の感情パネル -->
     <div style="font-size:10px;color:#64748b;margin-bottom:4px">現在の感情</div>
@@ -1184,6 +1395,7 @@
       <option value="gemma3:12b" selected>gemma3:12b</option>
       <option value="qwen2.5:7b">qwen2.5:7b</option>
       <option value="gemma4:e4b">gemma4:e4b</option>
+      <option value="dolphin-llama3:8b">dolphin-llama3:8b</option>
     </select>
   </div>
   <div class="size-row" style="align-items:flex-start">
@@ -1509,6 +1721,23 @@
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  async function deleteUnprotectedSave() {
+    const rows = [...document.querySelectorAll('#saveListWrap tr')];
+    const toDelete = rows
+      .filter(tr => !tr.querySelector('.save-protect-cb')?.checked)
+      .map(tr => tr.querySelector('[data-savekey]')?.dataset.savekey)
+      .filter(Boolean);
+    if (!toDelete.length) { alert('削除対象がありません。'); return; }
+    if (!confirm(`保護されていない ${toDelete.length} 件のセーブデータを削除しますか？\nこの操作は取り消せません。`)) return;
+    for (const key of toDelete) {
+      try {
+        await fetch(`/api/char-save/${encodeURIComponent(key)}`, { method: 'DELETE' });
+        adminSend({ type: 'deleteCharSave', key });
+      } catch {}
+    }
+    loadSaveList();
+  }
+
   function deleteAllSave() {
     if (!confirm('全キャラのセーブデータを削除しますか？\nこの操作は取り消せません。')) return;
     fetch('/api/char-save', { method: 'DELETE' })
@@ -1527,6 +1756,9 @@
       const rows = keys.map(key => {
         const d = data[key];
         return `<tr style="border-bottom:1px solid #1e293b">
+          <td style="padding:2px 5px;text-align:center">
+            <input type="checkbox" class="save-protect-cb" title="保護">
+          </td>
           <td style="padding:2px 5px;color:#94a3b8;font-size:10px;word-break:break-all">${_esc(key)}</td>
           <td style="padding:2px 5px;font-size:11px">${_esc(d.name || '不明')}</td>
           <td style="padding:2px 5px;font-size:10px;color:#60a5fa">Lv.${d.level || 1}</td>
@@ -1792,6 +2024,7 @@
     if (s.agruIdleDelay       !== undefined) { const el = document.getElementById('agruIdleDelayInput');       if (el) el.value = s.agruIdleDelay; }
     if (s.agruIdleDelayImage  !== undefined) { const el = document.getElementById('agruIdleDelayImageInput');  if (el) el.value = s.agruIdleDelayImage; }
     if (s.agruChatFontSize    !== undefined) { const el = document.getElementById('agruChatFontSizeInput');    if (el) el.value = s.agruChatFontSize; }
+    if (s.agruChatBold !== undefined) { const btn = document.getElementById('agruChatBoldBtn'); if (btn) { const on = s.agruChatBold ? '1' : '0'; btn.dataset.on = on; btn.textContent = on==='1' ? '太字 ON' : '太字 OFF'; btn.style.background = on==='1' ? '#1e3a5f' : '#1e293b'; btn.style.color = on==='1' ? '#93c5fd' : '#64748b'; btn.style.borderColor = on==='1' ? '#1e40af' : '#334155'; btn.style.fontWeight = on==='1' ? 'bold' : 'normal'; } }
     if (s.agruFontLeft  !== undefined) { const sel = document.getElementById('agruFontLeftInput');  const inp = document.getElementById('agruFontLeftCustom');  if (sel) { sel.value = s.agruFontLeft;  if (inp) inp.value = (s.agruFontLeft && sel.value !== s.agruFontLeft)  ? s.agruFontLeft  : ''; } }
     if (s.agruFontRight !== undefined) { const sel = document.getElementById('agruFontRightInput'); const inp = document.getElementById('agruFontRightCustom'); if (sel) { sel.value = s.agruFontRight; if (inp) inp.value = (s.agruFontRight && sel.value !== s.agruFontRight) ? s.agruFontRight : ''; } }
     if (s.agruCharTags        !== undefined) { const el = document.getElementById('agruCharTagsInput');        if (el) el.value = s.agruCharTags; }
@@ -1800,9 +2033,11 @@
     if (s.agruYtWidth         !== undefined) { const el = document.getElementById('agruYtWidthInput');  if (el) el.value = s.agruYtWidth; }
     if (s.agruYtHeight        !== undefined) { const el = document.getElementById('agruYtHeightInput'); if (el) el.value = s.agruYtHeight; }
     if (s.agruYtOpacity       !== undefined) { const el = document.getElementById('agruYtOpacityInput'); if (el) { el.value = s.agruYtOpacity; const v = document.getElementById('agruYtOpacityVal'); if (v) v.textContent = s.agruYtOpacity + '%'; } }
+    if (s.agruYtEnabled !== undefined) { const btn = document.getElementById('agruYtEnabledBtn'); if (btn) { const on = s.agruYtEnabled ? '1' : '0'; btn.dataset.on = on; btn.textContent = on==='1' ? '受付中' : '無視'; btn.style.background = on==='1' ? '#166534' : '#7f1d1d'; btn.style.color = on==='1' ? '#86efac' : '#fca5a5'; btn.style.borderColor = on==='1' ? '#16a34a' : '#991b1b'; } }
     if (s.agruModalZ          !== undefined) { const el = document.getElementById('agruModalZInput'); if (el) el.value = s.agruModalZ; }
     if (s.agruModalWidth      !== undefined) { const el = document.getElementById('agruModalWidthInput'); if (el) el.value = s.agruModalWidth; }
     if (s.agruModalHeight     !== undefined) { const el = document.getElementById('agruModalHeightInput'); if (el) el.value = s.agruModalHeight; }
+    if (s.agruCharImgHeight   !== undefined) { const el = document.getElementById('agruCharImgHeightInput'); if (el) el.value = s.agruCharImgHeight; }
     if (s.agruModalBgOpacity  !== undefined) { const el = document.getElementById('agruModalBgOpacityInput'); if (el) { el.value = s.agruModalBgOpacity; const v = document.getElementById('agruModalBgOpacityVal'); if (v) v.textContent = s.agruModalBgOpacity + '%'; } }
     if (s.agruChatImgSize     !== undefined) { const el = document.getElementById('agruChatImgSizeInput'); if (el) el.value = s.agruChatImgSize; }
     if (s.agruDefaultImage !== undefined) {
@@ -2374,40 +2609,7 @@
     adminSend({ type: 'openNovel' });
   }
 
-  // PCインストール済みフォントをプルダウンに追加（Font Access API）
-  (async function loadLocalFonts() {
-    if (!('queryLocalFonts' in window)) return;
-    try {
-      const fonts = await window.queryLocalFonts();
-      const families = [...new Set(fonts.map(f => f.family))].sort((a, b) => a.localeCompare(b, 'ja'));
-      ['agruFontLeftInput', 'agruFontRightInput'].forEach(selId => {
-        const sel = document.getElementById(selId);
-        if (!sel) return;
-        const grp = document.createElement('optgroup');
-        grp.label = 'PCインストール済み (' + families.length + '件)';
-        families.forEach(family => {
-          const opt = document.createElement('option');
-          opt.value = family.includes(' ') ? '"' + family + '"' : family;
-          opt.textContent = family;
-          grp.appendChild(opt);
-        });
-        sel.appendChild(grp);
-      });
-      // フォント読み込み後に現在値を再セット（optgroupが後から追加されるため）
-      ['agruFontLeft', 'agruFontRight'].forEach(key => {
-        const val = localStorage.getItem(key);
-        if (!val) return;
-        const selId = key === 'agruFontLeft' ? 'agruFontLeftInput' : 'agruFontRightInput';
-        const inpId = key === 'agruFontLeft' ? 'agruFontLeftCustom' : 'agruFontRightCustom';
-        const sel = document.getElementById(selId);
-        const inp = document.getElementById(inpId);
-        if (sel) {
-          sel.value = val;
-          if (inp && sel.value === val) inp.value = '';
-        }
-      });
-    } catch (e) { /* 権限拒否など */ }
-  })();
+
 </script>
 </body>
 </html>

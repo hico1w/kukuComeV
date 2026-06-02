@@ -373,8 +373,8 @@ const SETTINGS_KEYS = [
   'agruSystem','agruDefaultImage','agruEmotionMap',
   'agruVoicevoxEnabled','agruVoicevoxSpeaker','agruVoicevoxSpeed','agruVoicevoxVolume',
   'agruSdWidth','agruSdHeight','agruSdSteps','agruSdCfgScale','agruSdPositiveSuffix','agruIdleDelay','agruIdleDelayImage',
-  'agruChatFontSize','agruFontLeft','agruFontRight','agruCharTags','agruYtVolume','agruBgmVolume','agruYtWidth','agruYtHeight','agruYtOpacity','agruModalZ',
-  'agruModalWidth','agruModalHeight','agruModalBgOpacity','agruChatImgSize',
+  'agruChatFontSize','agruChatBold','agruFontLeft','agruFontRight','agruCharTags','agruYtVolume','agruBgmVolume','agruYtWidth','agruYtHeight','agruYtOpacity','agruYtEnabled','agruModalZ',
+  'agruModalWidth','agruModalHeight','agruModalBgOpacity','agruChatImgSize','agruCharImgHeight',
   'bombHidden','trashHidden',
   'afkOpacity','afkGrayscale','afkBrightness',
 ];
@@ -3616,7 +3616,7 @@ function handleComment(comment) {
     const ytMatch = searchTarget.match(/(?:youtu\.be\/|[?&]v=|shorts\/|live\/)([A-Za-z0-9_-]{11})/);
     if (ytMatch) {
       const videoId = ytMatch[1];
-      _agruPlayYouTube(videoId);
+      if (agruYtEnabled) _agruPlayYouTube(videoId);
       if (seenYoutubeUrls.has(videoId)) {
         postAIReply('もうみた');
       } else {
@@ -3659,8 +3659,8 @@ function handleComment(comment) {
     } else {
       user.mp -= 50;
       updateStatsDisplay(user);
-      agruAffinity = Math.min(100, agruAffinity + 10);
-      _agruUpdateAffinityDisplay(10);
+      agruAffinity = Math.min(100, agruAffinity + 20);
+      _agruUpdateAffinityDisplay(20);
       _agruAddSystemMsg(`${user.name || '名無し'}がカフェオレをプレゼントした！好感度あがった！`);
     }
   } else if (agruActive && message.trim() === '水道水投与') {
@@ -3669,11 +3669,11 @@ function handleComment(comment) {
     } else {
       user.mp -= 10;
       updateStatsDisplay(user);
-      agruAffinity = Math.max(0, agruAffinity - 10);
-      _agruUpdateAffinityDisplay(-10);
+      agruAffinity = Math.max(0, agruAffinity - 5);
+      _agruUpdateAffinityDisplay(-5);
       _agruAddSystemMsg(`${user.name || '名無し'}が水道水を投与した…好感度さがった…`);
     }
-  } else if (agruActive && agruIdle && message.trim() && !/^[ァ-ヶー]{5}$/.test(message.trim())) {
+  } else if (agruActive && agruIdle && message.trim() && !/^[ァ-ヶー]{5}$/.test(message.trim()) && !_isAgruSkipCmd(message)) {
     _agruSend(message, user.name);
   }
 
@@ -5087,12 +5087,27 @@ const AGRU_DEFAULT_SYSTEM =
   '必ず以下の形式のみで返答してください（他の文字を含めないこと）：\n' +
   '[感情]\n' +
   '[好感度変化（称賛・好意・感謝なら+1〜+5、侮辱・嫌悪・不快なら-1〜-10、普通の雑談・挨拶・質問は必ず0）]\n' +
+  '[性欲変化（性的・刺激的・エッチな話題なら+1〜+5、性欲を冷ます内容なら-1〜-5、通常の会話は必ず0）]\n' +
   '[コメントへの返答（40文字程度、必ず日本語のみ）]\n\n' +
   '感情は次のいずれかを選んでください：\n' +
   '安心/愛しさ/感謝/性的興奮/興奮/感動/好奇心/驚き/尊敬/不安/恐怖/困惑/冷静/軽蔑/殺意/悲しみ/諦め/苦しみ/嫉妬/恥';
 
 let agruSystem    = localStorage.getItem('agruSystem') || '';
-let agruAffinity  = 50; // 0〜100、初期値50
+let agruAffinity  = 50;
+let agruHunger    = 100; // 0〜100、1時間で0になる速度で自然減少
+let agruSleepiness = 0;  // 0〜100、3時間で100になる速度で自然増加
+let agruLibido    = 30;  // 0〜100、チャットで増減
+let _agruSleepWakeCount = 0; // 睡眠中に届いたチャット数（5で目覚め）
+let _agruDeadWakeCount  = 0; // 死亡中に届いたチャット数（10で復活）
+
+// パラメータ自動変化タイマー（1秒ごと）
+setInterval(() => {
+  if (!agruActive) return;
+  agruHunger     = Math.max(0,   agruHunger     - 100 / 3600);
+  agruSleepiness = Math.min(100, agruSleepiness + 100 / 10800);
+  _agruUpdateHungerDisplay(0);
+  _agruUpdateSleepDisplay(0);
+}, 1000);
 
 function _agruGetAffinityContext() {
   const lv = Math.round(agruAffinity);
@@ -5105,23 +5120,106 @@ function _agruGetAffinityContext() {
   return `現在のリスナーさんへの好感度: ${lv}/100（${desc}）`;
 }
 
+function _agruGetStateContext() {
+  const parts = [];
+  if (agruHunger <= 30)       parts.push('あなたは今、極度の空腹で生命の危機に瀕しています。その苦しさを必ず返答に含めてください。');
+  else if (agruHunger <= 50)  parts.push('あなたは今、お腹がすいています。空腹であることを返答に含めてください。');
+  if (agruSleepiness > 90)    parts.push('あなたは今、極度に眠いです。眠いことを必ず返答に含めてください。');
+  if (agruLibido > 80)        parts.push('あなたは今、強烈な性的欲求に支配されています。返答は性欲まみれになります。');
+  return parts.join(' ');
+}
+
+function _agruUpdateParams(message) {
+  const prevHunger = agruHunger;
+  const prevSleep  = agruSleepiness;
+  if (/肉投与/.test(message))    agruHunger     = Math.min(100, agruHunger + 30);
+  if (/寿司投与/.test(message))   agruHunger     = Math.min(100, agruHunger + 20);
+  if (/たばこ投与/.test(message))  agruHunger     = Math.min(100, agruHunger + 10);
+  if (/起きろ/.test(message))     agruSleepiness = Math.max(0,   agruSleepiness - 10);
+  if (/たばこ/.test(message))     agruSleepiness = Math.max(0,   agruSleepiness - 10);
+  if (/エナドリ/.test(message))    agruSleepiness = Math.max(0,   agruSleepiness - 30);
+  _agruUpdateHungerDisplay(agruHunger - prevHunger);
+  _agruUpdateSleepDisplay(agruSleepiness - prevSleep);
+}
+
+async function _agruShowStateImage(state) {
+  try {
+    const res  = await fetch(`/api/ageru-images/${state}`);
+    const data = await res.json();
+    const imgs = (data.images || []);
+    if (imgs.length > 0) {
+      const el = document.getElementById('agruCharImg');
+      if (el) el.src = `/ageru/${state}/${imgs[Math.floor(Math.random() * imgs.length)]}`;
+    }
+  } catch {}
+}
+
+function _agruRevertStateImage() {
+  const el = document.getElementById('agruCharImg');
+  if (el && agruDefaultImage) el.src = `/ageru/${encodeURIComponent(agruDefaultImage)}`;
+}
+
+function _agruShowParamPop(text, color, goUp = true) {
+  const frame = document.querySelector('.agru-char-frame');
+  if (!frame) return;
+  const pop = document.createElement('div');
+  pop.className = 'agru-param-pop ' + (goUp ? 'up' : 'down');
+  pop.textContent = text;
+  pop.style.color = color;
+  pop.style.top   = '20px';
+  pop.style.right = '13px';
+  frame.appendChild(pop);
+  setTimeout(() => pop.remove(), 2600);
+}
 function _agruUpdateAffinityDisplay(delta = 0) {
   const el = document.getElementById('agruAffinityDisplay');
   if (!el) return;
   const filled     = Math.round(agruAffinity / 10);
   const prevFilled = Math.round((agruAffinity - delta) / 10);
-  let html = '';
+  let html = '<span style="font-size:15px;margin-top:0">💕</span>';
   for (let i = 0; i < 10; i++) {
-    const isOn      = i < filled;
-    const isFlash   = delta > 0
-      ? (i >= prevFilled && i < filled)       // 増えたハート
-      : delta < 0
-        ? (i >= filled && i < prevFilled)     // 減ったハート
-        : false;
+    const isOn    = i < filled;
+    const isFlash = delta > 0 ? (i >= prevFilled && i < filled) : delta < 0 ? (i >= filled && i < prevFilled) : false;
     html += `<span class="${isOn ? 'agru-heart-on' : 'agru-heart-off'}${isFlash ? ' agru-heart-flash' : ''}">♥</span>`;
   }
   el.innerHTML = html;
+  if (delta > 0) _agruShowParamPop('💕 好感度↑', '#f472b6', true);
+  else if (delta < 0) _agruShowParamPop('💔 好感度↓', '#9ca3af', false);
 }
+function _agruUpdateHungerDisplay(delta = 0) {
+  const el = document.getElementById('agruHungerDisplay');
+  if (!el) return;
+  const filled = Math.round(Math.max(0, agruHunger) / 10);
+  let html = '<span style="font-size:15px;margin-top:0">🍖</span>';
+  for (let i = 0; i < 10; i++)
+    html += `<span class="${i < filled ? 'agru-param-hunger-on' : 'agru-param-hunger-off'}">◆</span>`;
+  el.innerHTML = html;
+  if (delta > 0) _agruShowParamPop('🍖 空腹↓', '#fb923c', false);
+  else if (delta < 0) _agruShowParamPop('🍖 空腹↑', '#ef4444', true);
+}
+function _agruUpdateSleepDisplay(delta = 0) {
+  const el = document.getElementById('agruSleepDisplay');
+  if (!el) return;
+  const filled = Math.round(Math.min(100, agruSleepiness) / 10);
+  let html = '<span style="font-size:15px;margin-top:0">💤</span>';
+  for (let i = 0; i < 10; i++)
+    html += `<span class="${i < filled ? 'agru-param-sleep-on' : 'agru-param-sleep-off'}">●</span>`;
+  el.innerHTML = html;
+  if (delta > 0) _agruShowParamPop('💤 眠気↑', '#818cf8', true);
+  else if (delta < 0) _agruShowParamPop('💤 眠気↓', '#facc15', false);
+}
+function _agruUpdateLibidoDisplay(delta = 0) {
+  const el = document.getElementById('agruLibidoDisplay');
+  if (!el) return;
+  const filled = Math.round(Math.max(0, agruLibido) / 10);
+  let html = '<span style="font-size:15px;margin-top:0">❓</span>';
+  for (let i = 0; i < 10; i++)
+    html += `<span class="${i < filled ? 'agru-param-libido-on' : 'agru-param-libido-off'}">★</span>`;
+  el.innerHTML = html;
+  if (delta > 0) _agruShowParamPop('❓↑', '#a78bfa', true);
+  else if (delta < 0) _agruShowParamPop('❓↓', '#94a3b8', false);
+}
+
 let agruDefaultImage = localStorage.getItem('agruDefaultImage') || '';
 let agruEmotionMap = {};
 try { agruEmotionMap = JSON.parse(localStorage.getItem('agruEmotionMap') || '{}'); } catch {}
@@ -5152,16 +5250,21 @@ let agruBgmVolume        = parseInt(localStorage.getItem('agruBgmVolume') ?? '50
 let agruYtWidth          = parseInt(localStorage.getItem('agruYtWidth')   ?? '435');
 let agruYtHeight         = parseInt(localStorage.getItem('agruYtHeight')  ?? '245');
 let agruYtOpacity        = parseInt(localStorage.getItem('agruYtOpacity') ?? '100');
+let agruYtEnabled        = (localStorage.getItem('agruYtEnabled') ?? '1') === '1';
 let agruModalZ           = parseInt(localStorage.getItem('agruModalZ')    ?? '300');
 let agruModalWidth       = parseInt(localStorage.getItem('agruModalWidth')     ?? '870');
 let agruModalHeight      = parseInt(localStorage.getItem('agruModalHeight')    ?? '460');
 let agruModalBgOpacity   = parseInt(localStorage.getItem('agruModalBgOpacity') ?? '45');
 let agruChatImgSize      = parseInt(localStorage.getItem('agruChatImgSize')    ?? '350');
 document.documentElement.style.setProperty('--agru-chat-img-maxh', agruChatImgSize + 'px');
+let agruCharImgHeight    = parseInt(localStorage.getItem('agruCharImgHeight')  ?? '360');
+document.documentElement.style.setProperty('--agru-char-img-height', agruCharImgHeight + 'px');
 let _agruSelfieLocked    = false;
 let agruIdleDelay        = parseInt(localStorage.getItem('agruIdleDelay')) || 10;
 let agruIdleDelayImage   = parseInt(localStorage.getItem('agruIdleDelayImage')) || 30;
 let agruChatFontSize     = parseInt(localStorage.getItem('agruChatFontSize')) || 14;
+let agruChatBold         = localStorage.getItem('agruChatBold') === '1';
+if (agruChatBold) document.documentElement.style.setProperty('--agru-font-weight', 'bold');
 let agruFontLeft         = localStorage.getItem('agruFontLeft')  || '';
 let agruFontRight        = localStorage.getItem('agruFontRight') || '';
 if (agruFontLeft)  document.documentElement.style.setProperty('--agru-font-left',  agruFontLeft);
@@ -5485,10 +5588,59 @@ function _agruLog(msg, type) {
   else _adminBC.postMessage(_m);
 }
 
+function _isAgruSkipCmd(msg) {
+  const m = msg.trim();
+  // 明示的コマンド
+  if (/ペットガチャ/.test(m))        return true;
+  if (/スロット/.test(m))             return true;
+  if (/ランダムタイマン/.test(m))     return true;
+  if (/^タイマン[：:]/.test(m))       return true;
+  if (/AFK|ＡＦＫ/i.test(m))         return true;
+  if (/^(?:放置|無明)[：:]/.test(m))  return true;
+  if (/射/.test(m))                   return true;
+  if (m === 'ノベル起動')             return true;
+  if (m === '開ける')                 return true;
+  if (/ステータス確認/.test(m))       return true;
+  if (/^ボス召喚/.test(m))            return true;
+  if (/^tts[：:]/i.test(m))           return true;
+  // インライン設定コマンド（：区切り系）
+  if (/キャラ\d{1,3}/.test(m))        return true;
+  if (/名前[：:]/.test(m))            return true;
+  if (/吹き出し背景色[：:]/.test(m))  return true;
+  if (/色[：:]/.test(m))              return true;
+  if (/吹き出し[：:]/.test(m))        return true;
+  if (/移動[：:]/.test(m))            return true;
+  if (/[上下左右][：:]\d+/.test(m))   return true;
+  if (/大きさ[：:]/.test(m))          return true;
+  if (/フォント[：:]/.test(m))        return true;
+  if (/飾り[：:]/.test(m))            return true;
+  if (/文字サイズ[：:]/.test(m))      return true;
+  // モーション・エフェクトキーワード
+  if (/ごしありｗ/.test(m))           return true;
+  if (/ランダムキャラ/.test(m))       return true;
+  if (/歩く|歩きゅ/.test(m))         return true;
+  if (/はずむ|hikonori/.test(m))      return true;
+  if (/回転/.test(m))                 return true;
+  if (/反転/.test(m))                 return true;
+  if (/震える/.test(m))               return true;
+  if (/ぐにゃぐにゃ/.test(m))         return true;
+  if (/浮く/.test(m))                 return true;
+  if (/揺れる/.test(m))               return true;
+  if (/伸縮|縮む/.test(m))            return true;
+  if (/スキップ/.test(m))             return true;
+  if (/酔う/.test(m))                 return true;
+  if (/太字/.test(m))                 return true;
+  if (/斜体/.test(m))                 return true;
+  if (/花火|紙吹雪|流れ星|ハートシャワー|桜|雪|爆発|泡|稲妻/.test(m)) return true;
+  if (/回復/.test(m))                 return true;
+  return false;
+}
+
 function _agruParseResponse(raw) {
   let emotion = '安心';
   let replyText = raw;
   let affinityDelta = 0;
+  let libidoDelta = 0;
   const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
 
   let replyStartIdx = 1;
@@ -5518,8 +5670,18 @@ function _agruParseResponse(raw) {
     }
   }
 
+  // 3行目が性欲変化なら抽出
+  if (lines[replyStartIdx]) {
+    const deltaRaw = lines[replyStartIdx].replace(/^\[|\]$/g, '').trim();
+    const m = deltaRaw.match(/^([+-]?\d+)$/);
+    if (m) {
+      libidoDelta = Math.max(-5, Math.min(5, parseInt(m[1])));
+      replyStartIdx = 3;
+    }
+  }
+
   replyText = lines.slice(replyStartIdx).join('\n').replace(/^\[/, '').replace(/\]$/, '').replace(/^「|」$/g, '').trim();
-  return { emotion, replyText, affinityDelta };
+  return { emotion, replyText, affinityDelta, libidoDelta };
 }
 
 function _agruNotifyEmotion(emotion, replyText) {
@@ -5539,10 +5701,47 @@ async function _agruSend(message, commenter) {
   agruIdle = false;
   clearTimeout(_agruIdleTimer);
 
+  _agruUpdateParams(message);
+
   if (commenter) _agruAddBubble('right', commenter, message);
+
+  // 死亡状態（空腹度0）
+  if (agruHunger <= 0) {
+    _agruDeadWakeCount++;
+    if (_agruDeadWakeCount >= 10) {
+      agruHunger = 50;
+      _agruDeadWakeCount = 0;
+      _agruRevertStateImage();
+      _agruUpdateHungerDisplay();
+    } else {
+      _agruShowStateImage('dead');
+      _agruAddBubble('left', 'アゲルちゃん', '・・・');
+      _agruSetStatus('コメント待ち...');
+      agruIdle = true;
+      return;
+    }
+  }
+
+  // 睡眠状態（眠気度100）
+  if (agruSleepiness >= 100) {
+    _agruSleepWakeCount++;
+    if (_agruSleepWakeCount < 5) {
+      _agruShowStateImage('sleep');
+      _agruAddBubble('left', 'アゲルちゃん', '・・・ｚｚｚ');
+      _agruSetStatus('コメント待ち...');
+      agruIdle = true;
+      return;
+    } else {
+      agruSleepiness = 70;
+      _agruSleepWakeCount = 0;
+      _agruRevertStateImage();
+    }
+  }
+
   _agruSetStatus('返答中...');
 
-  const systemPrompt = AGRU_DEFAULT_SYSTEM + '\n\n' + _agruGetAffinityContext() + (agruSystem.trim() ? '\n\n' + agruSystem.trim() : '');
+  const stateCtx = _agruGetStateContext();
+  const systemPrompt = AGRU_DEFAULT_SYSTEM + '\n\n' + _agruGetAffinityContext() + (stateCtx ? '\n\n' + stateCtx : '') + (agruSystem.trim() ? '\n\n' + agruSystem.trim() : '');
   _agruLog('送信: ' + message + ' (履歴' + (_agruConvHistory.length / 2) + '往復) 好感度' + agruAffinity);
 
   // 画像生成キーワード検出（会話モード中は自撮り/写真も対象）
@@ -5551,7 +5750,7 @@ async function _agruSend(message, commenter) {
 
   // 音楽キーワード検出 → YouTubeランダム再生 / 停止
   if (/止めて/.test(message)) closeAgruYtModal();
-  else if (/曲|歌/.test(message)) _agruPlayYouTube();
+  else if (agruYtEnabled && /曲|歌/.test(message)) _agruPlayYouTube();
 
   try {
     const messages = [..._agruConvHistory, { role: 'user', content: message }];
@@ -5571,10 +5770,12 @@ async function _agruSend(message, commenter) {
     const raw = data.reply.trim();
     _agruLog('raw: ' + raw);
 
-    const { emotion, replyText, affinityDelta } = _agruParseResponse(raw);
+    const { emotion, replyText, affinityDelta, libidoDelta } = _agruParseResponse(raw);
     agruAffinity = Math.max(0, Math.min(100, agruAffinity + affinityDelta));
+    agruLibido   = Math.max(0, Math.min(100, agruLibido   + libidoDelta));
     _agruUpdateAffinityDisplay(affinityDelta);
-    _agruLog('emotion: ' + emotion + ' / reply: ' + replyText + ' / 好感度Δ' + affinityDelta + ' → ' + agruAffinity, 'ok');
+    _agruUpdateLibidoDisplay(libidoDelta);
+    _agruLog('emotion: ' + emotion + ' / reply: ' + replyText + ' / 好感度Δ' + affinityDelta + ' / 性欲Δ' + libidoDelta, 'ok');
     _agruNotifyEmotion(emotion, replyText);
     _agruPlayVoicevox(replyText);
     if (_needsImage) {
@@ -5611,6 +5812,7 @@ async function _agruSend(message, commenter) {
     if (_agruConvHistory.length > 100) _agruConvHistory.splice(0, 2);
 
     _agruSetImage(emotion);
+    if (agruLibido > 80) _agruShowStateImage('horny');
     const _typingEl = document.getElementById('agruTypingIndicator');
     if (_typingEl) _typingEl.remove();
     _agruAddBubble('left', 'アゲルちゃん', replyText, () => {
@@ -5630,7 +5832,8 @@ async function _agruSend(message, commenter) {
 
 async function _agruDebug(message) {
   _agruLog('【デバッグ】送信: ' + message);
-  const systemPrompt = AGRU_DEFAULT_SYSTEM + '\n\n' + _agruGetAffinityContext() + (agruSystem.trim() ? '\n\n' + agruSystem.trim() : '');
+  const _dbgStateCtx = _agruGetStateContext();
+  const systemPrompt = AGRU_DEFAULT_SYSTEM + '\n\n' + _agruGetAffinityContext() + (_dbgStateCtx ? '\n\n' + _dbgStateCtx : '') + (agruSystem.trim() ? '\n\n' + agruSystem.trim() : '');
   try {
     const res = await fetch('/api/ai-reply', {
       method: 'POST',
@@ -5647,10 +5850,12 @@ async function _agruDebug(message) {
     const raw = data.reply.trim();
     _agruLog('【デバッグ】raw: ' + raw);
 
-    const { emotion, replyText, affinityDelta } = _agruParseResponse(raw);
+    const { emotion, replyText, affinityDelta, libidoDelta } = _agruParseResponse(raw);
     agruAffinity = Math.max(0, Math.min(100, agruAffinity + affinityDelta));
+    agruLibido   = Math.max(0, Math.min(100, agruLibido   + libidoDelta));
     _agruUpdateAffinityDisplay(affinityDelta);
-    _agruLog('【デバッグ】emotion: ' + emotion + ' / reply: ' + replyText + ' / 好感度Δ' + affinityDelta + ' → ' + agruAffinity, 'ok');
+    _agruUpdateLibidoDisplay(libidoDelta);
+    _agruLog('【デバッグ】emotion: ' + emotion + ' / reply: ' + replyText + ' / 好感度Δ' + affinityDelta + ' / 性欲Δ' + libidoDelta, 'ok');
     _agruNotifyEmotion(emotion, replyText);
   } catch (e) {
     _agruLog('【デバッグ】例外: ' + e.message, 'err');
@@ -5745,7 +5950,12 @@ async function openAgruModal() {
   clearInterval(_agruTypeTimer);
   _agruConvHistory = [];
 
-  agruAffinity = 50;
+  agruAffinity    = 50;
+  agruHunger      = 100;
+  agruSleepiness  = 0;
+  agruLibido      = 30;
+  _agruSleepWakeCount = 0;
+  _agruDeadWakeCount  = 0;
 
   const img = document.getElementById('agruCharImg');
   if (img && agruDefaultImage) img.src = `/ageru/${encodeURIComponent(agruDefaultImage)}`;
@@ -5753,6 +5963,9 @@ async function openAgruModal() {
   if (log) log.innerHTML = '';
   document.getElementById('agruEmotionLabel').textContent = '';
   _agruUpdateAffinityDisplay();
+  _agruUpdateHungerDisplay();
+  _agruUpdateSleepDisplay();
+  _agruUpdateLibidoDisplay();
   _agruSetStatus('起動中...');
   const _agruModalEl = document.getElementById('agruModal');
   _agruModalEl.classList.remove('hidden');
@@ -5788,6 +6001,7 @@ function closeAgruModal() {
   closeAgruYtModal();
   _agruBgmStop();
   document.getElementById('agruModal').classList.add('hidden');
+  fetch('/api/ai-unload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: aiModel }) }).catch(() => {});
 }
 
 function _agruOpenYtModal(videoId) {
@@ -5861,24 +6075,26 @@ async function askAI(user, question) {
 }
 
 // ── Stable Diffusion 画像生成 ────────────────────────────────────
-function _sdReadSettings() {
-  return {
-    width:          parseInt(document.getElementById('sdWidthInput')?.value)        || 1600,
-    height:         parseInt(document.getElementById('sdHeightInput')?.value)       || 1000,
-    steps:          parseInt(document.getElementById('sdStepsSlider')?.value)       || 20,
-    popWidth:       parseInt(document.getElementById('sdPopWidthSlider')?.value)    || 480,
-    positiveSuffix: document.getElementById('sdPositiveSuffixInput')?.value         ?? '',
-    negative:       document.getElementById('sdNegativeInput')?.value               ?? '',
-    displayTime:    parseInt(document.getElementById('sdDisplayTimeSlider')?.value) || 10,
-    mosaicKeywords: document.getElementById('sdMosaicKeywordsInput')?.value         ?? '',
-    mosaicBlock:    parseInt(document.getElementById('sdMosaicBlockSlider')?.value) || 20,
-    cfgScale:       parseFloat(document.getElementById('sdCfgScaleInput')?.value)   || 3,
-    sampler:        document.getElementById('sdSamplerInput')?.value                || 'Euler a',
-  };
+const _sdQueue = [];
+let _sdBusy = false;
+
+function generateSDImage(user, prompt) {
+  ensureCharOnStage(user);
+  showBubble(user, '⏳ 順番待ち…', { color: '#a855f7' });
+  _sdQueue.push({ user, prompt });
+  if (!_sdBusy) _sdProcessQueue();
 }
 
-async function generateSDImage(user, prompt) {
-  ensureCharOnStage(user);
+async function _sdProcessQueue() {
+  if (_sdBusy || _sdQueue.length === 0) return;
+  _sdBusy = true;
+  const { user, prompt } = _sdQueue.shift();
+  await _sdGenerateOne(user, prompt);
+  _sdBusy = false;
+  _sdProcessQueue();
+}
+
+async function _sdGenerateOne(user, prompt) {
   const cfg = _sdReadSettings();
   const fullPrompt = prompt + (cfg.positiveSuffix ? ', ' + cfg.positiveSuffix : '');
   showBubble(user, '🎨 生成中…', { color: '#a855f7' });
@@ -5916,6 +6132,22 @@ async function generateSDImage(user, prompt) {
     console.error('[SD fetch]', e);
     showBubble(user, '❌ 通信エラー', {});
   }
+}
+
+function _sdReadSettings() {
+  return {
+    width:          parseInt(document.getElementById('sdWidthInput')?.value)        || 1600,
+    height:         parseInt(document.getElementById('sdHeightInput')?.value)       || 1000,
+    steps:          parseInt(document.getElementById('sdStepsSlider')?.value)       || 20,
+    popWidth:       parseInt(document.getElementById('sdPopWidthSlider')?.value)    || 480,
+    positiveSuffix: document.getElementById('sdPositiveSuffixInput')?.value         ?? '',
+    negative:       document.getElementById('sdNegativeInput')?.value               ?? '',
+    displayTime:    parseInt(document.getElementById('sdDisplayTimeSlider')?.value) || 10,
+    mosaicKeywords: document.getElementById('sdMosaicKeywordsInput')?.value         ?? '',
+    mosaicBlock:    parseInt(document.getElementById('sdMosaicBlockSlider')?.value) || 20,
+    cfgScale:       parseFloat(document.getElementById('sdCfgScaleInput')?.value)   || 3,
+    sampler:        document.getElementById('sdSamplerInput')?.value                || 'Euler a',
+  };
 }
 
 function _sdNeedsMosaic(prompt, translatedPrompt, mosaicKeywords) {
@@ -6667,7 +6899,7 @@ function showStatusModal(user, autoClose = true, triggerCnum = null) {
                   <div class="sm-ol-stat">EXP <span>${user.exp || 0}</span></div>
                 </div>
               </div>
-              <div class="sm-ol-name">${escapeHtml(user.name)}${user.iconName ? `<div class="sm-icon-name" style="font-size:10px;margin-top:2px">${escapeHtml(user.iconName)}</div>` : ''}</div>
+              <div class="sm-ol-name">${escapeHtml(user.name)}${user.iconName ? `<div class="sm-icon-name" style="font-size:10px;margin-top:0">${escapeHtml(user.iconName)}</div>` : ''}</div>
               <div class="sm-ol-lv">Lv. ${lv}</div>
               <div class="sm-ol-equip">
                 <div class="sm-equip-list">${equipRows}</div>
@@ -8533,6 +8765,7 @@ function handleAdminMessage(d, replyFn) {
     state.agruIdleDelay          = agruIdleDelay;
     state.agruIdleDelayImage     = agruIdleDelayImage;
     state.agruChatFontSize       = agruChatFontSize;
+    state.agruChatBold           = agruChatBold ? 1 : 0;
     state.agruFontLeft           = agruFontLeft;
     state.agruFontRight          = agruFontRight;
     state.agruDefaultImage       = agruDefaultImage;
@@ -8543,11 +8776,13 @@ function handleAdminMessage(d, replyFn) {
     state.agruYtWidth            = agruYtWidth;
     state.agruYtHeight           = agruYtHeight;
     state.agruYtOpacity          = agruYtOpacity;
+    state.agruYtEnabled          = agruYtEnabled ? 1 : 0;
     state.agruModalZ             = agruModalZ;
     state.agruModalWidth         = agruModalWidth;
     state.agruModalHeight        = agruModalHeight;
     state.agruModalBgOpacity     = agruModalBgOpacity;
     state.agruChatImgSize        = agruChatImgSize;
+    state.agruCharImgHeight      = agruCharImgHeight;
     state.autoDeleteMinutes   = autoDeleteMinutes;
     state.fiveMinMode   = fiveMinMode;
     state.brAutoEnabled = brAutoEnabled;
@@ -8629,6 +8864,14 @@ function handleAdminMessage(d, replyFn) {
     openNovelModal();
   } else if (d.type === 'openAgeruChat') {
     openAgruModal();
+  } else if (d.type === 'closeAgeruChat') {
+    closeAgruModal();
+  } else if (d.type === 'agruSetParam') {
+    const v = parseFloat(d.value);
+    if (d.param === 'hunger')     { const _ph = agruHunger;     agruHunger     = Math.max(0, Math.min(100, v)); _agruDeadWakeCount = 0; if (agruHunger > 0) _agruRevertStateImage(); _agruUpdateHungerDisplay(agruHunger - _ph); }
+    if (d.param === 'sleepiness') { const _ps = agruSleepiness; agruSleepiness = Math.max(0, Math.min(100, v)); if (agruSleepiness < 100) { _agruSleepWakeCount = 0; _agruRevertStateImage(); } _agruUpdateSleepDisplay(agruSleepiness - _ps); }
+    if (d.param === 'libido')     { const _pl = agruLibido;     agruLibido     = Math.max(0, Math.min(100, v)); _agruUpdateLibidoDisplay(agruLibido - _pl); }
+    if (d.param === 'affinity')   { const _pa = agruAffinity;   agruAffinity   = Math.max(0, Math.min(100, v)); _agruUpdateAffinityDisplay(agruAffinity - _pa); }
   } else if (d.type === 'agruDebugSend') {
     if (d.message) _agruDebug(d.message);
   } else if (d.type === 'agruText') {
@@ -8647,19 +8890,22 @@ function handleAdminMessage(d, replyFn) {
     if (d.key === 'agruIdleDelay')          agruIdleDelay          = parseInt(d.value) || 10;
     if (d.key === 'agruIdleDelayImage')     agruIdleDelayImage     = parseInt(d.value) || 30;
     if (d.key === 'agruChatFontSize')       agruChatFontSize       = parseInt(d.value) || 14;
+    if (d.key === 'agruChatBold')  { agruChatBold  = d.value === '1'; document.documentElement.style.setProperty('--agru-font-weight', agruChatBold ? 'bold' : 'normal'); }
     if (d.key === 'agruFontLeft')  { agruFontLeft  = d.value; document.documentElement.style.setProperty('--agru-font-left',  d.value || 'inherit'); }
     if (d.key === 'agruFontRight') { agruFontRight = d.value; document.documentElement.style.setProperty('--agru-font-right', d.value || 'inherit'); }
     if (d.key === 'agruCharTags')           agruCharTags           = d.value;
     if (d.key === 'agruYtVolume')           agruYtVolume           = parseInt(d.value) || 100;
     if (d.key === 'agruBgmVolume')          { agruBgmVolume = parseInt(d.value) ?? 50; if (!_agruBgm.paused) _agruBgm.volume = agruBgmVolume / 100; }
     if (d.key === 'agruYtWidth')            agruYtWidth            = parseInt(d.value) || 435;
-    if (d.key === 'agruYtHeight')           agruYtHeight           = parseInt(d.value) || 245;
+    if (d.key === 'agruYtHeight')           { agruYtHeight = parseInt(d.value) || 245; agruYtWidth = Math.round(agruYtHeight * 16 / 9); }
     if (d.key === 'agruYtOpacity')          agruYtOpacity          = parseInt(d.value) ?? 100;
+    if (d.key === 'agruYtEnabled')          agruYtEnabled          = d.value === '1';
     if (d.key === 'agruModalZ')             { agruModalZ = parseInt(d.value) || 300; const _mo = document.getElementById('agruModal'); if (_mo) _mo.style.zIndex = agruModalZ; }
     if (d.key === 'agruModalWidth')         { agruModalWidth = parseInt(d.value) || 870; const _mc = document.querySelector('#agruModal .agru-modal'); if (_mc) _mc.style.width = agruModalWidth + 'px'; }
     if (d.key === 'agruModalHeight')        { agruModalHeight = parseInt(d.value) || 460; const _mc = document.querySelector('#agruModal .agru-modal'); if (_mc) _mc.style.height = agruModalHeight + 'px'; }
     if (d.key === 'agruModalBgOpacity')     { agruModalBgOpacity = parseInt(d.value) ?? 45; const _mc = document.querySelector('#agruModal .agru-modal'); if (_mc) _mc.style.background = `rgba(255,248,251,${agruModalBgOpacity / 100})`; }
     if (d.key === 'agruChatImgSize')        { agruChatImgSize = parseInt(d.value) || 350; document.documentElement.style.setProperty('--agru-chat-img-maxh', agruChatImgSize + 'px'); }
+    if (d.key === 'agruCharImgHeight')      { agruCharImgHeight = parseInt(d.value) || 360; document.documentElement.style.setProperty('--agru-char-img-height', agruCharImgHeight + 'px'); }
     const elMap = { agruSystem: 'agruSystemInput' };
     const el = elMap[d.key] ? document.getElementById(elMap[d.key]) : null;
     if (el) el.value = d.value;

@@ -2,14 +2,236 @@
 
 ---
 
-## v2.420.0 — 2026-06-02
+## v2.439.0 — 2026-06-02
 
-### アゲルちゃん — PCインストール済みフォントをプルダウンで選択可能に
+### セーブ管理 — 保護チェック付き一括削除
 
-- `public/admin.html`: Font Access API (`window.queryLocalFonts()`) でPCのインストール済みフォント一覧を取得
-- `public/admin.html`: 取得したフォントをアゲルちゃん・コメント両方のセレクトに `<optgroup>` として追加（初回は権限ダイアログが表示される）
-- `public/admin.html`: フォント読み込み後に現在値を再セットしてプルダウンの選択状態を復元
-- `public/admin.html`: テキスト直接入力欄はFont Access API非対応時のフォールバックとして残しスタイルを変更
+- `public/admin.html`: セーブ一覧の各行に「保護」チェックボックスを追加
+- `public/admin.html`: 「🗑 保護以外を削除」ボタン追加 — チェックなしのセーブを一括削除
+- `public/admin.html`: `deleteUnprotectedSave()` 関数追加（対象件数を確認ダイアログで表示）
+- 既存の「🗑 全削除」ボタンはそのまま残存
+
+---
+
+## v2.438.0 — 2026-06-02
+
+### 会話モード — 性欲度がチャット内容で変化するように
+
+- `public/app.js`: `AGRU_DEFAULT_SYSTEM` のレスポンスフォーマットに性欲変化行を追加（3行目）
+  - 性的・刺激的・エッチな話題: +1〜+5
+  - 性欲を冷ます内容: -1〜-5
+  - 通常の会話: 0
+- `public/app.js`: `_agruParseResponse` で `libidoDelta` を解析（3行目の数値）、戻り値に追加
+- `public/app.js`: `_agruSend` / `_agruDebug` で `libidoDelta` を `agruLibido` に反映し、ポップアップ表示
+
+---
+
+## v2.437.0 — 2026-06-02
+
+### 会話モード — パラメータ表示リニューアル
+
+- `public/index.html`: パラメータ4種（好感度・空腹・眠気・❓）をキャラ画像に重ねて左下に配置 (`.agru-params-overlay`)
+- `public/style.css`: `.agru-affinity-display` / `.agru-params-right` / `.agru-param-display` を廃止し、`.agru-params-overlay` / `.agru-param-row` に置換
+- `public/style.css`: パラメータ変化ポップアップ用 `.agru-param-pop` + `@keyframes agru-pop-float` 追加
+- `public/app.js`: `_agruShowParamPop(text, color)` 関数を追加。パラメータ変化時にテキストが浮かんでフェードアウト
+  - 好感度↑: 💕 ピンク / ↓: 💔 グレー
+  - 空腹↑(お腹すいた): 🍖 赤 / ↓(食べた): 🍖 オレンジ
+  - 眠気↑: 💤 インディゴ / ↓: 💤 イエロー
+  - 性欲: ❓ パープル/グレー
+- `public/app.js`: 性欲メーターの絵文字を 🔥 → ❓ に変更
+- `public/app.js`: タイマーによる自動変化ではポップアップを表示しない（delta=0）
+- `public/app.js`: コマンド・管理パネルからのパラメータ変化時のみポップアップを表示
+
+---
+
+## v2.436.0 — 2026-06-02
+
+### アゲルちゃん — 死亡復活・パラメータ表示追加
+
+- `public/app.js`: 死亡中に10回チャットが来たら空腹度50で復活（`_agruDeadWakeCount`）
+- `public/app.js`: `_agruUpdateHungerDisplay` / `_agruUpdateSleepDisplay` / `_agruUpdateLibidoDisplay` 追加
+- `public/app.js`: 1秒タイマー・チャットトリガー・admin SETボタンで各表示を更新
+- `public/index.html`: キャラ画像右に `.agru-params-right` パネル追加（空腹🍖 / 眠気💤 / 性欲🔥 の10段ハート）
+- `public/style.css`: `.agru-param-display` / `.agru-params-right` / 各色クラス追加
+
+---
+
+## v2.435.0 — 2026-06-02
+
+### アゲルちゃん — 空腹度・眠気度・性欲度パラメータ追加
+
+#### 空腹度
+- 会話モード開始時 100、1時間で0になる速度で自然減少（毎秒 100/3600）
+- 肉投与コメントで+30、寿司投与で+20、たばこ投与で+10
+- 50以下でAIへの指示に空腹を含める、30以下で生命の危機レベル、0で死亡（「・・・」のみ返答）
+- 死亡画像フォルダ: `public/ageru/dead/`
+
+#### 眠気度
+- 会話モード開始時 0、3時間で100になる速度で自然増加（毎秒 100/10800）
+- 起きろコメントで-10、たばこで-10、エナドリで-30
+- 90超えでAIへの指示に眠さを含める、100で睡眠状態（「・・・ｚｚｚ」のみ返答）
+- 睡眠中5回チャットが来たら目覚め（眠気度70に戻す）
+- 睡眠画像フォルダ: `public/ageru/sleep/`
+
+#### 性欲度
+- 会話モード開始時 30
+- 80超えで発情モード（AIへの指示に性欲まみれを含める）、キャラ画像をhornyフォルダからランダム表示
+- 発情画像フォルダ: `public/ageru/horny/`
+
+#### 共通
+- `public/app.js`: `agruHunger`/`agruSleepiness`/`agruLibido`/`_agruSleepWakeCount` 変数追加
+- `public/app.js`: setInterval で1秒ごとに空腹減少・眠気増加
+- `public/app.js`: `_agruGetStateContext()` — 状態に応じたAIプロンプト付加
+- `public/app.js`: `_agruUpdateParams(message)` — チャットトリガー検出
+- `public/app.js`: `_agruShowStateImage(state)` / `_agruRevertStateImage()` — 状態画像切替
+- `public/app.js`: `_agruSend` に状態チェック・ショートサーキット処理を追加
+- `public/app.js`: `openAgruModal` でパラメータをリセット
+- `public/app.js`: `agruSetParam` adminメッセージハンドラ追加
+- `server.js`: `/api/ageru-images/:folder` エンドポイント追加（サブフォルダ画像一覧）
+- `public/admin.html`: デバッグ欄に空腹度/眠気度/性欲度/好感度スライダー+SETボタン追加
+
+---
+
+## v2.434.0 — 2026-06-02
+
+### アゲルちゃん — キャラ画像高さを管理パネルから設定可能に
+
+- `public/style.css`: `.agru-char-img` を `height: var(--agru-char-img-height, 360px); width: 100%; object-fit: cover; object-position: center top` に変更（横幅固定・はみ出し左右クリップ）
+- `public/app.js`: `agruCharImgHeight` 変数を追加。初期値 360px、CSS変数 `--agru-char-img-height` を起動時に設定
+- `public/app.js`: `SETTINGS_KEYS`・`agruText` ハンドラ・`getState` に `agruCharImgHeight` を追加
+- `public/admin.html`: 会話モーダルサイズ行に「キャラ画像高さ」数値入力を追加（100〜1200px）
+- `public/admin.html`: state restore に `agruCharImgHeight` を追加
+
+---
+
+## v2.433.0 — 2026-06-02
+
+### アゲルちゃん — 好感度ハートを下から上に増えるよう変更
+
+- `public/style.css`: `.agru-affinity-display` の `flex-direction` を `column` → `column-reverse` に変更
+
+---
+
+## v2.432.0 — 2026-06-02
+
+### アゲルちゃん — チャットフォント太字切替ボタンを追加
+
+- `public/style.css`: `.agru-bubble-left` / `.agru-bubble-right` に `font-weight: var(--agru-font-weight, normal)` を追加
+- `public/app.js`: `agruChatBold` 変数を追加。ON 時に CSS変数 `--agru-font-weight: bold` を設定
+- `public/app.js`: `SETTINGS_KEYS`・`agruText` ハンドラ・`getState` に `agruChatBold` を追加
+- `public/admin.html`: 文字サイズ入力の隣に「太字 ON/OFF」ボタンを追加
+- `public/admin.html`: state restore に `agruChatBold` を追加
+
+---
+
+## v2.431.0 — 2026-06-02
+
+### アゲルちゃん — 好感度表示をキャラ画像の左に縦表示
+
+- `public/index.html`: `#agruAffinityDisplay` を `.agru-char-frame` の前に移動（左側に来るよう）
+- `public/style.css`: `.agru-char-inner` を `flex row` に変更してアフィニティとフレームを横並びに
+- `public/style.css`: `.agru-affinity-display` の絶対配置を廃止し `flex column` の縦並びに変更
+
+---
+
+## v2.430.0 — 2026-06-02
+
+### 管理パネル — ボス召喚ボタンを追加
+
+- `public/admin.html`: ボス設定セクションに「⚔️ ボス召喚」ボタンを追加（`processComment` で `ボス召喚` コマンドを実行）
+
+---
+
+## v2.429.0 — 2026-06-02
+
+### アゲルちゃん — 会話モード終了時にOllamaアンロード・管理パネルから閉じるボタン追加
+
+- `public/app.js`: `closeAgruModal` にOllamaアンロード (`/api/ai-unload`) を追加（モーダルを閉じたらVRAMを即時解放）
+- `public/app.js`: `handleAdminMessage` に `closeAgeruChat` ハンドラを追加
+- `public/admin.html`: 「✕ 会話モードを閉じる」ボタンを「会話モードを開く」の隣に追加
+
+---
+
+## v2.428.0 — 2026-06-02
+
+### アゲルちゃん — コマンドメッセージを会話チャットに送信しないよう除外
+
+- `public/app.js`: `_isAgruSkipCmd(msg)` 関数を追加
+  - 除外対象: ペットガチャ/スロット/タイマン/AFK/放置・無明:/射/ノベル起動/開ける/ステータス確認/ボス召喚/TTS
+  - 除外対象: キャラN/名前:/色:/吹き出し:/移動:/方向移動([上下左右]:数字)/大きさ:/フォント:/飾り:/文字サイズ:/ランダムキャラ/ごしありｗ
+  - 除外対象: 歩く/回転/反転/震える/ぐにゃぐにゃ/浮く/揺れる/伸縮/スキップ/酔う/太字/斜体/エフェクト系(花火・桜・雪等)/回復
+- `public/app.js`: `_agruSend` 呼び出し条件に `!_isAgruSkipCmd(message)` を追加
+
+---
+
+## v2.427.0 — 2026-06-02
+
+### アゲルちゃん — 好感度変動幅を調整
+
+- `public/app.js`: `_agruParseResponse` の好感度クランプを `[-10, +5]` → `[-5, +10]` に変更
+- `public/app.js`: カフェオレ投与コマンドの上昇量を `+10` → `+20` に変更
+- `public/app.js`: 水道水投与コマンドの減少量を `-10` → `-5` に変更
+
+---
+
+## v2.426.0 — 2026-06-02
+
+### 管理パネル — 会話モーダルZ指定をマイナス値まで対応
+
+- `public/admin.html`: `agruModalZInput` の `min` を `1` → `-9999` に変更
+
+---
+
+## v2.425.0 — 2026-06-02
+
+### YouTube — 自動再生ON/OFF切り替え・16:9自動計算・ヘッダー縮小
+
+- `public/app.js`: `agruYtEnabled` 変数を追加。`false` 時は URL コマンド・「曲|歌」キーワードによる YouTube 再生を無視
+- `public/app.js`: `SETTINGS_KEYS` に `agruYtEnabled` を追加
+- `public/app.js`: `agruYtHeight` 変更時に `agruYtWidth = Math.round(height * 16/9)` を自動設定
+- `public/admin.html`: 「YT自動再生」ON/OFF ボタンを追加（緑=受付中 / 赤=無視）
+- `public/admin.html`: 高さ入力変更時に幅を 16:9 で自動計算・送信
+- `public/admin.html`: state restore に `agruYtEnabled` を追加
+- `public/style.css`: `.agru-yt-modal-header` の `padding` を `8px 14px` → `3px 10px` に変更
+
+---
+
+## v2.424.0 — 2026-06-02
+
+### 通常モード — SD生成画像をキャラより手前に表示
+
+- `public/style.css`: `.sd-image-popup` の `z-index` を `80` → `150` に変更（キャラ: 70 より確実に手前）
+
+---
+
+## v2.423.0 — 2026-06-02
+
+### 通常モード — SD画像生成をキュー方式に変更（順番待ち）
+
+- `public/app.js`: `generateSDImage` をキューエントリ登録のみに変更
+- `public/app.js`: `_sdQueue` 配列と `_sdBusy` フラグを追加
+- `public/app.js`: `_sdProcessQueue` / `_sdGenerateOne` を追加し、前の生成が完了してから次を処理
+- キュー待ち中のキャラには「⏳ 順番待ち…」吹き出しを表示
+
+---
+
+## v2.422.0 — 2026-06-02
+
+### アゲルちゃん — SNSアイコンを上寄せに変更
+
+- `public/style.css`: `.agru-sns-bar` の `margin-top: auto` を削除し、キャラ画像の直下に配置
+
+---
+
+## v2.421.0 — 2026-06-02
+
+### アゲルちゃん — チャットフォントプルダウンをFONT_MAPベースの静的リストに変更
+
+- `public/admin.html`: Font Access API (`window.queryLocalFonts()`) を廃止（OBS Browser Source非対応のため）
+- `public/admin.html`: アゲルちゃん・コメント両フォントセレクトを `<optgroup>` 構造に統一
+  - Webフォント / Windows日本語 / Windows英語 / カスタム（/user-fonts/） / 汎用 の5グループ
+  - `フォント：` チャットコマンドの FONT_MAP と同一フォントセットを使用
+- `public/admin.html`: 廃止したFont Access API の IIFE コードを削除
 
 ---
 
