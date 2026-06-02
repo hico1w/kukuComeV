@@ -5262,7 +5262,7 @@ async function _agruGenerateSDImageFromReply(replyText, isSelfie = false) {
       const stripped = sdPrompt
         .replace(/\b(1girl|1boy|2girls|girl|woman|man|person|human|character)\b,?\s*/gi, '')
         .replace(/^[, ]+|[, ]+$/g, '');
-      sdPrompt = agruCharTags + ',selfie pose' + (stripped ? ', ' + stripped : '');
+      sdPrompt = agruCharTags + (stripped ? ', ' + stripped : '');
     } else {
       // 人物タグ or 表情タグが含まれるなら固定キャラタグを前置（表情があれば人物がいる）
       const personRe = /\b(1girl|1boy|2girls|girl|woman|man|person|human|character|selfie|portrait|anime|smile|smiling|grin|happy|sad|crying|tears|angry|frown|surprised|shocked|laughing|wink|winking|blush|blushing|pout|embarrassed|nervous|expressionless|open mouth|closed eyes|looking at viewer|looking at camera)\b/i;
