@@ -283,7 +283,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 18px 14px 20px;
+  padding: 4px 14px 10px;
   background: linear-gradient(170deg, rgba(253,242,248,0.45) 0%, rgba(252,231,243,0.45) 60%, rgba(253,244,255,0.45) 100%);
   border-right: 1.5px solid rgba(249,168,212,0.45);
   position: relative;
@@ -356,6 +356,35 @@ body {
   letter-spacing: 0.06em;
   min-height: 16px;
   position: relative;
+}
+.agru-sns-bar {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 10px;
+  justify-content: center;
+}
+.agru-sns-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(249,168,212,0.45);
+  color: #db2777;
+  cursor: default;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+.agru-sns-icon:hover {
+  background: rgba(249,168,212,0.38);
+  transform: scale(1.14);
+  box-shadow: 0 0 10px rgba(236,72,153,0.3);
+}
+.agru-sns-icon svg {
+  width: 15px;
+  height: 15px;
+  pointer-events: none;
 }
 .agru-affinity-display {
   position: absolute;

@@ -2,6 +2,16 @@
 
 ---
 
+## v2.418.0 — 2026-06-02
+
+### アゲルちゃん — キャラ画像上寄せ・SNSアイコン復活
+
+- `public/style.css`: `.agru-char-area` の `padding-top` を `18px` → `4px` に変更し、フレームを上寄せ
+- `public/style.css`: `.agru-sns-bar` / `.agru-sns-icon` CSS を復活（`margin-top: auto` でキャラエリア下部に配置）
+- `public/index.html`: SNSアイコンバー（X・YouTube・Instagram・TikTok）を `.agru-char-area` に復活
+
+---
+
 ## v2.417.0 — 2026-06-02
 
 ### アゲルちゃん — PCインストール済みフォントの指定、ヘッダー縮小
