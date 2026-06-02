@@ -5315,9 +5315,12 @@ function _agruScrollBottom() {
 }
 
 const _agruBgm = new Audio('/ageru/oto/bgm.mp3');
-_agruBgm.loop   = true;
 _agruBgm.volume = 0;
-_agruBgm.addEventListener('ended', () => { _agruBgm.currentTime = 0; _agruBgm.play().catch(() => {}); });
+_agruBgm.addEventListener('ended', () => {
+  if (!_agruBgm.paused) return;
+  _agruBgm.currentTime = 0;
+  _agruBgm.play().catch(() => {});
+});
 let _agruBgmFadeTimer = null;
 const _AGRU_BGM_FADEIN_MS  = 2000;
 const _AGRU_BGM_FADEOUT_MS = 1000;
