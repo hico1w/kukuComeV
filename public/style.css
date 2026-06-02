@@ -399,6 +399,14 @@ body {
   color: #fff;
   letter-spacing: 0.04em;
   text-shadow: 0 1px 4px rgba(157,23,77,0.4);
+  gap: 8px;
+}
+#agruYtTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 .agru-yt-modal #agruYtIframe {
   width: 435px;

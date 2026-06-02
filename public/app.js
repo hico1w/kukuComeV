@@ -5771,6 +5771,17 @@ function _agruOpenYtModal(videoId) {
   if (sx && sy) { modal.style.left = sx; modal.style.top = sy; modal.style.transform = 'none'; }
   else { modal.style.left = ''; modal.style.top = ''; modal.style.transform = ''; }
   modal.classList.remove('hidden');
+
+  // タイトル取得（oEmbed）
+  const titleEl = document.getElementById('agruYtTitle');
+  if (titleEl) {
+    titleEl.textContent = '▶ 再生中';
+    fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`)
+      .then(r => r.json())
+      .then(d => { if (d.title && titleEl.isConnected) titleEl.textContent = '▶ ' + d.title; })
+      .catch(() => {});
+  }
+
   iframe.addEventListener('load', () => {
     try {
       iframe.contentWindow.postMessage('{"event":"listening","id":1}', '*');
