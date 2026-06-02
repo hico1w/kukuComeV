@@ -2,6 +2,30 @@
 
 ---
 
+## v2.413.0 — 2026-06-02
+
+### アゲルちゃん — 会話モーダルZ軸を管理パネルから設定可能に
+
+- `public/admin.html`: 「会話モーダルZ」数値入力欄を追加（デフォルト 300）
+- `public/admin.html`: getState復元時に `agruModalZInput` の値をセット
+- `public/app.js`: `openAgruModal` でモーダルに `style.zIndex = agruModalZ` を適用
+
+### もじあてゲーム — ヘッダー縮小
+
+- `public/app.js`: ヘッダーから「当てたら全回復」サブテキストを削除し縦幅を節約
+
+---
+
+## v2.412.0 — 2026-06-02
+
+### アゲルちゃん — YouTubeモーダル透明度を管理パネルから設定可能に
+
+- `public/admin.html`: YT透明度スライダー（10〜100%）を追加
+- `public/app.js`: `agruYtOpacity` 変数・SETTINGS_KEYS・agruTextハンドラ・getState に追加
+- `public/app.js`: `_agruOpenYtModal` でモーダルの `opacity` を動的に適用
+
+---
+
 ## v2.411.0 — 2026-06-02
 
 ### アゲルちゃん — YouTubeモーダルサイズを管理パネルから設定可能に

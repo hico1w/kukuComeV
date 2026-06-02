@@ -373,7 +373,7 @@ const SETTINGS_KEYS = [
   'agruSystem','agruDefaultImage','agruEmotionMap',
   'agruVoicevoxEnabled','agruVoicevoxSpeaker','agruVoicevoxSpeed','agruVoicevoxVolume',
   'agruSdWidth','agruSdHeight','agruSdSteps','agruSdCfgScale','agruSdPositiveSuffix','agruIdleDelay','agruIdleDelayImage',
-  'agruChatFontSize','agruFontLeft','agruFontRight','agruCharTags','agruYtVolume','agruBgmVolume','agruYtWidth','agruYtHeight','agruYtOpacity',
+  'agruChatFontSize','agruFontLeft','agruFontRight','agruCharTags','agruYtVolume','agruBgmVolume','agruYtWidth','agruYtHeight','agruYtOpacity','agruModalZ',
   'bombHidden','trashHidden',
   'afkOpacity','afkGrayscale','afkBrightness',
 ];
@@ -5151,6 +5151,7 @@ let agruBgmVolume        = parseInt(localStorage.getItem('agruBgmVolume') ?? '50
 let agruYtWidth          = parseInt(localStorage.getItem('agruYtWidth')   ?? '435');
 let agruYtHeight         = parseInt(localStorage.getItem('agruYtHeight')  ?? '245');
 let agruYtOpacity        = parseInt(localStorage.getItem('agruYtOpacity') ?? '100');
+let agruModalZ           = parseInt(localStorage.getItem('agruModalZ')    ?? '300');
 let _agruSelfieLocked    = false;
 let agruIdleDelay        = parseInt(localStorage.getItem('agruIdleDelay')) || 10;
 let agruIdleDelayImage   = parseInt(localStorage.getItem('agruIdleDelayImage')) || 30;
@@ -5743,7 +5744,9 @@ async function openAgruModal() {
   document.getElementById('agruEmotionLabel').textContent = '';
   _agruUpdateAffinityDisplay();
   _agruSetStatus('起動中...');
-  document.getElementById('agruModal').classList.remove('hidden');
+  const _agruModalEl = document.getElementById('agruModal');
+  _agruModalEl.classList.remove('hidden');
+  _agruModalEl.style.zIndex = agruModalZ;
   _agruBgmPlay();
   const _cm = document.querySelector('#agruModal .agru-modal');
   if (_cm) {
@@ -7062,7 +7065,6 @@ function renderWordlePanel() {
   let html = `<div class="wordle-header">
     <div class="wordle-header-title">
       <span>もじあてｗ</span>
-      <span class="wordle-subtitle">当てたら全回復</span>
     </div>
     <span class="wordle-count">${guesses.length}/${MAX_GUESSES}</span>
   </div><div class="wordle-grid">`;
@@ -8521,6 +8523,7 @@ function handleAdminMessage(d, replyFn) {
     state.agruYtWidth            = agruYtWidth;
     state.agruYtHeight           = agruYtHeight;
     state.agruYtOpacity          = agruYtOpacity;
+    state.agruModalZ             = agruModalZ;
     state.autoDeleteMinutes   = autoDeleteMinutes;
     state.fiveMinMode   = fiveMinMode;
     state.brAutoEnabled = brAutoEnabled;
@@ -8628,6 +8631,7 @@ function handleAdminMessage(d, replyFn) {
     if (d.key === 'agruYtWidth')            agruYtWidth            = parseInt(d.value) || 435;
     if (d.key === 'agruYtHeight')           agruYtHeight           = parseInt(d.value) || 245;
     if (d.key === 'agruYtOpacity')          agruYtOpacity          = parseInt(d.value) ?? 100;
+    if (d.key === 'agruModalZ')             { agruModalZ = parseInt(d.value) || 300; const _mo = document.getElementById('agruModal'); if (_mo) _mo.style.zIndex = agruModalZ; }
     const elMap = { agruSystem: 'agruSystemInput' };
     const el = elMap[d.key] ? document.getElementById(elMap[d.key]) : null;
     if (el) el.value = d.value;
