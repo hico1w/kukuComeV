@@ -5556,7 +5556,7 @@ async function _agruSend(message, commenter) {
     const res = await fetch('/api/ai-reply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, model: aiModel, system: systemPrompt, ...(_needsImage ? { keepAlive: 0 } : {}) }),
+      body: JSON.stringify({ messages, model: aiModel, system: systemPrompt }),
     });
     const data = await res.json();
     if (data.error) {
@@ -5576,6 +5576,8 @@ async function _agruSend(message, commenter) {
     _agruNotifyEmotion(emotion, replyText);
     _agruPlayVoicevox(replyText);
     if (_needsImage) {
+      // 返答取得後にOllamaモデルをバックグラウンドでアンロード（レスポンス遅延を避けるため別リクエスト）
+      fetch('/api/ai-unload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: aiModel }) }).catch(() => {});
       // すべての画像コマンドでロック（SD完了まで新コメント受け付けない）
       const _ctx = message.replace(/出ろ|出して|生成|gen|自撮り|写真/gi, '').trim();
       _agruSelfieLocked = true;

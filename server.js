@@ -747,6 +747,24 @@ app.post('/api/ai-reply', (req, res) => {
   }
 });
 
+// Ollama モデルのアンロード（画像コマンド後に返答とは別で呼ぶ）
+app.post('/api/ai-unload', (req, res) => {
+  const { model = 'gemma3:12b' } = req.body || {};
+  const body = JSON.stringify({ model, messages: [], keep_alive: 0 });
+  const opts = {
+    hostname: ollamaHost, port: OLLAMA_PORT,
+    path: '/api/chat', method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+  };
+  const req2 = http.request(opts, res2 => {
+    res2.resume();
+    res2.on('end', () => res.json({ ok: true }));
+  });
+  req2.on('error', () => res.json({ ok: false }));
+  req2.write(body);
+  req2.end();
+});
+
 // ステータス画面スクリーンショット → Discord 投稿 → URL 返却
 app.post('/api/status-screenshot', async (req, res) => {
   const { imageDataUrl, userName = '' } = req.body || {};
