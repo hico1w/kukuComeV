@@ -232,6 +232,19 @@ app.get('/api/ageru-images', (req, res) => {
   }
 });
 
+app.get('/api/ageru-images/:folder', (req, res) => {
+  const folder = req.params.folder.replace(/[^a-z0-9_-]/gi, '');
+  const dir = path.join(__dirname, 'public', 'ageru', folder);
+  try {
+    const files = fs.readdirSync(dir)
+      .filter(f => /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(f))
+      .sort();
+    res.json({ images: files });
+  } catch {
+    res.json({ images: [] });
+  }
+});
+
 app.get('/api/yt-random-video', async (req, res) => {
   try {
     const html = await new Promise((resolve, reject) => {

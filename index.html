@@ -1299,25 +1299,32 @@
           幅870px × 高さ460pxの<b>半透明すりガラス</b>モーダル（rgba 0.45 + backdrop-filter:blur(14px)）。<br>
           ヘッダーをドラッグして自由に移動でき、<b>位置はlocalStorageに保存</b>されます（次回起動時に復元）。<br>
           左エリアにキャラ画像（グラデーションフレーム付き）、右エリアにチャットログ。チャットは<b>最新10件</b>を保持（古いものは自動削除）。<br>
-          キャラ画像の後ろに<code>ageru/haikei.png</code>をblur(4px)でぼかして背景表示。好感度はキャラ画像に重ねてオーバーレイ表示。
+          キャラ画像の後ろに<code>ageru/haikei.png</code>をblur(4px)でぼかして背景表示。<b>パラメータメーターはキャラ画像左下にオーバーレイ表示</b>（半透明白背景）。
         </div>
       </div>
 
       <div class="feature-card">
         <div class="feature-card-title" style="color:#a78bfa">🤖 AI返答システム</div>
         <div class="feature-card-body">
-          Ollamaで動作。視聴者コメントを受け取り、<b>感情・好感度変化・返答テキスト</b>をJSONで返します。<br>
+          Ollamaで動作。視聴者コメントを受け取り、<b>感情・好感度変化・性欲変化・返答テキスト</b>の4行形式で返します。<br>
           <b>感情は20種類</b>：安心・愛しさ・感謝・性的興奮・興奮・感動・好奇心・驚き・尊敬・不安・恐怖・困惑・冷静・軽蔑・殺意・悲しみ・諦め・苦しみ・嫉妬・恥。<br>
           感情に対応したフォルダ（<code>public/ageru/感情名/</code>）から画像をランダム選択して表示。<br>
+          AIレスポンス形式：<code>[感情] / [好感度変化] / [性欲変化] / [返答（40文字程度・日本語）]</code><br>
           <b>ひこいち（配信者）への言及には極端に辛辣な返答</b>をするよう設定済み。
         </div>
       </div>
 
       <div class="feature-card">
-        <div class="feature-card-title" style="color:#fbbf24">💗 好感度システム</div>
+        <div class="feature-card-title" style="color:#fbbf24">📊 パラメータシステム</div>
         <div class="feature-card-body">
-          0〜100の好感度スコアを管理。コメントの内容に応じてAIが±で変動させます。<br>
-          好感度はキャラ画像の下部にハートアイコン列で表示（10段階視覚化）。<br>
+          4つのパラメータを0〜100で管理。キャラ画像の<b>左下にオーバーレイで縦棒グラフ表示</b>（各パラメータを縦に積み上げた列が横並び）。<br>
+          <table style="margin:6px 0;border-collapse:collapse;width:100%;font-size:12px">
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.2)"><td style="padding:3px 6px">💕♥</td><td style="padding:3px 6px"><b>好感度</b></td><td style="padding:3px 6px">称賛・好意→+1〜+5 / 侮辱・嫌悪→-1〜-10 / 普通の会話は0</td></tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.2)"><td style="padding:3px 6px">🍖◆</td><td style="padding:3px 6px"><b>空腹</b></td><td style="padding:3px 6px">時間経過で自動増加（空腹が増える）</td></tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.2)"><td style="padding:3px 6px">💤●</td><td style="padding:3px 6px"><b>眠気</b></td><td style="padding:3px 6px">時間経過で自動増加（眠くなる）</td></tr>
+            <tr><td style="padding:3px 6px">❓★</td><td style="padding:3px 6px"><b>性欲</b></td><td style="padding:3px 6px">性的・刺激的な話題→+1〜+5 / 性欲を冷ます内容→-1〜-5 / 通常会話は0</td></tr>
+          </table>
+          パラメータに変化があると<b>ポップアップ通知</b>がキャラ右上に表示（上昇時↑に浮上・下降時↓に沈降、2.6秒フェードアウト）。<br>
           会話履歴は最大100往復保持。モーダルを閉じるとリセット。
         </div>
       </div>
@@ -1374,6 +1381,7 @@
     <div class="info-box" style="margin-top:16px">
       <b>フォルダ構成</b>：<code>public/ageru/感情名/</code>に画像を入れると感情に対応した画像として自動認識。<code>public/ageru/oto/bgm.mp3</code>がBGM、<code>public/ageru/oto/pop.mp3</code>がチャットポップ音。<br>
       <b>デフォルト画像</b>：管理パネルの「アゲルちゃん設定」から初期表示画像を選択可能。<br>
+      <b>パラメータ管理</b>：管理パネルから各パラメータを直接セット可能。値をセットするとポップアップ通知も表示。<br>
       <b>セキュリティ</b>：会話モーダルへのアクセスは配信者のみ。視聴者はコメントを通じてのみ会話に参加。
     </div>
   </div>
