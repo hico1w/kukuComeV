@@ -5563,10 +5563,10 @@ async function _agruSend(message, commenter) {
     _agruNotifyEmotion(emotion, replyText);
     _agruPlayVoicevox(replyText);
     if (_needsImage) {
-      // Ollama不使用: コメントをそのまま翻訳して生成
+      // すべての画像コマンドでロック（SD完了まで新コメント受け付けない）
       const _ctx = message.replace(/出ろ|出して|生成|gen|自撮り|写真/gi, '').trim();
-      if (_isSelfie) _agruSelfieLocked = true;
-      const _selfieFinally = () => {
+      _agruSelfieLocked = true;
+      const _imageFinally = () => {
         _agruSelfieLocked = false;
         clearTimeout(_agruIdleTimer);
         if (agruActive) { agruIdle = true; _agruSetStatus('コメント待ち...'); }
@@ -5579,13 +5579,12 @@ async function _agruSend(message, commenter) {
           body: JSON.stringify({ text: _ctx }),
         }).then(r => r.json()).then(d => {
           const _translated = d.result || _ctx;
-          _agruGenerateSDImage(agruCharTags + ', ' + _translated).finally(_selfieFinally);
+          _agruGenerateSDImage(agruCharTags + ', ' + _translated).finally(_imageFinally);
         }).catch(() => {
-          _agruGenerateSDImage(agruCharTags + ', ' + _ctx).finally(_selfieFinally);
+          _agruGenerateSDImage(agruCharTags + ', ' + _ctx).finally(_imageFinally);
         });
       } else {
-        const _p = _agruGenerateSDImage(_isSelfie ? agruCharTags : (_ctx || '1girl, anime'));
-        if (_isSelfie) _p.finally(_selfieFinally);
+        _agruGenerateSDImage(_isSelfie ? agruCharTags : (_ctx || '1girl, anime')).finally(_imageFinally);
       }
     }
 
@@ -5598,12 +5597,12 @@ async function _agruSend(message, commenter) {
     const _typingEl = document.getElementById('agruTypingIndicator');
     if (_typingEl) _typingEl.remove();
     _agruAddBubble('left', 'アゲルちゃん', replyText, () => {
-      _agruIdleTimer = setTimeout(() => {
-        if (agruActive) {
-          agruIdle = true;
-          _agruSetStatus('コメント待ち...');
-        }
-      }, (_needsImage ? agruIdleDelayImage : agruIdleDelay) * 1000);
+      // 画像コマンド時は_imageFinally がSD完了後にコメント待ちへ移行するためタイマー不要
+      if (!_needsImage) {
+        _agruIdleTimer = setTimeout(() => {
+          if (agruActive) { agruIdle = true; _agruSetStatus('コメント待ち...'); }
+        }, agruIdleDelay * 1000);
+      }
     });
   } catch (e) {
     _agruLog('例外: ' + e.message, 'err');
