@@ -373,7 +373,7 @@ const SETTINGS_KEYS = [
   'agruSystem','agruDefaultImage','agruEmotionMap',
   'agruVoicevoxEnabled','agruVoicevoxSpeaker','agruVoicevoxSpeed','agruVoicevoxVolume',
   'agruSdWidth','agruSdHeight','agruSdSteps','agruSdCfgScale','agruSdPositiveSuffix','agruIdleDelay','agruIdleDelayImage',
-  'agruChatFontSize','agruFontLeft','agruFontRight','agruCharTags','agruYtVolume','agruBgmVolume',
+  'agruChatFontSize','agruFontLeft','agruFontRight','agruCharTags','agruYtVolume','agruBgmVolume','agruYtWidth','agruYtHeight',
   'bombHidden','trashHidden',
   'afkOpacity','afkGrayscale','afkBrightness',
 ];
@@ -5145,6 +5145,8 @@ let agruSdCfgScale       = parseFloat(localStorage.getItem('agruSdCfgScale')) ||
 let agruSdPositiveSuffix = localStorage.getItem('agruSdPositiveSuffix') || '';
 let agruYtVolume         = parseInt(localStorage.getItem('agruYtVolume') ?? '100');
 let agruBgmVolume        = parseInt(localStorage.getItem('agruBgmVolume') ?? '50');
+let agruYtWidth          = parseInt(localStorage.getItem('agruYtWidth')  ?? '435');
+let agruYtHeight         = parseInt(localStorage.getItem('agruYtHeight') ?? '245');
 let _agruSelfieLocked    = false;
 let agruIdleDelay        = parseInt(localStorage.getItem('agruIdleDelay')) || 10;
 let agruIdleDelayImage   = parseInt(localStorage.getItem('agruIdleDelayImage')) || 30;
@@ -5766,6 +5768,9 @@ function _agruOpenYtModal(videoId) {
   const iframe = document.getElementById('agruYtIframe');
   if (!modal || !iframe) return;
   _agruBgmPause();
+  modal.style.width  = agruYtWidth + 'px';
+  iframe.style.width  = agruYtWidth + 'px';
+  iframe.style.height = agruYtHeight + 'px';
   iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&enablejsapi=1`;
   const sx = localStorage.getItem('agruYtModalX'), sy = localStorage.getItem('agruYtModalY');
   if (sx && sy) { modal.style.left = sx; modal.style.top = sy; modal.style.transform = 'none'; }
@@ -8508,6 +8513,8 @@ function handleAdminMessage(d, replyFn) {
     state.agruCharTags           = agruCharTags;
     state.agruYtVolume           = agruYtVolume;
     state.agruBgmVolume          = agruBgmVolume;
+    state.agruYtWidth            = agruYtWidth;
+    state.agruYtHeight           = agruYtHeight;
     state.autoDeleteMinutes   = autoDeleteMinutes;
     state.fiveMinMode   = fiveMinMode;
     state.brAutoEnabled = brAutoEnabled;
@@ -8612,6 +8619,8 @@ function handleAdminMessage(d, replyFn) {
     if (d.key === 'agruCharTags')           agruCharTags           = d.value;
     if (d.key === 'agruYtVolume')           agruYtVolume           = parseInt(d.value) || 100;
     if (d.key === 'agruBgmVolume')          { agruBgmVolume = parseInt(d.value) ?? 50; if (!_agruBgm.paused) _agruBgm.volume = agruBgmVolume / 100; }
+    if (d.key === 'agruYtWidth')            agruYtWidth            = parseInt(d.value) || 435;
+    if (d.key === 'agruYtHeight')           agruYtHeight           = parseInt(d.value) || 245;
     const elMap = { agruSystem: 'agruSystemInput' };
     const el = elMap[d.key] ? document.getElementById(elMap[d.key]) : null;
     if (el) el.value = d.value;

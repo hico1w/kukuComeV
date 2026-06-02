@@ -2,6 +2,16 @@
 
 ---
 
+## v2.411.0 — 2026-06-02
+
+### アゲルちゃん — YouTubeモーダルサイズを管理パネルから設定可能に
+
+- `public/admin.html`: YTモーダル幅・高さの入力欄を追加（デフォルト 435×245）
+- `public/app.js`: `agruYtWidth` / `agruYtHeight` 変数・SETTINGS_KEYS・agruTextハンドラ・getState に追加
+- `public/app.js`: `_agruOpenYtModal` でモーダル・iframeのサイズを動的に適用
+
+---
+
 ## v2.410.0 — 2026-06-02
 
 ### アゲルちゃん — 画像コマンド中のコメントロック修正
