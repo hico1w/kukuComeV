@@ -5543,7 +5543,7 @@ async function _agruSend(message, commenter) {
     const res = await fetch('/api/ai-reply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, model: aiModel, system: systemPrompt }),
+      body: JSON.stringify({ messages, model: aiModel, system: systemPrompt, ...(_needsImage ? { keepAlive: 0 } : {}) }),
     });
     const data = await res.json();
     if (data.error) {

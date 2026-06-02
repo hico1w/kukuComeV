@@ -690,13 +690,15 @@ app.post('/api/post-comment', async (req, res) => {
 
 // AI返答（Ollama）
 app.post('/api/ai-reply', (req, res) => {
-  const { prompt, messages, model = 'gemma3:12b', system } = req.body || {};
+  const { prompt, messages, model = 'gemma3:12b', system, keepAlive } = req.body || {};
   const systemText = system || 'あなたは配信のコメントに返答するアシスタントです。必ず50文字以内の日本語で返答してください。';
 
   if (messages) {
     // /api/chat — 会話履歴あり
     const chatMessages = [{ role: 'system', content: systemText }, ...messages];
-    const body = JSON.stringify({ model, messages: chatMessages, stream: false });
+    const ollamaBody = { model, messages: chatMessages, stream: false };
+    if (keepAlive !== undefined) ollamaBody.keep_alive = keepAlive;
+    const body = JSON.stringify(ollamaBody);
     const opts = {
       hostname: ollamaHost, port: OLLAMA_PORT,
       path: '/api/chat', method: 'POST',
@@ -720,7 +722,9 @@ app.post('/api/ai-reply', (req, res) => {
   } else {
     // /api/generate — 後方互換（単発）
     if (!prompt) return res.status(400).json({ error: 'prompt is required' });
-    const body = JSON.stringify({ model, prompt, system: systemText, stream: false });
+    const ollamaBody2 = { model, prompt, system: systemText, stream: false };
+    if (keepAlive !== undefined) ollamaBody2.keep_alive = keepAlive;
+    const body = JSON.stringify(ollamaBody2);
     const opts = {
       hostname: ollamaHost, port: OLLAMA_PORT,
       path: '/api/generate', method: 'POST',
