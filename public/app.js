@@ -5442,21 +5442,13 @@ async function _agruShowStateImage(state) {
     const data = await res.json();
     const imgs = (data.images || []);
     if (imgs.length > 0) {
-      const el = document.getElementById('agruCharImg');
-      if (el) {
-        el.src = `/ageru/${state}/${imgs[Math.floor(Math.random() * imgs.length)]}`;
-        el.addEventListener('load', updateAgruPurupuru, { once: true });
-      }
+      _agruSlideImage(`/ageru/${state}/${imgs[Math.floor(Math.random() * imgs.length)]}`);
     }
   } catch {}
 }
 
 function _agruRevertStateImage() {
-  const el = document.getElementById('agruCharImg');
-  if (el && agruDefaultImage) {
-    el.src = `/ageru/${encodeURIComponent(agruDefaultImage)}`;
-    el.addEventListener('load', updateAgruPurupuru, { once: true });
-  }
+  if (agruDefaultImage) _agruSlideImage(`/ageru/${encodeURIComponent(agruDefaultImage)}`);
 }
 
 function _agruShowParamPop(text, color, goUp = true) {
@@ -5580,11 +5572,54 @@ function _agruGetImage(emotion) {
   return agruDefaultImage ? `/ageru/${encodeURIComponent(agruDefaultImage)}` : '';
 }
 
+function _agruSlideImage(newSrc) {
+  const img = document.getElementById('agruCharImg');
+  if (!img || !newSrc) return;
+  if (img.src.endsWith(newSrc)) return;
+
+  const bg = img.closest('.agru-char-bg');
+  if (!bg || img._agruSliding || !img.naturalWidth) {
+    img.src = newSrc;
+    img.addEventListener('load', updateAgruPurupuru, { once: true });
+    return;
+  }
+
+  img._agruSliding = true;
+  bg.querySelectorAll('.puru-canvas').forEach(c => c.style.display = 'none');
+
+  const clone = document.createElement('img');
+  clone.src = img.src;
+  clone.alt = '';
+  clone.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:center top;pointer-events:none;z-index:5;transition:transform 0.35s ease';
+  bg.appendChild(clone);
+
+  img.style.transition = 'none';
+  img.style.transform  = 'translateX(110%)';
+  img.src = newSrc;
+
+  const doSlide = () => {
+    requestAnimationFrame(() => {
+      clone.style.transform = 'translateX(-110%)';
+      img.style.transition  = 'transform 0.35s ease';
+      img.style.transform   = 'translateX(0)';
+    });
+    clone.addEventListener('transitionend', () => {
+      clone.remove();
+      img.style.transition = '';
+      img.style.transform  = '';
+      img._agruSliding     = false;
+      updateAgruPurupuru();
+    }, { once: true });
+  };
+
+  if (img.complete && img.naturalWidth) doSlide();
+  else img.addEventListener('load', doSlide, { once: true });
+}
+
 function _agruSetImage(emotion) {
   const url = _agruGetImage(emotion);
-  const img = document.getElementById('agruCharImg');
-  if (!img || !url) return;
-  img.src = url;
+  if (!url) return;
+  _agruSlideImage(url);
 }
 
 function _agruSetStatus(text) {

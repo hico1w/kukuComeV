@@ -2,6 +2,19 @@
 
 ---
 
+## v2.455.0 — 2026-06-03
+
+### アゲルちゃん画像切り替えをスライドアニメーションに変更
+
+- `public/app.js`: `_agruSlideImage(newSrc)` 関数を追加
+  - 現在の画像クローンを左へスライドアウト、新画像を右からスライドインする 0.35s のアニメーション
+  - `.agru-char-bg`（overflow:hidden、position:relative）内でクリッピング
+  - スライド中は puru-canvas を非表示、完了後に `updateAgruPurupuru()` で再アタッチ
+  - スライド中に次の切り替え要求が来た場合・コンテナ未発見・初期ロード前 はフォールバックで即時切り替え
+- `public/app.js`: `_agruSetImage` / `_agruShowStateImage` / `_agruRevertStateImage` の `img.src` 直接書き換えを `_agruSlideImage` に統一
+
+---
+
 ## v2.454.0 — 2026-06-03
 
 ### fix: ボスのぷるぷるエリアがずれる問題を修正
