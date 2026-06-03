@@ -925,9 +925,13 @@ function _puruTri(ctx, img, x0,y0,u0,v0, x1,y1,u1,v1, x2,y2,u2,v2) {
   const b_=(y0*(p1v-p2v)+y1*(p2v-p0v)+y2*(p0v-p1v))/det;
   const c_=(x0*(p2u-p1u)+x1*(p0u-p2u)+x2*(p1u-p0u))/det;
   const d_=(y0*(p2u-p1u)+y1*(p0u-p2u)+y2*(p1u-p0u))/det;
+  // クリップパスを重心から0.5px外側に広げてseam（グリッド線）を消す
+  const ecx=(x0+x1+x2)/3, ecy=(y0+y1+y2)/3;
+  function ep(px,py){const dx=px-ecx,dy=py-ecy,l=Math.sqrt(dx*dx+dy*dy);return l<.001?[px,py]:[px+dx/l*.6,py+dy/l*.6];}
+  const [ex0,ey0]=ep(x0,y0), [ex1,ey1]=ep(x1,y1), [ex2,ey2]=ep(x2,y2);
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.lineTo(x2,y2);
+  ctx.moveTo(ex0,ey0); ctx.lineTo(ex1,ey1); ctx.lineTo(ex2,ey2);
   ctx.closePath(); ctx.clip();
   ctx.transform(a_,b_,c_,d_, x0-a_*p0u-c_*p0v, y0-b_*p0u-d_*p0v);
   ctx.drawImage(img, 0, 0);
