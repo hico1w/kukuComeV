@@ -2248,14 +2248,14 @@
       enabled: false,
       gridSize: 12,
       points: [
-        { enabled:false, x:30, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:0   },
-        { enabled:false, x:70, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:180 },
-        { enabled:false, x:50, y:20, radius:25, amplitude:5, speed:0.8, mode:'pendulum_x', phase:0   },
-        { enabled:false, x:50, y:80, radius:25, amplitude:5, speed:0.8, mode:'pendulum_y', phase:0   },
-        { enabled:false, x:20, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:90  },
-        { enabled:false, x:80, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:270 },
-        { enabled:false, x:50, y:10, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:0   },
-        { enabled:false, x:50, y:90, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:180 },
+        { enabled:false, x:30, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:0,   shape:'circle', width:60, height:30, rotation:0 },
+        { enabled:false, x:70, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:180, shape:'circle', width:60, height:30, rotation:0 },
+        { enabled:false, x:50, y:20, radius:25, amplitude:5, speed:0.8, mode:'pendulum_x', phase:0,   shape:'circle', width:60, height:30, rotation:0 },
+        { enabled:false, x:50, y:80, radius:25, amplitude:5, speed:0.8, mode:'pendulum_y', phase:0,   shape:'circle', width:60, height:30, rotation:0 },
+        { enabled:false, x:20, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:90,  shape:'circle', width:60, height:30, rotation:0 },
+        { enabled:false, x:80, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:270, shape:'circle', width:60, height:30, rotation:0 },
+        { enabled:false, x:50, y:10, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:0,   shape:'circle', width:60, height:30, rotation:0 },
+        { enabled:false, x:50, y:90, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:180, shape:'circle', width:60, height:30, rotation:0 },
       ]
     };
   }
@@ -2279,7 +2279,7 @@
     if (d.bossImgFile) allEntries.push({ f: d.bossImgFile, label: '👹 BOSS', src: `/chara/${encodeURIComponent(d.bossImgFile)}` });
     imgFiles.forEach(f => { if (f !== d.bossImgFile) allEntries.push({ f, label: f, src: `/chara/${encodeURIComponent(f)}` }); });
     // アゲルちゃん画像（フォルダ別・画像別）
-    Object.entries(_puruAgruFolderMap).sort(([a],[b])=>a.localeCompare(b)).forEach(([folder, files]) => {
+    Object.entries(_puruAgruFolderMap).filter(([f])=>f!=='未整理').sort(([a],[b])=>a.localeCompare(b)).forEach(([folder, files]) => {
       (files || []).forEach(file => {
         const key = `__agru__/${folder}/${file}`;
         allEntries.push({ f: key, label: `${folder}/${file}`, src: `/ageru/${folder}/${encodeURIComponent(file)}`, isAgru: true });
@@ -2325,8 +2325,16 @@
     document.getElementById('puruGrid').value           = _puruCfg.gridSize;
     document.getElementById('puruGridVal').textContent  = _puruCfg.gridSize;
     buildPuruPointsUI();
-    _puruSyncCanvasSize();
-    _puruDrawPreview();
+    _puruStartPreviewLoop();
+  }
+
+  const PURU_SHAPE_LABELS = { circle:'○ 円', rect:'□ 四角', triangle:'△ 三角' };
+
+  function _puruUpdateShapeUI(i) {
+    const shape = document.querySelector(`[data-idx="${i}"].puru-pt-shape`)?.value || 'circle';
+    document.querySelectorAll(`[data-idx="${i}"][data-shapes]`).forEach(el => {
+      el.style.display = el.dataset.shapes.split(',').includes(shape) ? '' : 'none';
+    });
   }
 
   function buildPuruPointsUI() {
@@ -2334,8 +2342,14 @@
     const wrap = document.getElementById('puruPointsWrap');
     if (!wrap) return;
     wrap.innerHTML = '';
+    const I = 'background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:2px 3px;font-size:11px';
+    const L = 'font-size:10px;color:#64748b';
     _puruCfg.points.forEach((pt, i) => {
       const color = PURU_COLORS[i];
+      const shape = pt.shape || 'circle';
+      const rVis  = shape === 'rect'     ? 'display:none' : '';
+      const wVis  = shape === 'rect'     ? '' : 'display:none';
+      const tVis  = shape === 'triangle' ? '' : 'display:none';
       const row = document.createElement('div');
       row.style.cssText = 'background:#0d1117;border:1px solid #1e293b;border-radius:6px;padding:6px 8px';
       row.innerHTML = `
@@ -2344,34 +2358,31 @@
             <input type="checkbox" class="puru-pt-en" data-idx="${i}" ${pt.enabled?'checked':''} onchange="syncPuruPoint(${i})">
             <span style="font-size:12px;font-weight:700;color:${color}">P${i+1}</span>
           </label>
-          <span style="font-size:10px;color:#64748b">X</span>
-          <input type="number" class="puru-pt-x" data-idx="${i}" value="${pt.x}" min="0" max="100" step="1"
-            style="width:40px;background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:2px 3px;font-size:11px"
-            oninput="syncPuruPoint(${i});_puruDrawPreview()">
-          <span style="font-size:10px;color:#64748b">Y</span>
-          <input type="number" class="puru-pt-y" data-idx="${i}" value="${pt.y}" min="0" max="100" step="1"
-            style="width:40px;background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:2px 3px;font-size:11px"
-            oninput="syncPuruPoint(${i});_puruDrawPreview()">
-          <span style="font-size:10px;color:#64748b">半径</span>
-          <input type="number" class="puru-pt-r" data-idx="${i}" value="${pt.radius}" min="5" max="70" step="1"
-            style="width:36px;background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:2px 3px;font-size:11px"
-            oninput="syncPuruPoint(${i});_puruDrawPreview()">
-          <span style="font-size:10px;color:#64748b">振幅</span>
-          <input type="number" class="puru-pt-amp" data-idx="${i}" value="${pt.amplitude}" min="0" max="40" step="0.5"
-            style="width:36px;background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:2px 3px;font-size:11px"
-            oninput="syncPuruPoint(${i})">
-          <span style="font-size:10px;color:#64748b">速さ</span>
-          <input type="number" class="puru-pt-spd" data-idx="${i}" value="${pt.speed}" min="0.1" max="5" step="0.1"
-            style="width:36px;background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:2px 3px;font-size:11px"
-            oninput="syncPuruPoint(${i})">
-          <select class="puru-pt-mode" data-idx="${i}" onchange="syncPuruPoint(${i})"
-            style="background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:2px 3px;font-size:11px">
+          <select class="puru-pt-shape" data-idx="${i}" onchange="syncPuruPoint(${i});_puruUpdateShapeUI(${i})"
+            style="${I};padding:2px 2px">
+            ${Object.entries(PURU_SHAPE_LABELS).map(([v,l])=>`<option value="${v}"${shape===v?' selected':''}>${l}</option>`).join('')}
+          </select>
+          <span style="${L}">X</span>
+          <input type="number" class="puru-pt-x" data-idx="${i}" value="${pt.x}" min="0" max="100" step="1" style="${I};width:38px" oninput="syncPuruPoint(${i})">
+          <span style="${L}">Y</span>
+          <input type="number" class="puru-pt-y" data-idx="${i}" value="${pt.y}" min="0" max="100" step="1" style="${I};width:38px" oninput="syncPuruPoint(${i})">
+          <span style="${L};${rVis}" data-idx="${i}" data-shapes="circle,triangle">半径</span>
+          <input type="number" class="puru-pt-r" data-idx="${i}" data-shapes="circle,triangle" value="${pt.radius}" min="5" max="70" step="1" style="${I};width:34px;${rVis}" oninput="syncPuruPoint(${i})">
+          <span style="${L};${wVis}" data-idx="${i}" data-shapes="rect">横幅%</span>
+          <input type="number" class="puru-pt-w" data-idx="${i}" data-shapes="rect" value="${pt.width??60}" min="5" max="200" step="1" style="${I};width:38px;${wVis}" oninput="syncPuruPoint(${i})">
+          <span style="${L};${wVis}" data-idx="${i}" data-shapes="rect">縦幅%</span>
+          <input type="number" class="puru-pt-h" data-idx="${i}" data-shapes="rect" value="${pt.height??30}" min="5" max="200" step="1" style="${I};width:38px;${wVis}" oninput="syncPuruPoint(${i})">
+          <span style="${L};${tVis}" data-idx="${i}" data-shapes="triangle">回転°</span>
+          <input type="number" class="puru-pt-rot" data-idx="${i}" data-shapes="triangle" value="${pt.rotation??0}" min="-180" max="180" step="15" style="${I};width:42px;${tVis}" oninput="syncPuruPoint(${i})">
+          <span style="${L}">振幅</span>
+          <input type="number" class="puru-pt-amp" data-idx="${i}" value="${pt.amplitude}" min="0" max="40" step="0.5" style="${I};width:34px" oninput="syncPuruPoint(${i})">
+          <span style="${L}">速さ</span>
+          <input type="number" class="puru-pt-spd" data-idx="${i}" value="${pt.speed}" min="0.1" max="5" step="0.1" style="${I};width:34px" oninput="syncPuruPoint(${i})">
+          <select class="puru-pt-mode" data-idx="${i}" onchange="syncPuruPoint(${i})" style="${I}">
             ${Object.entries(PURU_MODE_LABELS).map(([v,l])=>`<option value="${v}"${pt.mode===v?' selected':''}>${l}</option>`).join('')}
           </select>
-          <span style="font-size:10px;color:#64748b">位相°</span>
-          <input type="number" class="puru-pt-phase" data-idx="${i}" value="${pt.phase}" min="0" max="360" step="15"
-            style="width:40px;background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:2px 3px;font-size:11px"
-            oninput="syncPuruPoint(${i})">
+          <span style="${L}">位相°</span>
+          <input type="number" class="puru-pt-phase" data-idx="${i}" value="${pt.phase}" min="0" max="360" step="15" style="${I};width:38px" oninput="syncPuruPoint(${i})">
         </div>`;
       wrap.appendChild(row);
     });
@@ -2382,12 +2393,16 @@
     const pt = _puruCfg.points[i];
     const q = s => document.querySelector(`[data-idx="${i}"].puru-pt-${s}`);
     pt.enabled   = q('en')?.checked ?? false;
-    pt.x         = parseFloat(q('x')?.value   ?? pt.x);
-    pt.y         = parseFloat(q('y')?.value   ?? pt.y);
-    pt.radius    = parseFloat(q('r')?.value   ?? pt.radius);
-    pt.amplitude = parseFloat(q('amp')?.value ?? pt.amplitude);
-    pt.speed     = parseFloat(q('spd')?.value ?? pt.speed);
-    pt.mode      = q('mode')?.value ?? pt.mode;
+    pt.shape     = q('shape')?.value ?? 'circle';
+    pt.x         = parseFloat(q('x')?.value    ?? pt.x);
+    pt.y         = parseFloat(q('y')?.value    ?? pt.y);
+    pt.radius    = parseFloat(q('r')?.value    ?? pt.radius);
+    pt.width     = parseFloat(q('w')?.value    ?? pt.width  ?? 60);
+    pt.height    = parseFloat(q('h')?.value    ?? pt.height ?? 30);
+    pt.rotation  = parseFloat(q('rot')?.value  ?? pt.rotation ?? 0);
+    pt.amplitude = parseFloat(q('amp')?.value  ?? pt.amplitude);
+    pt.speed     = parseFloat(q('spd')?.value  ?? pt.speed);
+    pt.mode      = q('mode')?.value  ?? pt.mode;
     pt.phase     = parseFloat(q('phase')?.value ?? pt.phase);
     syncPuruConfig();
   }
@@ -2399,7 +2414,6 @@
     _puruCfg.gridSize = parseInt(document.getElementById('puruGrid')?.value ?? 12);
     _puruAllConfig[imgFile] = JSON.parse(JSON.stringify(_puruCfg));
     adminSend({ type: 'purupuruConfig', imgFile, config: _puruAllConfig[imgFile] });
-    _puruDrawPreview();
     // グリッドの有効マーカーを更新
     const item = document.querySelector(`#puruImgGrid [data-file="${imgFile}"]`);
     if (item) {
@@ -2412,39 +2426,146 @@
     }
   }
 
-  function _puruSyncCanvasSize() {
-    const canvas = document.getElementById('puruPreviewCanvas');
-    const pImg   = document.getElementById('puruPreviewImg');
-    if (!canvas) return;
-    if (pImg && pImg.style.display !== 'none' && pImg.complete && pImg.naturalWidth) {
-      canvas.width  = pImg.offsetWidth  || 200;
-      canvas.height = pImg.offsetHeight || 300;
-    } else {
-      canvas.width = 200; canvas.height = 300;
+  // ── プレビューアニメーションエンジン（app.jsと独立したコピー） ────────────
+  function _pvDisplace(pt, t) {
+    const ph=(pt.phase||0)*Math.PI/180, om=(pt.speed||1)*Math.PI*2, a=pt.amplitude||0;
+    switch(pt.mode||'circle'){
+      case 'circle':     return{dx:Math.cos(t*om+ph)*a,       dy:Math.sin(t*om+ph)*a};
+      case 'pendulum_x': return{dx:Math.sin(t*om+ph)*a,       dy:0};
+      case 'pendulum_y': return{dx:0,                          dy:Math.sin(t*om+ph)*a};
+      case 'sin_y':      return{dx:Math.sin(t*om*2+ph)*a*0.3, dy:Math.sin(t*om+ph)*a};
+      case 'lissajous':  return{dx:Math.sin(t*om+ph)*a,       dy:Math.sin(t*om*2+ph+Math.PI/2)*a};
+      case 'breast':     return{dx:Math.sin(t*om*1.5+ph+Math.PI/4)*a*0.3, dy:Math.sin(t*om+ph)*a};
+      case 'bounce':     return{dx:0, dy:Math.abs(Math.sin(t*om*0.5+ph))*a};
+      case 'spring':     return{dx:0, dy:(Math.sin(t*om+ph)+0.3*Math.sin(t*om*3+ph))*a/1.3};
+      case 'flutter':    return{dx:Math.sin(t*om*2.7+ph)*a*0.7, dy:Math.cos(t*om*2.5+ph)*a};
+      default:           return{dx:0,dy:0};
     }
   }
+  function _pvWeight(pt, dx, dy, W, H) {
+    const mn=Math.min(W,H), shape=pt.shape||'circle';
+    if(shape==='rect'){
+      const hw=((pt.width??(pt.radius??30))/100)*W/2, hh=((pt.height??(pt.radius??30))/100)*H/2;
+      if(!hw||!hh||Math.abs(dx)>=hw||Math.abs(dy)>=hh) return 0;
+      return(1-Math.max(Math.abs(dx)/hw,Math.abs(dy)/hh))**2;
+    }
+    if(shape==='triangle'){
+      const R=(pt.radius??30)/100*mn; if(!R) return 0;
+      const rot=(pt.rotation??0)*Math.PI/180;
+      const lx=dx*Math.cos(rot)+dy*Math.sin(rot), ly=-dx*Math.sin(rot)+dy*Math.cos(rot);
+      const h=R*Math.sqrt(3)/2;
+      const cr=(ax,ay,bx,by,px,py)=>(bx-ax)*(py-ay)-(by-ay)*(px-ax);
+      const d0=cr(0,-R,h,R*.5,lx,ly),d1=cr(h,R*.5,-h,R*.5,lx,ly),d2=cr(-h,R*.5,0,-R,lx,ly);
+      if(!((d0>=0&&d1>=0&&d2>=0)||(d0<=0&&d1<=0&&d2<=0))) return 0;
+      return Math.max(0,1-Math.sqrt(lx*lx+ly*ly)/R)**2;
+    }
+    const rr=(pt.radius??30)/100*mn; if(!rr) return 0;
+    const d=Math.sqrt(dx*dx+dy*dy); return d>=rr?0:(1-d/rr)**2;
+  }
+  function _pvTri(ctx,img,x0,y0,u0,v0,x1,y1,u1,v1,x2,y2,u2,v2){
+    const iw=img.naturalWidth,ih=img.naturalHeight;
+    const p0u=u0*iw,p0v=v0*ih,p1u=u1*iw,p1v=v1*ih,p2u=u2*iw,p2v=v2*ih;
+    const det=p0u*(p1v-p2v)+p1u*(p2v-p0v)+p2u*(p0v-p1v);
+    if(Math.abs(det)<0.001) return;
+    const a_=(x0*(p1v-p2v)+x1*(p2v-p0v)+x2*(p0v-p1v))/det;
+    const b_=(y0*(p1v-p2v)+y1*(p2v-p0v)+y2*(p0v-p1v))/det;
+    const c_=(x0*(p2u-p1u)+x1*(p0u-p2u)+x2*(p1u-p0u))/det;
+    const d_=(y0*(p2u-p1u)+y1*(p0u-p2u)+y2*(p1u-p0u))/det;
+    const ecx=(x0+x1+x2)/3,ecy=(y0+y1+y2)/3;
+    function ep(px,py){const dx=px-ecx,dy=py-ecy,l=Math.sqrt(dx*dx+dy*dy);return l<.001?[px,py]:[px+dx/l*.6,py+dy/l*.6];}
+    const[ex0,ey0]=ep(x0,y0),[ex1,ey1]=ep(x1,y1),[ex2,ey2]=ep(x2,y2);
+    ctx.save();
+    ctx.beginPath();ctx.moveTo(ex0,ey0);ctx.lineTo(ex1,ey1);ctx.lineTo(ex2,ey2);ctx.closePath();ctx.clip();
+    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+    ctx.transform(a_,b_,c_,d_,x0-a_*p0u-c_*p0v,y0-b_*p0u-d_*p0v);
+    ctx.drawImage(img,0,0);ctx.restore();
+  }
 
-  function _puruDrawPreview() {
-    const canvas = document.getElementById('puruPreviewCanvas');
-    if (!canvas || !_puruCfg) return;
-    _puruSyncCanvasSize();
-    const ctx = canvas.getContext('2d');
-    const W = canvas.width, H = canvas.height;
-    ctx.clearRect(0, 0, W, H);
-    _puruCfg.points.forEach((pt, i) => {
-      if (!pt.enabled) return;
-      const color = PURU_COLORS[i];
-      const cx = (pt.x/100)*W, cy = (pt.y/100)*H;
-      const rr = (pt.radius/100)*Math.min(W,H);
-      ctx.beginPath(); ctx.arc(cx,cy,rr,0,Math.PI*2);
-      ctx.strokeStyle = color+'88';
-      ctx.lineWidth = 1; ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
+  let _puruPvTime=0, _puruPvLastTs=null, _puruPvRAF=null;
+
+  function _puruStartPreviewLoop() {
+    if(_puruPvRAF) cancelAnimationFrame(_puruPvRAF);
+    _puruPvLastTs=null;
+    const loop=ts=>{
+      _puruPvRAF=requestAnimationFrame(loop);
+      if(_puruPvLastTs===null) _puruPvLastTs=ts;
+      _puruPvTime+=Math.min((ts-_puruPvLastTs)/1000,0.05);
+      _puruPvLastTs=ts;
+      _puruRenderPreview();
+    };
+    _puruPvRAF=requestAnimationFrame(loop);
+  }
+
+  function _puruRenderPreview() {
+    const canvas=document.getElementById('puruPreviewCanvas');
+    const img=document.getElementById('puruPreviewImg');
+    if(!canvas||!_puruCfg) return;
+    // sync canvas size
+    if(img&&img.style.display!=='none'&&img.complete&&img.naturalWidth){
+      if(canvas.width!==img.offsetWidth||canvas.height!==img.offsetHeight){
+        canvas.width=img.offsetWidth||200; canvas.height=img.offsetHeight||300;
+      }
+    }
+    const W=canvas.width, H=canvas.height;
+    if(!W||!H) return;
+    const ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,W,H);
+    const enabledPts=(_puruCfg.points||[]).filter(p=>p.enabled);
+    // メッシュ変形描画
+    if(img&&img.style.display!=='none'&&img.complete&&img.naturalWidth){
+      const gs=Math.max(6,_puruCfg.gridSize||12);
+      const cols=gs+1, rows=gs+1;
+      const verts=new Float32Array(cols*rows*2);
+      for(let j=0;j<rows;j++){
+        for(let i=0;i<cols;i++){
+          const bx=(i/gs)*W, by=(j/gs)*H;
+          let tdx=0, tdy=0;
+          for(const pt of enabledPts){
+            const px=(pt.x/100)*W, py=(pt.y/100)*H;
+            const w=_pvWeight(pt,bx-px,by-py,W,H);
+            if(w<=0) continue;
+            const d=_pvDisplace(pt,_puruPvTime);
+            tdx+=d.dx*w; tdy+=d.dy*w;
+          }
+          const idx=(j*cols+i)*2;
+          verts[idx]=bx+tdx; verts[idx+1]=by+tdy;
+        }
+      }
+      for(let j=0;j<gs;j++){
+        for(let i=0;i<gs;i++){
+          const i00=(j*cols+i)*2,i10=(j*cols+i+1)*2;
+          const i01=((j+1)*cols+i)*2,i11=((j+1)*cols+i+1)*2;
+          _pvTri(ctx,img,verts[i00],verts[i00+1],i/gs,j/gs,verts[i10],verts[i10+1],(i+1)/gs,j/gs,verts[i01],verts[i01+1],i/gs,(j+1)/gs);
+          _pvTri(ctx,img,verts[i10],verts[i10+1],(i+1)/gs,j/gs,verts[i11],verts[i11+1],(i+1)/gs,(j+1)/gs,verts[i01],verts[i01+1],i/gs,(j+1)/gs);
+        }
+      }
+    }
+    // ポイントオーバーレイ描画
+    (_puruCfg.points||[]).forEach((pt,i)=>{
+      if(!pt.enabled) return;
+      const color=PURU_COLORS[i];
+      const cx=(pt.x/100)*W, cy=(pt.y/100)*H;
+      const mn=Math.min(W,H), shape=pt.shape||'circle';
+      ctx.strokeStyle=color+'88'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+      if(shape==='rect'){
+        const hw=((pt.width??pt.radius??30)/100)*W/2, hh=((pt.height??pt.radius??30)/100)*H/2;
+        ctx.strokeRect(cx-hw,cy-hh,hw*2,hh*2);
+      } else if(shape==='triangle'){
+        const R=(pt.radius??30)/100*mn, rot=(pt.rotation??0)*Math.PI/180;
+        ctx.beginPath();
+        [0,1,2].forEach(k=>{const a=rot+k*Math.PI*2/3-Math.PI/2; ctx[k?'lineTo':'moveTo'](cx+R*Math.cos(a),cy+R*Math.sin(a));});
+        ctx.closePath(); ctx.stroke();
+      } else {
+        const rr=(pt.radius??30)/100*mn;
+        ctx.beginPath(); ctx.arc(cx,cy,rr,0,Math.PI*2); ctx.stroke();
+      }
+      ctx.setLineDash([]);
       ctx.beginPath(); ctx.arc(cx,cy,7,0,Math.PI*2);
-      ctx.fillStyle = color; ctx.fill();
-      ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 1.5; ctx.stroke();
-      ctx.fillStyle = '#e2e8f0'; ctx.font = 'bold 9px sans-serif';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(`P${i+1}`, cx, cy);
+      ctx.fillStyle=color; ctx.fill();
+      ctx.strokeStyle='#0f172a'; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.fillStyle='#e2e8f0'; ctx.font='bold 9px sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(`P${i+1}`,cx,cy);
     });
   }
 
@@ -2462,6 +2583,7 @@
       const W = canvas.width, H = canvas.height;
       let best=-1, bestD=14;
       _puruCfg.points.forEach((pt,i) => {
+        if (!pt.enabled) return;
         const d=Math.hypot((pt.x/100)*W-x,(pt.y/100)*H-y);
         if (d<bestD) { bestD=d; best=i; }
       });
@@ -2477,13 +2599,11 @@
       const xi=document.querySelector(`[data-idx="${_puruDrag.idx}"].puru-pt-x`);
       const yi=document.querySelector(`[data-idx="${_puruDrag.idx}"].puru-pt-y`);
       if (xi) xi.value=pt.x; if (yi) yi.value=pt.y;
-      _puruDrawPreview();
     });
     const stopDrag = () => { if (_puruDrag) { syncPuruConfig(); _puruDrag=null; } };
     canvas.addEventListener('mouseup', stopDrag);
     document.addEventListener('mouseup', stopDrag);
-    // 画像ロード後にキャンバスサイズ再計算
-    document.getElementById('puruPreviewImg')?.addEventListener('load', () => { _puruSyncCanvasSize(); _puruDrawPreview(); });
+    document.getElementById('puruPreviewImg')?.addEventListener('load', () => { if(_puruCfg) _puruStartPreviewLoop(); });
   });
 
   function syncTaimanHandicap(el) {

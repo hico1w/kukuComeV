@@ -888,19 +888,47 @@ function _puruDefaultCfg() {
     enabled: false,
     gridSize: 12,
     points: [
-      { enabled:false, x:30, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:0   },
-      { enabled:false, x:70, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:180 },
-      { enabled:false, x:50, y:20, radius:25, amplitude:5, speed:0.8, mode:'pendulum_x', phase:0   },
-      { enabled:false, x:50, y:80, radius:25, amplitude:5, speed:0.8, mode:'pendulum_y', phase:0   },
-      { enabled:false, x:20, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:90  },
-      { enabled:false, x:80, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:270 },
-      { enabled:false, x:50, y:10, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:0   },
-      { enabled:false, x:50, y:90, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:180 },
+      { enabled:false, x:30, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:0,   shape:'circle', width:60, height:30, rotation:0 },
+      { enabled:false, x:70, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:180, shape:'circle', width:60, height:30, rotation:0 },
+      { enabled:false, x:50, y:20, radius:25, amplitude:5, speed:0.8, mode:'pendulum_x', phase:0,   shape:'circle', width:60, height:30, rotation:0 },
+      { enabled:false, x:50, y:80, radius:25, amplitude:5, speed:0.8, mode:'pendulum_y', phase:0,   shape:'circle', width:60, height:30, rotation:0 },
+      { enabled:false, x:20, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:90,  shape:'circle', width:60, height:30, rotation:0 },
+      { enabled:false, x:80, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:270, shape:'circle', width:60, height:30, rotation:0 },
+      { enabled:false, x:50, y:10, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:0,   shape:'circle', width:60, height:30, rotation:0 },
+      { enabled:false, x:50, y:90, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:180, shape:'circle', width:60, height:30, rotation:0 },
     ]
   };
 }
 
 let _puruTime = 0, _puruLastTs = null, _puruRAF = null;
+
+function _puruWeight(pt, dx, dy, W, H) {
+  const mn = Math.min(W, H);
+  const shape = pt.shape || 'circle';
+  if (shape === 'rect') {
+    const hw = ((pt.width  ?? (pt.radius ?? 30)) / 100) * W / 2;
+    const hh = ((pt.height ?? (pt.radius ?? 30)) / 100) * H / 2;
+    if (!hw || !hh || Math.abs(dx) >= hw || Math.abs(dy) >= hh) return 0;
+    return (1 - Math.max(Math.abs(dx)/hw, Math.abs(dy)/hh)) ** 2;
+  }
+  if (shape === 'triangle') {
+    const R = (pt.radius ?? 30) / 100 * mn;
+    if (!R) return 0;
+    const rot = (pt.rotation ?? 0) * Math.PI / 180;
+    const lx = dx*Math.cos(rot) + dy*Math.sin(rot);
+    const ly = -dx*Math.sin(rot) + dy*Math.cos(rot);
+    const h = R * Math.sqrt(3) / 2;
+    const v0x=0, v0y=-R, v1x=h, v1y=R*0.5, v2x=-h, v2y=R*0.5;
+    const cr = (ax,ay,bx,by,px,py) => (bx-ax)*(py-ay)-(by-ay)*(px-ax);
+    const d0=cr(v0x,v0y,v1x,v1y,lx,ly), d1=cr(v1x,v1y,v2x,v2y,lx,ly), d2=cr(v2x,v2y,v0x,v0y,lx,ly);
+    if (!((d0>=0&&d1>=0&&d2>=0)||(d0<=0&&d1<=0&&d2<=0))) return 0;
+    return Math.max(0, 1 - Math.sqrt(lx*lx+ly*ly)/R) ** 2;
+  }
+  const rr = (pt.radius ?? 30) / 100 * mn;
+  if (!rr) return 0;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  return dist >= rr ? 0 : (1 - dist/rr) ** 2;
+}
 
 function _puruDisplace(pt, t) {
   const ph = (pt.phase || 0) * Math.PI / 180;
@@ -938,6 +966,7 @@ function _puruTri(ctx, img, x0,y0,u0,v0, x1,y1,u1,v1, x2,y2,u2,v2) {
   ctx.beginPath();
   ctx.moveTo(ex0,ey0); ctx.lineTo(ex1,ey1); ctx.lineTo(ex2,ey2);
   ctx.closePath(); ctx.clip();
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
   ctx.transform(a_,b_,c_,d_, x0-a_*p0u-c_*p0v, y0-b_*p0u-d_*p0v);
   ctx.drawImage(img, 0, 0);
   ctx.restore();
@@ -960,9 +989,30 @@ function _puruRenderCanvas(canvas) {
   canvas.style.display = 'block';
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, W, H);
+  // object-fit ソースRect計算（cover/containのクロップに合わせUVを補正）
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  const cssW = W / dpr, cssH = H / dpr;
+  let srcX=0, srcY=0, srcW=iw, srcH=ih;
+  const fit = getComputedStyle(img).objectFit;
+  if ((fit === 'cover' || fit === 'contain') && iw && ih) {
+    const s = fit === 'cover' ? Math.max(cssW/iw, cssH/ih) : Math.min(cssW/iw, cssH/ih);
+    const sw=iw*s, sh=ih*s;
+    const pos = getComputedStyle(img).objectPosition.split(' ');
+    const pv = (v, total, avail) => {
+      if(!v||v==='center') return (total-avail)/2;
+      if(v==='left'||v==='top') return 0;
+      if(v==='right'||v==='bottom') return total-avail;
+      if(v.endsWith('%')) return (total-avail)*parseFloat(v)/100;
+      return (total-avail)/2;
+    };
+    srcX = pv(pos[0], sw, cssW) / s;
+    srcY = pv(pos[1]||pos[0], sh, cssH) / s;
+    srcW = cssW / s; srcH = cssH / s;
+  }
   const gs = cfg.gridSize || 12;
   const cols = gs + 1, rows = gs + 1;
   const verts = new Float32Array(cols * rows * 2);
+  const uvs   = new Float32Array(cols * rows * 2);
   const pts = (cfg.points || []).filter(p => p.enabled);
   for (let j = 0; j < rows; j++) {
     for (let i = 0; i < cols; i++) {
@@ -970,24 +1020,22 @@ function _puruRenderCanvas(canvas) {
       let tdx=0, tdy=0;
       for (const pt of pts) {
         const px=(pt.x/100)*W, py=(pt.y/100)*H;
-        const rr=(pt.radius/100)*Math.min(W,H);
-        const ddx=bx-px, ddy=by-py;
-        const dist=Math.sqrt(ddx*ddx+ddy*ddy);
-        if (dist>=rr) continue;
-        const w=(1-dist/rr)**2;
+        const w=_puruWeight(pt, bx-px, by-py, W, H);
+        if (w <= 0) continue;
         const d=_puruDisplace(pt,_puruTime);
         tdx+=d.dx*w*dpr; tdy+=d.dy*w*dpr;
       }
       const idx=(j*cols+i)*2;
       verts[idx]=bx+tdx; verts[idx+1]=by+tdy;
+      uvs[idx]=(srcX+(i/gs)*srcW)/iw; uvs[idx+1]=(srcY+(j/gs)*srcH)/ih;
     }
   }
   for (let j=0; j<gs; j++) {
     for (let i=0; i<gs; i++) {
       const i00=(j*cols+i)*2,   i10=(j*cols+i+1)*2;
       const i01=((j+1)*cols+i)*2, i11=((j+1)*cols+i+1)*2;
-      _puruTri(ctx,img, verts[i00],verts[i00+1],i/gs,j/gs, verts[i10],verts[i10+1],(i+1)/gs,j/gs, verts[i01],verts[i01+1],i/gs,(j+1)/gs);
-      _puruTri(ctx,img, verts[i10],verts[i10+1],(i+1)/gs,j/gs, verts[i11],verts[i11+1],(i+1)/gs,(j+1)/gs, verts[i01],verts[i01+1],i/gs,(j+1)/gs);
+      _puruTri(ctx,img, verts[i00],verts[i00+1],uvs[i00],uvs[i00+1], verts[i10],verts[i10+1],uvs[i10],uvs[i10+1], verts[i01],verts[i01+1],uvs[i01],uvs[i01+1]);
+      _puruTri(ctx,img, verts[i10],verts[i10+1],uvs[i10],uvs[i10+1], verts[i11],verts[i11+1],uvs[i11],uvs[i11+1], verts[i01],verts[i01+1],uvs[i01],uvs[i01+1]);
     }
   }
 }

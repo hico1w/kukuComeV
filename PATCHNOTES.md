@@ -2,6 +2,32 @@
 
 ---
 
+## v2.446.0 — 2026-06-03
+
+### ぷるぷる：形状ゾーン・プレビューアニメ・アスペクト比修正・未整理除外
+
+- `public/app.js`: `_puruWeight()` 新関数追加 — 揺れポイントの影響ゾーンを円・四角・三角から選択可能に
+  - `circle`（円）: 半径%で指定、距離ベースの重み
+  - `rect`（四角）: 横幅%・縦幅%で独立指定、Chebyshev距離ベースの重み
+  - `triangle`（三角）: 半径%＋回転°で正三角形ゾーン、重心距離ベースの重み
+- `public/app.js`: `_puruDefaultCfg()` の各ポイントに `shape:'circle', width:60, height:30, rotation:0` を追加
+- `public/app.js`: `_puruRenderCanvas` でobject-fit対応のUV座標補正を実装
+  - CSSの `object-fit: cover` / `object-position` を読み取り、自然画像座標系でsrcX/srcY/srcW/srcHを計算
+  - Float32Array `uvs` でグリッド頂点のUV座標を事前計算し `_puruTri` に渡す
+  - 会話モードのアゲルちゃんでアスペクト比が崩れていた問題を修正
+- `public/app.js`: `_puruTri` に `imageSmoothingQuality = 'high'` を追加（画質向上）
+- `public/admin.html`: 揺れポイント設定UIに形状ドロップダウン追加（`puru-pt-shape`）
+  - 形状ごとに表示する入力欄を切り替え（`data-shapes` 属性で制御）
+  - 四角選択時: 横幅%・縦幅% 表示、半径・回転非表示
+  - 三角選択時: 半径%・回転° 表示、横幅・縦幅非表示
+- `public/admin.html`: プレビューキャンバスをRAFアニメーションループに変更（静止画から実際の揺れをリアルタイム表示）
+  - `_puruStartPreviewLoop()` / `_puruRenderPreview()` 追加
+  - `_pvDisplace()` / `_pvWeight()` / `_pvTri()` をadmin側に実装
+  - 形状ゾーンのオーバーレイ（円・四角・三角）をプレビュー上に描画
+- `public/admin.html`: `puruBuildImgGrid` で「未整理」フォルダを除外（ぷるぷる設定グリッドに表示しない）
+
+---
+
 ## v2.445.0 — 2026-06-03
 
 ### ぷるぷる・揺れ設定：アゲルちゃん画像別設定・2カラムレイアウト
