@@ -2393,6 +2393,11 @@
     });
     document.getElementById('puruPanelWrap').style.display = 'flex';
     _puruCfg = JSON.parse(JSON.stringify(_puruAllConfig[imgFile] || _puruDefaultCfgAdmin()));
+    // 保存済みのポイント数がデフォルトより少ない場合は不足分をデフォルトで補完
+    const _defPts = _puruDefaultCfgAdmin().points;
+    while (_puruCfg.points.length < _defPts.length) {
+      _puruCfg.points.push(JSON.parse(JSON.stringify(_defPts[_puruCfg.points.length])));
+    }
     // preview image
     const pImg = document.getElementById('puruPreviewImg');
     if (imgFile.startsWith('__agru__/')) {
