@@ -1051,11 +1051,14 @@ function updateAgruPurupuru() {
   const parent = imgEl.parentElement;
   if (!parent) return;
   parent.querySelectorAll('.puru-canvas').forEach(c => { if (c._puruImg) c._puruImg.style.opacity = ''; c.remove(); });
-  const cfg = purupuruConfig['__agru__'];
-  if (!cfg || !cfg.enabled) return;
   if (!imgEl.src || imgEl.src === location.href) return;
-  if (!imgEl.complete || !imgEl.naturalWidth) imgEl.addEventListener('load', () => _puruAttach(parent, imgEl, '__agru__'), { once: true });
-  else _puruAttach(parent, imgEl, '__agru__');
+  // /ageru/folder/file.png → __agru__/folder/file.png
+  const m = new URL(imgEl.src).pathname.match(/^\/ageru\/(.+)$/);
+  const imgKey = m ? '__agru__/' + decodeURIComponent(m[1]) : '__agru__';
+  const cfg = purupuruConfig[imgKey];
+  if (!cfg || !cfg.enabled) return;
+  if (!imgEl.complete || !imgEl.naturalWidth) imgEl.addEventListener('load', () => _puruAttach(parent, imgEl, imgKey), { once: true });
+  else _puruAttach(parent, imgEl, imgKey);
 }
 
 function _puruApplyAll() {

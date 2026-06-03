@@ -2,6 +2,18 @@
 
 ---
 
+## v2.445.0 — 2026-06-03
+
+### ぷるぷる・揺れ設定：アゲルちゃん画像別設定・2カラムレイアウト
+
+- `public/admin.html`: 揺れ設定を「プレビュー左・設定右」の2カラムレイアウトに変更（`jigglePanelWrap`）
+- `public/admin.html`: ぷるぷる設定を「プレビュー左・設定右」の2カラムレイアウトに変更（`puruPanelWrap`）
+- `public/admin.html`: `puruRefreshImages()` で `/api/ageru-emotion-map` も取得し、アゲルちゃん画像をフォルダ別・ファイル別に個別グリッド表示
+- `public/admin.html`: ぷるぷる設定キーを `__agru__` 単一から `__agru__/${folder}/${file}` 形式に変更
+- `public/app.js`: `updateAgruPurupuru()` で現在表示中の画像パスからキーを動的生成（`/ageru/folder/file.png → __agru__/folder/file.png`）
+
+---
+
 ## v2.444.0 — 2026-06-03
 
 ### ぷるぷる：画質修正・プレビュー拡大・揺れモード追加
