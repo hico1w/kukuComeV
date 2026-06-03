@@ -762,7 +762,11 @@
         <span id="puruGridVal" class="size-val">12</span>
         <span style="font-size:10px;color:#64748b;margin-left:4px">(大=高品質・重)</span>
       </div>
-      <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">揺れポイント（8か所）</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <span style="font-size:11px;color:#94a3b8">揺れポイント（8か所）</span>
+        <button onclick="puruCopyPoints()" style="padding:2px 8px;font-size:11px">📋 コピー</button>
+        <button id="puruPasteBtn" onclick="puruPastePoints()" style="padding:2px 8px;font-size:11px;opacity:0.4;cursor:not-allowed" disabled>📌 貼り付け</button>
+      </div>
       <div id="puruPointsWrap" style="display:flex;flex-direction:column;gap:6px"></div>
     </div>
   </div>
@@ -2268,6 +2272,21 @@
   let _puruDrag = null;
   let _puruHideEnabled = false;
   let _puruHideOverlay = false;
+  let _puruCopiedPoints = null;
+
+  function puruCopyPoints() {
+    if (!_puruCfg) return;
+    _puruCopiedPoints = JSON.parse(JSON.stringify(_puruCfg.points));
+    const btn = document.getElementById('puruPasteBtn');
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
+  }
+
+  function puruPastePoints() {
+    if (!_puruCfg || !_puruCopiedPoints) return;
+    _puruCfg.points = JSON.parse(JSON.stringify(_puruCopiedPoints));
+    buildPuruPointsUI();
+    syncPuruConfig();
+  }
 
   function togglePuruHideEnabled() {
     _puruHideEnabled = !_puruHideEnabled;
