@@ -886,7 +886,7 @@ try {
 function _puruDefaultCfg() {
   return {
     enabled: false,
-    gridSize: 12,
+    gridSize: 20,
     points: [
       { enabled:false, x:30, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:0,   shape:'circle', width:60, height:30, rotation:0 },
       { enabled:false, x:70, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:180, shape:'circle', width:60, height:30, rotation:0 },
@@ -981,8 +981,9 @@ function _puruRenderCanvas(canvas) {
     return;
   }
   const rect = img.getBoundingClientRect();
+  const SS = 2; // スーパーサンプリング倍率（2×でアンチエイリアス向上）
   const dpr = window.devicePixelRatio || 1;
-  const W = Math.round(rect.width * dpr), H = Math.round(rect.height * dpr);
+  const W = Math.round(rect.width * dpr * SS), H = Math.round(rect.height * dpr * SS);
   if (!W || !H) { canvas.style.display = 'none'; return; }
   if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
   img.style.opacity = '0';
@@ -991,7 +992,7 @@ function _puruRenderCanvas(canvas) {
   ctx.clearRect(0, 0, W, H);
   // object-fit ソースRect計算（cover/containのクロップに合わせUVを補正）
   const iw = img.naturalWidth, ih = img.naturalHeight;
-  const cssW = W / dpr, cssH = H / dpr;
+  const cssW = rect.width, cssH = rect.height;
   let srcX=0, srcY=0, srcW=iw, srcH=ih;
   const fit = getComputedStyle(img).objectFit;
   if ((fit === 'cover' || fit === 'contain') && iw && ih) {
@@ -1023,7 +1024,7 @@ function _puruRenderCanvas(canvas) {
         const w=_puruWeight(pt, bx-px, by-py, W, H);
         if (w <= 0) continue;
         const d=_puruDisplace(pt,_puruTime);
-        tdx+=d.dx*w*dpr; tdy+=d.dy*w*dpr;
+        tdx+=d.dx*w*dpr*SS; tdy+=d.dy*w*dpr*SS;
       }
       const idx=(j*cols+i)*2;
       verts[idx]=bx+tdx; verts[idx+1]=by+tdy;
