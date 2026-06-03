@@ -2631,7 +2631,7 @@
       }
     }
     // ポイントオーバーレイ描画
-    if (_puruHideOverlay) return;
+    if (_puruHideOverlay) { ctx.restore(); return; }
     (_puruCfg.points||[]).forEach((pt,i)=>{
       if(!pt.enabled) return;
       const color=PURU_COLORS[i];
