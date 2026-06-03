@@ -6305,19 +6305,24 @@ function _agruStartShake() {
     _agruShakeT += Math.min((ts - _agruShakeLast) / 1000, 0.05);
     _agruShakeLast = ts;
     const t = _agruShakeT;
-    const x = (Math.sin(t*1.3)*0.55 + Math.sin(t*2.7)*0.30 + Math.sin(t*0.9)*0.15) * 2.0;
-    const y = (Math.sin(t*1.7)*0.55 + Math.sin(t*3.1)*0.30 + Math.sin(t*1.1)*0.15) * 2.0;
-    const r = Math.sin(t*0.8) * 0.18;
-    const frame = document.querySelector('.agru-char-bg');
-    if (frame) frame.style.transform = `translate(${x.toFixed(2)}px,${y.toFixed(2)}px) rotate(${r.toFixed(3)}deg)`;
+    const img = document.getElementById('agruCharImg');
+    if (!img || img._agruSliding) return;
+    const tf = `translate(${((Math.sin(t*1.3)*0.55+Math.sin(t*2.7)*0.30+Math.sin(t*0.9)*0.15)*2).toFixed(2)}px,${((Math.sin(t*1.7)*0.55+Math.sin(t*3.1)*0.30+Math.sin(t*1.1)*0.15)*2).toFixed(2)}px) rotate(${(Math.sin(t*0.8)*0.18).toFixed(3)}deg)`;
+    img.style.transform = tf;
+    const cv = img.parentElement?.querySelector('.puru-canvas');
+    if (cv) cv.style.transform = tf;
   };
   _agruShakeRAF = requestAnimationFrame(loop);
 }
 
 function _agruStopShake() {
   if (_agruShakeRAF) { cancelAnimationFrame(_agruShakeRAF); _agruShakeRAF = null; }
-  const frame = document.querySelector('.agru-char-bg');
-  if (frame) frame.style.transform = '';
+  const img = document.getElementById('agruCharImg');
+  if (img && !img._agruSliding) {
+    img.style.transform = '';
+    const cv = img.parentElement?.querySelector('.puru-canvas');
+    if (cv) cv.style.transform = '';
+  }
 }
 
 async function openAgruModal() {
