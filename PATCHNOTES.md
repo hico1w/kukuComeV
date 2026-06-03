@@ -2,6 +2,25 @@
 
 ---
 
+## v2.459.0 — 2026-06-03
+
+### ぷるぷる新モード追加・アゲルちゃん会話中カメラ手振れ
+
+#### ぷるぷる新モード: スカート・猫耳
+- `public/app.js` / `public/admin.html`: `_puruDisplace` / `_pvDisplace` に2モード追加
+  - `skirt`（🎀 スカート）: 主周波数 + 2種の振幅変調で風に揺れるランダム感のある横揺れ、わずかな縦ドリフト付き
+  - `neko`（🐱 猫耳）: 上向き専用パルス（rectified sine）+ 頂点での小刻み quiver + 微細な横揺れ
+- `public/admin.html`: `PURU_MODE_LABELS` に `skirt` / `neko` を追加
+
+#### アゲルちゃん会話中カメラ手振れ
+- `public/app.js`: `_agruStartShake()` / `_agruStopShake()` を追加
+  - 3つの非整数比周波数 sine の合成で手持ちカメラ風の非周期的な X/Y ドリフト（±2px）と回転（±0.18°）
+  - `.agru-char-frame` に inline transform で適用
+- `public/app.js`: `openAgruModal()` 末尾で `_agruStartShake()` を呼び出し
+- `public/app.js`: `closeAgruModal()` 先頭で `_agruStopShake()` を呼び出し、transform をリセット
+
+---
+
 ## v2.456.0 — 2026-06-03
 
 ### ぷるぷる設定改善・呼吸アニメーション無効化ボタン追加

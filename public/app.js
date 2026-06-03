@@ -943,7 +943,21 @@ function _puruDisplace(pt, t) {
     case 'bounce':                                                            dy=Math.abs(Math.sin(t*om*0.5+ph))*a; break;
     case 'spring':                                                            dy=(Math.sin(t*om+ph)+0.3*Math.sin(t*om*3+ph))*a/1.3; break;
     case 'flutter':    dx=Math.sin(t*om*2.7+ph)*a*0.7;                    dy=Math.cos(t*om*2.5+ph)*a; break;
-  }
+    case 'skirt': {
+      // 風に揺れるスカート：主周波数＋振幅変調でランダム感
+      const c=t*om+ph;
+      dx=Math.sin(c)*a*(1+0.4*Math.sin(c*0.53+1.2)+0.15*Math.sin(c*2.3));
+      dy=Math.sin(c*0.7+0.5)*a*0.15;
+      break;
+    }
+    case 'neko': {
+      // 猫耳ぴょこぴょこ：上向きパルス＋頂点で小刻み
+      const c=t*om+ph;
+      const base=Math.max(0, Math.sin(c));
+      dx=Math.sin(c*1.3+ph)*a*0.2;
+      dy=-(base+base*0.3*Math.sin(c*4))*a;
+      break;
+    }
   _puruDispBuf.dx=dx; _puruDispBuf.dy=dy;
   return _puruDispBuf;
 }
@@ -6279,6 +6293,32 @@ window.addEventListener('message', e => {
   } catch {}
 });
 
+let _agruShakeRAF = null, _agruShakeT = 0, _agruShakeLast = null;
+
+function _agruStartShake() {
+  if (_agruShakeRAF) return;
+  _agruShakeLast = null;
+  const loop = (ts) => {
+    _agruShakeRAF = requestAnimationFrame(loop);
+    if (_agruShakeLast === null) _agruShakeLast = ts;
+    _agruShakeT += Math.min((ts - _agruShakeLast) / 1000, 0.05);
+    _agruShakeLast = ts;
+    const t = _agruShakeT;
+    const x = (Math.sin(t*1.3)*0.55 + Math.sin(t*2.7)*0.30 + Math.sin(t*0.9)*0.15) * 2.0;
+    const y = (Math.sin(t*1.7)*0.55 + Math.sin(t*3.1)*0.30 + Math.sin(t*1.1)*0.15) * 2.0;
+    const r = Math.sin(t*0.8) * 0.18;
+    const frame = document.querySelector('.agru-char-frame');
+    if (frame) frame.style.transform = `translate(${x.toFixed(2)}px,${y.toFixed(2)}px) rotate(${r.toFixed(3)}deg)`;
+  };
+  _agruShakeRAF = requestAnimationFrame(loop);
+}
+
+function _agruStopShake() {
+  if (_agruShakeRAF) { cancelAnimationFrame(_agruShakeRAF); _agruShakeRAF = null; }
+  const frame = document.querySelector('.agru-char-frame');
+  if (frame) frame.style.transform = '';
+}
+
 async function openAgruModal() {
   if (agruActive) return;
   agruActive = true;
@@ -6330,12 +6370,14 @@ async function openAgruModal() {
 
   // 起動挨拶
   _agruSend('配信が始まりました。視聴者に向けて元気よく挨拶してください。', null);
+  _agruStartShake();
 }
 
 function closeAgruModal() {
   agruActive = false;
   agruIdle   = true;
   _agruSelfieLocked = false;
+  _agruStopShake();
   clearTimeout(_agruIdleTimer);
   clearInterval(_agruTypeTimer);
   closeAgruYtModal();
