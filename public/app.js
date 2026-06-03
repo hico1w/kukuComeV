@@ -896,6 +896,10 @@ function _puruDefaultCfg() {
       { enabled:false, x:80, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:270, shape:'circle', width:60, height:30, rotation:0, direction:0 },
       { enabled:false, x:50, y:10, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
       { enabled:false, x:50, y:90, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:35, y:27, radius:12, amplitude:2.5,speed:2.0, mode:'pendulum_y', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:65, y:27, radius:12, amplitude:2.5,speed:2.0, mode:'pendulum_y', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:25, y:75, radius:22, amplitude:7,  speed:1.1, mode:'skirt',      phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:75, y:75, radius:22, amplitude:7,  speed:1.1, mode:'skirt',      phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 },
     ]
   };
 }
@@ -1083,6 +1087,34 @@ function _puruRenderCanvas(canvas) {
       const i01=((j+1)*cols+i)*2, i11=((j+1)*cols+i+1)*2;
       _puruTri(ctx,img, verts[i00],verts[i00+1],uvs[i00],uvs[i00+1], verts[i10],verts[i10+1],uvs[i10],uvs[i10+1], verts[i01],verts[i01+1],uvs[i01],uvs[i01+1]);
       _puruTri(ctx,img, verts[i10],verts[i10+1],uvs[i10],uvs[i10+1], verts[i11],verts[i11+1],uvs[i11],uvs[i11+1], verts[i01],verts[i01+1],uvs[i01],uvs[i01+1]);
+    }
+  }
+  // まばたきオーバーレイ
+  const blink = cfg.blink;
+  if (blink?.enabled) {
+    const now = performance.now();
+    if (!canvas._blinkNext) canvas._blinkNext = now + (blink.interval || 4) * 1000;
+    if (!canvas._blinkStart && now >= canvas._blinkNext) {
+      canvas._blinkStart = now;
+      canvas._blinkNext  = now + (blink.interval || 4) * 1000 * (0.7 + Math.random() * 0.6);
+    }
+    if (canvas._blinkStart) {
+      const elapsed = now - canvas._blinkStart;
+      const dur = blink.duration ?? 120;
+      if (elapsed > dur) {
+        canvas._blinkStart = null;
+      } else {
+        const close = Math.sin((elapsed / dur) * Math.PI);
+        const hh = (blink.h ?? 5) / 100 * H * close;
+        if (hh > 0) {
+          ctx.fillStyle = blink.color ?? '#f5c5b8';
+          for (const ex of [blink.x1 ?? 33, blink.x2 ?? 67]) {
+            ctx.beginPath();
+            ctx.ellipse((ex/100)*W, (blink.y??28)/100*H, (blink.w??16)/100*W/2, hh, 0, 0, Math.PI*2);
+            ctx.fill();
+          }
+        }
+      }
     }
   }
 }
