@@ -901,6 +901,7 @@ function _puruDefaultCfg() {
 }
 
 let _puruTime = 0, _puruLastTs = null, _puruRAF = null;
+const _puruDispBuf = {dx:0, dy:0}; // scratchオブジェクト（毎フレームのnewを排除）
 
 function _puruWeight(pt, dx, dy, W, H) {
   const mn = Math.min(W, H);
@@ -912,20 +913,17 @@ function _puruWeight(pt, dx, dy, W, H) {
     return (1 - Math.max(Math.abs(dx)/hw, Math.abs(dy)/hh)) ** 2;
   }
   if (shape === 'triangle') {
-    const R = (pt.radius ?? 30) / 100 * mn;
-    if (!R) return 0;
-    const rot = (pt.rotation ?? 0) * Math.PI / 180;
-    const lx = dx*Math.cos(rot) + dy*Math.sin(rot);
-    const ly = -dx*Math.sin(rot) + dy*Math.cos(rot);
-    const h = R * Math.sqrt(3) / 2;
-    const v0x=0, v0y=-R, v1x=h, v1y=R*0.5, v2x=-h, v2y=R*0.5;
-    const cr = (ax,ay,bx,by,px,py) => (bx-ax)*(py-ay)-(by-ay)*(px-ax);
-    const d0=cr(v0x,v0y,v1x,v1y,lx,ly), d1=cr(v1x,v1y,v2x,v2y,lx,ly), d2=cr(v2x,v2y,v0x,v0y,lx,ly);
+    const R = (pt.radius ?? 30) / 100 * mn; if (!R) return 0;
+    const rotDeg = pt.rotation ?? 0;
+    if (pt._wRot !== rotDeg) { pt._wRot=rotDeg; pt._wC=Math.cos(rotDeg*Math.PI/180); pt._wS=Math.sin(rotDeg*Math.PI/180); }
+    const lx=dx*pt._wC+dy*pt._wS, ly=-dx*pt._wS+dy*pt._wC;
+    const h=R*0.8660254, hy=R*0.5, R15=R*1.5;
+    // cr() インライン展開（クロージャ生成を排除）
+    const d0=h*(ly+R)-R15*lx, d1=-2*h*(ly-hy), d2=h*(ly-hy)+R15*(lx+h);
     if (!((d0>=0&&d1>=0&&d2>=0)||(d0<=0&&d1<=0&&d2<=0))) return 0;
     return Math.max(0, 1 - Math.sqrt(lx*lx+ly*ly)/R) ** 2;
   }
-  const rr = (pt.radius ?? 30) / 100 * mn;
-  if (!rr) return 0;
+  const rr = (pt.radius ?? 30) / 100 * mn; if (!rr) return 0;
   const dist = Math.sqrt(dx*dx + dy*dy);
   return dist >= rr ? 0 : (1 - dist/rr) ** 2;
 }
@@ -934,19 +932,20 @@ function _puruDisplace(pt, t) {
   const ph = (pt.phase || 0) * Math.PI / 180;
   const om = (pt.speed || 1) * Math.PI * 2;
   const a  = pt.amplitude || 0;
+  let dx=0, dy=0;
   switch (pt.mode || 'circle') {
-    case 'circle':     return { dx: Math.cos(t*om+ph)*a,                                          dy: Math.sin(t*om+ph)*a };
-    case 'pendulum_x': return { dx: Math.sin(t*om+ph)*a,                                          dy: 0 };
-    case 'pendulum_y': return { dx: 0,                                                             dy: Math.sin(t*om+ph)*a };
-    case 'sin_y':      return { dx: Math.sin(t*om*2+ph)*a*0.3,                                    dy: Math.sin(t*om+ph)*a };
-    case 'lissajous':  return { dx: Math.sin(t*om+ph)*a,                                          dy: Math.sin(t*om*2+ph+Math.PI/2)*a };
-    // 胸揺れ向けモード
-    case 'breast':     return { dx: Math.sin(t*om*1.5+ph+Math.PI/4)*a*0.3,                        dy: Math.sin(t*om+ph)*a };
-    case 'bounce':     return { dx: 0,                                                             dy: Math.abs(Math.sin(t*om*0.5+ph))*a };
-    case 'spring':     return { dx: 0,                                                             dy: (Math.sin(t*om+ph)+0.3*Math.sin(t*om*3+ph))*a/1.3 };
-    case 'flutter':    return { dx: Math.sin(t*om*2.7+ph)*a*0.7,                                  dy: Math.cos(t*om*2.5+ph)*a };
-    default:           return { dx: 0, dy: 0 };
+    case 'circle':     dx=Math.cos(t*om+ph)*a;                             dy=Math.sin(t*om+ph)*a; break;
+    case 'pendulum_x': dx=Math.sin(t*om+ph)*a;                                                     break;
+    case 'pendulum_y':                                                       dy=Math.sin(t*om+ph)*a; break;
+    case 'sin_y':      dx=Math.sin(t*om*2+ph)*a*0.3;                       dy=Math.sin(t*om+ph)*a; break;
+    case 'lissajous':  dx=Math.sin(t*om+ph)*a;                             dy=Math.sin(t*om*2+ph+Math.PI/2)*a; break;
+    case 'breast':     dx=Math.sin(t*om*1.5+ph+Math.PI/4)*a*0.3;          dy=Math.sin(t*om+ph)*a; break;
+    case 'bounce':                                                            dy=Math.abs(Math.sin(t*om*0.5+ph))*a; break;
+    case 'spring':                                                            dy=(Math.sin(t*om+ph)+0.3*Math.sin(t*om*3+ph))*a/1.3; break;
+    case 'flutter':    dx=Math.sin(t*om*2.7+ph)*a*0.7;                    dy=Math.cos(t*om*2.5+ph)*a; break;
   }
+  _puruDispBuf.dx=dx; _puruDispBuf.dy=dy;
+  return _puruDispBuf;
 }
 
 function _puruTri(ctx, img, x0,y0,u0,v0, x1,y1,u1,v1, x2,y2,u2,v2) {
@@ -958,10 +957,14 @@ function _puruTri(ctx, img, x0,y0,u0,v0, x1,y1,u1,v1, x2,y2,u2,v2) {
   const b_=(y0*(p1v-p2v)+y1*(p2v-p0v)+y2*(p0v-p1v))/det;
   const c_=(x0*(p2u-p1u)+x1*(p0u-p2u)+x2*(p1u-p0u))/det;
   const d_=(y0*(p2u-p1u)+y1*(p0u-p2u)+y2*(p1u-p0u))/det;
-  // クリップパスを重心から0.5px外側に広げてseam（グリッド線）を消す
+  // ep() インライン展開（三角形ごとに配列を生成していた問題を解消）
   const ecx=(x0+x1+x2)/3, ecy=(y0+y1+y2)/3;
-  function ep(px,py){const dx=px-ecx,dy=py-ecy,l=Math.sqrt(dx*dx+dy*dy);return l<.001?[px,py]:[px+dx/l*.6,py+dy/l*.6];}
-  const [ex0,ey0]=ep(x0,y0), [ex1,ey1]=ep(x1,y1), [ex2,ey2]=ep(x2,y2);
+  const d0x=x0-ecx,d0y=y0-ecy,l0=Math.sqrt(d0x*d0x+d0y*d0y);
+  const ex0=l0<.001?x0:x0+d0x/l0*.6, ey0=l0<.001?y0:y0+d0y/l0*.6;
+  const d1x=x1-ecx,d1y=y1-ecy,l1=Math.sqrt(d1x*d1x+d1y*d1y);
+  const ex1=l1<.001?x1:x1+d1x/l1*.6, ey1=l1<.001?y1:y1+d1y/l1*.6;
+  const d2x=x2-ecx,d2y=y2-ecy,l2=Math.sqrt(d2x*d2x+d2y*d2y);
+  const ex2=l2<.001?x2:x2+d2x/l2*.6, ey2=l2<.001?y2:y2+d2y/l2*.6;
   ctx.save();
   ctx.beginPath();
   ctx.moveTo(ex0,ey0); ctx.lineTo(ex1,ey1); ctx.lineTo(ex2,ey2);
@@ -980,56 +983,77 @@ function _puruRenderCanvas(canvas) {
     if (img) img.style.opacity = '';
     return;
   }
-  const rect = img.getBoundingClientRect();
-  const SS = 2; // スーパーサンプリング倍率（2×でアンチエイリアス向上）
+  const SS = 2;
   const dpr = window.devicePixelRatio || 1;
-  const W = Math.round(rect.width * dpr * SS), H = Math.round(rect.height * dpr * SS);
+  // getBoundingClientRect はレイアウト再計算を強制する。
+  // 120フレームごと or 未初期化時のみ再取得（毎フレームの強制レイアウトを排除）
+  canvas._puruTick = ((canvas._puruTick || 0) + 1) % 120;
+  let cssW = canvas._puruCssW || 0, cssH = canvas._puruCssH || 0;
+  if (!cssW || !cssH || canvas._puruTick === 0) {
+    const rect = img.getBoundingClientRect();
+    if (cssW !== rect.width || cssH !== rect.height) canvas._puruFitKey = null;
+    cssW = rect.width; cssH = rect.height;
+    canvas._puruCssW = cssW; canvas._puruCssH = cssH;
+  }
+  const W = Math.round(cssW * dpr * SS), H = Math.round(cssH * dpr * SS);
   if (!W || !H) { canvas.style.display = 'none'; return; }
-  if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+  if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; canvas._puruFitKey = null; }
   img.style.opacity = '0';
   canvas.style.display = 'block';
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, W, H);
-  // object-fit ソースRect計算（cover/containのクロップに合わせUVを補正）
   const iw = img.naturalWidth, ih = img.naturalHeight;
-  const cssW = rect.width, cssH = rect.height;
-  let srcX=0, srcY=0, srcW=iw, srcH=ih;
-  const fit = getComputedStyle(img).objectFit;
-  if ((fit === 'cover' || fit === 'contain') && iw && ih) {
-    const s = fit === 'cover' ? Math.max(cssW/iw, cssH/ih) : Math.min(cssW/iw, cssH/ih);
-    const sw=iw*s, sh=ih*s;
-    const pos = getComputedStyle(img).objectPosition.split(' ');
-    const pv = (v, total, avail) => {
-      if(!v||v==='center') return (total-avail)/2;
-      if(v==='left'||v==='top') return 0;
-      if(v==='right'||v==='bottom') return total-avail;
-      if(v.endsWith('%')) return (total-avail)*parseFloat(v)/100;
-      return (total-avail)/2;
-    };
-    srcX = pv(pos[0], sw, cssW) / s;
-    srcY = pv(pos[1]||pos[0], sh, cssH) / s;
-    srcW = cssW / s; srcH = cssH / s;
+  // getComputedStyle はobject-fitが変わった時のみ再計算（通常は不変）
+  const fitKey = `${iw},${ih},${W},${H}`;
+  if (canvas._puruFitKey !== fitKey) {
+    canvas._puruFitKey = fitKey;
+    let srcX=0, srcY=0, srcW=iw, srcH=ih;
+    const fit = getComputedStyle(img).objectFit;
+    if ((fit === 'cover' || fit === 'contain') && iw && ih) {
+      const s = fit === 'cover' ? Math.max(cssW/iw, cssH/ih) : Math.min(cssW/iw, cssH/ih);
+      const sw=iw*s, sh=ih*s;
+      const pos = getComputedStyle(img).objectPosition.split(' ');
+      const pv = (v, total, avail) => {
+        if(!v||v==='center') return (total-avail)/2;
+        if(v==='left'||v==='top') return 0;
+        if(v==='right'||v==='bottom') return total-avail;
+        if(v.endsWith('%')) return (total-avail)*parseFloat(v)/100;
+        return (total-avail)/2;
+      };
+      srcX = pv(pos[0], sw, cssW) / s;
+      srcY = pv(pos[1]||pos[0], sh, cssH) / s;
+      srcW = cssW / s; srcH = cssH / s;
+    }
+    canvas._puruSrcX=srcX; canvas._puruSrcY=srcY; canvas._puruSrcW=srcW; canvas._puruSrcH=srcH;
   }
-  // amplitudeはadminプレビュー基準高さ(420px)での値。ステージ表示サイズに比例させる。
+  const srcX=canvas._puruSrcX, srcY=canvas._puruSrcY, srcW=canvas._puruSrcW, srcH=canvas._puruSrcH;
   const ampScale = cssH / 420;
   const gs = cfg.gridSize || 12;
   const cols = gs + 1, rows = gs + 1;
-  const verts = new Float32Array(cols * rows * 2);
-  const uvs   = new Float32Array(cols * rows * 2);
-  const pts = (cfg.points || []).filter(p => p.enabled);
+  const needed = cols * rows * 2;
+  // Float32Array を使い回す（毎フレームの new + GCを排除）
+  if (!canvas._puruVerts || canvas._puruVerts.length < needed) {
+    canvas._puruVerts = new Float32Array(needed);
+    canvas._puruUvs   = new Float32Array(needed);
+  }
+  const verts = canvas._puruVerts, uvs = canvas._puruUvs;
+  const allPts = cfg.points || [];
   for (let j = 0; j < rows; j++) {
     for (let i = 0; i < cols; i++) {
       const bx=(i/gs)*W, by=(j/gs)*H;
       let tdx=0, tdy=0;
-      for (const pt of pts) {
+      for (let pi = 0; pi < allPts.length; pi++) {
+        const pt = allPts[pi];
+        if (!pt.enabled) continue;
         const px=(pt.x/100)*W, py=(pt.y/100)*H;
         const w=_puruWeight(pt, bx-px, by-py, W, H);
         if (w <= 0) continue;
         const d=_puruDisplace(pt,_puruTime);
-        const dirRad=(pt.direction??0)*Math.PI/180;
-        const rdx=d.dx*Math.cos(dirRad)-d.dy*Math.sin(dirRad);
-        const rdy=d.dx*Math.sin(dirRad)+d.dy*Math.cos(dirRad);
-        tdx+=rdx*w*dpr*SS*ampScale; tdy+=rdy*w*dpr*SS*ampScale;
+        // direction trig をキャッシュ（変更時のみ再計算）
+        const dirDeg=pt.direction??0;
+        if (pt._dDir !== dirDeg) { pt._dDir=dirDeg; pt._dC=Math.cos(dirDeg*Math.PI/180); pt._dS=Math.sin(dirDeg*Math.PI/180); }
+        tdx+=(d.dx*pt._dC-d.dy*pt._dS)*w*dpr*SS*ampScale;
+        tdy+=(d.dx*pt._dS+d.dy*pt._dC)*w*dpr*SS*ampScale;
       }
       const idx=(j*cols+i)*2;
       verts[idx]=bx+tdx; verts[idx+1]=by+tdy;

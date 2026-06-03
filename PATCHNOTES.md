@@ -2,6 +2,28 @@
 
 ---
 
+## v2.449.0 — 2026-06-03
+
+### ぷるぷる：GCプレッシャー排除・カクつき低減
+
+- `public/app.js`: `_puruDisplace` の戻り値をscratchオブジェクト化（`_puruDispBuf`）
+  - 毎フレーム8pt×441頂点＝3500超の `{dx,dy}` オブジェクト生成→GCを排除
+- `public/app.js`: `_puruWeight` の三角形分岐で `cr()` クロージャをインライン展開
+  - 三角形ゾーン使用時の関数オブジェクト生成を排除
+- `public/app.js`: `_puruWeight` の三角形回転trig値をpointオブジェクトにキャッシュ（`_wRot/_wC/_wS`）
+- `public/app.js`: `_puruTri` の `ep()` をインライン展開
+  - 1フレームあたり gs=20 なら800個（20×20×2三角×2点）の小配列生成を排除
+- `public/app.js`: `_puruRenderCanvas` の `Float32Array` バッファをcanvasに持たせて使い回し
+  - 毎フレームの `new Float32Array(882)` × 2本を排除
+- `public/app.js`: `getBoundingClientRect()` を120フレームごと・未初期化時のみ呼ぶようにキャッシュ
+  - 毎フレームの強制レイアウト再計算を排除
+- `public/app.js`: `getComputedStyle()` をfitKeyが変わった時のみ呼ぶようにキャッシュ
+  - 毎フレームのスタイル再計算を排除
+- `public/app.js`: `cfg.points.filter()` を除去、直接インデックスループで `pt.enabled` チェック
+- `public/app.js`: `pt.direction` のtrig値をpointオブジェクトにキャッシュ（`_dDir/_dC/_dS`）
+
+---
+
 ## v2.448.0 — 2026-06-03
 
 ### ぷるぷる：ステージ/プレビュー揺れ一致・揺れ方向設定
