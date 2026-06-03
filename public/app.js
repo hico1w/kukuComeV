@@ -375,7 +375,7 @@ const SETTINGS_KEYS = [
   'agruSdWidth','agruSdHeight','agruSdSteps','agruSdCfgScale','agruSdPositiveSuffix','agruIdleDelay','agruIdleDelayImage',
   'agruChatFontSize','agruChatBold','agruFontLeft','agruFontRight','agruCharTags','agruYtVolume','agruBgmVolume','agruYtWidth','agruYtHeight','agruYtOpacity','agruYtEnabled','agruModalZ',
   'agruModalWidth','agruModalHeight','agruModalBgOpacity','agruChatImgSize','agruCharImgHeight',
-  'bombHidden','trashHidden','charStatsHidden','agruImgCmdEnabled',
+  'bombHidden','trashHidden','charStatsHidden','breatheDisabled','agruImgCmdEnabled',
   'afkOpacity','afkGrayscale','afkBrightness',
 ];
 let _settingsSaveTimer = null;
@@ -1882,6 +1882,7 @@ let brAutoEnabled = true;        // 自動バトルロイヤル有効フラグ
 let bombHidden      = localStorage.getItem('bombHidden')      === 'true';
 let trashHidden     = localStorage.getItem('trashHidden')     === 'true';
 let charStatsHidden = localStorage.getItem('charStatsHidden') === 'true';
+let breatheDisabled = localStorage.getItem('breatheDisabled') === 'true';
 let slotSoundEnabled = true;    // スロット効果音ON/OFF
 // TTS設定
 let seVolume      = 1.0;  // 効果音マスター音量
@@ -8147,10 +8148,19 @@ document.getElementById('toggleStatsBtn').addEventListener('click', () => {
   saveSettingsToServer();
 });
 
+document.getElementById('toggleBreatheBtn').addEventListener('click', () => {
+  breatheDisabled = !breatheDisabled;
+  document.body.classList.toggle('no-breathe', breatheDisabled);
+  document.getElementById('toggleBreatheBtn').classList.toggle('active', breatheDisabled);
+  localStorage.setItem('breatheDisabled', breatheDisabled);
+  saveSettingsToServer();
+});
+
 // 保存された表示状態を復元
 if (bombHidden)       { document.getElementById('bombBtn').style.display  = 'none'; document.getElementById('toggleBombBtn').classList.add('active'); }
 if (trashHidden)      { document.getElementById('trashCan').style.display = 'none'; document.getElementById('toggleTrashBtn').classList.add('active'); }
 if (charStatsHidden)  { document.body.classList.add('stats-hidden'); document.getElementById('toggleStatsBtn').classList.add('active'); }
+if (breatheDisabled)  { document.body.classList.add('no-breathe'); document.getElementById('toggleBreatheBtn').classList.add('active'); }
 
 document.getElementById('slotSoundBtn').addEventListener('click', () => {
   slotSoundEnabled = !slotSoundEnabled;

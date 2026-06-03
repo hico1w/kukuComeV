@@ -2,6 +2,34 @@
 
 ---
 
+## v2.456.0 — 2026-06-03
+
+### ぷるぷる設定改善・呼吸アニメーション無効化ボタン追加
+
+#### ぷるぷる: 最後に編集した値を次の画像のデフォルトとして引き継ぎ
+- `public/admin.html`: `_puruLastPointTpl` を localStorage に保存
+  - `syncPuruPoint(i)` 実行時に `_puruSaveTpl(pt)` でアニメーション値（mode/amplitude/speed/radius/shape/width/height/rotation/direction）を記録
+  - `_puruMkPt()` で新規画像のデフォルト生成時にテンプレートを適用（x/y/phase/enabled は per-point デフォルトを維持）
+
+#### ぷるぷる: 有効済み画像を非表示フィルター
+- `public/admin.html`: 「有効済を非表示」ボタン（`puruHideEnabledBtn`）を追加
+  - `togglePuruHideEnabled()` でグリッドの有効画像アイテムをトグル表示/非表示
+  - 設定変更時と画像グリッド再構築時に自動でフィルター適用
+
+#### ぷるぷる: プレビューのポイントオーバーレイ非表示トグル
+- `public/admin.html`: プレビュー下に「P非表示」ボタン（`puruHideOverlayBtn`）を追加
+  - `togglePuruOverlay()` で `_puruHideOverlay` フラグをトグル
+  - `_puruRenderPreview()` でフラグが true の場合オーバーレイ描画をスキップ
+
+#### キャラ呼吸アニメーション（breathe）無効化ボタン
+- `public/style.css`: `body.no-breathe .avatar { animation: none !important; }` を追加
+- `public/app.js`: `breatheDisabled` 変数を追加（localStorage 永続化）
+- `public/app.js`: `toggleBreatheBtn` クリックで `body.no-breathe` をトグル、設定保存
+- `public/index.html`: `<button id="toggleBreatheBtn">` をSettings バーに追加
+- `public/admin.html`: 表示セクションに「🫁 呼吸」ボタンを追加
+
+---
+
 ## v2.455.0 — 2026-06-03
 
 ### アゲルちゃん画像切り替えをスライドアニメーションに変更

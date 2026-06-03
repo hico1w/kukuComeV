@@ -2952,6 +2952,9 @@ a.btn-debug    { text-decoration: none; display: inline-block; }
 /* ── ステータス非表示 ── */
 body.stats-hidden .char-stats        { display: none !important; }
 
+/* ── 呼吸アニメーション無効 ── */
+body.no-breathe .avatar              { animation: none !important; }
+
 /* ── コンパクトモード ── */
 body.compact-mode .char-stats        { display: none !important; }
 body.compact-mode .char-equip-area   { display: none !important; }

@@ -200,6 +200,7 @@
     <button onclick="cmd('toggleBombBtn')">💣 爆弾</button>
     <button onclick="cmd('toggleTrashBtn')">🗑 ゴミ箱</button>
     <button id="toggleStatsBtn" onclick="cmd('toggleStatsBtn')">📊 ステータス</button>
+    <button onclick="cmd('toggleBreatheBtn')">🫁 呼吸</button>
     <a href="/help.html" target="_blank" class="btn">❓ コマンド</a>
   </div>
 </div>
@@ -724,7 +725,10 @@
   <div class="section-title">🌊 ぷるぷる設定</div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
     <span style="font-size:11px;color:#94a3b8">画像を選択して設定（画像ごとに保存）</span>
-    <button onclick="puruRefreshImages()" style="padding:4px 8px;font-size:11px;white-space:nowrap">🔄 更新</button>
+    <div style="display:flex;gap:4px">
+      <button id="puruHideEnabledBtn" onclick="togglePuruHideEnabled()" style="padding:4px 8px;font-size:11px;white-space:nowrap">有効済を非表示</button>
+      <button onclick="puruRefreshImages()" style="padding:4px 8px;font-size:11px;white-space:nowrap">🔄 更新</button>
+    </div>
   </div>
 
   <!-- 画像グリッド -->
@@ -739,7 +743,10 @@
         <img id="puruPreviewImg" src="" style="display:block;height:420px;width:auto;object-fit:contain">
         <canvas id="puruPreviewCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;cursor:crosshair;display:block"></canvas>
       </div>
-      <div style="font-size:10px;color:#64748b;margin-top:4px">●をドラッグで位置調整 / 点線円 = 影響範囲</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+        <div style="font-size:10px;color:#64748b">●をドラッグで位置調整 / 点線円 = 影響範囲</div>
+        <button id="puruHideOverlayBtn" onclick="togglePuruOverlay()" style="padding:2px 8px;font-size:11px">P非表示</button>
+      </div>
     </div>
     <!-- 右: コントロール -->
     <div id="puruControls" style="flex:1;overflow-y:auto;max-height:420px">
@@ -2259,20 +2266,58 @@
   let _puruSelectedImg = '';  // 現在選択中の画像ファイル名
   let _puruCfg = null;        // 選択画像の設定 (作業用コピー)
   let _puruDrag = null;
+  let _puruHideEnabled = false;
+  let _puruHideOverlay = false;
+
+  // 最後に編集したポイントの設定（位置・位相を除くアニメーション値）
+  const _PURU_TPL_KEY = 'puruLastPointTpl';
+  let _puruLastPointTpl = (() => { try { return JSON.parse(localStorage.getItem(_PURU_TPL_KEY)); } catch { return null; } })();
+
+  function _puruSaveTpl(pt) {
+    _puruLastPointTpl = { mode:pt.mode, amplitude:pt.amplitude, speed:pt.speed, radius:pt.radius, shape:pt.shape, width:pt.width, height:pt.height, rotation:pt.rotation, direction:pt.direction };
+    localStorage.setItem(_PURU_TPL_KEY, JSON.stringify(_puruLastPointTpl));
+  }
+
+  function _puruMkPt(base) {
+    if (!_puruLastPointTpl) return base;
+    const t = _puruLastPointTpl;
+    return { ...base, shape:t.shape, radius:t.radius, width:t.width, height:t.height, rotation:t.rotation, amplitude:t.amplitude, speed:t.speed, mode:t.mode, direction:t.direction };
+  }
+
+  function togglePuruHideEnabled() {
+    _puruHideEnabled = !_puruHideEnabled;
+    const btn = document.getElementById('puruHideEnabledBtn');
+    if (btn) { btn.textContent = _puruHideEnabled ? '全て表示' : '有効済を非表示'; btn.classList.toggle('active', _puruHideEnabled); }
+    _puruApplyHideFilter();
+  }
+
+  function _puruApplyHideFilter() {
+    document.querySelectorAll('#puruImgGrid [data-file]').forEach(item => {
+      const f = item.dataset.file;
+      const hasConfig = !!(_puruAllConfig[f]?.enabled);
+      item.style.display = (_puruHideEnabled && hasConfig) ? 'none' : '';
+    });
+  }
+
+  function togglePuruOverlay() {
+    _puruHideOverlay = !_puruHideOverlay;
+    const btn = document.getElementById('puruHideOverlayBtn');
+    if (btn) { btn.textContent = _puruHideOverlay ? 'P表示' : 'P非表示'; btn.classList.toggle('active', _puruHideOverlay); }
+  }
 
   function _puruDefaultCfgAdmin() {
     return {
       enabled: false,
-      gridSize: 12,
+      gridSize: _puruCfg?.gridSize ?? 12,
       points: [
-        { enabled:false, x:30, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
-        { enabled:false, x:70, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 },
-        { enabled:false, x:50, y:20, radius:25, amplitude:5, speed:0.8, mode:'pendulum_x', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
-        { enabled:false, x:50, y:80, radius:25, amplitude:5, speed:0.8, mode:'pendulum_y', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
-        { enabled:false, x:20, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:90,  shape:'circle', width:60, height:30, rotation:0, direction:0 },
-        { enabled:false, x:80, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:270, shape:'circle', width:60, height:30, rotation:0, direction:0 },
-        { enabled:false, x:50, y:10, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
-        { enabled:false, x:50, y:90, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 },
+        _puruMkPt({ enabled:false, x:30, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 }),
+        _puruMkPt({ enabled:false, x:70, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 }),
+        _puruMkPt({ enabled:false, x:50, y:20, radius:25, amplitude:5, speed:0.8, mode:'pendulum_x', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 }),
+        _puruMkPt({ enabled:false, x:50, y:80, radius:25, amplitude:5, speed:0.8, mode:'pendulum_y', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 }),
+        _puruMkPt({ enabled:false, x:20, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:90,  shape:'circle', width:60, height:30, rotation:0, direction:0 }),
+        _puruMkPt({ enabled:false, x:80, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:270, shape:'circle', width:60, height:30, rotation:0, direction:0 }),
+        _puruMkPt({ enabled:false, x:50, y:10, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 }),
+        _puruMkPt({ enabled:false, x:50, y:90, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 }),
       ]
     };
   }
@@ -2317,6 +2362,7 @@
       item.addEventListener('click', () => selectPuruImg(f));
       grid.appendChild(item);
     });
+    _puruApplyHideFilter();
   }
 
   function selectPuruImg(imgFile) {
@@ -2424,6 +2470,7 @@
     pt.mode      = q('mode')?.value  ?? pt.mode;
     pt.phase     = parseFloat(q('phase')?.value ?? pt.phase);
     pt.direction = parseFloat(q('dir')?.value   ?? pt.direction ?? 0);
+    _puruSaveTpl(pt);
     syncPuruConfig();
   }
 
@@ -2444,6 +2491,7 @@
         nameEl.innerHTML = dot + label;
       }
     }
+    _puruApplyHideFilter();
   }
 
   // ── プレビューアニメーションエンジン（app.jsと独立したコピー） ────────────
@@ -2564,6 +2612,7 @@
       }
     }
     // ポイントオーバーレイ描画
+    if (_puruHideOverlay) return;
     (_puruCfg.points||[]).forEach((pt,i)=>{
       if(!pt.enabled) return;
       const color=PURU_COLORS[i];
