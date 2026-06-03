@@ -1037,7 +1037,6 @@ function _puruRenderCanvas(canvas) {
     canvas._puruUvs   = new Float32Array(needed);
   }
   const verts = canvas._puruVerts, uvs = canvas._puruUvs;
-  const flipped = !!canvas._puruFlipped;
   const allPts = cfg.points || [];
   for (let j = 0; j < rows; j++) {
     for (let i = 0; i < cols; i++) {
@@ -1046,8 +1045,9 @@ function _puruRenderCanvas(canvas) {
       for (let pi = 0; pi < allPts.length; pi++) {
         const pt = allPts[pi];
         if (!pt.enabled) continue;
-        // 反転時はX座標をミラー（CSS scaleX(-1)と合わせてポイントが正しい位置に来るよう）
-        const px=flipped ? W*(1-pt.x/100) : (pt.x/100)*W, py=(pt.y/100)*H;
+        // canvas全体にCSSでscaleX(-1)を適用するため、点座標はミラー不要。
+        // 画像も揺れも同じcanvas空間にあり、CSS反転で一緒にミラーされる。
+        const px=(pt.x/100)*W, py=(pt.y/100)*H;
         const w=_puruWeight(pt, bx-px, by-py, W, H);
         if (w <= 0) continue;
         const d=_puruDisplace(pt,_puruTime);
