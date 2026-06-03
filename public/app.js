@@ -955,11 +955,39 @@ function _puruDisplace(pt, t) {
       break;
     }
     case 'neko': {
-      // 猫耳ぴょこぴょこ：上向きパルス＋頂点で小刻み
       const c=t*om+ph;
       const base=Math.max(0, Math.sin(c));
       dx=Math.sin(c*1.3+ph)*a*0.2;
       dy=-(base+base*0.3*Math.sin(c*4))*a;
+      break;
+    }
+    case 'swing': {
+      // ブランコ：横sin＋二乗項で弧を描く（中央=下、端=上）
+      const p=Math.sin(t*om+ph);
+      dx=p*a;
+      dy=(0.4-0.6*p*p)*a;
+      break;
+    }
+    case 'purun': {
+      // ぷるん：1周期内で減衰振動（弾けて収まる）
+      const c=(t*om+ph)%(Math.PI*2);
+      const jig=Math.exp(-c*0.8)*Math.cos(c*5)*a;
+      dx=jig*0.25; dy=jig;
+      break;
+    }
+    case 'heart': {
+      // 💓 鼓動：1周期に2つのガウシアン峰
+      const c=((t*om+ph)%(Math.PI*2))/(Math.PI*2);
+      const p1=Math.exp(-Math.pow((c-0.15)*14,2));
+      const p2=Math.exp(-Math.pow((c-0.35)*11,2))*0.65;
+      dy=-(p1+p2)*a; dx=p1*a*0.15;
+      break;
+    }
+    case 'punipuni': {
+      // ぷにぷに：非整数比周波数2本合成でランダム感のある柔らか揺れ
+      const c=t*om+ph;
+      dx=(Math.sin(c*1.0)*0.55+Math.sin(c*2.3+0.7)*0.45)*a;
+      dy=(Math.cos(c*0.7)*0.55+Math.cos(c*1.9+1.1)*0.45)*a;
       break;
     }
   }
