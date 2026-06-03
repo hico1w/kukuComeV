@@ -907,11 +907,16 @@ function _puruDisplace(pt, t) {
   const om = (pt.speed || 1) * Math.PI * 2;
   const a  = pt.amplitude || 0;
   switch (pt.mode || 'circle') {
-    case 'circle':     return { dx: Math.cos(t*om+ph)*a, dy: Math.sin(t*om+ph)*a };
-    case 'pendulum_x': return { dx: Math.sin(t*om+ph)*a, dy: 0 };
-    case 'pendulum_y': return { dx: 0, dy: Math.sin(t*om+ph)*a };
-    case 'sin_y':      return { dx: Math.sin(t*om*2+ph)*a*0.3, dy: Math.sin(t*om+ph)*a };
-    case 'lissajous':  return { dx: Math.sin(t*om+ph)*a, dy: Math.sin(t*om*2+ph+Math.PI/2)*a };
+    case 'circle':     return { dx: Math.cos(t*om+ph)*a,                                          dy: Math.sin(t*om+ph)*a };
+    case 'pendulum_x': return { dx: Math.sin(t*om+ph)*a,                                          dy: 0 };
+    case 'pendulum_y': return { dx: 0,                                                             dy: Math.sin(t*om+ph)*a };
+    case 'sin_y':      return { dx: Math.sin(t*om*2+ph)*a*0.3,                                    dy: Math.sin(t*om+ph)*a };
+    case 'lissajous':  return { dx: Math.sin(t*om+ph)*a,                                          dy: Math.sin(t*om*2+ph+Math.PI/2)*a };
+    // 胸揺れ向けモード
+    case 'breast':     return { dx: Math.sin(t*om*1.5+ph+Math.PI/4)*a*0.3,                        dy: Math.sin(t*om+ph)*a };
+    case 'bounce':     return { dx: 0,                                                             dy: Math.abs(Math.sin(t*om*0.5+ph))*a };
+    case 'spring':     return { dx: 0,                                                             dy: (Math.sin(t*om+ph)+0.3*Math.sin(t*om*3+ph))*a/1.3 };
+    case 'flutter':    return { dx: Math.sin(t*om*2.7+ph)*a*0.7,                                  dy: Math.cos(t*om*2.5+ph)*a };
     default:           return { dx: 0, dy: 0 };
   }
 }
@@ -947,7 +952,8 @@ function _puruRenderCanvas(canvas) {
     return;
   }
   const rect = img.getBoundingClientRect();
-  const W = Math.round(rect.width), H = Math.round(rect.height);
+  const dpr = window.devicePixelRatio || 1;
+  const W = Math.round(rect.width * dpr), H = Math.round(rect.height * dpr);
   if (!W || !H) { canvas.style.display = 'none'; return; }
   if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
   img.style.opacity = '0';
@@ -970,7 +976,7 @@ function _puruRenderCanvas(canvas) {
         if (dist>=rr) continue;
         const w=(1-dist/rr)**2;
         const d=_puruDisplace(pt,_puruTime);
-        tdx+=d.dx*w; tdy+=d.dy*w;
+        tdx+=d.dx*w*dpr; tdy+=d.dy*w*dpr;
       }
       const idx=(j*cols+i)*2;
       verts[idx]=bx+tdx; verts[idx+1]=by+tdy;

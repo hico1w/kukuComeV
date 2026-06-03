@@ -2,6 +2,21 @@
 
 ---
 
+## v2.444.0 — 2026-06-03
+
+### ぷるぷる：画質修正・プレビュー拡大・揺れモード追加
+
+- `public/app.js`: `_puruRenderCanvas` で `devicePixelRatio` を考慮したcanvas解像度に修正（高DPIで画像が荒くなる問題を解消）
+- `public/app.js`: `_puruDisplace` に胸揺れ向け4モードを追加
+  - `breast`（むね揺れ）: 縦振動メイン＋1.5倍周波数の横成分で自然な揺れ
+  - `bounce`（バウンス）: `|sin|` パターンで重力バウンス感
+  - `spring`（バネ弾み）: 縦振動に3倍高調波を加えたバネ感
+  - `flutter`（ふるふる）: 高周波数の細かい振動
+- `public/admin.html`: プレビュー画像の高さを 300px → 600px に拡大
+- `public/admin.html`: `PURU_MODE_LABELS` に上記4モードを追加
+
+---
+
 ## v2.443.0 — 2026-06-03
 
 ### ぷるぷる：グリッド線非表示・プレビューOFF点非表示
