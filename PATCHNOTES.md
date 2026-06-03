@@ -2,6 +2,22 @@
 
 ---
 
+## v2.450.0 — 2026-06-03
+
+### ぷるぷる：水平反転対応（ボス・キャラ・歩き）
+
+- `public/app.js`: `_puruAttach` に `flipped` パラメータを追加
+  - `canvas._puruFlipped` を保存し、`canvas.style.transform = 'scaleX(-1)'` をcanvas要素に適用
+- `public/app.js`: `updateBossPurupuru` でボスcanvasを `flipped=true` で生成（CSS `.boss-avatar img { scaleX(-1) }` と同期）
+  - ぷるぷる有効時にボスの水平反転が消えていた問題を修正
+- `public/app.js`: `updatePurupuruOverlay` で `isUserFlipped(user)` を渡してキャラcanvasの反転状態を初期化
+- `public/app.js`: `applyFacingFlip` でpuru-canvasの `transform` と `_puruFlipped` も更新
+  - 歩き時の方向転換でもぷるぷるcanvasが正しく反転するように
+- `public/app.js`: `_puruRenderCanvas` で `canvas._puruFlipped` が true の場合、ポイントX座標をミラー（`W*(1 - pt.x/100)`）
+  - CSS scaleX(-1) と組み合わせて揺れポイントが視覚的に正しい位置で動くよう補正
+
+---
+
 ## v2.449.0 — 2026-06-03
 
 ### ぷるぷる：GCプレッシャー排除・カクつき低減

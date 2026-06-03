@@ -1037,6 +1037,7 @@ function _puruRenderCanvas(canvas) {
     canvas._puruUvs   = new Float32Array(needed);
   }
   const verts = canvas._puruVerts, uvs = canvas._puruUvs;
+  const flipped = !!canvas._puruFlipped;
   const allPts = cfg.points || [];
   for (let j = 0; j < rows; j++) {
     for (let i = 0; i < cols; i++) {
@@ -1045,7 +1046,8 @@ function _puruRenderCanvas(canvas) {
       for (let pi = 0; pi < allPts.length; pi++) {
         const pt = allPts[pi];
         if (!pt.enabled) continue;
-        const px=(pt.x/100)*W, py=(pt.y/100)*H;
+        // 反転時はX座標をミラー（CSS scaleX(-1)と合わせてポイントが正しい位置に来るよう）
+        const px=flipped ? W*(1-pt.x/100) : (pt.x/100)*W, py=(pt.y/100)*H;
         const w=_puruWeight(pt, bx-px, by-py, W, H);
         if (w <= 0) continue;
         const d=_puruDisplace(pt,_puruTime);
@@ -1083,13 +1085,15 @@ function _puruStartLoop() {
   _puruRAF = requestAnimationFrame(loop);
 }
 
-function _puruAttach(parent, imgEl, imgFile) {
+function _puruAttach(parent, imgEl, imgFile, flipped) {
   parent.querySelectorAll('.puru-canvas').forEach(c => { if (c._puruImg) c._puruImg.style.opacity = ''; c.remove(); });
   const canvas = document.createElement('canvas');
   canvas.className = 'puru-canvas';
   canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;display:none;z-index:3';
   canvas._puruImg     = imgEl;
   canvas._puruImgFile = imgFile;
+  canvas._puruFlipped = !!flipped;
+  if (flipped) canvas.style.transform = 'scaleX(-1)';
   const cs = window.getComputedStyle(parent);
   if (cs.position === 'static') parent.style.position = 'relative';
   parent.appendChild(canvas);
@@ -1105,7 +1109,7 @@ function updatePurupuruOverlay(user) {
   if (!cfg || !cfg.enabled) return;
   const imgEl = a.querySelector('img');
   if (!imgEl) return;
-  _puruAttach(a, imgEl, imgFile);
+  _puruAttach(a, imgEl, imgFile, isUserFlipped(user));
 }
 
 function updateBossPurupuru() {
@@ -1119,8 +1123,9 @@ function updateBossPurupuru() {
   if (!cfg || !cfg.enabled) return;
   const imgEl = a.querySelector('img');
   if (!imgEl) return;
-  if (!imgEl.complete || !imgEl.naturalWidth) imgEl.addEventListener('load', () => _puruAttach(a, imgEl, imgFile), { once: true });
-  else _puruAttach(a, imgEl, imgFile);
+  // ボス画像はCSS で常時 scaleX(-1) のため flipped=true で固定
+  if (!imgEl.complete || !imgEl.naturalWidth) imgEl.addEventListener('load', () => _puruAttach(a, imgEl, imgFile, true), { once: true });
+  else _puruAttach(a, imgEl, imgFile, true);
 }
 
 function updateAgruPurupuru() {
@@ -1157,9 +1162,12 @@ function applyFacingFlip(user) {
   if (!img) return;
   const flip = isUserFlipped(user);
   img.style.transform = flip ? 'scaleX(-1)' : '';
-  // 揺れオーバーレイも反転（overlay div ごと反転してアニメーションと干渉しない）
+  // 揺れオーバーレイも反転
   const jOverlay = a.querySelector('.jiggle-overlay');
   if (jOverlay) jOverlay.style.transform = flip ? 'scaleX(-1)' : '';
+  // ぷるぷるcanvasも反転同期（imgが非表示のままでも反転が効くように）
+  const puruCanvas = a.querySelector('.puru-canvas');
+  if (puruCanvas) { puruCanvas.style.transform = flip ? 'scaleX(-1)' : ''; puruCanvas._puruFlipped = flip; }
   // ペット画像も同様に反転
   ['p-', 'p2-'].forEach(prefix => {
     const petImg = document.getElementById(prefix + user.ipid)?.querySelector('img');
