@@ -2269,21 +2269,6 @@
   let _puruHideEnabled = false;
   let _puruHideOverlay = false;
 
-  // 最後に編集したポイントの設定（位置・位相を除くアニメーション値）
-  const _PURU_TPL_KEY = 'puruLastPointTpl';
-  let _puruLastPointTpl = (() => { try { return JSON.parse(localStorage.getItem(_PURU_TPL_KEY)); } catch { return null; } })();
-
-  function _puruSaveTpl(pt) {
-    _puruLastPointTpl = { mode:pt.mode, amplitude:pt.amplitude, speed:pt.speed, radius:pt.radius, shape:pt.shape, width:pt.width, height:pt.height, rotation:pt.rotation, direction:pt.direction };
-    localStorage.setItem(_PURU_TPL_KEY, JSON.stringify(_puruLastPointTpl));
-  }
-
-  function _puruMkPt(base) {
-    if (!_puruLastPointTpl) return base;
-    const t = _puruLastPointTpl;
-    return { ...base, shape:t.shape, radius:t.radius, width:t.width, height:t.height, rotation:t.rotation, amplitude:t.amplitude, speed:t.speed, mode:t.mode, direction:t.direction };
-  }
-
   function togglePuruHideEnabled() {
     _puruHideEnabled = !_puruHideEnabled;
     const btn = document.getElementById('puruHideEnabledBtn');
@@ -2308,16 +2293,16 @@
   function _puruDefaultCfgAdmin() {
     return {
       enabled: false,
-      gridSize: _puruCfg?.gridSize ?? 12,
+      gridSize: 12,
       points: [
-        _puruMkPt({ enabled:false, x:30, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 }),
-        _puruMkPt({ enabled:false, x:70, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 }),
-        _puruMkPt({ enabled:false, x:50, y:20, radius:25, amplitude:5, speed:0.8, mode:'pendulum_x', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 }),
-        _puruMkPt({ enabled:false, x:50, y:80, radius:25, amplitude:5, speed:0.8, mode:'pendulum_y', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 }),
-        _puruMkPt({ enabled:false, x:20, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:90,  shape:'circle', width:60, height:30, rotation:0, direction:0 }),
-        _puruMkPt({ enabled:false, x:80, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:270, shape:'circle', width:60, height:30, rotation:0, direction:0 }),
-        _puruMkPt({ enabled:false, x:50, y:10, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 }),
-        _puruMkPt({ enabled:false, x:50, y:90, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 }),
+        { enabled:false, x:30, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+        { enabled:false, x:70, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 },
+        { enabled:false, x:50, y:20, radius:25, amplitude:5, speed:0.8, mode:'pendulum_x', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+        { enabled:false, x:50, y:80, radius:25, amplitude:5, speed:0.8, mode:'pendulum_y', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+        { enabled:false, x:20, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:90,  shape:'circle', width:60, height:30, rotation:0, direction:0 },
+        { enabled:false, x:80, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:270, shape:'circle', width:60, height:30, rotation:0, direction:0 },
+        { enabled:false, x:50, y:10, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+        { enabled:false, x:50, y:90, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 },
       ]
     };
   }
@@ -2470,7 +2455,6 @@
     pt.mode      = q('mode')?.value  ?? pt.mode;
     pt.phase     = parseFloat(q('phase')?.value ?? pt.phase);
     pt.direction = parseFloat(q('dir')?.value   ?? pt.direction ?? 0);
-    _puruSaveTpl(pt);
     syncPuruConfig();
   }
 
