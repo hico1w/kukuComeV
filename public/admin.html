@@ -2291,7 +2291,10 @@
 
   function puruPastePoints() {
     if (!_puruCfg || !_puruCopiedPoints) return;
-    _puruCfg.points = JSON.parse(JSON.stringify(_puruCopiedPoints));
+    const src = _puruCopiedPoints;
+    _puruCfg.points = _puruCfg.points.map((pt, i) =>
+      i < src.length ? JSON.parse(JSON.stringify(src[i])) : pt
+    );
     buildPuruPointsUI();
     syncPuruConfig();
   }
