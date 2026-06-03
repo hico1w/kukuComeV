@@ -873,27 +873,32 @@ function updateBossJiggleOverlay() {
   updateBossPurupuru();
 }
 
-// ── ぷるぷるエンジン（Canvas メッシュ変形）────────────────────────────────
-const PURU_DEFAULT_POINTS = [
-  { enabled:false, x:30, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:0   },
-  { enabled:false, x:70, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:180 },
-  { enabled:false, x:50, y:20, radius:25, amplitude:5, speed:0.8, mode:'pendulum_x', phase:0   },
-  { enabled:false, x:50, y:80, radius:25, amplitude:5, speed:0.8, mode:'pendulum_y', phase:0   },
-  { enabled:false, x:20, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:90  },
-  { enabled:false, x:80, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:270 },
-  { enabled:false, x:50, y:10, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:0   },
-  { enabled:false, x:50, y:90, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:180 },
-];
-let purupuruConfig = {
-  enabled: false,
-  targets: { char: true, boss: true, agru: true },
-  gridSize: 12,
-  points: PURU_DEFAULT_POINTS.map(p => ({ ...p })),
-};
+// ── ぷるぷるエンジン（Canvas メッシュ変形・画像別設定）──────────────────────
+// purupuruConfig は画像ファイル名をキーとする辞書
+// キャラ/ボス: ファイル名 (例: 'kisyokeee.png')
+// アゲルちゃん: '__agru__' という特殊キー
+let purupuruConfig = {};
 try {
   const _ps = localStorage.getItem('purupuruConfig');
   if (_ps) purupuruConfig = JSON.parse(_ps);
 } catch(e) {}
+
+function _puruDefaultCfg() {
+  return {
+    enabled: false,
+    gridSize: 12,
+    points: [
+      { enabled:false, x:30, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:0   },
+      { enabled:false, x:70, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:180 },
+      { enabled:false, x:50, y:20, radius:25, amplitude:5, speed:0.8, mode:'pendulum_x', phase:0   },
+      { enabled:false, x:50, y:80, radius:25, amplitude:5, speed:0.8, mode:'pendulum_y', phase:0   },
+      { enabled:false, x:20, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:90  },
+      { enabled:false, x:80, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:270 },
+      { enabled:false, x:50, y:10, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:0   },
+      { enabled:false, x:50, y:90, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:180 },
+    ]
+  };
+}
 
 let _puruTime = 0, _puruLastTs = null, _puruRAF = null;
 
@@ -931,7 +936,8 @@ function _puruTri(ctx, img, x0,y0,u0,v0, x1,y1,u1,v1, x2,y2,u2,v2) {
 
 function _puruRenderCanvas(canvas) {
   const img = canvas._puruImg;
-  if (!img || !img.isConnected || !img.complete || !img.naturalWidth) {
+  const cfg = purupuruConfig[canvas._puruImgFile];
+  if (!cfg || !cfg.enabled || !img || !img.isConnected || !img.complete || !img.naturalWidth) {
     canvas.style.display = 'none';
     if (img) img.style.opacity = '';
     return;
@@ -944,10 +950,10 @@ function _puruRenderCanvas(canvas) {
   canvas.style.display = 'block';
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, W, H);
-  const gs = purupuruConfig.gridSize || 12;
+  const gs = cfg.gridSize || 12;
   const cols = gs + 1, rows = gs + 1;
   const verts = new Float32Array(cols * rows * 2);
-  const pts = (purupuruConfig.points || []).filter(p => p.enabled);
+  const pts = (cfg.points || []).filter(p => p.enabled);
   for (let j = 0; j < rows; j++) {
     for (let i = 0; i < cols; i++) {
       const bx=(i/gs)*W, by=(j/gs)*H;
@@ -983,26 +989,19 @@ function _puruStartLoop() {
     if (_puruLastTs === null) _puruLastTs = ts;
     const dt = Math.min((ts - _puruLastTs) / 1000, 0.05);
     _puruLastTs = ts;
-    if (purupuruConfig.enabled) {
-      _puruTime += dt;
-      document.querySelectorAll('.puru-canvas').forEach(_puruRenderCanvas);
-    } else {
-      _puruTime = 0; _puruLastTs = null;
-      document.querySelectorAll('.puru-canvas').forEach(c => {
-        c.style.display = 'none';
-        if (c._puruImg) c._puruImg.style.opacity = '';
-      });
-    }
+    _puruTime += dt;
+    document.querySelectorAll('.puru-canvas').forEach(_puruRenderCanvas);
   };
   _puruRAF = requestAnimationFrame(loop);
 }
 
-function _puruAttach(parent, imgEl) {
+function _puruAttach(parent, imgEl, imgFile) {
   parent.querySelectorAll('.puru-canvas').forEach(c => { if (c._puruImg) c._puruImg.style.opacity = ''; c.remove(); });
   const canvas = document.createElement('canvas');
   canvas.className = 'puru-canvas';
   canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;display:none;z-index:3';
-  canvas._puruImg = imgEl;
+  canvas._puruImg     = imgEl;
+  canvas._puruImgFile = imgFile;
   const cs = window.getComputedStyle(parent);
   if (cs.position === 'static') parent.style.position = 'relative';
   parent.appendChild(canvas);
@@ -1013,21 +1012,27 @@ function updatePurupuruOverlay(user) {
   const a = document.getElementById('a-' + user.ipid);
   if (!a) return;
   a.querySelectorAll('.puru-canvas').forEach(c => { if (c._puruImg) c._puruImg.style.opacity = ''; c.remove(); });
-  if (!purupuruConfig.enabled || !purupuruConfig.targets?.char) return;
+  const imgFile = user.charImage || (user.charDef && charImages[user.charDef.id]) || 'kisyokeee.png';
+  const cfg = purupuruConfig[imgFile];
+  if (!cfg || !cfg.enabled) return;
   const imgEl = a.querySelector('img');
   if (!imgEl) return;
-  _puruAttach(a, imgEl);
+  _puruAttach(a, imgEl, imgFile);
 }
 
 function updateBossPurupuru() {
   const a = document.getElementById('bossAvatar');
   if (!a) return;
   a.querySelectorAll('.puru-canvas').forEach(c => { if (c._puruImg) c._puruImg.style.opacity = ''; c.remove(); });
-  if (!bossState || !purupuruConfig.enabled || !purupuruConfig.targets?.boss) return;
+  if (!bossState) return;
+  const imgFile = bossState.imgFile;
+  if (!imgFile) return;
+  const cfg = purupuruConfig[imgFile];
+  if (!cfg || !cfg.enabled) return;
   const imgEl = a.querySelector('img');
   if (!imgEl) return;
-  if (!imgEl.complete || !imgEl.naturalWidth) imgEl.addEventListener('load', () => _puruAttach(a, imgEl), { once: true });
-  else _puruAttach(a, imgEl);
+  if (!imgEl.complete || !imgEl.naturalWidth) imgEl.addEventListener('load', () => _puruAttach(a, imgEl, imgFile), { once: true });
+  else _puruAttach(a, imgEl, imgFile);
 }
 
 function updateAgruPurupuru() {
@@ -1036,10 +1041,11 @@ function updateAgruPurupuru() {
   const parent = imgEl.parentElement;
   if (!parent) return;
   parent.querySelectorAll('.puru-canvas').forEach(c => { if (c._puruImg) c._puruImg.style.opacity = ''; c.remove(); });
-  if (!purupuruConfig.enabled || !purupuruConfig.targets?.agru) return;
+  const cfg = purupuruConfig['__agru__'];
+  if (!cfg || !cfg.enabled) return;
   if (!imgEl.src || imgEl.src === location.href) return;
-  if (!imgEl.complete || !imgEl.naturalWidth) imgEl.addEventListener('load', () => _puruAttach(parent, imgEl), { once: true });
-  else _puruAttach(parent, imgEl);
+  if (!imgEl.complete || !imgEl.naturalWidth) imgEl.addEventListener('load', () => _puruAttach(parent, imgEl, '__agru__'), { once: true });
+  else _puruAttach(parent, imgEl, '__agru__');
 }
 
 function _puruApplyAll() {
@@ -9217,7 +9223,11 @@ function handleAdminMessage(d, replyFn) {
       if (bossState?.imgFile === d.imgFile) updateBossJiggleOverlay();
     }
   } else if (d.type === 'purupuruConfig') {
-    purupuruConfig = d.config;
+    if (d.imgFile) {
+      purupuruConfig[d.imgFile] = d.config;
+    } else {
+      purupuruConfig = d.config;
+    }
     localStorage.setItem('purupuruConfig', JSON.stringify(purupuruConfig));
     saveSettingsToServer();
     _puruApplyAll();

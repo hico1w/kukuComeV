@@ -2,6 +2,15 @@
 
 ---
 
+## v2.442.0 — 2026-06-03
+
+### ぷるぷる設定：画像別保存対応・統合バグ修正
+
+- `public/admin.html`: `applyState` ハンドラの `_puruLoadUI` 参照を `_puruAllConfig = JSON.parse(...)` に修正（関数削除後の stale 参照）
+- `public/admin.html`: `d.type === 'users'` ハンドラに `puruBuildImgGrid(d)` 呼び出しを追加（画像グリッドが更新されていなかった問題を修正）
+
+---
+
 ## v2.441.0 — 2026-06-03
 
 ### ぷるぷるエンジン実装（Canvas メッシュ変形）

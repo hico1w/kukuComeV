@@ -719,43 +719,41 @@
 <!-- ぷるぷる設定 -->
 <div class="section">
   <div class="section-title">🌊 ぷるぷる設定</div>
-
-  <!-- 全体有効 + 対象 -->
-  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px">
-    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;font-weight:700">
-      <input type="checkbox" id="puruEnabled" onchange="syncPuruConfig()">
-      <span>有効</span>
-    </label>
-    <span style="color:#64748b;font-size:11px">対象:</span>
-    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px">
-      <input type="checkbox" id="puruTargetChar" checked onchange="syncPuruConfig()"> キャラ
-    </label>
-    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px">
-      <input type="checkbox" id="puruTargetBoss" checked onchange="syncPuruConfig()"> ボス
-    </label>
-    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px">
-      <input type="checkbox" id="puruTargetAgru" checked onchange="syncPuruConfig()"> アゲルちゃん
-    </label>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+    <span style="font-size:11px;color:#94a3b8">画像を選択して設定（画像ごとに保存）</span>
+    <button onclick="puruRefreshImages()" style="padding:4px 8px;font-size:11px;white-space:nowrap">🔄 更新</button>
   </div>
 
-  <!-- グリッドサイズ -->
-  <div class="size-row" style="margin-bottom:10px">
-    <span class="size-label">グリッド</span>
-    <input type="range" id="puruGrid" min="6" max="24" value="12" class="size-slider" oninput="document.getElementById('puruGridVal').textContent=this.value; syncPuruConfig()">
-    <span id="puruGridVal" class="size-val">12</span>
-    <span style="font-size:10px;color:#64748b;margin-left:4px">(大=高品質・重)</span>
+  <!-- 画像グリッド -->
+  <div id="puruImgGrid" style="display:flex;flex-wrap:wrap;gap:5px;max-height:220px;overflow-y:auto;padding:4px;background:#0d1117;border:1px solid #334155;border-radius:4px;margin-bottom:8px">
+    <span style="color:#64748b;font-size:11px;padding:8px">🔄 更新を押してください</span>
   </div>
 
-  <!-- ポイント設定 -->
-  <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">揺れポイント（8か所）</div>
-  <div id="puruPointsWrap" style="display:flex;flex-direction:column;gap:6px"></div>
-
-  <!-- プレビューキャンバス -->
-  <div style="margin-top:10px">
-    <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">プレビュー（●をドラッグで位置調整）</div>
-    <div style="position:relative;display:inline-block;background:#0d1117;border:1px solid #334155;line-height:0">
-      <canvas id="puruPreviewCanvas" width="200" height="260" style="display:block;cursor:crosshair"></canvas>
+  <!-- プレビュー（画像 + キャンバスオーバーレイ） -->
+  <div id="puruPreviewWrap" style="display:none;margin-bottom:10px">
+    <div style="position:relative;display:inline-block;border:1px solid #334155;background:#0d1117;line-height:0">
+      <img id="puruPreviewImg" src="" style="display:block;height:300px;width:auto;object-fit:contain">
+      <canvas id="puruPreviewCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;cursor:crosshair;display:block"></canvas>
     </div>
+    <div style="font-size:10px;color:#64748b;margin-top:4px">●をドラッグで位置調整 / 点線円 = 影響範囲</div>
+  </div>
+
+  <!-- コントロール（画像選択後に表示） -->
+  <div id="puruControls" style="display:none">
+    <div style="margin-bottom:6px">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px">
+        <input type="checkbox" id="puruEnabled" onchange="syncPuruConfig()">
+        <span>ぷるぷるを有効にする</span>
+      </label>
+    </div>
+    <div class="size-row" style="margin-bottom:10px">
+      <span class="size-label">グリッド</span>
+      <input type="range" id="puruGrid" min="6" max="24" value="12" class="size-slider" oninput="document.getElementById('puruGridVal').textContent=this.value; syncPuruConfig()">
+      <span id="puruGridVal" class="size-val">12</span>
+      <span style="font-size:10px;color:#64748b;margin-left:4px">(大=高品質・重)</span>
+    </div>
+    <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">揺れポイント（8か所）</div>
+    <div id="puruPointsWrap" style="display:flex;flex-direction:column;gap:6px"></div>
   </div>
 </div>
 
@@ -1735,6 +1733,8 @@
         }
       }
 
+      puruBuildImgGrid(d);
+
       if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
       if (csPrev && [...csSel.options].some(o => o.value === csPrev)) csSel.value = csPrev;
       if (mpPrev && [...mpSel.options].some(o => o.value === mpPrev)) mpSel.value = mpPrev;
@@ -2104,7 +2104,7 @@
     if (s.charEquipOffsetX !== undefined) { document.getElementById('charEquipXSlider').value = s.charEquipOffsetX; document.getElementById('charEquipXVal').textContent = s.charEquipOffsetX + 'px'; }
     if (s.charEquipOffsetY !== undefined) { document.getElementById('charEquipYSlider').value = s.charEquipOffsetY; document.getElementById('charEquipYVal').textContent = s.charEquipOffsetY + 'px'; }
     if (s.jiggleConfig) { try { _jiggleAllConfig = JSON.parse(s.jiggleConfig); } catch(e) {} }
-    if (s.purupuruConfig) { try { _puruLoadUI(JSON.parse(s.purupuruConfig)); } catch(e) {} }
+    if (s.purupuruConfig) { try { _puruAllConfig = JSON.parse(s.purupuruConfig); } catch(e) {} }
     if (s.petSizeScale !== undefined) { const v = Math.round(s.petSizeScale * 100); document.getElementById('petSizeSlider').value = v; document.getElementById('petSizeVal').textContent = v + '%'; }
     if (s.petAspectExp !== undefined) { document.getElementById('petAspectExpSlider').value = s.petAspectExp; document.getElementById('petAspectExpVal').textContent = parseFloat(s.petAspectExp).toFixed(2); }
     if (s.petPortraitBoost !== undefined) { document.getElementById('petPortraitBoostSlider').value = s.petPortraitBoost; document.getElementById('petPortraitBoostVal').textContent = parseFloat(s.petPortraitBoost).toFixed(2); }
@@ -2233,17 +2233,17 @@
 
   function jiggleRefreshUsers() { adminSend({ type: 'getUsers' }); }
 
-  // ── ぷるぷる設定 UI ────────────────────────────────────────────
+  // ── ぷるぷる設定 UI（画像別保存・jiggle方式）──────────────────────────
   const PURU_MODE_LABELS = { circle:'⭕ 円', pendulum_x:'↔ 横揺れ', pendulum_y:'↕ 縦揺れ', sin_y:'〜 縦波', lissajous:'∞ リサジュー' };
   const PURU_COLORS = ['#f472b6','#fb923c','#facc15','#4ade80','#38bdf8','#a78bfa','#f87171','#34d399'];
-  let _puruCfg = null; // local copy synced with app
-  let _puruDragPt = null; // { idx, startX, startY, origX, origY }
+  let _puruAllConfig  = {};   // { imgFile: { enabled, gridSize, points } }
+  let _puruSelectedImg = '';  // 現在選択中の画像ファイル名
+  let _puruCfg = null;        // 選択画像の設定 (作業用コピー)
+  let _puruDrag = null;
 
-  function _puruEnsureCfg() {
-    if (_puruCfg) return;
-    _puruCfg = {
+  function _puruDefaultCfgAdmin() {
+    return {
       enabled: false,
-      targets: { char: true, boss: true, agru: true },
       gridSize: 12,
       points: [
         { enabled:false, x:30, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:0   },
@@ -2258,8 +2258,65 @@
     };
   }
 
+  function puruRefreshImages() { adminSend({ type: 'getUsers' }); }
+
+  function puruBuildImgGrid(d) {
+    const grid = document.getElementById('puruImgGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    const imgFiles = [...new Set((d.data || []).map(u => u.charImage).filter(Boolean))].sort();
+    const allEntries = [];
+    if (d.bossImgFile) allEntries.push({ f: d.bossImgFile, label: '👹 BOSS', src: `/chara/${encodeURIComponent(d.bossImgFile)}` });
+    imgFiles.forEach(f => { if (f !== d.bossImgFile) allEntries.push({ f, label: f, src: `/chara/${encodeURIComponent(f)}` }); });
+    allEntries.push({ f: '__agru__', label: '🌸 アゲルちゃん', src: '' });
+    if (allEntries.length === 0) {
+      grid.innerHTML = '<span style="color:#64748b;font-size:11px;padding:8px">キャラが見つかりません</span>';
+      return;
+    }
+    allEntries.forEach(({ f, label, src }) => {
+      const item = document.createElement('div');
+      item.dataset.file = f;
+      item.style.cssText = 'cursor:pointer;border:2px solid transparent;border-radius:6px;padding:3px;text-align:center;flex-shrink:0';
+      if (f === _puruSelectedImg) { item.style.borderColor = '#38bdf8'; item.style.background = 'rgba(56,189,248,0.12)'; }
+      const hasConfig = !!(_puruAllConfig[f]?.enabled);
+      const dot = hasConfig ? '<span style="color:#4ade80;font-size:9px">●</span> ' : '';
+      if (f === '__agru__') {
+        item.innerHTML = `<div style="width:64px;height:64px;display:flex;align-items:center;justify-content:center;font-size:28px;background:#1e293b;border-radius:3px">🌸</div><div style="font-size:8px;color:#94a3b8;width:64px;margin-top:2px">${dot}アゲルちゃん</div>`;
+      } else {
+        item.innerHTML = `<img src="${src}" style="width:64px;height:64px;object-fit:contain;display:block;border-radius:3px"><div style="font-size:8px;color:#94a3b8;width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px" title="${f}">${dot}${label}</div>`;
+      }
+      item.addEventListener('click', () => selectPuruImg(f));
+      grid.appendChild(item);
+    });
+  }
+
+  function selectPuruImg(imgFile) {
+    _puruSelectedImg = imgFile;
+    document.querySelectorAll('#puruImgGrid [data-file]').forEach(el => {
+      const sel = el.dataset.file === imgFile;
+      el.style.borderColor = sel ? '#38bdf8' : 'transparent';
+      el.style.background  = sel ? 'rgba(56,189,248,0.12)' : '';
+    });
+    document.getElementById('puruPreviewWrap').style.display = 'block';
+    document.getElementById('puruControls').style.display    = 'block';
+    _puruCfg = JSON.parse(JSON.stringify(_puruAllConfig[imgFile] || _puruDefaultCfgAdmin()));
+    // preview image
+    const pImg = document.getElementById('puruPreviewImg');
+    if (imgFile === '__agru__') {
+      pImg.src = ''; pImg.style.display = 'none';
+    } else {
+      pImg.src = `/chara/${encodeURIComponent(imgFile)}`; pImg.style.display = 'block';
+    }
+    document.getElementById('puruEnabled').checked      = _puruCfg.enabled;
+    document.getElementById('puruGrid').value           = _puruCfg.gridSize;
+    document.getElementById('puruGridVal').textContent  = _puruCfg.gridSize;
+    buildPuruPointsUI();
+    _puruSyncCanvasSize();
+    _puruDrawPreview();
+  }
+
   function buildPuruPointsUI() {
-    _puruEnsureCfg();
+    if (!_puruCfg) return;
     const wrap = document.getElementById('puruPointsWrap');
     if (!wrap) return;
     wrap.innerHTML = '';
@@ -2307,13 +2364,13 @@
   }
 
   function syncPuruPoint(i) {
-    _puruEnsureCfg();
+    if (!_puruCfg) return;
     const pt = _puruCfg.points[i];
     const q = s => document.querySelector(`[data-idx="${i}"].puru-pt-${s}`);
     pt.enabled   = q('en')?.checked ?? false;
-    pt.x         = parseFloat(q('x')?.value ?? pt.x);
-    pt.y         = parseFloat(q('y')?.value ?? pt.y);
-    pt.radius    = parseFloat(q('r')?.value ?? pt.radius);
+    pt.x         = parseFloat(q('x')?.value   ?? pt.x);
+    pt.y         = parseFloat(q('y')?.value   ?? pt.y);
+    pt.radius    = parseFloat(q('r')?.value   ?? pt.radius);
     pt.amplitude = parseFloat(q('amp')?.value ?? pt.amplitude);
     pt.speed     = parseFloat(q('spd')?.value ?? pt.speed);
     pt.mode      = q('mode')?.value ?? pt.mode;
@@ -2322,117 +2379,97 @@
   }
 
   function syncPuruConfig() {
-    _puruEnsureCfg();
-    _puruCfg.enabled       = document.getElementById('puruEnabled')?.checked ?? false;
-    _puruCfg.targets.char  = document.getElementById('puruTargetChar')?.checked ?? true;
-    _puruCfg.targets.boss  = document.getElementById('puruTargetBoss')?.checked ?? true;
-    _puruCfg.targets.agru  = document.getElementById('puruTargetAgru')?.checked ?? true;
-    _puruCfg.gridSize      = parseInt(document.getElementById('puruGrid')?.value ?? 12);
-    adminSend({ type: 'purupuruConfig', config: JSON.parse(JSON.stringify(_puruCfg)) });
+    const imgFile = _puruSelectedImg;
+    if (!imgFile || !_puruCfg) return;
+    _puruCfg.enabled  = document.getElementById('puruEnabled')?.checked ?? false;
+    _puruCfg.gridSize = parseInt(document.getElementById('puruGrid')?.value ?? 12);
+    _puruAllConfig[imgFile] = JSON.parse(JSON.stringify(_puruCfg));
+    adminSend({ type: 'purupuruConfig', imgFile, config: _puruAllConfig[imgFile] });
     _puruDrawPreview();
+    // グリッドの有効マーカーを更新
+    const item = document.querySelector(`#puruImgGrid [data-file="${imgFile}"]`);
+    if (item) {
+      const nameEl = item.querySelector('div:last-child');
+      if (nameEl) {
+        const dot = _puruCfg.enabled ? '<span style="color:#4ade80;font-size:9px">●</span> ' : '';
+        const label = imgFile === '__agru__' ? 'アゲルちゃん' : imgFile;
+        nameEl.innerHTML = dot + label;
+      }
+    }
   }
 
-  function _puruLoadUI(cfg) {
-    _puruCfg = JSON.parse(JSON.stringify(cfg));
-    document.getElementById('puruEnabled').checked       = cfg.enabled ?? false;
-    document.getElementById('puruTargetChar').checked    = cfg.targets?.char ?? true;
-    document.getElementById('puruTargetBoss').checked    = cfg.targets?.boss ?? true;
-    document.getElementById('puruTargetAgru').checked    = cfg.targets?.agru ?? true;
-    document.getElementById('puruGrid').value            = cfg.gridSize ?? 12;
-    document.getElementById('puruGridVal').textContent   = cfg.gridSize ?? 12;
-    buildPuruPointsUI();
-    _puruDrawPreview();
+  function _puruSyncCanvasSize() {
+    const canvas = document.getElementById('puruPreviewCanvas');
+    const pImg   = document.getElementById('puruPreviewImg');
+    if (!canvas) return;
+    if (pImg && pImg.style.display !== 'none' && pImg.complete && pImg.naturalWidth) {
+      canvas.width  = pImg.offsetWidth  || 200;
+      canvas.height = pImg.offsetHeight || 300;
+    } else {
+      canvas.width = 200; canvas.height = 300;
+    }
   }
 
   function _puruDrawPreview() {
     const canvas = document.getElementById('puruPreviewCanvas');
-    if (!canvas) return;
+    if (!canvas || !_puruCfg) return;
+    _puruSyncCanvasSize();
     const ctx = canvas.getContext('2d');
     const W = canvas.width, H = canvas.height;
     ctx.clearRect(0, 0, W, H);
-    // background grid
-    ctx.strokeStyle = '#1e293b';
-    ctx.lineWidth = 0.5;
-    for (let x=0;x<W;x+=20) { ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke(); }
-    for (let y=0;y<H;y+=20) { ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke(); }
-    // points
-    _puruEnsureCfg();
     _puruCfg.points.forEach((pt, i) => {
       const color = PURU_COLORS[i];
       const cx = (pt.x/100)*W, cy = (pt.y/100)*H;
       const rr = (pt.radius/100)*Math.min(W,H);
-      // influence circle
-      ctx.beginPath();
-      ctx.arc(cx, cy, rr, 0, Math.PI*2);
-      ctx.strokeStyle = pt.enabled ? color + '88' : '#33415580';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([3,3]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      // center dot
-      ctx.beginPath();
-      ctx.arc(cx, cy, 6, 0, Math.PI*2);
-      ctx.fillStyle = pt.enabled ? color : '#475569';
-      ctx.fill();
-      ctx.strokeStyle = '#0f172a';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      // label
-      ctx.fillStyle = '#e2e8f0';
-      ctx.font = 'bold 9px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      ctx.beginPath(); ctx.arc(cx,cy,rr,0,Math.PI*2);
+      ctx.strokeStyle = pt.enabled ? color+'88' : '#33415580';
+      ctx.lineWidth = 1; ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.beginPath(); ctx.arc(cx,cy,7,0,Math.PI*2);
+      ctx.fillStyle = pt.enabled ? color : '#475569'; ctx.fill();
+      ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.fillStyle = '#e2e8f0'; ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(`P${i+1}`, cx, cy);
     });
   }
 
-  // ドラッグで位置調整
-  (function() {
-    let _drag = null;
-    function _puruCanvasCoord(canvas, e) {
+  // プレビューキャンバスのドラッグ操作
+  document.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.getElementById('puruPreviewCanvas');
+    if (!canvas) return;
+    function _puruCoord(e) {
       const r = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / r.width, scaleY = canvas.height / r.height;
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      return { x: (clientX - r.left) * scaleX, y: (clientY - r.top) * scaleY };
+      return { x: (e.clientX-r.left)/r.width*canvas.width, y: (e.clientY-r.top)/r.height*canvas.height };
     }
-    document.addEventListener('DOMContentLoaded', () => {
-      buildPuruPointsUI();
-      _puruDrawPreview();
-      const canvas = document.getElementById('puruPreviewCanvas');
-      if (!canvas) return;
-      canvas.addEventListener('mousedown', e => {
-        _puruEnsureCfg();
-        const { x, y } = _puruCanvasCoord(canvas, e);
-        const W = canvas.width, H = canvas.height;
-        let best = -1, bestD = 16;
-        _puruCfg.points.forEach((pt, i) => {
-          const dx=(pt.x/100)*W-x, dy=(pt.y/100)*H-y;
-          const d=Math.sqrt(dx*dx+dy*dy);
-          if (d<bestD) { bestD=d; best=i; }
-        });
-        if (best >= 0) _drag = { idx: best };
-        e.preventDefault();
+    canvas.addEventListener('mousedown', e => {
+      if (!_puruCfg) return;
+      const { x, y } = _puruCoord(e);
+      const W = canvas.width, H = canvas.height;
+      let best=-1, bestD=14;
+      _puruCfg.points.forEach((pt,i) => {
+        const d=Math.hypot((pt.x/100)*W-x,(pt.y/100)*H-y);
+        if (d<bestD) { bestD=d; best=i; }
       });
-      canvas.addEventListener('mousemove', e => {
-        if (!_drag) return;
-        const { x, y } = _puruCanvasCoord(canvas, e);
-        const W = canvas.width, H = canvas.height;
-        const pt = _puruCfg.points[_drag.idx];
-        pt.x = Math.max(0, Math.min(100, Math.round(x/W*100)));
-        pt.y = Math.max(0, Math.min(100, Math.round(y/H*100)));
-        // update inputs
-        const xi = document.querySelector(`[data-idx="${_drag.idx}"].puru-pt-x`);
-        const yi = document.querySelector(`[data-idx="${_drag.idx}"].puru-pt-y`);
-        if (xi) xi.value = pt.x;
-        if (yi) yi.value = pt.y;
-        _puruDrawPreview();
-      });
-      const stop = () => { if (_drag) { syncPuruConfig(); _drag = null; } };
-      canvas.addEventListener('mouseup', stop);
-      document.addEventListener('mouseup', stop);
+      if (best>=0) _puruDrag={idx:best};
+      e.preventDefault();
     });
-  })();
+    canvas.addEventListener('mousemove', e => {
+      if (!_puruDrag || !_puruCfg) return;
+      const { x, y } = _puruCoord(e);
+      const pt = _puruCfg.points[_puruDrag.idx];
+      pt.x = Math.max(0,Math.min(100,Math.round(x/canvas.width*100)));
+      pt.y = Math.max(0,Math.min(100,Math.round(y/canvas.height*100)));
+      const xi=document.querySelector(`[data-idx="${_puruDrag.idx}"].puru-pt-x`);
+      const yi=document.querySelector(`[data-idx="${_puruDrag.idx}"].puru-pt-y`);
+      if (xi) xi.value=pt.x; if (yi) yi.value=pt.y;
+      _puruDrawPreview();
+    });
+    const stopDrag = () => { if (_puruDrag) { syncPuruConfig(); _puruDrag=null; } };
+    canvas.addEventListener('mouseup', stopDrag);
+    document.addEventListener('mouseup', stopDrag);
+    // 画像ロード後にキャンバスサイズ再計算
+    document.getElementById('puruPreviewImg')?.addEventListener('load', () => { _puruSyncCanvasSize(); _puruDrawPreview(); });
+  });
 
   function syncTaimanHandicap(el) {
     document.getElementById('taimanHandicapVal').textContent = el.value + '%';
