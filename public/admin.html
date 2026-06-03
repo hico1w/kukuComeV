@@ -2248,14 +2248,14 @@
       enabled: false,
       gridSize: 12,
       points: [
-        { enabled:false, x:30, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:0,   shape:'circle', width:60, height:30, rotation:0 },
-        { enabled:false, x:70, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:180, shape:'circle', width:60, height:30, rotation:0 },
-        { enabled:false, x:50, y:20, radius:25, amplitude:5, speed:0.8, mode:'pendulum_x', phase:0,   shape:'circle', width:60, height:30, rotation:0 },
-        { enabled:false, x:50, y:80, radius:25, amplitude:5, speed:0.8, mode:'pendulum_y', phase:0,   shape:'circle', width:60, height:30, rotation:0 },
-        { enabled:false, x:20, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:90,  shape:'circle', width:60, height:30, rotation:0 },
-        { enabled:false, x:80, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:270, shape:'circle', width:60, height:30, rotation:0 },
-        { enabled:false, x:50, y:10, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:0,   shape:'circle', width:60, height:30, rotation:0 },
-        { enabled:false, x:50, y:90, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:180, shape:'circle', width:60, height:30, rotation:0 },
+        { enabled:false, x:30, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+        { enabled:false, x:70, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 },
+        { enabled:false, x:50, y:20, radius:25, amplitude:5, speed:0.8, mode:'pendulum_x', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+        { enabled:false, x:50, y:80, radius:25, amplitude:5, speed:0.8, mode:'pendulum_y', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+        { enabled:false, x:20, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:90,  shape:'circle', width:60, height:30, rotation:0, direction:0 },
+        { enabled:false, x:80, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:270, shape:'circle', width:60, height:30, rotation:0, direction:0 },
+        { enabled:false, x:50, y:10, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+        { enabled:false, x:50, y:90, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 },
       ]
     };
   }
@@ -2383,6 +2383,8 @@
           </select>
           <span style="${L}">位相°</span>
           <input type="number" class="puru-pt-phase" data-idx="${i}" value="${pt.phase}" min="0" max="360" step="15" style="${I};width:38px" oninput="syncPuruPoint(${i})">
+          <span style="${L}">方向°</span>
+          <input type="number" class="puru-pt-dir" data-idx="${i}" value="${pt.direction??0}" min="-180" max="180" step="15" style="${I};width:42px" oninput="syncPuruPoint(${i})">
         </div>`;
       wrap.appendChild(row);
     });
@@ -2404,6 +2406,7 @@
     pt.speed     = parseFloat(q('spd')?.value  ?? pt.speed);
     pt.mode      = q('mode')?.value  ?? pt.mode;
     pt.phase     = parseFloat(q('phase')?.value ?? pt.phase);
+    pt.direction = parseFloat(q('dir')?.value   ?? pt.direction ?? 0);
     syncPuruConfig();
   }
 
@@ -2525,7 +2528,10 @@
             const w=_pvWeight(pt,bx-px,by-py,W,H);
             if(w<=0) continue;
             const d=_pvDisplace(pt,_puruPvTime);
-            tdx+=d.dx*w; tdy+=d.dy*w;
+            const dirRad=(pt.direction??0)*Math.PI/180;
+            const rdx=d.dx*Math.cos(dirRad)-d.dy*Math.sin(dirRad);
+            const rdy=d.dx*Math.sin(dirRad)+d.dy*Math.cos(dirRad);
+            tdx+=rdx*w; tdy+=rdy*w;
           }
           const idx=(j*cols+i)*2;
           verts[idx]=bx+tdx; verts[idx+1]=by+tdy;

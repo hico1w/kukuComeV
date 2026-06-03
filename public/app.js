@@ -888,14 +888,14 @@ function _puruDefaultCfg() {
     enabled: false,
     gridSize: 20,
     points: [
-      { enabled:false, x:30, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:0,   shape:'circle', width:60, height:30, rotation:0 },
-      { enabled:false, x:70, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:180, shape:'circle', width:60, height:30, rotation:0 },
-      { enabled:false, x:50, y:20, radius:25, amplitude:5, speed:0.8, mode:'pendulum_x', phase:0,   shape:'circle', width:60, height:30, rotation:0 },
-      { enabled:false, x:50, y:80, radius:25, amplitude:5, speed:0.8, mode:'pendulum_y', phase:0,   shape:'circle', width:60, height:30, rotation:0 },
-      { enabled:false, x:20, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:90,  shape:'circle', width:60, height:30, rotation:0 },
-      { enabled:false, x:80, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:270, shape:'circle', width:60, height:30, rotation:0 },
-      { enabled:false, x:50, y:10, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:0,   shape:'circle', width:60, height:30, rotation:0 },
-      { enabled:false, x:50, y:90, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:180, shape:'circle', width:60, height:30, rotation:0 },
+      { enabled:false, x:30, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:70, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:50, y:20, radius:25, amplitude:5, speed:0.8, mode:'pendulum_x', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:50, y:80, radius:25, amplitude:5, speed:0.8, mode:'pendulum_y', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:20, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:90,  shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:80, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:270, shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:50, y:10, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:50, y:90, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 },
     ]
   };
 }
@@ -1010,6 +1010,8 @@ function _puruRenderCanvas(canvas) {
     srcY = pv(pos[1]||pos[0], sh, cssH) / s;
     srcW = cssW / s; srcH = cssH / s;
   }
+  // amplitudeはadminプレビュー基準高さ(420px)での値。ステージ表示サイズに比例させる。
+  const ampScale = cssH / 420;
   const gs = cfg.gridSize || 12;
   const cols = gs + 1, rows = gs + 1;
   const verts = new Float32Array(cols * rows * 2);
@@ -1024,7 +1026,10 @@ function _puruRenderCanvas(canvas) {
         const w=_puruWeight(pt, bx-px, by-py, W, H);
         if (w <= 0) continue;
         const d=_puruDisplace(pt,_puruTime);
-        tdx+=d.dx*w*dpr*SS; tdy+=d.dy*w*dpr*SS;
+        const dirRad=(pt.direction??0)*Math.PI/180;
+        const rdx=d.dx*Math.cos(dirRad)-d.dy*Math.sin(dirRad);
+        const rdy=d.dx*Math.sin(dirRad)+d.dy*Math.cos(dirRad);
+        tdx+=rdx*w*dpr*SS*ampScale; tdy+=rdy*w*dpr*SS*ampScale;
       }
       const idx=(j*cols+i)*2;
       verts[idx]=bx+tdx; verts[idx+1]=by+tdy;
