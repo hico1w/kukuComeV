@@ -2948,6 +2948,9 @@ a.btn-debug    { text-decoration: none; display: inline-block; }
 #stage.equip-hidden .char-equip-area { display: none !important; }
 .char-afk .char-equip-area           { display: none !important; }
 
+/* ── ステータス非表示 ── */
+body.stats-hidden .char-stats        { display: none !important; }
+
 /* ── コンパクトモード ── */
 body.compact-mode .char-stats        { display: none !important; }
 body.compact-mode .char-equip-area   { display: none !important; }

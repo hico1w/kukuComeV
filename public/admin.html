@@ -199,6 +199,7 @@
     <button onclick="cmd('hideEquipBtn')">⚔️ 装備表示</button>
     <button onclick="cmd('toggleBombBtn')">💣 爆弾</button>
     <button onclick="cmd('toggleTrashBtn')">🗑 ゴミ箱</button>
+    <button id="toggleStatsBtn" onclick="cmd('toggleStatsBtn')">📊 ステータス</button>
     <a href="/help.html" target="_blank" class="btn">❓ コマンド</a>
   </div>
 </div>
@@ -996,6 +997,21 @@
            oninput="document.getElementById('agruYtVolumeVal').textContent=this.value+'%';sendAgruText('agruYtVolume',this.value)">
     <span id="agruYtVolumeVal" style="font-size:11px;color:#e2e8f0;min-width:36px;text-align:right">100%</span>
   </div>
+  <!-- 画像コマンドON/OFF -->
+  <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+    <label style="font-size:11px;color:#94a3b8;min-width:72px">画像コマンド</label>
+    <button id="agruImgCmdEnabledBtn"
+            style="padding:2px 12px;font-size:11px;border-radius:4px;border:1px solid #334155;cursor:pointer;background:#166534;color:#86efac"
+            onclick="
+              const on = this.dataset.on==='1' ? '0' : '1';
+              this.dataset.on = on;
+              this.textContent = on==='1' ? '許可' : '無視';
+              this.style.background = on==='1' ? '#166534' : '#7f1d1d';
+              this.style.color      = on==='1' ? '#86efac' : '#fca5a5';
+              this.style.borderColor= on==='1' ? '#16a34a' : '#991b1b';
+              sendAgruText('agruImgCmdEnabled', on);"
+            data-on="1">許可</button>
+  </div>
   <!-- YouTube自動再生ON/OFF -->
   <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
     <label style="font-size:11px;color:#94a3b8;min-width:72px">YT自動再生</label>
@@ -1017,11 +1033,11 @@
     <span class="size-label">幅</span>
     <input id="agruYtWidthInput" type="number" min="200" max="1920" step="10" value="435"
            style="width:60px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
-           onchange="sendAgruText('agruYtWidth',this.value)">
+           oninput="sendAgruText('agruYtWidth',this.value)">
     <span class="size-label">高さ</span>
     <input id="agruYtHeightInput" type="number" min="100" max="1080" step="10" value="245"
            style="width:60px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
-           onchange="
+           oninput="
              const w = Math.round(parseInt(this.value) * 16 / 9);
              document.getElementById('agruYtWidthInput').value = w;
              sendAgruText('agruYtHeight', this.value);
@@ -2080,6 +2096,7 @@
     if (s.agruYtHeight        !== undefined) { const el = document.getElementById('agruYtHeightInput'); if (el) el.value = s.agruYtHeight; }
     if (s.agruYtOpacity       !== undefined) { const el = document.getElementById('agruYtOpacityInput'); if (el) { el.value = s.agruYtOpacity; const v = document.getElementById('agruYtOpacityVal'); if (v) v.textContent = s.agruYtOpacity + '%'; } }
     if (s.agruYtEnabled !== undefined) { const btn = document.getElementById('agruYtEnabledBtn'); if (btn) { const on = s.agruYtEnabled ? '1' : '0'; btn.dataset.on = on; btn.textContent = on==='1' ? '受付中' : '無視'; btn.style.background = on==='1' ? '#166534' : '#7f1d1d'; btn.style.color = on==='1' ? '#86efac' : '#fca5a5'; btn.style.borderColor = on==='1' ? '#16a34a' : '#991b1b'; } }
+    if (s.agruImgCmdEnabled !== undefined) { const btn = document.getElementById('agruImgCmdEnabledBtn'); if (btn) { const on = s.agruImgCmdEnabled ? '1' : '0'; btn.dataset.on = on; btn.textContent = on==='1' ? '許可' : '無視'; btn.style.background = on==='1' ? '#166534' : '#7f1d1d'; btn.style.color = on==='1' ? '#86efac' : '#fca5a5'; btn.style.borderColor = on==='1' ? '#16a34a' : '#991b1b'; } }
     if (s.agruModalZ          !== undefined) { const el = document.getElementById('agruModalZInput'); if (el) el.value = s.agruModalZ; }
     if (s.agruModalWidth      !== undefined) { const el = document.getElementById('agruModalWidthInput'); if (el) el.value = s.agruModalWidth; }
     if (s.agruModalHeight     !== undefined) { const el = document.getElementById('agruModalHeightInput'); if (el) el.value = s.agruModalHeight; }

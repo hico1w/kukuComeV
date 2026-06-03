@@ -2,6 +2,44 @@
 
 ---
 
+## v2.452.0 — 2026-06-03
+
+### アゲルちゃん：食べ物/回復コマンドをシステムメッセージ化・履歴削減・YouTube改善・管理パネルボタン追加
+
+#### 食べ物/回復コマンド → システムメッセージ
+- `public/app.js`: 肉投与・寿司投与・たばこ投与・起きろ・エナドリ をチャットバブル/AI送信から除外
+  - `_agruSend` の手前に `else if` ブロックを追加
+  - `_agruUpdateParams` でパラメータ更新 → `_agruAddSystemMsg` でシステムメッセージ表示
+  - カフェオレ投与・水道水投与と同様の表示形式に統一
+
+#### 会話履歴：50往復 → 25往復
+- `public/app.js`: `_agruConvHistory.length > 100` を `> 50` に変更（1往復=2要素）
+
+#### YouTube：リアルタイム反映・時間指定再生
+- `public/app.js`: `_agruOpenYtModal` に `startTime` パラメータを追加、`&start=N` をiframe URLに付与
+- `public/app.js`: `_agruPlayYouTube` に `startTime` パラメータを追加、呼び出し元から伝播
+- `public/app.js`: YouTubeコメントURL解析で `[?&]t=(\d+)` を抽出し startTime として渡す
+- `public/app.js`: `agruYtWidth` 変更時にライブiframeのwidthをリアルタイム更新
+- `public/app.js`: `agruYtHeight` 変更時にライブiframe/モーダルのwidth/heightをリアルタイム更新
+- `public/app.js`: `agruYtVolume` 変更時に `postMessage` で `setVolume` コマンドをiframeに送信
+- `public/admin.html`: YouTubeモーダル幅・高さ入力を `onchange` → `oninput` に変更
+
+#### ステータス非表示トグルボタン（管理パネル）
+- `public/app.js`: `charStatsHidden` 変数を追加（localStorage永続化）
+- `public/app.js`: `toggleStatsBtn` クリックで `body.stats-hidden` クラスをトグル
+- `public/style.css`: `body.stats-hidden .char-stats { display: none !important; }` を追加
+- `public/admin.html`: 表示セクションに「📊 ステータス」ボタンを追加
+- `public/app.js`: 設定保存リストに `charStatsHidden` を追加
+
+#### 画像コマンド許可/無視トグルボタン（管理パネル）
+- `public/app.js`: `agruImgCmdEnabled` 変数を追加（localStorage永続化、デフォルト許可）
+- `public/app.js`: `_agruSend` 内の `_needsImage` 検出を `agruImgCmdEnabled` フラグでガード
+- `public/app.js`: `agruImgCmdEnabled` を設定ハンドラ・状態送信に追加
+- `public/admin.html`: アゲルちゃん設定に「画像コマンド」許可/無視ボタンを追加（`agruYtEnabledBtn` と同スタイル）
+- `public/admin.html`: 設定復元時に `agruImgCmdEnabledBtn` の表示状態を反映
+
+---
+
 ## v2.451.0 — 2026-06-03
 
 ### ぷるぷる：反転ポイント座標ミラーを削除（v2.450の誤修正を訂正）

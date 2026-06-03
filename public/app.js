@@ -375,7 +375,7 @@ const SETTINGS_KEYS = [
   'agruSdWidth','agruSdHeight','agruSdSteps','agruSdCfgScale','agruSdPositiveSuffix','agruIdleDelay','agruIdleDelayImage',
   'agruChatFontSize','agruChatBold','agruFontLeft','agruFontRight','agruCharTags','agruYtVolume','agruBgmVolume','agruYtWidth','agruYtHeight','agruYtOpacity','agruYtEnabled','agruModalZ',
   'agruModalWidth','agruModalHeight','agruModalBgOpacity','agruChatImgSize','agruCharImgHeight',
-  'bombHidden','trashHidden',
+  'bombHidden','trashHidden','charStatsHidden','agruImgCmdEnabled',
   'afkOpacity','afkGrayscale','afkBrightness',
 ];
 let _settingsSaveTimer = null;
@@ -1879,8 +1879,9 @@ let contentModeGatherMarginRight  = parseInt(localStorage.getItem('contentModeGa
 let contentModeCharSizePct  = parseInt(localStorage.getItem('contentModeCharSizePct')  || '70');
 let contentModeBossSizePct  = parseInt(localStorage.getItem('contentModeBossSizePct')  || '10');
 let brAutoEnabled = true;        // 自動バトルロイヤル有効フラグ
-let bombHidden   = localStorage.getItem('bombHidden')  === 'true';
-let trashHidden  = localStorage.getItem('trashHidden') === 'true';
+let bombHidden      = localStorage.getItem('bombHidden')      === 'true';
+let trashHidden     = localStorage.getItem('trashHidden')     === 'true';
+let charStatsHidden = localStorage.getItem('charStatsHidden') === 'true';
 let slotSoundEnabled = true;    // スロット効果音ON/OFF
 // TTS設定
 let seVolume      = 1.0;  // 効果音マスター音量
@@ -3898,7 +3899,9 @@ function handleComment(comment) {
     const ytMatch = searchTarget.match(/(?:youtu\.be\/|[?&]v=|shorts\/|live\/)([A-Za-z0-9_-]{11})/);
     if (ytMatch) {
       const videoId = ytMatch[1];
-      if (agruYtEnabled) _agruPlayYouTube(videoId);
+      const ytTimeMatch = searchTarget.match(/[?&]t=(\d+)/);
+      const startTime = ytTimeMatch ? parseInt(ytTimeMatch[1]) : 0;
+      if (agruYtEnabled) _agruPlayYouTube(videoId, startTime);
       if (seenYoutubeUrls.has(videoId)) {
         postAIReply('もうみた');
       } else {
@@ -3955,6 +3958,15 @@ function handleComment(comment) {
       _agruUpdateAffinityDisplay(-5);
       _agruAddSystemMsg(`${user.name || '名無し'}が水道水を投与した…好感度さがった…`);
     }
+  } else if (agruActive && /肉投与|寿司投与|たばこ投与|起きろ|エナドリ/.test(message)) {
+    _agruUpdateParams(message);
+    let _sysText = `${user.name || '名無し'}が`;
+    if (/肉投与/.test(message))      _sysText += '肉を投与した！お腹が回復した！';
+    else if (/寿司投与/.test(message))   _sysText += '寿司を投与した！お腹が少し回復した！';
+    else if (/たばこ投与/.test(message))  _sysText += 'たばこを投与した！お腹と眠気が少し回復した！';
+    else if (/エナドリ/.test(message))   _sysText += 'エナドリを投与した！眠気が大幅に回復した！';
+    else if (/起きろ/.test(message))    _sysText += '起こした！眠気が少し減った！';
+    _agruAddSystemMsg(_sysText);
   } else if (agruActive && agruIdle && message.trim() && !/^[ァ-ヶー]{5}$/.test(message.trim()) && !_isAgruSkipCmd(message)) {
     _agruSend(message, user.name);
   }
@@ -5539,6 +5551,7 @@ let agruYtWidth          = parseInt(localStorage.getItem('agruYtWidth')   ?? '43
 let agruYtHeight         = parseInt(localStorage.getItem('agruYtHeight')  ?? '245');
 let agruYtOpacity        = parseInt(localStorage.getItem('agruYtOpacity') ?? '100');
 let agruYtEnabled        = (localStorage.getItem('agruYtEnabled') ?? '1') === '1';
+let agruImgCmdEnabled    = (localStorage.getItem('agruImgCmdEnabled') ?? '1') === '1';
 let agruModalZ           = parseInt(localStorage.getItem('agruModalZ')    ?? '300');
 let agruModalWidth       = parseInt(localStorage.getItem('agruModalWidth')     ?? '870');
 let agruModalHeight      = parseInt(localStorage.getItem('agruModalHeight')    ?? '460');
@@ -6033,7 +6046,7 @@ async function _agruSend(message, commenter) {
   _agruLog('送信: ' + message + ' (履歴' + (_agruConvHistory.length / 2) + '往復) 好感度' + agruAffinity);
 
   // 画像生成キーワード検出（会話モード中は自撮り/写真も対象）
-  const _needsImage = /出ろ|出して|生成|gen|自撮り|写真/i.test(message);
+  const _needsImage = agruImgCmdEnabled && /出ろ|出して|生成|gen|自撮り|写真/i.test(message);
   const _isSelfie   = /自撮り/i.test(message);
 
   // 音楽キーワード検出 → YouTubeランダム再生 / 停止
@@ -6097,7 +6110,7 @@ async function _agruSend(message, commenter) {
     // 会話履歴に追加
     _agruConvHistory.push({ role: 'user', content: message });
     _agruConvHistory.push({ role: 'assistant', content: raw });
-    if (_agruConvHistory.length > 100) _agruConvHistory.splice(0, 2);
+    if (_agruConvHistory.length > 50) _agruConvHistory.splice(0, 2);
 
     _agruSetImage(emotion);
     if (agruLibido > 80) _agruShowStateImage('horny');
@@ -6295,7 +6308,7 @@ function closeAgruModal() {
   fetch('/api/ai-unload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: aiModel }) }).catch(() => {});
 }
 
-function _agruOpenYtModal(videoId) {
+function _agruOpenYtModal(videoId, startTime = 0) {
   const modal  = document.getElementById('agruYtModal');
   const iframe = document.getElementById('agruYtIframe');
   if (!modal || !iframe) return;
@@ -6304,7 +6317,8 @@ function _agruOpenYtModal(videoId) {
   modal.style.opacity = agruYtOpacity / 100;
   iframe.style.width  = agruYtWidth + 'px';
   iframe.style.height = agruYtHeight + 'px';
-  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&enablejsapi=1`;
+  const _startParam = startTime ? `&start=${startTime}` : '';
+  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&enablejsapi=1${_startParam}`;
   const sx = localStorage.getItem('agruYtModalX'), sy = localStorage.getItem('agruYtModalY');
   if (sx && sy) { modal.style.left = sx; modal.style.top = sy; modal.style.transform = 'none'; }
   else { modal.style.left = ''; modal.style.top = ''; modal.style.transform = ''; }
@@ -6329,11 +6343,11 @@ function _agruOpenYtModal(videoId) {
   }, { once: true });
 }
 
-function _agruPlayYouTube(videoId) {
-  if (videoId) { _agruOpenYtModal(videoId); return; }
+function _agruPlayYouTube(videoId, startTime = 0) {
+  if (videoId) { _agruOpenYtModal(videoId, startTime); return; }
   fetch('/api/yt-random-video')
     .then(r => r.json())
-    .then(d => { if (d.videoId) _agruOpenYtModal(d.videoId); })
+    .then(d => { if (d.videoId) _agruOpenYtModal(d.videoId, 0); })
     .catch(() => {});
 }
 
@@ -8090,9 +8104,18 @@ document.getElementById('toggleTrashBtn').addEventListener('click', () => {
   saveSettingsToServer();
 });
 
+document.getElementById('toggleStatsBtn').addEventListener('click', () => {
+  charStatsHidden = !charStatsHidden;
+  document.body.classList.toggle('stats-hidden', charStatsHidden);
+  document.getElementById('toggleStatsBtn').classList.toggle('active', charStatsHidden);
+  localStorage.setItem('charStatsHidden', charStatsHidden);
+  saveSettingsToServer();
+});
+
 // 保存された表示状態を復元
-if (bombHidden)  { document.getElementById('bombBtn').style.display  = 'none'; document.getElementById('toggleBombBtn').classList.add('active'); }
-if (trashHidden) { document.getElementById('trashCan').style.display = 'none'; document.getElementById('toggleTrashBtn').classList.add('active'); }
+if (bombHidden)       { document.getElementById('bombBtn').style.display  = 'none'; document.getElementById('toggleBombBtn').classList.add('active'); }
+if (trashHidden)      { document.getElementById('trashCan').style.display = 'none'; document.getElementById('toggleTrashBtn').classList.add('active'); }
+if (charStatsHidden)  { document.body.classList.add('stats-hidden'); document.getElementById('toggleStatsBtn').classList.add('active'); }
 
 document.getElementById('slotSoundBtn').addEventListener('click', () => {
   slotSoundEnabled = !slotSoundEnabled;
@@ -9069,6 +9092,7 @@ function handleAdminMessage(d, replyFn) {
     state.agruYtHeight           = agruYtHeight;
     state.agruYtOpacity          = agruYtOpacity;
     state.agruYtEnabled          = agruYtEnabled ? 1 : 0;
+    state.agruImgCmdEnabled      = agruImgCmdEnabled ? 1 : 0;
     state.agruModalZ             = agruModalZ;
     state.agruModalWidth         = agruModalWidth;
     state.agruModalHeight        = agruModalHeight;
@@ -9186,12 +9210,25 @@ function handleAdminMessage(d, replyFn) {
     if (d.key === 'agruFontLeft')  { agruFontLeft  = d.value; document.documentElement.style.setProperty('--agru-font-left',  d.value || 'inherit'); }
     if (d.key === 'agruFontRight') { agruFontRight = d.value; document.documentElement.style.setProperty('--agru-font-right', d.value || 'inherit'); }
     if (d.key === 'agruCharTags')           agruCharTags           = d.value;
-    if (d.key === 'agruYtVolume')           agruYtVolume           = parseInt(d.value) || 100;
+    if (d.key === 'agruYtVolume') {
+      agruYtVolume = parseInt(d.value) || 100;
+      const _ytIf = document.getElementById('agruYtIframe');
+      if (_ytIf) try { _ytIf.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [agruYtVolume] }), '*'); } catch {}
+    }
     if (d.key === 'agruBgmVolume')          { agruBgmVolume = parseInt(d.value) ?? 50; if (!_agruBgm.paused) _agruBgm.volume = agruBgmVolume / 100; }
-    if (d.key === 'agruYtWidth')            agruYtWidth            = parseInt(d.value) || 435;
-    if (d.key === 'agruYtHeight')           { agruYtHeight = parseInt(d.value) || 245; agruYtWidth = Math.round(agruYtHeight * 16 / 9); }
+    if (d.key === 'agruYtWidth') {
+      agruYtWidth = parseInt(d.value) || 435;
+      const _ytM = document.getElementById('agruYtModal'), _ytIf = document.getElementById('agruYtIframe');
+      if (_ytM && !_ytM.classList.contains('hidden')) { _ytM.style.width = agruYtWidth + 'px'; if (_ytIf) _ytIf.style.width = agruYtWidth + 'px'; }
+    }
+    if (d.key === 'agruYtHeight') {
+      agruYtHeight = parseInt(d.value) || 245; agruYtWidth = Math.round(agruYtHeight * 16 / 9);
+      const _ytM = document.getElementById('agruYtModal'), _ytIf = document.getElementById('agruYtIframe');
+      if (_ytM && !_ytM.classList.contains('hidden')) { _ytM.style.width = agruYtWidth + 'px'; if (_ytIf) { _ytIf.style.width = agruYtWidth + 'px'; _ytIf.style.height = agruYtHeight + 'px'; } }
+    }
     if (d.key === 'agruYtOpacity')          agruYtOpacity          = parseInt(d.value) ?? 100;
     if (d.key === 'agruYtEnabled')          agruYtEnabled          = d.value === '1';
+    if (d.key === 'agruImgCmdEnabled')      agruImgCmdEnabled      = d.value === '1';
     if (d.key === 'agruModalZ')             { agruModalZ = parseInt(d.value) || 300; const _mo = document.getElementById('agruModal'); if (_mo) _mo.style.zIndex = agruModalZ; }
     if (d.key === 'agruModalWidth')         { agruModalWidth = parseInt(d.value) || 870; const _mc = document.querySelector('#agruModal .agru-modal'); if (_mc) _mc.style.width = agruModalWidth + 'px'; }
     if (d.key === 'agruModalHeight')        { agruModalHeight = parseInt(d.value) || 460; const _mc = document.querySelector('#agruModal .agru-modal'); if (_mc) _mc.style.height = agruModalHeight + 'px'; }
