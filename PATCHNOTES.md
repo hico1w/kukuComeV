@@ -2,6 +2,16 @@
 
 ---
 
+## v2.453.0 — 2026-06-03
+
+### fix: 管理パネルからのステータス非表示ボタンが機能しない問題を修正
+
+- `public/index.html`: `toggleStatsBtn` ボタン要素を追加
+  - `cmd('toggleStatsBtn')` は `document.getElementById(id)?.click()` でオーバーレイ側の要素をクリックするため、index.html に要素がないと無効だった
+  - `toggleBombBtn`/`toggleTrashBtn` と同様のパターンで追加
+
+---
+
 ## v2.452.0 — 2026-06-03
 
 ### アゲルちゃん：食べ物/回復コマンドをシステムメッセージ化・履歴削減・YouTube改善・管理パネルボタン追加
