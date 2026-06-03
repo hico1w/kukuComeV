@@ -1117,34 +1117,6 @@ function _puruRenderCanvas(canvas) {
       _puruTri(ctx,img, verts[i10],verts[i10+1],uvs[i10],uvs[i10+1], verts[i11],verts[i11+1],uvs[i11],uvs[i11+1], verts[i01],verts[i01+1],uvs[i01],uvs[i01+1]);
     }
   }
-  // まばたきオーバーレイ
-  const blink = cfg.blink;
-  if (blink?.enabled) {
-    const now = performance.now();
-    if (!canvas._blinkNext) canvas._blinkNext = now + (blink.interval || 4) * 1000;
-    if (!canvas._blinkStart && now >= canvas._blinkNext) {
-      canvas._blinkStart = now;
-      canvas._blinkNext  = now + (blink.interval || 4) * 1000 * (0.7 + Math.random() * 0.6);
-    }
-    if (canvas._blinkStart) {
-      const elapsed = now - canvas._blinkStart;
-      const dur = blink.duration ?? 120;
-      if (elapsed > dur) {
-        canvas._blinkStart = null;
-      } else {
-        const close = Math.sin((elapsed / dur) * Math.PI);
-        const hh = (blink.h ?? 5) / 100 * H * close;
-        if (hh > 0) {
-          ctx.fillStyle = blink.color ?? '#f5c5b8';
-          for (const ex of [blink.x1 ?? 33, blink.x2 ?? 67]) {
-            ctx.beginPath();
-            ctx.ellipse((ex/100)*W, (blink.y??28)/100*H, (blink.w??16)/100*W/2, hh, 0, 0, Math.PI*2);
-            ctx.fill();
-          }
-        }
-      }
-    }
-  }
 }
 
 function _puruStartLoop() {

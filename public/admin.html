@@ -762,23 +762,6 @@
         <span id="puruGridVal" class="size-val">12</span>
         <span style="font-size:10px;color:#64748b;margin-left:4px">(大=高品質・重)</span>
       </div>
-      <!-- まばたき設定 -->
-      <div style="border-top:1px solid #1e293b;margin:8px 0 6px;padding-top:6px">
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;margin-bottom:5px">
-          <input type="checkbox" id="puruBlinkEnabled" onchange="syncBlinkConfig()">
-          <span>まばたき</span>
-        </label>
-        <div style="display:grid;grid-template-columns:auto 55px auto 55px;gap:3px 8px;align-items:center;font-size:10px;color:#64748b">
-          <span>左目X%</span><input type="number" id="puruBlinkX1" value="33" min="0" max="100" step="1" style="background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:1px 4px;font-size:10px;width:100%" oninput="syncBlinkConfig()">
-          <span>右目X%</span><input type="number" id="puruBlinkX2" value="67" min="0" max="100" step="1" style="background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:1px 4px;font-size:10px;width:100%" oninput="syncBlinkConfig()">
-          <span>目Y%</span>  <input type="number" id="puruBlinkY"  value="28" min="0" max="100" step="1" style="background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:1px 4px;font-size:10px;width:100%" oninput="syncBlinkConfig()">
-          <span>幅%</span>   <input type="number" id="puruBlinkW"  value="16" min="1" max="60"  step="1" style="background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:1px 4px;font-size:10px;width:100%" oninput="syncBlinkConfig()">
-          <span>高さ%</span> <input type="number" id="puruBlinkH"  value="5"  min="1" max="20"  step="0.5" style="background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:1px 4px;font-size:10px;width:100%" oninput="syncBlinkConfig()">
-          <span>色</span>    <input type="color"  id="puruBlinkColor" value="#f5c5b8" style="width:100%;height:22px;border:none;background:none;cursor:pointer;padding:0" oninput="syncBlinkConfig()">
-          <span>間隔s</span> <input type="number" id="puruBlinkInterval" value="4"   min="0.5" max="20"  step="0.5" style="background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:1px 4px;font-size:10px;width:100%" oninput="syncBlinkConfig()">
-          <span>速さms</span><input type="number" id="puruBlinkDuration" value="120" min="50"  max="500" step="10"  style="background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:1px 4px;font-size:10px;width:100%" oninput="syncBlinkConfig()">
-        </div>
-      </div>
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
         <span style="font-size:11px;color:#94a3b8">揺れポイント（12か所）</span>
         <button onclick="puruCopyPoints()" style="padding:2px 8px;font-size:11px">📋 コピー</button>
@@ -2313,37 +2296,6 @@
     syncPuruConfig();
   }
 
-  function syncBlinkConfig() {
-    if (!_puruCfg) return;
-    const g = id => document.getElementById(id);
-    _puruCfg.blink = {
-      enabled:  g('puruBlinkEnabled')?.checked  ?? false,
-      x1:       parseFloat(g('puruBlinkX1')?.value       ?? 33),
-      x2:       parseFloat(g('puruBlinkX2')?.value       ?? 67),
-      y:        parseFloat(g('puruBlinkY')?.value        ?? 28),
-      w:        parseFloat(g('puruBlinkW')?.value        ?? 16),
-      h:        parseFloat(g('puruBlinkH')?.value        ?? 5),
-      color:    g('puruBlinkColor')?.value               ?? '#f5c5b8',
-      interval: parseFloat(g('puruBlinkInterval')?.value ?? 4),
-      duration: parseInt(g('puruBlinkDuration')?.value   ?? 120),
-    };
-    syncPuruConfig();
-  }
-
-  function _puruPopulateBlink() {
-    const bk = _puruCfg?.blink || {};
-    const g = id => document.getElementById(id);
-    if (g('puruBlinkEnabled')) g('puruBlinkEnabled').checked = bk.enabled ?? false;
-    if (g('puruBlinkX1'))       g('puruBlinkX1').value       = bk.x1       ?? 33;
-    if (g('puruBlinkX2'))       g('puruBlinkX2').value       = bk.x2       ?? 67;
-    if (g('puruBlinkY'))        g('puruBlinkY').value        = bk.y        ?? 28;
-    if (g('puruBlinkW'))        g('puruBlinkW').value        = bk.w        ?? 16;
-    if (g('puruBlinkH'))        g('puruBlinkH').value        = bk.h        ?? 5;
-    if (g('puruBlinkColor'))    g('puruBlinkColor').value    = bk.color    ?? '#f5c5b8';
-    if (g('puruBlinkInterval')) g('puruBlinkInterval').value = bk.interval ?? 4;
-    if (g('puruBlinkDuration')) g('puruBlinkDuration').value = bk.duration ?? 120;
-  }
-
   function togglePuruHideEnabled() {
     _puruHideEnabled = !_puruHideEnabled;
     const btn = document.getElementById('puruHideEnabledBtn');
@@ -2452,7 +2404,6 @@
     document.getElementById('puruGrid').value           = _puruCfg.gridSize;
     document.getElementById('puruGridVal').textContent  = _puruCfg.gridSize;
     buildPuruPointsUI();
-    _puruPopulateBlink();
     _puruStartPreviewLoop();
   }
 
@@ -2684,24 +2635,6 @@
           const i01=((j+1)*cols+i)*2,i11=((j+1)*cols+i+1)*2;
           _pvTri(ctx,img,verts[i00],verts[i00+1],i/gs,j/gs,verts[i10],verts[i10+1],(i+1)/gs,j/gs,verts[i01],verts[i01+1],i/gs,(j+1)/gs);
           _pvTri(ctx,img,verts[i10],verts[i10+1],(i+1)/gs,j/gs,verts[i11],verts[i11+1],(i+1)/gs,(j+1)/gs,verts[i01],verts[i01+1],i/gs,(j+1)/gs);
-        }
-      }
-    }
-    // まばたきプレビュー
-    const bk = _puruCfg?.blink;
-    if (bk?.enabled) {
-      const dur = (bk.duration ?? 120) / 1000;
-      const phase = _puruPvTime % (bk.interval ?? 4);
-      if (phase < dur) {
-        const close = Math.sin((phase / dur) * Math.PI);
-        const hh = (bk.h ?? 5) / 100 * H * close;
-        if (hh > 0) {
-          ctx.fillStyle = bk.color ?? '#f5c5b8';
-          for (const ex of [bk.x1 ?? 33, bk.x2 ?? 67]) {
-            ctx.beginPath();
-            ctx.ellipse((ex/100)*W, (bk.y??28)/100*H, (bk.w??16)/100*W/2, hh, 0, 0, Math.PI*2);
-            ctx.fill();
-          }
         }
       }
     }
