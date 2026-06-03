@@ -5560,6 +5560,7 @@ let agruYtHeight         = parseInt(localStorage.getItem('agruYtHeight')  ?? '24
 let agruYtOpacity        = parseInt(localStorage.getItem('agruYtOpacity') ?? '100');
 let agruYtEnabled        = (localStorage.getItem('agruYtEnabled') ?? '1') === '1';
 let agruImgCmdEnabled    = (localStorage.getItem('agruImgCmdEnabled') ?? '1') === '1';
+let agruShakeAmp         = parseFloat(localStorage.getItem('agruShakeAmp') ?? '2');
 let agruModalZ           = parseInt(localStorage.getItem('agruModalZ')    ?? '300');
 let agruModalWidth       = parseInt(localStorage.getItem('agruModalWidth')     ?? '870');
 let agruModalHeight      = parseInt(localStorage.getItem('agruModalHeight')    ?? '460');
@@ -6307,7 +6308,8 @@ function _agruStartShake() {
     const t = _agruShakeT;
     const img = document.getElementById('agruCharImg');
     if (!img || img._agruSliding) return;
-    const tf = `translate(${((Math.sin(t*1.3)*0.55+Math.sin(t*2.7)*0.30+Math.sin(t*0.9)*0.15)*2).toFixed(2)}px,${((Math.sin(t*1.7)*0.55+Math.sin(t*3.1)*0.30+Math.sin(t*1.1)*0.15)*2).toFixed(2)}px) rotate(${(Math.sin(t*0.8)*0.18).toFixed(3)}deg)`;
+    const _a = agruShakeAmp;
+    const tf = `translate(${((Math.sin(t*1.3)*0.55+Math.sin(t*2.7)*0.30+Math.sin(t*0.9)*0.15)*_a).toFixed(2)}px,${((Math.sin(t*1.7)*0.55+Math.sin(t*3.1)*0.30+Math.sin(t*1.1)*0.15)*_a).toFixed(2)}px) rotate(${(Math.sin(t*0.8)*0.18*_a/2).toFixed(3)}deg)`;
     img.style.transform = tf;
     const cv = img.parentElement?.querySelector('.puru-canvas');
     if (cv) cv.style.transform = tf;
@@ -9186,6 +9188,7 @@ function handleAdminMessage(d, replyFn) {
     state.agruYtOpacity          = agruYtOpacity;
     state.agruYtEnabled          = agruYtEnabled ? 1 : 0;
     state.agruImgCmdEnabled      = agruImgCmdEnabled ? 1 : 0;
+    state.agruShakeAmp           = agruShakeAmp;
     state.agruModalZ             = agruModalZ;
     state.agruModalWidth         = agruModalWidth;
     state.agruModalHeight        = agruModalHeight;
@@ -9322,6 +9325,7 @@ function handleAdminMessage(d, replyFn) {
     if (d.key === 'agruYtOpacity')          agruYtOpacity          = parseInt(d.value) ?? 100;
     if (d.key === 'agruYtEnabled')          agruYtEnabled          = d.value === '1';
     if (d.key === 'agruImgCmdEnabled')      agruImgCmdEnabled      = d.value === '1';
+    if (d.key === 'agruShakeAmp')           agruShakeAmp           = parseFloat(d.value) || 2;
     if (d.key === 'agruModalZ')             { agruModalZ = parseInt(d.value) || 300; const _mo = document.getElementById('agruModal'); if (_mo) _mo.style.zIndex = agruModalZ; }
     if (d.key === 'agruModalWidth')         { agruModalWidth = parseInt(d.value) || 870; const _mc = document.querySelector('#agruModal .agru-modal'); if (_mc) _mc.style.width = agruModalWidth + 'px'; }
     if (d.key === 'agruModalHeight')        { agruModalHeight = parseInt(d.value) || 460; const _mc = document.querySelector('#agruModal .agru-modal'); if (_mc) _mc.style.height = agruModalHeight + 'px'; }

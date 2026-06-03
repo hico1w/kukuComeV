@@ -1084,6 +1084,13 @@
     <span style="font-size:11px;color:#64748b">px</span>
   </div>
   <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+    <label style="font-size:11px;color:#94a3b8;min-width:72px">手振れ強度</label>
+    <input type="range" id="agruShakeAmpInput" min="0" max="10" step="0.5" value="2"
+           style="flex:1;accent-color:#f43f5e"
+           oninput="document.getElementById('agruShakeAmpVal').textContent=this.value+'px';sendAgruText('agruShakeAmp',this.value)">
+    <span id="agruShakeAmpVal" style="font-size:11px;color:#e2e8f0;min-width:36px;text-align:right">2px</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
     <label style="font-size:11px;color:#94a3b8;min-width:72px">会話背景透明</label>
     <input type="range" id="agruModalBgOpacityInput" min="0" max="100" step="5" value="45"
            style="flex:1;accent-color:#f43f5e"
@@ -2109,6 +2116,7 @@
     if (s.agruYtEnabled !== undefined) { const btn = document.getElementById('agruYtEnabledBtn'); if (btn) { const on = s.agruYtEnabled ? '1' : '0'; btn.dataset.on = on; btn.textContent = on==='1' ? '受付中' : '無視'; btn.style.background = on==='1' ? '#166534' : '#7f1d1d'; btn.style.color = on==='1' ? '#86efac' : '#fca5a5'; btn.style.borderColor = on==='1' ? '#16a34a' : '#991b1b'; } }
     if (s.agruImgCmdEnabled !== undefined) { const btn = document.getElementById('agruImgCmdEnabledBtn'); if (btn) { const on = s.agruImgCmdEnabled ? '1' : '0'; btn.dataset.on = on; btn.textContent = on==='1' ? '許可' : '無視'; btn.style.background = on==='1' ? '#166534' : '#7f1d1d'; btn.style.color = on==='1' ? '#86efac' : '#fca5a5'; btn.style.borderColor = on==='1' ? '#16a34a' : '#991b1b'; } }
     if (s.agruModalZ          !== undefined) { const el = document.getElementById('agruModalZInput'); if (el) el.value = s.agruModalZ; }
+    if (s.agruShakeAmp        !== undefined) { const el = document.getElementById('agruShakeAmpInput'); if (el) { el.value = s.agruShakeAmp; const v = document.getElementById('agruShakeAmpVal'); if (v) v.textContent = s.agruShakeAmp + 'px'; } }
     if (s.agruModalWidth      !== undefined) { const el = document.getElementById('agruModalWidthInput'); if (el) el.value = s.agruModalWidth; }
     if (s.agruModalHeight     !== undefined) { const el = document.getElementById('agruModalHeightInput'); if (el) el.value = s.agruModalHeight; }
     if (s.agruCharImgHeight   !== undefined) { const el = document.getElementById('agruCharImgHeightInput'); if (el) el.value = s.agruCharImgHeight; }
