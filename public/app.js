@@ -6308,7 +6308,7 @@ function _agruStartShake() {
     const x = (Math.sin(t*1.3)*0.55 + Math.sin(t*2.7)*0.30 + Math.sin(t*0.9)*0.15) * 2.0;
     const y = (Math.sin(t*1.7)*0.55 + Math.sin(t*3.1)*0.30 + Math.sin(t*1.1)*0.15) * 2.0;
     const r = Math.sin(t*0.8) * 0.18;
-    const frame = document.querySelector('.agru-char-frame');
+    const frame = document.querySelector('.agru-char-bg');
     if (frame) frame.style.transform = `translate(${x.toFixed(2)}px,${y.toFixed(2)}px) rotate(${r.toFixed(3)}deg)`;
   };
   _agruShakeRAF = requestAnimationFrame(loop);
@@ -6316,7 +6316,7 @@ function _agruStartShake() {
 
 function _agruStopShake() {
   if (_agruShakeRAF) { cancelAnimationFrame(_agruShakeRAF); _agruShakeRAF = null; }
-  const frame = document.querySelector('.agru-char-frame');
+  const frame = document.querySelector('.agru-char-bg');
   if (frame) frame.style.transform = '';
 }
 
