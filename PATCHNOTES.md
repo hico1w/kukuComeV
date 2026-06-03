@@ -2,6 +2,32 @@
 
 ---
 
+## v2.441.0 — 2026-06-03
+
+### ぷるぷるエンジン実装（Canvas メッシュ変形）
+
+- `public/app.js`: ぷるぷるエンジン追加（Canvas 2D メッシュ変形 + アフィンテクスチャマッピング）
+  - `purupuruConfig` グローバル設定（8ポイント、グリッドサイズ、対象設定）
+  - `_puruDisplace(pt, t)` — 各動きモード計算（円/横揺れ/縦揺れ/縦波/リサジュー）
+  - `_puruTri(ctx, img, ...)` — 三角形アフィンテクスチャマッピング
+  - `_puruRenderCanvas(canvas)` — メッシュ変形描画（全頂点を影響範囲加重平均で変位）
+  - `_puruStartLoop()` — 単一 requestAnimationFrame ループで全キャンバスを更新
+  - `_puruAttach(parent, imgEl)` — キャンバスを対象要素にオーバーレイ設置
+  - `updatePurupuruOverlay(user)` — キャラアバター用
+  - `updateBossPurupuru()` — ボス用
+  - `updateAgruPurupuru()` — アゲルちゃん（会話モード）用
+  - `_puruApplyAll()` — 設定変更時に全対象を再適用
+- `public/app.js`: `applyAvatarStyle` の `adjustSize` コールバックに `updatePurupuruOverlay` 追加
+- `public/app.js`: `updateBossJiggleOverlay` に `updateBossPurupuru` 追加
+- `public/app.js`: `openAgruModal`・`_agruShowStateImage`・`_agruRevertStateImage` に `updateAgruPurupuru` フック追加
+- `public/app.js`: `purupuruConfig` を SETTINGS_KEYS に追加、state 保存・メッセージハンドラ追加
+- `public/admin.html`: 「🌊 ぷるぷる設定」セクション追加
+  - 有効トグル・対象選択（キャラ/ボス/アゲルちゃん）・グリッドサイズ
+  - 8ポイント個別設定（有効、X/Y位置、半径、振幅、速さ、動きモード、位相）
+  - プレビューキャンバス（ドラッグでポイント位置調整、影響範囲円表示）
+
+---
+
 ## v2.440.0 — 2026-06-03
 
 ### ドキュメント更新 — index.html アゲルちゃんセクション最新化

@@ -716,6 +716,49 @@
   </div>
 </div>
 
+<!-- ぷるぷる設定 -->
+<div class="section">
+  <div class="section-title">🌊 ぷるぷる設定</div>
+
+  <!-- 全体有効 + 対象 -->
+  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px">
+    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;font-weight:700">
+      <input type="checkbox" id="puruEnabled" onchange="syncPuruConfig()">
+      <span>有効</span>
+    </label>
+    <span style="color:#64748b;font-size:11px">対象:</span>
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px">
+      <input type="checkbox" id="puruTargetChar" checked onchange="syncPuruConfig()"> キャラ
+    </label>
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px">
+      <input type="checkbox" id="puruTargetBoss" checked onchange="syncPuruConfig()"> ボス
+    </label>
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px">
+      <input type="checkbox" id="puruTargetAgru" checked onchange="syncPuruConfig()"> アゲルちゃん
+    </label>
+  </div>
+
+  <!-- グリッドサイズ -->
+  <div class="size-row" style="margin-bottom:10px">
+    <span class="size-label">グリッド</span>
+    <input type="range" id="puruGrid" min="6" max="24" value="12" class="size-slider" oninput="document.getElementById('puruGridVal').textContent=this.value; syncPuruConfig()">
+    <span id="puruGridVal" class="size-val">12</span>
+    <span style="font-size:10px;color:#64748b;margin-left:4px">(大=高品質・重)</span>
+  </div>
+
+  <!-- ポイント設定 -->
+  <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">揺れポイント（8か所）</div>
+  <div id="puruPointsWrap" style="display:flex;flex-direction:column;gap:6px"></div>
+
+  <!-- プレビューキャンバス -->
+  <div style="margin-top:10px">
+    <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">プレビュー（●をドラッグで位置調整）</div>
+    <div style="position:relative;display:inline-block;background:#0d1117;border:1px solid #334155;line-height:0">
+      <canvas id="puruPreviewCanvas" width="200" height="260" style="display:block;cursor:crosshair"></canvas>
+    </div>
+  </div>
+</div>
+
 <!-- 文字サイズ -->
 <div class="section">
   <div class="section-title">🔤 文字サイズ</div>
@@ -2061,6 +2104,7 @@
     if (s.charEquipOffsetX !== undefined) { document.getElementById('charEquipXSlider').value = s.charEquipOffsetX; document.getElementById('charEquipXVal').textContent = s.charEquipOffsetX + 'px'; }
     if (s.charEquipOffsetY !== undefined) { document.getElementById('charEquipYSlider').value = s.charEquipOffsetY; document.getElementById('charEquipYVal').textContent = s.charEquipOffsetY + 'px'; }
     if (s.jiggleConfig) { try { _jiggleAllConfig = JSON.parse(s.jiggleConfig); } catch(e) {} }
+    if (s.purupuruConfig) { try { _puruLoadUI(JSON.parse(s.purupuruConfig)); } catch(e) {} }
     if (s.petSizeScale !== undefined) { const v = Math.round(s.petSizeScale * 100); document.getElementById('petSizeSlider').value = v; document.getElementById('petSizeVal').textContent = v + '%'; }
     if (s.petAspectExp !== undefined) { document.getElementById('petAspectExpSlider').value = s.petAspectExp; document.getElementById('petAspectExpVal').textContent = parseFloat(s.petAspectExp).toFixed(2); }
     if (s.petPortraitBoost !== undefined) { document.getElementById('petPortraitBoostSlider').value = s.petPortraitBoost; document.getElementById('petPortraitBoostVal').textContent = parseFloat(s.petPortraitBoost).toFixed(2); }
@@ -2188,6 +2232,207 @@
   }
 
   function jiggleRefreshUsers() { adminSend({ type: 'getUsers' }); }
+
+  // ── ぷるぷる設定 UI ────────────────────────────────────────────
+  const PURU_MODE_LABELS = { circle:'⭕ 円', pendulum_x:'↔ 横揺れ', pendulum_y:'↕ 縦揺れ', sin_y:'〜 縦波', lissajous:'∞ リサジュー' };
+  const PURU_COLORS = ['#f472b6','#fb923c','#facc15','#4ade80','#38bdf8','#a78bfa','#f87171','#34d399'];
+  let _puruCfg = null; // local copy synced with app
+  let _puruDragPt = null; // { idx, startX, startY, origX, origY }
+
+  function _puruEnsureCfg() {
+    if (_puruCfg) return;
+    _puruCfg = {
+      enabled: false,
+      targets: { char: true, boss: true, agru: true },
+      gridSize: 12,
+      points: [
+        { enabled:false, x:30, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:0   },
+        { enabled:false, x:70, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:180 },
+        { enabled:false, x:50, y:20, radius:25, amplitude:5, speed:0.8, mode:'pendulum_x', phase:0   },
+        { enabled:false, x:50, y:80, radius:25, amplitude:5, speed:0.8, mode:'pendulum_y', phase:0   },
+        { enabled:false, x:20, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:90  },
+        { enabled:false, x:80, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:270 },
+        { enabled:false, x:50, y:10, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:0   },
+        { enabled:false, x:50, y:90, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:180 },
+      ]
+    };
+  }
+
+  function buildPuruPointsUI() {
+    _puruEnsureCfg();
+    const wrap = document.getElementById('puruPointsWrap');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    _puruCfg.points.forEach((pt, i) => {
+      const color = PURU_COLORS[i];
+      const row = document.createElement('div');
+      row.style.cssText = 'background:#0d1117;border:1px solid #1e293b;border-radius:6px;padding:6px 8px';
+      row.innerHTML = `
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;min-width:50px">
+            <input type="checkbox" class="puru-pt-en" data-idx="${i}" ${pt.enabled?'checked':''} onchange="syncPuruPoint(${i})">
+            <span style="font-size:12px;font-weight:700;color:${color}">P${i+1}</span>
+          </label>
+          <span style="font-size:10px;color:#64748b">X</span>
+          <input type="number" class="puru-pt-x" data-idx="${i}" value="${pt.x}" min="0" max="100" step="1"
+            style="width:40px;background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:2px 3px;font-size:11px"
+            oninput="syncPuruPoint(${i});_puruDrawPreview()">
+          <span style="font-size:10px;color:#64748b">Y</span>
+          <input type="number" class="puru-pt-y" data-idx="${i}" value="${pt.y}" min="0" max="100" step="1"
+            style="width:40px;background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:2px 3px;font-size:11px"
+            oninput="syncPuruPoint(${i});_puruDrawPreview()">
+          <span style="font-size:10px;color:#64748b">半径</span>
+          <input type="number" class="puru-pt-r" data-idx="${i}" value="${pt.radius}" min="5" max="70" step="1"
+            style="width:36px;background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:2px 3px;font-size:11px"
+            oninput="syncPuruPoint(${i});_puruDrawPreview()">
+          <span style="font-size:10px;color:#64748b">振幅</span>
+          <input type="number" class="puru-pt-amp" data-idx="${i}" value="${pt.amplitude}" min="0" max="40" step="0.5"
+            style="width:36px;background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:2px 3px;font-size:11px"
+            oninput="syncPuruPoint(${i})">
+          <span style="font-size:10px;color:#64748b">速さ</span>
+          <input type="number" class="puru-pt-spd" data-idx="${i}" value="${pt.speed}" min="0.1" max="5" step="0.1"
+            style="width:36px;background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:2px 3px;font-size:11px"
+            oninput="syncPuruPoint(${i})">
+          <select class="puru-pt-mode" data-idx="${i}" onchange="syncPuruPoint(${i})"
+            style="background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:2px 3px;font-size:11px">
+            ${Object.entries(PURU_MODE_LABELS).map(([v,l])=>`<option value="${v}"${pt.mode===v?' selected':''}>${l}</option>`).join('')}
+          </select>
+          <span style="font-size:10px;color:#64748b">位相°</span>
+          <input type="number" class="puru-pt-phase" data-idx="${i}" value="${pt.phase}" min="0" max="360" step="15"
+            style="width:40px;background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:2px 3px;font-size:11px"
+            oninput="syncPuruPoint(${i})">
+        </div>`;
+      wrap.appendChild(row);
+    });
+  }
+
+  function syncPuruPoint(i) {
+    _puruEnsureCfg();
+    const pt = _puruCfg.points[i];
+    const q = s => document.querySelector(`[data-idx="${i}"].puru-pt-${s}`);
+    pt.enabled   = q('en')?.checked ?? false;
+    pt.x         = parseFloat(q('x')?.value ?? pt.x);
+    pt.y         = parseFloat(q('y')?.value ?? pt.y);
+    pt.radius    = parseFloat(q('r')?.value ?? pt.radius);
+    pt.amplitude = parseFloat(q('amp')?.value ?? pt.amplitude);
+    pt.speed     = parseFloat(q('spd')?.value ?? pt.speed);
+    pt.mode      = q('mode')?.value ?? pt.mode;
+    pt.phase     = parseFloat(q('phase')?.value ?? pt.phase);
+    syncPuruConfig();
+  }
+
+  function syncPuruConfig() {
+    _puruEnsureCfg();
+    _puruCfg.enabled       = document.getElementById('puruEnabled')?.checked ?? false;
+    _puruCfg.targets.char  = document.getElementById('puruTargetChar')?.checked ?? true;
+    _puruCfg.targets.boss  = document.getElementById('puruTargetBoss')?.checked ?? true;
+    _puruCfg.targets.agru  = document.getElementById('puruTargetAgru')?.checked ?? true;
+    _puruCfg.gridSize      = parseInt(document.getElementById('puruGrid')?.value ?? 12);
+    adminSend({ type: 'purupuruConfig', config: JSON.parse(JSON.stringify(_puruCfg)) });
+    _puruDrawPreview();
+  }
+
+  function _puruLoadUI(cfg) {
+    _puruCfg = JSON.parse(JSON.stringify(cfg));
+    document.getElementById('puruEnabled').checked       = cfg.enabled ?? false;
+    document.getElementById('puruTargetChar').checked    = cfg.targets?.char ?? true;
+    document.getElementById('puruTargetBoss').checked    = cfg.targets?.boss ?? true;
+    document.getElementById('puruTargetAgru').checked    = cfg.targets?.agru ?? true;
+    document.getElementById('puruGrid').value            = cfg.gridSize ?? 12;
+    document.getElementById('puruGridVal').textContent   = cfg.gridSize ?? 12;
+    buildPuruPointsUI();
+    _puruDrawPreview();
+  }
+
+  function _puruDrawPreview() {
+    const canvas = document.getElementById('puruPreviewCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    // background grid
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 0.5;
+    for (let x=0;x<W;x+=20) { ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke(); }
+    for (let y=0;y<H;y+=20) { ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke(); }
+    // points
+    _puruEnsureCfg();
+    _puruCfg.points.forEach((pt, i) => {
+      const color = PURU_COLORS[i];
+      const cx = (pt.x/100)*W, cy = (pt.y/100)*H;
+      const rr = (pt.radius/100)*Math.min(W,H);
+      // influence circle
+      ctx.beginPath();
+      ctx.arc(cx, cy, rr, 0, Math.PI*2);
+      ctx.strokeStyle = pt.enabled ? color + '88' : '#33415580';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3,3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // center dot
+      ctx.beginPath();
+      ctx.arc(cx, cy, 6, 0, Math.PI*2);
+      ctx.fillStyle = pt.enabled ? color : '#475569';
+      ctx.fill();
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      // label
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`P${i+1}`, cx, cy);
+    });
+  }
+
+  // ドラッグで位置調整
+  (function() {
+    let _drag = null;
+    function _puruCanvasCoord(canvas, e) {
+      const r = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / r.width, scaleY = canvas.height / r.height;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return { x: (clientX - r.left) * scaleX, y: (clientY - r.top) * scaleY };
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      buildPuruPointsUI();
+      _puruDrawPreview();
+      const canvas = document.getElementById('puruPreviewCanvas');
+      if (!canvas) return;
+      canvas.addEventListener('mousedown', e => {
+        _puruEnsureCfg();
+        const { x, y } = _puruCanvasCoord(canvas, e);
+        const W = canvas.width, H = canvas.height;
+        let best = -1, bestD = 16;
+        _puruCfg.points.forEach((pt, i) => {
+          const dx=(pt.x/100)*W-x, dy=(pt.y/100)*H-y;
+          const d=Math.sqrt(dx*dx+dy*dy);
+          if (d<bestD) { bestD=d; best=i; }
+        });
+        if (best >= 0) _drag = { idx: best };
+        e.preventDefault();
+      });
+      canvas.addEventListener('mousemove', e => {
+        if (!_drag) return;
+        const { x, y } = _puruCanvasCoord(canvas, e);
+        const W = canvas.width, H = canvas.height;
+        const pt = _puruCfg.points[_drag.idx];
+        pt.x = Math.max(0, Math.min(100, Math.round(x/W*100)));
+        pt.y = Math.max(0, Math.min(100, Math.round(y/H*100)));
+        // update inputs
+        const xi = document.querySelector(`[data-idx="${_drag.idx}"].puru-pt-x`);
+        const yi = document.querySelector(`[data-idx="${_drag.idx}"].puru-pt-y`);
+        if (xi) xi.value = pt.x;
+        if (yi) yi.value = pt.y;
+        _puruDrawPreview();
+      });
+      const stop = () => { if (_drag) { syncPuruConfig(); _drag = null; } };
+      canvas.addEventListener('mouseup', stop);
+      document.addEventListener('mouseup', stop);
+    });
+  })();
 
   function syncTaimanHandicap(el) {
     document.getElementById('taimanHandicapVal').textContent = el.value + '%';

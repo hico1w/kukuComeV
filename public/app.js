@@ -357,7 +357,7 @@ const SETTINGS_KEYS = [
   'bgColor','bgImageUrl','taimanDefeatCommand','taimanCharScale','taimanCooldown','charAspectExp','charPortraitBoost',
   'charStatsBottom','charStatsLeft','charEquipOffsetX','charEquipOffsetY',
   'petSizeScale','petAspectExp','petPortraitBoost',
-  'jiggleConfig','autoDeleteMinutes',
+  'jiggleConfig','purupuruConfig','autoDeleteMinutes',
   'slotMpJackpot','slotMpDiamond','slotMpStar','slotMpBell','slotMpCherry',
   'rankingPanelX','rankingPanelY',
   'wordlePanelX','wordlePanelY','quizPanelX','quizPanelY',
@@ -795,6 +795,7 @@ function applyAvatarStyle(user) {
         a.style.width  = Math.round(px * pow * boost) + 'px';
         a.style.height = Math.round(px / pow * boost) + 'px';
         updateJiggleOverlay(user);
+        updatePurupuruOverlay(user);
       }
     };
     if (img.complete) adjustSize();
@@ -869,6 +870,182 @@ function updateBossJiggleOverlay() {
   img2.style.setProperty('--jiggle-origin-y', topPct + '%');
   overlay.appendChild(img2);
   a.appendChild(overlay);
+  updateBossPurupuru();
+}
+
+// ── ぷるぷるエンジン（Canvas メッシュ変形）────────────────────────────────
+const PURU_DEFAULT_POINTS = [
+  { enabled:false, x:30, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:0   },
+  { enabled:false, x:70, y:45, radius:30, amplitude:8, speed:1.2, mode:'circle',     phase:180 },
+  { enabled:false, x:50, y:20, radius:25, amplitude:5, speed:0.8, mode:'pendulum_x', phase:0   },
+  { enabled:false, x:50, y:80, radius:25, amplitude:5, speed:0.8, mode:'pendulum_y', phase:0   },
+  { enabled:false, x:20, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:90  },
+  { enabled:false, x:80, y:60, radius:20, amplitude:6, speed:1.5, mode:'pendulum_x', phase:270 },
+  { enabled:false, x:50, y:10, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:0   },
+  { enabled:false, x:50, y:90, radius:20, amplitude:4, speed:1.0, mode:'sin_y',      phase:180 },
+];
+let purupuruConfig = {
+  enabled: false,
+  targets: { char: true, boss: true, agru: true },
+  gridSize: 12,
+  points: PURU_DEFAULT_POINTS.map(p => ({ ...p })),
+};
+try {
+  const _ps = localStorage.getItem('purupuruConfig');
+  if (_ps) purupuruConfig = JSON.parse(_ps);
+} catch(e) {}
+
+let _puruTime = 0, _puruLastTs = null, _puruRAF = null;
+
+function _puruDisplace(pt, t) {
+  const ph = (pt.phase || 0) * Math.PI / 180;
+  const om = (pt.speed || 1) * Math.PI * 2;
+  const a  = pt.amplitude || 0;
+  switch (pt.mode || 'circle') {
+    case 'circle':     return { dx: Math.cos(t*om+ph)*a, dy: Math.sin(t*om+ph)*a };
+    case 'pendulum_x': return { dx: Math.sin(t*om+ph)*a, dy: 0 };
+    case 'pendulum_y': return { dx: 0, dy: Math.sin(t*om+ph)*a };
+    case 'sin_y':      return { dx: Math.sin(t*om*2+ph)*a*0.3, dy: Math.sin(t*om+ph)*a };
+    case 'lissajous':  return { dx: Math.sin(t*om+ph)*a, dy: Math.sin(t*om*2+ph+Math.PI/2)*a };
+    default:           return { dx: 0, dy: 0 };
+  }
+}
+
+function _puruTri(ctx, img, x0,y0,u0,v0, x1,y1,u1,v1, x2,y2,u2,v2) {
+  const iw=img.naturalWidth, ih=img.naturalHeight;
+  const p0u=u0*iw,p0v=v0*ih, p1u=u1*iw,p1v=v1*ih, p2u=u2*iw,p2v=v2*ih;
+  const det = p0u*(p1v-p2v) + p1u*(p2v-p0v) + p2u*(p0v-p1v);
+  if (Math.abs(det) < 0.001) return;
+  const a_=(x0*(p1v-p2v)+x1*(p2v-p0v)+x2*(p0v-p1v))/det;
+  const b_=(y0*(p1v-p2v)+y1*(p2v-p0v)+y2*(p0v-p1v))/det;
+  const c_=(x0*(p2u-p1u)+x1*(p0u-p2u)+x2*(p1u-p0u))/det;
+  const d_=(y0*(p2u-p1u)+y1*(p0u-p2u)+y2*(p1u-p0u))/det;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.lineTo(x2,y2);
+  ctx.closePath(); ctx.clip();
+  ctx.transform(a_,b_,c_,d_, x0-a_*p0u-c_*p0v, y0-b_*p0u-d_*p0v);
+  ctx.drawImage(img, 0, 0);
+  ctx.restore();
+}
+
+function _puruRenderCanvas(canvas) {
+  const img = canvas._puruImg;
+  if (!img || !img.isConnected || !img.complete || !img.naturalWidth) {
+    canvas.style.display = 'none';
+    if (img) img.style.opacity = '';
+    return;
+  }
+  const rect = img.getBoundingClientRect();
+  const W = Math.round(rect.width), H = Math.round(rect.height);
+  if (!W || !H) { canvas.style.display = 'none'; return; }
+  if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+  img.style.opacity = '0';
+  canvas.style.display = 'block';
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+  const gs = purupuruConfig.gridSize || 12;
+  const cols = gs + 1, rows = gs + 1;
+  const verts = new Float32Array(cols * rows * 2);
+  const pts = (purupuruConfig.points || []).filter(p => p.enabled);
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const bx=(i/gs)*W, by=(j/gs)*H;
+      let tdx=0, tdy=0;
+      for (const pt of pts) {
+        const px=(pt.x/100)*W, py=(pt.y/100)*H;
+        const rr=(pt.radius/100)*Math.min(W,H);
+        const ddx=bx-px, ddy=by-py;
+        const dist=Math.sqrt(ddx*ddx+ddy*ddy);
+        if (dist>=rr) continue;
+        const w=(1-dist/rr)**2;
+        const d=_puruDisplace(pt,_puruTime);
+        tdx+=d.dx*w; tdy+=d.dy*w;
+      }
+      const idx=(j*cols+i)*2;
+      verts[idx]=bx+tdx; verts[idx+1]=by+tdy;
+    }
+  }
+  for (let j=0; j<gs; j++) {
+    for (let i=0; i<gs; i++) {
+      const i00=(j*cols+i)*2,   i10=(j*cols+i+1)*2;
+      const i01=((j+1)*cols+i)*2, i11=((j+1)*cols+i+1)*2;
+      _puruTri(ctx,img, verts[i00],verts[i00+1],i/gs,j/gs, verts[i10],verts[i10+1],(i+1)/gs,j/gs, verts[i01],verts[i01+1],i/gs,(j+1)/gs);
+      _puruTri(ctx,img, verts[i10],verts[i10+1],(i+1)/gs,j/gs, verts[i11],verts[i11+1],(i+1)/gs,(j+1)/gs, verts[i01],verts[i01+1],i/gs,(j+1)/gs);
+    }
+  }
+}
+
+function _puruStartLoop() {
+  if (_puruRAF) return;
+  const loop = ts => {
+    _puruRAF = requestAnimationFrame(loop);
+    if (_puruLastTs === null) _puruLastTs = ts;
+    const dt = Math.min((ts - _puruLastTs) / 1000, 0.05);
+    _puruLastTs = ts;
+    if (purupuruConfig.enabled) {
+      _puruTime += dt;
+      document.querySelectorAll('.puru-canvas').forEach(_puruRenderCanvas);
+    } else {
+      _puruTime = 0; _puruLastTs = null;
+      document.querySelectorAll('.puru-canvas').forEach(c => {
+        c.style.display = 'none';
+        if (c._puruImg) c._puruImg.style.opacity = '';
+      });
+    }
+  };
+  _puruRAF = requestAnimationFrame(loop);
+}
+
+function _puruAttach(parent, imgEl) {
+  parent.querySelectorAll('.puru-canvas').forEach(c => { if (c._puruImg) c._puruImg.style.opacity = ''; c.remove(); });
+  const canvas = document.createElement('canvas');
+  canvas.className = 'puru-canvas';
+  canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;display:none;z-index:3';
+  canvas._puruImg = imgEl;
+  const cs = window.getComputedStyle(parent);
+  if (cs.position === 'static') parent.style.position = 'relative';
+  parent.appendChild(canvas);
+  _puruStartLoop();
+}
+
+function updatePurupuruOverlay(user) {
+  const a = document.getElementById('a-' + user.ipid);
+  if (!a) return;
+  a.querySelectorAll('.puru-canvas').forEach(c => { if (c._puruImg) c._puruImg.style.opacity = ''; c.remove(); });
+  if (!purupuruConfig.enabled || !purupuruConfig.targets?.char) return;
+  const imgEl = a.querySelector('img');
+  if (!imgEl) return;
+  _puruAttach(a, imgEl);
+}
+
+function updateBossPurupuru() {
+  const a = document.getElementById('bossAvatar');
+  if (!a) return;
+  a.querySelectorAll('.puru-canvas').forEach(c => { if (c._puruImg) c._puruImg.style.opacity = ''; c.remove(); });
+  if (!bossState || !purupuruConfig.enabled || !purupuruConfig.targets?.boss) return;
+  const imgEl = a.querySelector('img');
+  if (!imgEl) return;
+  if (!imgEl.complete || !imgEl.naturalWidth) imgEl.addEventListener('load', () => _puruAttach(a, imgEl), { once: true });
+  else _puruAttach(a, imgEl);
+}
+
+function updateAgruPurupuru() {
+  const imgEl = document.getElementById('agruCharImg');
+  if (!imgEl) return;
+  const parent = imgEl.parentElement;
+  if (!parent) return;
+  parent.querySelectorAll('.puru-canvas').forEach(c => { if (c._puruImg) c._puruImg.style.opacity = ''; c.remove(); });
+  if (!purupuruConfig.enabled || !purupuruConfig.targets?.agru) return;
+  if (!imgEl.src || imgEl.src === location.href) return;
+  if (!imgEl.complete || !imgEl.naturalWidth) imgEl.addEventListener('load', () => _puruAttach(parent, imgEl), { once: true });
+  else _puruAttach(parent, imgEl);
+}
+
+function _puruApplyAll() {
+  Object.values(users).filter(u => u.el).forEach(u => updatePurupuruOverlay(u));
+  updateBossPurupuru();
+  updateAgruPurupuru();
 }
 
 function isUserFlipped(user) {
@@ -5122,10 +5299,10 @@ function _agruGetAffinityContext() {
 
 function _agruGetStateContext() {
   const parts = [];
-  if (agruHunger <= 30)       parts.push('あなたは今、極度の空腹で生命の危機に瀕しています。その苦しさを必ず返答に含めてください。');
+  if (agruHunger <= 30)       parts.push('あなたは今、極度の空腹で生命の危機に瀕しています。その苦しさを返答に含めてください。');
   else if (agruHunger <= 50)  parts.push('あなたは今、お腹がすいています。空腹であることを返答に含めてください。');
-  if (agruSleepiness > 90)    parts.push('あなたは今、極度に眠いです。眠いことを必ず返答に含めてください。');
-  if (agruLibido > 80)        parts.push('あなたは今、強烈な性的欲求に支配されています。返答は性欲まみれになります。');
+  if (agruSleepiness > 90)    parts.push('あなたは今、極度に眠いです。眠いことを返答に含めてください。');
+  if (agruLibido > 80)        parts.push('あなたは今、強烈な性的欲求に支配されています。返答は性欲まみれになります。♡マークを使う。');
   return parts.join(' ');
 }
 
@@ -5149,14 +5326,20 @@ async function _agruShowStateImage(state) {
     const imgs = (data.images || []);
     if (imgs.length > 0) {
       const el = document.getElementById('agruCharImg');
-      if (el) el.src = `/ageru/${state}/${imgs[Math.floor(Math.random() * imgs.length)]}`;
+      if (el) {
+        el.src = `/ageru/${state}/${imgs[Math.floor(Math.random() * imgs.length)]}`;
+        el.addEventListener('load', updateAgruPurupuru, { once: true });
+      }
     }
   } catch {}
 }
 
 function _agruRevertStateImage() {
   const el = document.getElementById('agruCharImg');
-  if (el && agruDefaultImage) el.src = `/ageru/${encodeURIComponent(agruDefaultImage)}`;
+  if (el && agruDefaultImage) {
+    el.src = `/ageru/${encodeURIComponent(agruDefaultImage)}`;
+    el.addEventListener('load', updateAgruPurupuru, { once: true });
+  }
 }
 
 function _agruShowParamPop(text, color, goUp = true) {
@@ -5958,7 +6141,10 @@ async function openAgruModal() {
   _agruDeadWakeCount  = 0;
 
   const img = document.getElementById('agruCharImg');
-  if (img && agruDefaultImage) img.src = `/ageru/${encodeURIComponent(agruDefaultImage)}`;
+  if (img && agruDefaultImage) {
+    img.src = `/ageru/${encodeURIComponent(agruDefaultImage)}`;
+    img.addEventListener('load', updateAgruPurupuru, { once: true });
+  }
   const log = document.getElementById('agruChatLog');
   if (log) log.innerHTML = '';
   document.getElementById('agruEmotionLabel').textContent = '';
@@ -8733,6 +8919,7 @@ function handleAdminMessage(d, replyFn) {
     state.petAspectExp          = petAspectExp;
     state.petPortraitBoost      = petPortraitBoost;
     state.jiggleConfig          = JSON.stringify(jiggleConfig);
+    state.purupuruConfig        = JSON.stringify(purupuruConfig);
     state.gatherMarginLeftSlider      = gatherMarginLeft;
     state.gatherMarginRightSlider     = gatherMarginRight;
     state.gatherMarginBottomSlider    = gatherMarginBottom;
@@ -9029,6 +9216,11 @@ function handleAdminMessage(d, replyFn) {
       });
       if (bossState?.imgFile === d.imgFile) updateBossJiggleOverlay();
     }
+  } else if (d.type === 'purupuruConfig') {
+    purupuruConfig = d.config;
+    localStorage.setItem('purupuruConfig', JSON.stringify(purupuruConfig));
+    saveSettingsToServer();
+    _puruApplyAll();
   } else if (d.type === 'petSizeScale') {
     petSizeScale = Math.max(0.3, Math.min(3, parseFloat(d.value) || 1));
     localStorage.setItem('petSizeScale', petSizeScale);
