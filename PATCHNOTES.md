@@ -2,6 +2,16 @@
 
 ---
 
+## v2.454.0 — 2026-06-03
+
+### fix: ボスのぷるぷるエリアがずれる問題を修正
+
+- `public/style.css`: `.boss-avatar` に `position: relative` を追加
+  - puru-canvas は `position: absolute; top:0; left:0; width:100%; height:100%` で配置されるため、親要素に `position: relative` がないと `#bossEl`（HPバー含む全体）を基準に配置されてしまっていた
+  - ユーザーキャラの `.avatar` は既に `position: relative` を持っており、ボスだけ欠けていた
+
+---
+
 ## v2.453.0 — 2026-06-03
 
 ### fix: 管理パネルからのステータス非表示ボタンが機能しない問題を修正
