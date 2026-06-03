@@ -958,6 +958,7 @@ function _puruDisplace(pt, t) {
       dy=-(base+base*0.3*Math.sin(c*4))*a;
       break;
     }
+  }
   _puruDispBuf.dx=dx; _puruDispBuf.dy=dy;
   return _puruDispBuf;
 }
