@@ -2581,16 +2581,22 @@
     const canvas=document.getElementById('puruPreviewCanvas');
     const img=document.getElementById('puruPreviewImg');
     if(!canvas||!_puruCfg) return;
-    // sync canvas size
+    const dpr=window.devicePixelRatio||1;
+    // sync canvas buffer size (physical pixels) and CSS display size
     if(img&&img.style.display!=='none'&&img.complete&&img.naturalWidth){
-      if(canvas.width!==img.offsetWidth||canvas.height!==img.offsetHeight){
-        canvas.width=img.offsetWidth||200; canvas.height=img.offsetHeight||300;
+      const cw=img.offsetWidth||200, ch=img.offsetHeight||300;
+      if(canvas._pvCssW!==cw||canvas._pvCssH!==ch||canvas._pvDpr!==dpr){
+        canvas.width=Math.round(cw*dpr); canvas.height=Math.round(ch*dpr);
+        canvas.style.width=cw+'px'; canvas.style.height=ch+'px';
+        canvas._pvCssW=cw; canvas._pvCssH=ch; canvas._pvDpr=dpr;
       }
     }
-    const W=canvas.width, H=canvas.height;
+    const W=canvas._pvCssW||Math.round(canvas.width/dpr);
+    const H=canvas._pvCssH||Math.round(canvas.height/dpr);
     if(!W||!H) return;
     const ctx=canvas.getContext('2d');
-    ctx.clearRect(0,0,W,H);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.save(); ctx.scale(dpr,dpr);
     const enabledPts=(_puruCfg.points||[]).filter(p=>p.enabled);
     // メッシュ変形描画
     if(img&&img.style.display!=='none'&&img.complete&&img.naturalWidth){
@@ -2652,6 +2658,7 @@
       ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.fillText(`P${i+1}`,cx,cy);
     });
+    ctx.restore();
   }
 
   // プレビューキャンバスのドラッグ操作
@@ -2660,12 +2667,15 @@
     if (!canvas) return;
     function _puruCoord(e) {
       const r = canvas.getBoundingClientRect();
-      return { x: (e.clientX-r.left)/r.width*canvas.width, y: (e.clientY-r.top)/r.height*canvas.height };
+      return { x: e.clientX-r.left, y: e.clientY-r.top };
+    }
+    function _puruCssWH() {
+      return { W: canvas._pvCssW||canvas.width, H: canvas._pvCssH||canvas.height };
     }
     canvas.addEventListener('mousedown', e => {
       if (!_puruCfg) return;
       const { x, y } = _puruCoord(e);
-      const W = canvas.width, H = canvas.height;
+      const { W, H } = _puruCssWH();
       let best=-1, bestD=14;
       _puruCfg.points.forEach((pt,i) => {
         if (!pt.enabled) return;
@@ -2678,9 +2688,10 @@
     canvas.addEventListener('mousemove', e => {
       if (!_puruDrag || !_puruCfg) return;
       const { x, y } = _puruCoord(e);
+      const { W, H } = _puruCssWH();
       const pt = _puruCfg.points[_puruDrag.idx];
-      pt.x = Math.max(0,Math.min(100,Math.round(x/canvas.width*100)));
-      pt.y = Math.max(0,Math.min(100,Math.round(y/canvas.height*100)));
+      pt.x = Math.max(0,Math.min(100,Math.round(x/W*100)));
+      pt.y = Math.max(0,Math.min(100,Math.round(y/H*100)));
       const xi=document.querySelector(`[data-idx="${_puruDrag.idx}"].puru-pt-x`);
       const yi=document.querySelector(`[data-idx="${_puruDrag.idx}"].puru-pt-y`);
       if (xi) xi.value=pt.x; if (yi) yi.value=pt.y;
