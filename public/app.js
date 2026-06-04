@@ -1960,7 +1960,8 @@ let kaiSpeed      = 18;          // 射出強さ
 let kaiRestitution = 0.65;       // 反発係数
 let kaiGravity    = 0.35;        // 重力加速度
 let kaiBulletSize = 32;          // 弾文字サイズ(px)
-let bossDamageMap = {};          // ipid → { name, totalDmg }
+let bossDamageMap    = {};          // ipid → { name, totalDmg } 現ボス戦分
+let cumulativeDmgMap = (() => { try { return JSON.parse(localStorage.getItem('cumulativeDmgMap') || '{}'); } catch { return {}; } })();
 let rankingState       = null;
 let rankingDragState   = null;
 let bossDragState = null;
@@ -3674,7 +3675,14 @@ function defeatBoss() {
   setTimeout(() => {
     el.remove();
     bossState = null;
-    showDamageRanking(bossDamageMap);
+    // 通算ダメージに加算
+    Object.entries(bossDamageMap).forEach(([ipid, d]) => {
+      if (!cumulativeDmgMap[ipid]) cumulativeDmgMap[ipid] = { name: d.name, totalDmg: 0 };
+      cumulativeDmgMap[ipid].name   = d.name;
+      cumulativeDmgMap[ipid].totalDmg += d.totalDmg;
+    });
+    localStorage.setItem('cumulativeDmgMap', JSON.stringify(cumulativeDmgMap));
+    showDamageRanking(cumulativeDmgMap);
     // 手動消去でなければ次のボスを自動召喚（討伐演出が落ち着く頃に）
     if (!bossManuallyCleared && !compactMode) {
       setTimeout(() => {
@@ -7584,7 +7592,7 @@ function renderRankingPanel() {
 
   const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
 
-  const dmgEntries = Object.values(bossState ? bossDamageMap : (rankingState.dmgMap || {}))
+  const dmgEntries = Object.values(bossState ? bossDamageMap : cumulativeDmgMap)
     .sort((a, b) => b.totalDmg - a.totalDmg).slice(0, 5);
   let dmgRows = dmgEntries.length
     ? dmgEntries.map((e, i) => `<div class="ranking-row"><span class="ranking-medal">${medals[i]}</span><span class="ranking-name">${escapeHtml(e.name)}</span><span class="ranking-dmg">${e.totalDmg.toLocaleString()}</span></div>`).join('')
@@ -9426,6 +9434,10 @@ function handleAdminMessage(d, replyFn) {
     Object.values(users).filter(u => u.el).forEach(u => applyMotion(u, 'spinning'));
   } else if (d.type === 'showMpRanking') {
     showMpRanking();
+  } else if (d.type === 'resetCumulativeDmg') {
+    cumulativeDmgMap = {};
+    localStorage.removeItem('cumulativeDmgMap');
+    if (rankingState) { rankingState.dmgMap = {}; renderRankingPanel(); }
   } else if (d.type === 'charIndivSize') {
     const u = users[d.ipid];
     if (u) { u.sizeScale = u.sizeScaleBase = parseFloat(d.scale) || 1.0; applyAvatarStyle(u); renderPetBadge(u); }
