@@ -2439,7 +2439,7 @@ function startTaiman(challenger, target) {
   // 全キャラの移動を止め、戦闘員以外を縮小
   const savedSizeScales = {};
   Object.values(users).forEach(u => {
-    savedSizeScales[u.ipid] = u.sizeScale || 1;
+    savedSizeScales[u.ipid] = u.sizeScaleBase ?? 1.0;
     if (u.moveTimer) { clearTimeout(u.moveTimer); u.moveTimer = null; }
     if (u.walkTimer) { clearTimeout(u.walkTimer); u.walkTimer = null; }
     if (u.ipid !== challenger.ipid && u.ipid !== target.ipid && u.el) {
@@ -2779,7 +2779,7 @@ function endTaiman(winner, loser) {
 
   // 全キャラのサイズをリセット
   Object.values(users).forEach(u => {
-    u.sizeScale = snapshot.savedSizeScales[u.ipid] ?? 1;
+    u.sizeScale = snapshot.savedSizeScales[u.ipid] ?? (u.sizeScaleBase ?? 1.0);
     applyAvatarStyle(u);
     renderPetBadge(u);
   });
@@ -3795,7 +3795,7 @@ function handleComment(comment) {
       const savedByIcon = _charSaveData[iconKey];
       if (savedByIcon) {
         CHAR_SAVE_FIELDS.forEach(k => { if (savedByIcon[k] !== undefined) user[k] = savedByIcon[k]; });
-        user.sizeScale = 1.0;
+        user.sizeScale = user.sizeScaleBase ?? 1.0;
         user.atk   = calcAtk(user);
         user.maxHp = calcMaxHp(user);
         if (['textColor','bubbleShape','bubbleDeco','bubbleBgColor','font','charImage'].some(k => savedByIcon[k] !== undefined)) {
@@ -9440,7 +9440,15 @@ function handleAdminMessage(d, replyFn) {
     if (rankingState) { rankingState.dmgMap = {}; renderRankingPanel(); }
   } else if (d.type === 'charIndivSize') {
     const u = users[d.ipid];
-    if (u) { u.sizeScale = u.sizeScaleBase = parseFloat(d.scale) || 1.0; applyAvatarStyle(u); renderPetBadge(u); }
+    if (u) {
+      u.sizeScale = u.sizeScaleBase = parseFloat(d.scale) || 1.0;
+      applyAvatarStyle(u); renderPetBadge(u);
+      // 即時 charSave（60秒インターバルを待たずに保存）
+      const _obj = {}; CHAR_SAVE_FIELDS.forEach(k => { if (u[k] !== undefined) _obj[k] = u[k]; });
+      _charSaveData[u.saveKey || u.ipid] = _obj;
+      const _sd = {}; Object.values(users).forEach(uu => { const o = {}; CHAR_SAVE_FIELDS.forEach(k => { if (uu[k] !== undefined) o[k] = uu[k]; }); _sd[uu.saveKey || uu.ipid] = o; });
+      _saveServer('/api/char-save', _sd);
+    }
   } else if (d.type === 'slotMp') {
     const keyMap = { slotMpJackpot: 0, slotMpDiamond: 1, slotMpStar: 2, slotMpBell: 3, slotMpCherry: 4 };
     const idx = keyMap[d.key];
