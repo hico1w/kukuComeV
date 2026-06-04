@@ -1447,10 +1447,16 @@
         <div id="agruEmotionMapGrid"
              style="display:flex;flex-direction:column;gap:4px;max-height:480px;overflow-y:auto;padding-right:2px">
         </div>
-        <button onclick="initAgruEmotionMapUI()"
-                style="margin-top:8px;padding:4px 14px;font-size:11px;background:#1e3a5f;color:#93c5fd;border:1px solid #1e40af;border-radius:4px;cursor:pointer">
-          表示を更新
-        </button>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button onclick="initAgruEmotionMapUI()"
+                  style="padding:4px 14px;font-size:11px;background:#1e3a5f;color:#93c5fd;border:1px solid #1e40af;border-radius:4px;cursor:pointer">
+            表示を更新
+          </button>
+          <button id="agruEmotionThumbBtn" onclick="toggleEmotionThumbs()"
+                  style="padding:4px 14px;font-size:11px;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:4px;cursor:pointer">
+            🖼 サムネ表示
+          </button>
+        </div>
       </div>
       <!-- 右：プレビュー -->
       <div id="agruPreviewPanel" style="display:none;width:500px;flex-shrink:0;position:sticky;top:0;text-align:center;padding:6px;background:rgba(88,28,135,0.15);border:1px solid rgba(192,132,252,0.15);border-radius:6px">
@@ -2998,6 +3004,41 @@
     });
   }
 
+  // 感情サムネ表示フラグ
+  let _emThumbVisible = false;
+
+  function _loadEmThumb(thumb) {
+    if (thumb.dataset.loaded) return;
+    thumb.dataset.loaded = '1';
+    const files = JSON.parse(thumb.dataset.files || '[]');
+    const em = thumb.dataset.em;
+    files.forEach(f => {
+      const img = document.createElement('img');
+      img.src = `/ageru/${encodeURIComponent(em)}/${encodeURIComponent(f)}`;
+      img.style.cssText = 'height:28px;border-radius:2px;';
+      thumb.appendChild(img);
+    });
+  }
+
+  function toggleEmotionThumbs() {
+    _emThumbVisible = !_emThumbVisible;
+    const btn = document.getElementById('agruEmotionThumbBtn');
+    if (btn) {
+      btn.textContent = _emThumbVisible ? '🖼 サムネ非表示' : '🖼 サムネ表示';
+      btn.style.background  = _emThumbVisible ? '#1e3a5f' : '#1e293b';
+      btn.style.color       = _emThumbVisible ? '#93c5fd' : '#94a3b8';
+      btn.style.borderColor = _emThumbVisible ? '#1e40af' : '#334155';
+    }
+    document.querySelectorAll('#agruEmotionMapGrid .em-thumb').forEach(thumb => {
+      if (_emThumbVisible) {
+        _loadEmThumb(thumb);
+        thumb.style.display = '';
+      } else {
+        thumb.style.display = 'none';
+      }
+    });
+  }
+
   // フォルダ感情行のトグル
   let _openEmotionRow = null;
   function _toggleEmotionFolderRow(em, row, files) {
@@ -3074,12 +3115,11 @@
       const thumb = document.createElement('div');
       thumb.className = 'em-thumb';
       thumb.style.cssText = 'display:flex;gap:2px;align-items:center;flex:1;overflow:hidden';
-      files.slice(0, 5).forEach(f => {
-        const img = document.createElement('img');
-        img.src = `/ageru/${encodeURIComponent(em)}/${encodeURIComponent(f)}`;
-        img.style.cssText = 'height:28px;border-radius:2px;';
-        thumb.appendChild(img);
-      });
+      thumb.dataset.em = em;
+      thumb.dataset.files = JSON.stringify(files.slice(0, 5));
+      // サムネは「サムネ表示」ボタンが押されるまで非表示・未読み込み
+      if (_emThumbVisible) _loadEmThumb(thumb);
+      else thumb.style.display = 'none';
 
       const arrow = document.createElement('span');
       arrow.className = 'em-arrow';
