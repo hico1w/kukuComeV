@@ -392,6 +392,7 @@ body {
   position: absolute;
   bottom: 6px;
   left: 6px;
+  z-index: 4;
   display: flex;
   flex-direction: row;
   gap: 0;
