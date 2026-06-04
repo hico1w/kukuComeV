@@ -849,6 +849,7 @@ function updateBossJiggleOverlay() {
   if (!imgFile) return;
   const cfg = jiggleConfig[imgFile];
   if (!cfg || !cfg.enabled) { updateBossPurupuru(); return; }
+  if (purupuruConfig[imgFile]?.enabled) { updateBossPurupuru(); return; }
   const baseImg = a.querySelector('img');
   if (!baseImg || !baseImg.complete || !baseImg.naturalWidth) return;
   const topPct   = cfg.top    ?? 35;
