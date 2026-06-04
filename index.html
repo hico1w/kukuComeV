@@ -243,6 +243,8 @@
     <a class="sidebar-link" href="#sec-font">🔤 フォント一覧</a>
     <a class="sidebar-link" href="#sec-media">🖼 メディア</a>
     <a class="sidebar-link" href="#sec-ageru">🌸 アゲルちゃん</a>
+    <a class="sidebar-link" href="#sec-ageru" style="padding-left:28px;font-size:11px">💕 好感度レベル</a>
+    <a class="sidebar-link" href="#sec-ageru" style="padding-left:28px;font-size:11px">📊 パラメータ増減</a>
     <a class="sidebar-link" href="#sec-titles">⭐ 称号一覧</a>
     <a class="sidebar-link" href="#sec-examples">💡 組み合わせ例</a>
     <a class="sidebar-link" href="#sec-cmdref">📋 コマンド一覧</a>
@@ -1288,7 +1290,8 @@
 
     <div class="purple-box" style="margin-bottom:16px">
       <b>星井野アゲル</b>はOllamaで動作するAI配信キャラです。会話モーダルを開くと視聴者コメントにリアルタイムで返答し、感情・好感度・画像生成・音楽再生などを行います。<br>
-      <b>カタカナ5文字のコメントはアゲルちゃんへ渡されません</b>（Wordleゲームとの競合を防ぐため）。
+      <b>カタカナ5文字のコメントはアゲルちゃんへ渡されません</b>（Wordleゲームとの競合を防ぐため）。<br>
+      会話履歴は<b>最大25往復</b>保持（古い会話から自動削除）。モーダルを閉じるとリセット。
     </div>
 
     <div class="feature-grid">
@@ -1296,66 +1299,123 @@
       <div class="feature-card">
         <div class="feature-card-title" style="color:#f472b6">💬 会話モーダル</div>
         <div class="feature-card-body">
-          幅870px × 高さ460pxの<b>半透明すりガラス</b>モーダル（rgba 0.45 + backdrop-filter:blur(14px)）。<br>
-          ヘッダーをドラッグして自由に移動でき、<b>位置はlocalStorageに保存</b>されます（次回起動時に復元）。<br>
-          左エリアにキャラ画像（グラデーションフレーム付き）、右エリアにチャットログ。チャットは<b>最新10件</b>を保持（古いものは自動削除）。<br>
-          キャラ画像の後ろに<code>ageru/haikei.png</code>をblur(4px)でぼかして背景表示。<b>パラメータメーターはキャラ画像左下にオーバーレイ表示</b>（半透明白背景）。
+          半透明すりガラスモーダル。ヘッダーをドラッグして移動、<b>位置は保存</b>されます。<br>
+          左エリアにキャラ画像（グラデーションフレーム付き）、右エリアにチャットログ。<br>
+          キャラ画像の後ろに<code>ageru/haikei.png</code>をぼかして背景表示。<br>
+          <b>パラメータメーターはキャラ画像左下</b>にオーバーレイ表示。幅・高さ・背景透明度・文字サイズは管理パネルから調整可能。
         </div>
       </div>
 
       <div class="feature-card">
         <div class="feature-card-title" style="color:#a78bfa">🤖 AI返答システム</div>
         <div class="feature-card-body">
-          Ollamaで動作。視聴者コメントを受け取り、<b>感情・好感度変化・？？変化・返答テキスト</b>の4行形式で返します。<br>
-          <b>感情は20種類</b>：安心・愛しさ・感謝・性的興奮・興奮・感動・好奇心・驚き・尊敬・不安・恐怖・困惑・冷静・軽蔑・殺意・悲しみ・諦め・苦しみ・嫉妬・恥。<br>
-          感情に対応したフォルダ（<code>public/ageru/感情名/</code>）から画像をランダム選択して表示。<br>
-          AIレスポンス形式：<code>[感情] / [好感度変化] / [？？変化] / [返答（40文字程度・日本語）]</code><br>
-          <b>ひこいち（配信者）への言及には極端に辛辣な返答</b>をするよう設定済み。
+          Ollamaで動作。コメントを受け取り<b>感情・好感度変化・❓変化・返答テキスト</b>の4行形式で返します。<br>
+          <b>感情20種</b>：安心・愛しさ・感謝・性的興奮・興奮・感動・好奇心・驚き・尊敬・不安・恐怖・困惑・冷静・軽蔑・殺意・悲しみ・諦め・苦しみ・嫉妬・恥。<br>
+          感情フォルダ（<code>public/ageru/感情名/</code>）から画像をランダム選択して表示。<br>
+          <b>ひこいち（配信者）への言及には辛辣な返答</b>をするよう設定済み。
         </div>
       </div>
 
-      <div class="feature-card">
+      <div class="feature-card" style="grid-column: span 2">
         <div class="feature-card-title" style="color:#fbbf24">📊 パラメータシステム</div>
         <div class="feature-card-body">
-          4つのパラメータを0〜100で管理。キャラ画像の<b>左下にオーバーレイで縦棒グラフ表示</b>（各パラメータを縦に積み上げた列が横並び）。<br>
-          <table style="margin:6px 0;border-collapse:collapse;width:100%;font-size:12px">
-            <tr style="border-bottom:1px solid rgba(255,255,255,0.2)"><td style="padding:3px 6px">💕♥</td><td style="padding:3px 6px"><b>好感度</b></td><td style="padding:3px 6px">称賛・好意→+1〜+5 / 侮辱・嫌悪→-1〜-10 / 普通の会話は0</td></tr>
-            <tr style="border-bottom:1px solid rgba(255,255,255,0.2)"><td style="padding:3px 6px">🍖◆</td><td style="padding:3px 6px"><b>空腹</b></td><td style="padding:3px 6px">時間経過で自動増加（空腹が増える）</td></tr>
-            <tr style="border-bottom:1px solid rgba(255,255,255,0.2)"><td style="padding:3px 6px">💤●</td><td style="padding:3px 6px"><b>眠気</b></td><td style="padding:3px 6px">時間経過で自動増加（眠くなる）</td></tr>
-            <tr><td style="padding:3px 6px">❓★</td><td style="padding:3px 6px"><b>？？</b></td><td style="padding:3px 6px">？？？な話題→+1〜+5 / ？を冷ます内容→-1〜-5 / 通常会話は0</td></tr>
+          4つのパラメータを0〜100で管理。キャラ画像左下にオーバーレイで<b>縦棒グラフ表示</b>。変化時はキャラ右上にポップアップ通知。<br>
+          <table style="margin:8px 0 4px;border-collapse:collapse;width:100%;font-size:12px">
+            <thead><tr style="background:rgba(255,255,255,0.06)">
+              <th style="padding:5px 8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.15)">パラメータ</th>
+              <th style="padding:5px 8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.15)">自然変化</th>
+              <th style="padding:5px 8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.15)">上げる方法</th>
+              <th style="padding:5px 8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.15)">限界効果</th>
+            </tr></thead>
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.06)">
+              <td style="padding:5px 8px">💕 <b>好感度</b></td>
+              <td style="padding:5px 8px">AIが会話内容を判断して増減<br><span style="color:#64748b">称賛・好意→+1〜+5<br>侮辱・嫌悪→-1〜-10</span></td>
+              <td style="padding:5px 8px"><span class="variant">カフェオレ投与</span><span style="color:#64748b"> MP-50で+20</span></td>
+              <td style="padding:5px 8px">レベルで口調・態度が変化（下記参照）</td>
+            </tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.06)">
+              <td style="padding:5px 8px">🍖 <b>空腹</b></td>
+              <td style="padding:5px 8px">時間経過で<b>減少</b><br><span style="color:#64748b">1時間でほぼ0になる速度</span></td>
+              <td style="padding:5px 8px">
+                <span class="variant">肉投与</span><span style="color:#64748b"> +30</span><br>
+                <span class="variant">寿司投与</span><span style="color:#64748b"> +20</span><br>
+                <span class="variant">たばこ投与</span><span style="color:#64748b"> +10</span>
+              </td>
+              <td style="padding:5px 8px">50以下→空腹言及 / 30以下→生命の危機 / <b>0→死亡</b>（10コメで復活）</td>
+            </tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.06)">
+              <td style="padding:5px 8px">💤 <b>眠気</b></td>
+              <td style="padding:5px 8px">時間経過で<b>増加</b><br><span style="color:#64748b">3時間で100になる速度</span></td>
+              <td style="padding:5px 8px">
+                <span class="variant">エナドリ</span><span style="color:#64748b"> -30</span><br>
+                <span class="variant">起きろ</span><span style="color:#64748b"> -10</span><br>
+                <span class="variant">たばこ投与</span><span style="color:#64748b"> -10</span>
+              </td>
+              <td style="padding:5px 8px">90超→極度に眠い（返答に眠さが出る）</td>
+            </tr>
+            <tr>
+              <td style="padding:5px 8px">❓ <b>？？</b></td>
+              <td style="padding:5px 8px">AIが会話内容を判断して増減<br><span style="color:#64748b">±5の範囲</span></td>
+              <td style="padding:5px 8px"><span style="color:#64748b">えっちな話題で上昇</span></td>
+              <td style="padding:5px 8px"><b>80超→返答が性欲まみれに</b> ♡マーク使用</td>
+            </tr>
           </table>
-          パラメータに変化があると<b>ポップアップ通知</b>がキャラ右上に表示（上昇時↑に浮上・下降時↓に沈降、2.6秒フェードアウト）。<br>
-          会話履歴は最大100往復保持。モーダルを閉じるとリセット。
+          <div class="warn-box" style="margin-top:6px;font-size:12px">
+            💡 投与コマンド（肉投与・エナドリ等）はチャットバブルに表示されず、<b>システムメッセージ</b>として表示されます。AIへの返答要求はしません。<br>
+            <span class="variant">水道水投与</span> MP-10 → 好感度-5（嫌がらせ用）
+          </div>
         </div>
       </div>
 
       <div class="feature-card">
-        <div class="feature-card-title" style="color:#f472b6">📷 自撮りコマンド（SD画像生成）</div>
+        <div class="feature-card-title" style="color:#ec4899">💕 好感度レベル別 態度変化</div>
         <div class="feature-card-body">
-          コメントに<b>自撮り</b>を含めるとStable Diffusionでアゲルちゃんの画像を生成してチャットに表示します。<br>
-          基本プロンプト（LoRA・外見タグ）は管理パネルの「自撮り基本プロンプト」で設定可能。<br>
-          <b>生成中は新たなコメントをすべて無視</b>（ロック）。画像表示完了後にロック解除→コメント待ちへ移行。<br>
-          追加テキストがある場合（例：「自撮り 笑顔で」）は英語に翻訳してからプロンプトと結合。
+          <table style="border-collapse:collapse;width:100%;font-size:12px">
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.06)"><td style="padding:4px 8px;width:70px"><b style="color:#f87171">0〜20</b></td><td style="padding:4px 8px">不機嫌、短く冷たい、嫌悪感をにじませる</td></tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.06)"><td style="padding:4px 8px"><b style="color:#fb923c">21〜40</b></td><td style="padding:4px 8px">やや低い、素っ気なく冷たい</td></tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.06)"><td style="padding:4px 8px"><b style="color:#94a3b8">41〜60</b></td><td style="padding:4px 8px">普通、標準的な態度</td></tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.06)"><td style="padding:4px 8px"><b style="color:#4ade80">61〜80</b></td><td style="padding:4px 8px">高め、親しみやすく笑顔の多い返答</td></tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.06)"><td style="padding:4px 8px"><b style="color:#f472b6">81〜90</b></td><td style="padding:4px 8px">かなり高い、積極的に好意を示す、甘えた語り口</td></tr>
+            <tr><td style="padding:4px 8px"><b style="color:#e879f9">91〜100</b></td><td style="padding:4px 8px">最大、まれに「好き」と言う</td></tr>
+          </table>
+          <div style="margin-top:6px;font-size:12px;color:#64748b">
+            初期値は30。管理パネルから直接セットも可能。
+          </div>
         </div>
       </div>
 
       <div class="feature-card">
-        <div class="feature-card-title" style="color:#f87171">🎵 YouTube再生</div>
+        <div class="feature-card-title" style="color:#f472b6">📷 画像コマンド（SD画像生成）</div>
         <div class="feature-card-body">
-          コメントに<b>曲</b>または<b>歌</b>が含まれると<code>@hico1w/videos</code>からランダムに1動画を再生。<br>
-          <b>専用YouTubeモーダル</b>（435×245px）がフローティング表示。ドラッグ可能で<b>位置保存</b>あり。<br>
-          <b>動画終了時に自動クローズ</b>（YouTube postMessage API経由）。<br>
-          コメントに<b>止めて</b>が含まれると即停止。次の動画を再生すると前の動画は自動削除。<br>
-          YouTube再生中はBGMを一時停止し、モーダルが閉じると自動的にBGMを再開。
+          コメントに以下のキーワードを含めるとStable Diffusionで画像を生成してチャットに表示します。<br>
+          <div class="cmd-variants" style="margin:6px 0">
+            <span class="variant">自撮り</span><span class="variant">写真</span><span class="variant">出ろ</span><span class="variant">出して</span><span class="variant">生成</span><span class="variant">gen</span>
+          </div>
+          基本プロンプト（LoRA・外見タグ）は管理パネルで設定。<b>生成中はコメントを無視</b>（ロック）。<br>
+          追加テキストがある場合は英語に翻訳してプロンプトと結合。<br>
+          管理パネルの<b>「画像コマンド 許可/無視」</b>ボタンで画像生成機能をON/OFFできます。
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#f87171">📺 YouTube再生</div>
+        <div class="feature-card-body">
+          <b>パターン①：コメントにURLを貼る</b><br>
+          YouTube URLをコメントに貼るとそのまま再生。<b>MP+20</b>。同じ動画2回目は「もうみた」と返答。<br>
+          <code>?t=秒数</code>付きURLは<b>その時刻から再生</b>開始（例：<code>youtu.be/xxxxx?t=90</code>）。<br><br>
+          <b>パターン②：曲・歌リクエスト</b><br>
+          コメントに<span class="variant">曲</span><span class="variant">歌</span>が含まれると登録済みプレイリストからランダム再生。<br><br>
+          YouTubeモーダルはドラッグ可能・位置保存あり。<span class="variant">止めて</span>で即停止。<br>
+          幅・高さ・音量は管理パネルからリアルタイム変更可能。
         </div>
       </div>
 
       <div class="feature-card">
         <div class="feature-card-title" style="color:#22c55e">🎵 BGM</div>
         <div class="feature-card-body">
-          会話モーダルを開くと<code>ageru/oto/bgm.mp3</code>を<b>ループ再生</b>（フェードイン2秒）。<br>
-          モーダルを閉じると<b>フェードアウト1秒</b>して停止。YouTube再生時はフェードアウトして一時停止、YouTube終了後にフェードイン再開。<br>
-          BGM音量・YouTube音量はそれぞれ管理パネルから設定可能（0〜100%）。
+          会話モーダルを開くと<code>ageru/oto/bgm.mp3</code>をループ再生（フェードイン2秒）。<br>
+          モーダルを閉じるとフェードアウト1秒で停止。YouTube再生中は一時停止し、YouTube終了後に再開。<br>
+          BGM音量・YouTube音量は管理パネルで別々に設定可能（0〜100%）。
         </div>
       </div>
 
@@ -1370,19 +1430,20 @@
       <div class="feature-card">
         <div class="feature-card-title" style="color:#fb923c">⏱ アイドル動作</div>
         <div class="feature-card-body">
-          返答後は設定した秒数待ってコメント待ちモードへ移行。画像生成時はより長いタイムアウトを使用。<br>
-          アイドル時間が続くと定期的にアゲルちゃんが自発的にコメントをします。<br>
-          <b>コメント待ちモード中のみ新しいコメントを受け付け</b>ます。自撮りロック中はすべてのコメントを無視。
+          返答後は設定した秒数待ってコメント待ちモードへ移行。<b>コメント待ちモード中のみ</b>新しいコメントを受け付けます。<br>
+          アイドル時間が続くとアゲルちゃんが自発的にコメントします。<br>
+          画像生成ロック中はすべてのコメントを無視。
         </div>
       </div>
 
     </div>
 
     <div class="info-box" style="margin-top:16px">
-      <b>フォルダ構成</b>：<code>public/ageru/感情名/</code>に画像を入れると感情に対応した画像として自動認識。<code>public/ageru/oto/bgm.mp3</code>がBGM、<code>public/ageru/oto/pop.mp3</code>がチャットポップ音。<br>
+      <b>フォルダ構成</b>：<code>public/ageru/感情名/</code>に画像を入れると感情に対応した画像として自動認識。特殊フォルダ：<code>dead/</code>（空腹0）・<code>sleep/</code>（眠気100）・<code>horny/</code>（❓80超）。<br>
+      <code>public/ageru/oto/bgm.mp3</code>がBGM、<code>public/ageru/oto/pop.mp3</code>がチャットポップ音。<br>
       <b>デフォルト画像</b>：管理パネルの「アゲルちゃん設定」から初期表示画像を選択可能。<br>
-      <b>パラメータ管理</b>：管理パネルから各パラメータを直接セット可能。値をセットするとポップアップ通知も表示。<br>
-      <b>セキュリティ</b>：会話モーダルへのアクセスは配信者のみ。視聴者はコメントを通じてのみ会話に参加。
+      <b>パラメータ管理</b>：管理パネルから各パラメータを直接セット可能。<br>
+      <b>注意</b>：カタカナ5文字・ペットガチャ・スロット・タイマン・歩く等のゲームコマンドはアゲルちゃんに渡されません。
     </div>
   </div>
 
