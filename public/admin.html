@@ -1082,6 +1082,11 @@
            style="width:65px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
            onchange="sendAgruText('agruCharImgHeight',this.value)">
     <span style="font-size:11px;color:#64748b">px</span>
+    <span class="size-label" style="margin-left:8px">拡大率</span>
+    <input id="agruCharImgScaleInput" type="number" min="0.5" max="3" step="0.05" value="1"
+           style="width:55px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"
+           oninput="sendAgruText('agruCharImgScale',this.value)">
+    <span style="font-size:11px;color:#64748b">x</span>
   </div>
   <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
     <label style="font-size:11px;color:#94a3b8;min-width:72px">手振れ強度</label>
@@ -2120,6 +2125,7 @@
     if (s.agruModalWidth      !== undefined) { const el = document.getElementById('agruModalWidthInput'); if (el) el.value = s.agruModalWidth; }
     if (s.agruModalHeight     !== undefined) { const el = document.getElementById('agruModalHeightInput'); if (el) el.value = s.agruModalHeight; }
     if (s.agruCharImgHeight   !== undefined) { const el = document.getElementById('agruCharImgHeightInput'); if (el) el.value = s.agruCharImgHeight; }
+    if (s.agruCharImgScale    !== undefined) { const el = document.getElementById('agruCharImgScaleInput');  if (el) el.value = s.agruCharImgScale; }
     if (s.agruModalBgOpacity  !== undefined) { const el = document.getElementById('agruModalBgOpacityInput'); if (el) { el.value = s.agruModalBgOpacity; const v = document.getElementById('agruModalBgOpacityVal'); if (v) v.textContent = s.agruModalBgOpacity + '%'; } }
     if (s.agruChatImgSize     !== undefined) { const el = document.getElementById('agruChatImgSizeInput'); if (el) el.value = s.agruChatImgSize; }
     if (s.agruDefaultImage !== undefined) {

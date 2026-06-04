@@ -374,7 +374,7 @@ const SETTINGS_KEYS = [
   'agruVoicevoxEnabled','agruVoicevoxSpeaker','agruVoicevoxSpeed','agruVoicevoxVolume',
   'agruSdWidth','agruSdHeight','agruSdSteps','agruSdCfgScale','agruSdPositiveSuffix','agruIdleDelay','agruIdleDelayImage',
   'agruChatFontSize','agruChatBold','agruFontLeft','agruFontRight','agruCharTags','agruYtVolume','agruBgmVolume','agruYtWidth','agruYtHeight','agruYtOpacity','agruYtEnabled','agruModalZ',
-  'agruModalWidth','agruModalHeight','agruModalBgOpacity','agruChatImgSize','agruCharImgHeight',
+  'agruModalWidth','agruModalHeight','agruModalBgOpacity','agruChatImgSize','agruCharImgHeight','agruCharImgScale',
   'bombHidden','trashHidden','charStatsHidden','breatheDisabled','agruImgCmdEnabled',
   'afkOpacity','afkGrayscale','afkBrightness',
 ];
@@ -5601,6 +5601,16 @@ let agruChatImgSize      = parseInt(localStorage.getItem('agruChatImgSize')    ?
 document.documentElement.style.setProperty('--agru-chat-img-maxh', agruChatImgSize + 'px');
 let agruCharImgHeight    = parseInt(localStorage.getItem('agruCharImgHeight')  ?? '360');
 document.documentElement.style.setProperty('--agru-char-img-height', agruCharImgHeight + 'px');
+let agruCharImgScale     = parseFloat(localStorage.getItem('agruCharImgScale') ?? '1');
+
+function _agruApplyCharScale() {
+  const img = document.getElementById('agruCharImg');
+  if (!img || img._agruSliding) return;
+  const tf = agruCharImgScale !== 1 ? `scale(${agruCharImgScale})` : '';
+  img.style.transform = tf;
+  const cv = img.parentElement?.querySelector('.puru-canvas');
+  if (cv) cv.style.transform = tf;
+}
 let _agruSelfieLocked    = false;
 let agruIdleDelay        = parseInt(localStorage.getItem('agruIdleDelay')) || 10;
 let agruIdleDelayImage   = parseInt(localStorage.getItem('agruIdleDelayImage')) || 30;
@@ -5642,21 +5652,22 @@ function _agruSlideImage(newSrc) {
   clone.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:center top;pointer-events:none;z-index:5;transition:transform 0.35s ease';
   bg.appendChild(clone);
 
+  const _s = agruCharImgScale !== 1 ? `scale(${agruCharImgScale}) ` : '';
   img.style.transition = 'none';
-  img.style.transform  = 'translateX(110%)';
+  img.style.transform  = `${_s}translateX(110%)`;
   img.src = newSrc;
 
   const doSlide = () => {
     requestAnimationFrame(() => {
       clone.style.transform = 'translateX(-110%)';
       img.style.transition  = 'transform 0.35s ease';
-      img.style.transform   = 'translateX(0)';
+      img.style.transform   = `${_s}translateX(0)`;
     });
     clone.addEventListener('transitionend', () => {
       clone.remove();
       img.style.transition = '';
-      img.style.transform  = '';
       img._agruSliding     = false;
+      _agruApplyCharScale();
       updateAgruPurupuru();
     }, { once: true });
   };
@@ -6341,7 +6352,8 @@ function _agruStartShake() {
     const img = document.getElementById('agruCharImg');
     if (!img || img._agruSliding) return;
     const _a = agruShakeAmp;
-    const tf = `translate(${((Math.sin(t*1.3)*0.55+Math.sin(t*2.7)*0.30+Math.sin(t*0.9)*0.15)*_a).toFixed(2)}px,${((Math.sin(t*1.7)*0.55+Math.sin(t*3.1)*0.30+Math.sin(t*1.1)*0.15)*_a).toFixed(2)}px) rotate(${(Math.sin(t*0.8)*0.18*_a/2).toFixed(3)}deg)`;
+    const _scl = agruCharImgScale !== 1 ? `scale(${agruCharImgScale}) ` : '';
+    const tf = `${_scl}translate(${((Math.sin(t*1.3)*0.55+Math.sin(t*2.7)*0.30+Math.sin(t*0.9)*0.15)*_a).toFixed(2)}px,${((Math.sin(t*1.7)*0.55+Math.sin(t*3.1)*0.30+Math.sin(t*1.1)*0.15)*_a).toFixed(2)}px) rotate(${(Math.sin(t*0.8)*0.18*_a/2).toFixed(3)}deg)`;
     img.style.transform = tf;
     const cv = img.parentElement?.querySelector('.puru-canvas');
     if (cv) cv.style.transform = tf;
@@ -6351,12 +6363,7 @@ function _agruStartShake() {
 
 function _agruStopShake() {
   if (_agruShakeRAF) { cancelAnimationFrame(_agruShakeRAF); _agruShakeRAF = null; }
-  const img = document.getElementById('agruCharImg');
-  if (img && !img._agruSliding) {
-    img.style.transform = '';
-    const cv = img.parentElement?.querySelector('.puru-canvas');
-    if (cv) cv.style.transform = '';
-  }
+  _agruApplyCharScale();
 }
 
 async function openAgruModal() {
@@ -9227,6 +9234,7 @@ function handleAdminMessage(d, replyFn) {
     state.agruModalBgOpacity     = agruModalBgOpacity;
     state.agruChatImgSize        = agruChatImgSize;
     state.agruCharImgHeight      = agruCharImgHeight;
+    state.agruCharImgScale       = agruCharImgScale;
     state.autoDeleteMinutes   = autoDeleteMinutes;
     state.fiveMinMode   = fiveMinMode;
     state.brAutoEnabled = brAutoEnabled;
@@ -9364,6 +9372,7 @@ function handleAdminMessage(d, replyFn) {
     if (d.key === 'agruModalBgOpacity')     { agruModalBgOpacity = parseInt(d.value) ?? 45; const _mc = document.querySelector('#agruModal .agru-modal'); if (_mc) _mc.style.background = `rgba(255,248,251,${agruModalBgOpacity / 100})`; }
     if (d.key === 'agruChatImgSize')        { agruChatImgSize = parseInt(d.value) || 350; document.documentElement.style.setProperty('--agru-chat-img-maxh', agruChatImgSize + 'px'); }
     if (d.key === 'agruCharImgHeight')      { agruCharImgHeight = parseInt(d.value) || 360; document.documentElement.style.setProperty('--agru-char-img-height', agruCharImgHeight + 'px'); }
+    if (d.key === 'agruCharImgScale')       { agruCharImgScale = parseFloat(d.value) || 1; _agruApplyCharScale(); }
     const elMap = { agruSystem: 'agruSystemInput' };
     const el = elMap[d.key] ? document.getElementById(elMap[d.key]) : null;
     if (el) el.value = d.value;

@@ -345,6 +345,7 @@ body {
   width: 100%;
   object-fit: cover;
   object-position: center top;
+  transform-origin: center top;
   transition: opacity 0.4s;
   border-radius: 12px;
   display: block;
