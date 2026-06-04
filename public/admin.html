@@ -2149,7 +2149,25 @@
     if (s.charEquipOffsetX !== undefined) { document.getElementById('charEquipXSlider').value = s.charEquipOffsetX; document.getElementById('charEquipXVal').textContent = s.charEquipOffsetX + 'px'; }
     if (s.charEquipOffsetY !== undefined) { document.getElementById('charEquipYSlider').value = s.charEquipOffsetY; document.getElementById('charEquipYVal').textContent = s.charEquipOffsetY + 'px'; }
     if (s.jiggleConfig) { try { _jiggleAllConfig = JSON.parse(s.jiggleConfig); } catch(e) {} }
-    if (s.purupuruConfig) { try { _puruAllConfig = JSON.parse(s.purupuruConfig); } catch(e) {} }
+    if (s.purupuruConfig) {
+      try {
+        _puruAllConfig = JSON.parse(s.purupuruConfig);
+        // グリッドが既に描画済みなら緑ドットを更新
+        const _grid = document.getElementById('puruImgGrid');
+        if (_grid && _grid.querySelector('[data-file]')) {
+          _grid.querySelectorAll('[data-file]').forEach(item => {
+            const f = item.dataset.file;
+            const nameEl = item.querySelector('div:last-child');
+            if (!nameEl) return;
+            const has = !!(_puruAllConfig[f]?.enabled);
+            const dot = has ? '<span style="color:#4ade80;font-size:9px">●</span> ' : '';
+            const label = f.startsWith('__agru__/') ? f.slice('__agru__/'.length) : f;
+            nameEl.innerHTML = dot + label;
+          });
+          _puruApplyHideFilter();
+        }
+      } catch(e) {}
+    }
     if (s.petSizeScale !== undefined) { const v = Math.round(s.petSizeScale * 100); document.getElementById('petSizeSlider').value = v; document.getElementById('petSizeVal').textContent = v + '%'; }
     if (s.petAspectExp !== undefined) { document.getElementById('petAspectExpSlider').value = s.petAspectExp; document.getElementById('petAspectExpVal').textContent = parseFloat(s.petAspectExp).toFixed(2); }
     if (s.petPortraitBoost !== undefined) { document.getElementById('petPortraitBoostSlider').value = s.petPortraitBoost; document.getElementById('petPortraitBoostVal').textContent = parseFloat(s.petPortraitBoost).toFixed(2); }
