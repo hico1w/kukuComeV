@@ -593,4 +593,86 @@ ollamaはコメントに対して150文字程度で回答。回答の内容の�
 
 
 モーダルのキャラ画像はモーダル内で上寄せ。
+
+
+キャラ画像の下の「返答中...」、コメント待ち...は消す。
+返答中はチャット欄で入力中のように...を動かす。
+コメント待ち中は右で...を動かす。
+コメント待ち中に移行するのは、アゲルちゃんが返信を返してから10秒たったとき。
+
+
 キャラ画像の下にはアゲルちゃんの好感度を表示。
+ハートマークで10段階表示。
+好感度はコメントによって上下する。
+好感度によってアゲルちゃんの返答内容が好意的、嫌悪的になる。
+
+好感度は内部的には100で管理して。好感コメントなら好感度を+1~5、嫌悪コメントだったら-1~-10とする。
+
+会話モードに機能追加
+アゲルちゃんにパラメータ追加
+・空腹度
+100から開始、時間経過で減少。
+1時間で0になる速度で減少する。
+肉投与、寿司投与、たばこ投与がコメントにあったら回復する。
+肉投与なら+30、寿司投与で+20、たばこで+10
+空腹度が50以下になったらお腹がすいたことを回答に含める
+空腹度が30以下になったら空腹で生命の危機であることを回答に含める
+空腹度が0になったら死亡。「・・・」としか回答しなくなる。
+死んだとき用の画像を格納するフォルダをE:\claude\kukuCome\public\ageruに作成
+
+・眠気度
+0から開始、時間経過で増加。
+3時間で100になる速度で増加。
+起きろ、たばこ、エナドリがコメントにあったら減少する。
+起きろで-10、たばこで-10、エナドリで-30。
+眠気度が90を超えたら眠いことを回答に含める。
+100になったら睡眠状態になる。「・・・ｚｚｚ」としか回答しなくなる。
+チャットが5回きたら目覚めて通常通り回答する。
+睡眠用の画像を格納するフォルダをE:\claude\kukuCome\public\ageruに作成
+
+性欲度
+30から開始、チャットによって増減。
+80を超えたら発情モードになり、回答が性欲まみれになる。
+発情モード用の画像を格納するフォルダをE:\claude\kukuCome\public\ageruに作成
+
+空腹度、眠気度、性欲度、好感度を操作できる機能を管理パネルに追加（デバッグ用）
+
+2時
+1girl,(burgundy hair:1.3),(aegyo sal:1.2),blue eyes,grey eyes,multicolored eyes,red eyeliner,(colored inner hair:1.2),long hair,(white streaked hair white streaked bangs:1.2),anime coloring,long hair,black bow,cat ears,bangs,necklace,cross,fang,two side up,lower eyelashes,white streaked hair,eyelashes,blush,virtual youtuber,earrings,detailed,shiny skin,hair ribbon,cross hair ornament,ring,__expression__,looking at viewer,clothing,wide hips,large breasts,<lora:Cosmic Princess Kaguya anime [Style]-Illus:1.3>,
+3時あげるコス
+raw photo,(realistic:1.5),photo,photorealistic,(high contrast:1.3),best quality,cosplay photo,portrait,(burgundy hair:1.3),(aegyo sal:1.2),multicolored eyes,red eyeliner,(colored inner hair:1.2),long hair,(white streaked hair:1.2),blue eyes,idol,korean girl,
+jewelry,hat,multicolored hair,black bow,cat ears,bangs,necklace,bowtie,cross,two side up,lower eyelashes,grey eyes,eyelashes,blush,(film grain:1.4),(cleavage:1.3),virtual youtuber,miniskirt,thighhighs,garter straps,earrings,fishnet top,detailed,wide hips,narrow waist,shiny skin,transparent see-through labcoat,black pleated skirt,off shoulder,(burgundy camisole:1.2),button gap,hair ribbon,thin chain belt,cross hair ornament,ring,loli,detailed,syringe belt,star belt,side-tie bikini bottom,side slit,mole,depth of field,chromatic_aberration,yazhougirl,shy,large breasts,
+3時中
+(realistic:1.5),(photo:1.5),(photorealistic:1.5),raw photo,(high contrast:1.5),masterpiece,best quality,portrait,(aegyo sal:1.2),idol,bangs,blush,(film grain:1.5),loli,mole,depth of field,chromatic_aberration,shy,
+real skin,(mole:0.7),real skin texture,(button gap:0.8),black eyes,looking at viewer,hair over eyes,long hair,large breasts,eyewear,
+
+
+
+・死亡中にチャットが10回きたら復活。
+
+・好感度と同じように各パラメータを表示して。
+
+・パラメータに変化があった時は「好感度↑」「空腹↓」みたいにテキストをポップして。それぞれのパラメータにあった色、絵文字で
+
+https://hothukurou.com/game/Purupuru/index.html
+上記の画像をぷるぷるさせる機能を実装したい。
+上記に加えて、揺らすポイントを8か所個別に設定できるようにして。
+管理パネルに追加し、キャラ、ボス、会話モードのキャラ画像を揺らせるようにしたい。
+
+・肉投与など空腹、眠気を回復するコマンドはチャットに表示せずカフェオレ投与コマンドと同様にシステムメッセージのように表示して。
+・アゲルちゃんの履歴はいま50往復だけど、25往復に変更。
+・youtubeの幅、高さ変更、音量変更はリアルタイムに反映して。また時間指定付きのURLの場合はその時間から再生開始して
+・キャラのステータス非表示ボタンを管理パネルに追加。
+・画像コマンド許可/無視ボタンを管理パネルに追加。
+
+・アゲルちゃんLoRAの作成依頼
+アゲルちゃんの画像はたくさんあるんだけど、stable diffusion用のLora作れる？
+
+会話モードのアゲルちゃん画像切り替え時、自然にスムーズに切り替える方法あるかな？提案して
+
+管理パネルぷるぷる設定
+揺れポイントの値は最後に編集した値をデフォルト値として、次の画像の設定にもすぐ使えるようにする。
+ぷるぷる有効済の画像は非表示するボタンを追加。
+プレビューにエリア指定非表示ボタン追加。P1とかP2で画像が見えなくなるため。
+
+ステージのキャラがゆっくり拡大縮小している（呼吸アニメーション？）は管理パネルからOFFにできるようにして

@@ -2,6 +2,317 @@
 
 ---
 
+## v2.486.0 — 2026-06-07
+
+### もじあて・クイズ・ダメージ/MPランキングをミュートカラーにリデザイン
+
+- `public/style.css`: 各パネルの配色をビビッドカラーからくすんだピンク・パープル・ブルー系に統一
+  - **もじあてパネル** (`#wordlePanel`): ボーダーを赤→ミュートパープル、ヘッダーをグレー→ラベンダー、セルの正解色を緑→ティール系、不正解色をアンバー→くすみアンバー
+  - **もじあて勝利バナー** (`.wordle-win-banner`): ボーダーを水色→ミュートパープル、背景をネイビー→ダークパープル
+  - **クイズパネル** (`#quizPanel`): ボーダーをビビッドブルー→ミュートインディゴ、ヘッダーをスカイブルー→パープル系、正解色をグリーン→ティール、優勝色をアンバー→くすみアンバー、タイムアップをレッド→ダスティローズ
+  - **ダメージランキング** (`#rankingPanel`): ボーダーをレッド→ミュートパープル、DMGヘッダーをレッド→ダスティローズ (`#c08898`)、MPヘッダーをシアン→スレートブルー (`#8898c8`)、数値色も同様に変更
+
+---
+
+## v2.485.0 — 2026-06-07
+
+### YouTube/SunoモーダルのZ-indexを管理パネルから設定可能に
+
+- `public/app.js`: `agruYtModalZ` 変数を追加（デフォルト400、localStorage永続化）
+- `public/app.js`: `SETTINGS_KEYS` に `agruYtModalZ` を追加
+- `public/app.js`: `_agruOpenYtModal` / `_agruOpenSunoModal_inner` 両関数でモーダル表示時に `agruYtModalZ` を適用
+- `public/app.js`: state送信・受信ハンドラに `agruYtModalZ` を追加（リアルタイム反映）
+- `public/admin.html`: 「会話モーダルZ」の行に「YT/SunoモーダルZ」入力欄を並べて追加（`agruYtModalZInput`）
+- `public/admin.html`: 設定復元時に `agruYtModalZInput` に値を反映
+
+---
+
+## v2.484.0 — 2026-06-07
+
+### 会話モード・YouTube/Sunoモーダルヘッダーをブラウザフレーム風にリデザイン
+
+- `public/style.css`: `.agru-modal-header`（会話モード）をくすんだピンク→パープル→スレートブルーのグラデーションに変更
+  - 旧: 鮮やかなホットピンク (`#f472b6 → #db2777`)
+  - 新: ミュートなモーブ→インディゴ系 (`#a07090 → #7278c0`)
+- `public/style.css`: `.agru-yt-modal-header`（YouTube/Suno共通）をくすんだスレートブルー→ダスティパープルに変更
+  - 旧: 鮮やかなホットピンク (`#f472b6 → #db2777`)
+  - 新: ミュートなインディゴ→モーブ系 (`#526aa0 → #7a5898`)
+- 両ヘッダーの閉じるボタンをブラウザ風の丸形に統一（内側ハイライト・半透明スタイル）
+
+---
+
+## v2.483.0 — 2026-06-07
+
+### 画像コマンド無視設定を非会話モードにも適用
+
+- `public/app.js`: 非会話モードの「出ろ/出して/生成/gen」コマンド処理（line 4199付近）に `agruImgCmdEnabled` チェックを追加
+  - 変更前: 「画像コマンド 無視」設定は会話モード（`_agruSend`）のみ有効で、通常コメントの画像コマンドは無視設定に関係なく実行されていた
+  - 変更後: `agruImgCmdEnabled` が false の場合、会話モード・非会話モードのどちらでも画像コマンドを完全に無視
+
+---
+
+## v2.482.0 — 2026-06-06
+
+### SD生成 — 幅・高さが反映されない問題を修正
+
+- `server.js`: `_sdFetchDefaults` の Width/Height ラベル検出を「最後の一致」から「最初の一致」に変更
+  - 根本原因: Forge では ControlNet 等の拡張機能が後方に同名スライダーを追加するため、最後の Width/Height（index=161/162）は拡張機能のものだった。本物の txt2img Width/Height は先頭付近にある
+  - 起動時に `sd_defaults.json` を削除して新しい検出ロジックで必ず再取得するよう変更
+  - `idxMap` なしキャッシュも無効化して強制再フェッチ
+
+---
+
+## v2.481.0 — 2026-06-06
+
+### アゲルちゃん — 会話モードの画像コマンドでOllamaアンロード完了後にSD生成開始するよう修正
+
+- `app.js`: `_agruSendMessage` 内の `ai-unload` フェッチを fire-and-forget から `await` に変更
+  - 変更前: アンロードリクエストを投げっぱなしにして即SD生成開始 → GPU VRAM競合の可能性
+  - 変更後: アンロード完了を待ってからSD生成開始 → Ollamaがメモリを解放した後にSDが実行される
+
+---
+
+## v2.480.0 — 2026-06-06
+
+### アゲルちゃん — 自撮り SD 設定が反映されない問題を修正
+
+- `app.js`: `_sdReadSettings()` のフォールバック値をハードコードから同期済み JS 変数に変更
+  - `cfgScale`: DOM `sdCfgScaleInput` が存在しない場合 `3` 固定 → `sdCfgScale` 変数を参照
+  - `sampler`: DOM `sdSamplerInput` が存在しない場合 `'Euler a'` 固定 → `sdSampler` 変数を参照
+  - `negative`: DOM `sdNegativeInput` が存在しない場合 `''` 固定 → `sdNegative` 変数を参照
+  - `positiveSuffix` / `mosaicKeywords` / `mosaicBlock` / `steps` / `width` / `height` / `displayTime` も同様に変数参照に統一
+  - `index.html` ではこれらの DOM 要素が存在しないため、admin から localStorage 経由で同期された設定が使われるようになった
+
+### アゲルちゃん — 会話モード SD生成設定の幅・高さが適用されない問題を修正
+
+- `app.js`: `agruSdWidth` / `agruSdHeight` の初期値を `|| 512` から `|| 0` に変更
+  - 0 = グローバル SD 設定を使用（steps/cfgScale と同じ挙動に統一）
+  - 未設定のまま生成すると 512 が常に使われてグローバル設定が無視される問題を解消
+  - WebSocket 受信時のパース `|| 512` も `|| 0` に統一
+- `admin.html`: 幅・高さ入力の `value="512"` を廃止し `placeholder="SD設定値"` に変更
+  - 空欄 = グローバル設定使用であることを steps/CFG と統一した UI で明示
+  - 状態ロード時、値が 0 のとき空欄を表示するよう修正（`el.value = s.agruSdWidth || ''`）
+  - `app.js`: 初回ロード時に旧デフォルト '512' が localStorage に残っている場合を除去するマイグレーション追加
+    - `_agruSdSizeReset` フラグが未設定の場合のみ `agruSdWidth` / `agruSdHeight` をクリア（一度だけ実行）
+    - 以降は admin で明示的に設定した値のみ有効
+  - `app.js`: `_agruGenerateSDImage` の幅・高さ読み取りを localStorage 直接参照方式に変更
+    - `agruSdWidth` JS 変数（WebSocket 受信タイミングに依存）→ `localStorage.getItem('agruSdWidth')` を直接読む
+    - admin.html の `sendAgruText` は localStorage と WebSocket を同時に書き込むため、WebSocket 未到達でも確実に最新値を反映
+    - ログに使用中の幅・高さを表示（例：`📷 画像生成中: prompt (768x768)`）
+
+---
+
+## v2.477.0 — 2026-06-06
+
+### SD画像生成 — Gradio config ベースで完全修正
+
+- `server.js`: `_sdFetchDefaults()` を `/config` エンドポイントベースに全面書き換え
+  - `/info` は隠し state コンポーネントを除外した誤った順番でパラメータを返していた
+  - `/config` の `dependencies[fn_index].inputs`（実際のコンポーネントID順）から正しい defaults と idxMap を構築
+  - Width/Height が位置7/8 → **161/162** に移動していたことを検出・修正（SD更新で変わっていた）
+  - 起動時・リクエスト時に自動再取得、SD更新後も自動対応
+- `sd_defaults.json`: 正しい252個の defaults + idxMap で再生成
+
+---
+
+## v2.476.0 — 2026-06-06
+
+### SD画像生成 — WebSocket をやめて Gradio HTTP API（/api/predict）に切り替え
+
+- `server.js`: Gradio WebSocket（`/queue/join`）を完全廃止し `POST /api/predict` に変更
+  - WebSocket の `success: false` 問題を根本解決
+  - `--api` フラグ不要、Gradio バージョン問わず動作
+  - `url` / `data` / `name` の3形式の画像レスポンスに対応
+
+---
+
+## v2.475.0 — 2026-06-06
+
+### SD画像生成 — Gradio 4.x プロトコル修正・自動取得の上限設定
+
+- `server.js`:
+  - send_hash 応答に `event_data: null` を追加（Gradio 4.x 必須）
+  - send_data 応答に `event_id`（クライアント生成）を追加（Gradio 4.x 必須）
+  - `_sdFetchDefaults()` の上限を 200〜600 パラメータに設定し巨大な誤検出（1175個）を防止
+  - "Prompt" が 2番目、"Negative prompt" が 3番目にある関数のみを txt2img として認識
+
+---
+
+## v2.474.0 — 2026-06-06
+
+### SD画像生成 — defaults を SD 起動時に自動取得・再生成
+
+- `server.js`: `_sdFetchDefaults()` を追加。SD の `/info` から txt2img の `fn_index` と `defaults`（パラメータ数・デフォルト値）を自動取得し `sd_defaults.json` に保存
+  - SDアップデートでパラメータ数が313→322に増えて `ValueError` が出ていた問題を根本解決
+  - サーバー起動時にバックグラウンドで取得試行、リクエスト時にもキャッシュなければ取得
+  - 今後のSDアップデートにも自動対応
+
+---
+
+## v2.473.0 — 2026-06-06
+
+### SD画像生成 — Gradio 4.x プロトコル完全対応
+
+- `server.js`: 新Gradio（4.x）では画像データが `process_generating` で届き `process_completed` は `{error:null}` のみになった問題を修正
+  - `process_generating` メッセージで画像情報を `lastImageInfo` に保持
+  - `send_data` 時に `event_id` を echo バック（Gradio 4.x 必須）
+  - `process_completed` は旧Gradio互換として `data` があれば使用、なければ `lastImageInfo` を使用
+
+---
+
+## v2.472.0 — 2026-06-06
+
+### SD画像生成 — 新旧Gradioレスポンス形式に両対応
+
+- `server.js`: WebSocketアプローチを維持しつつ `process_completed` レスポンスのパースを強化
+  - 旧Gradio: `gallery[i].data`（base64）/ `gallery[i].name`（ファイルパス）
+  - 新Gradio: `gallery[i].url`（URL直接）/ `gallery` がオブジェクト1個の場合も対応
+  - `console.log('[SD] output:')` でSDの生レスポンスをログ出力（デバッグ用）
+
+---
+
+## v2.471.0 — 2026-06-06
+
+### SD画像生成 — GradioWebSocketをREST APIに切り替え
+
+- `server.js`: `/api/sd-generate` を Gradio WebSocket プロトコル（`/queue/join`）から SD 標準 REST API（`POST /sdapi/v1/txt2img`）に変更
+  - SDのアップデートでGradioバージョンが上がりWebSocket形式が変わり `empty gallery` が発生していた
+  - REST APIはSDのバージョンに関わらず安定して動作する
+  - `sd_defaults.json` と `fn_index` への依存を削除
+  - レスポンスの `images[0]` を直接 base64 として取得
+
+---
+
+## v2.470.0 — 2026-06-05
+
+### Suno: /s/ 短縮URL対応・ループ終了検知追加
+
+- `server.js`:
+  - `/api/suno-resolve?id=` エンドポイント追加：`suno.com/s/{shortId}` → UUID変換（307リダイレクトのLocationから抽出）
+- `public/app.js`:
+  - `_agruOpenSunoModal`: UUID形式でない場合は `/api/suno-resolve` でUUIDを解決してから開く
+  - `_agruOpenSunoModal_inner` に分離
+  - YouTube/Sunoメッセージリスナー統合：Sunoの終了系postMessageを検知したらモーダルを閉じる（`playback_end` / `ended` / `status:ended`）
+  - Sunoメッセージのデバッグログ追加（`[suno msg]`）
+  - Sunoループ防止：モーダル表示時に5分タイマーをセット、時間経過で自動クローズ（`_sunoCloseTimer`）
+  - `closeAgruYtModal` でタイマーをキャンセル
+
+---
+
+## v2.469.0 — 2026-06-05
+
+### Suno URL 共有の自動再生対応・kuku.lu短縮URL展開対応
+
+- `public/app.js`:
+  - `seenSunoUrls` セットを追加（重複検出用）
+  - コメント処理にSuno URL検出ブロックを追加（`suno.com/song/{UUID}` および `suno.com/s/{shortId}` 形式）
+  - 配信サービスがSuno URLを `kuku.lu` で短縮する問題に対応：URLがJavaScript暗号化されているため、プロキシ経由で kuku.lu ページを隠しiframeに読ませ、MutationObserver でSunoリンクが動的生成された瞬間をpostMessageで傍受して取得
+  - 初回共有で MP+20・バブル・ログ表示、重複時は「もうみた」（共通処理を `_handleSunoUrl` に整理）
+  - `_agruOpenSunoModal(songId)` 関数を追加：既存の `agruYtModal` を再利用し `https://suno.com/embed/{songId}` を iframe に表示
+  - タイトル表示は「🎵 Suno再生中」固定
+- `server.js`:
+  - `/api/expand-url?url=...` エンドポイントを追加：リダイレクト先URLを1段展開して返す（タイムアウト3秒）
+
+---
+
+## v2.468.0 — 2026-06-05
+
+### ageru.html — キャラ画像を horny フォルダからランダム表示に変更
+
+- `public/ageru.html`:
+  - 感情フォルダマップ・好感度・性欲変数を削除
+  - 起動時に `/api/ageru-images/horny` で画像一覧取得
+  - 初期表示・返答ごとに `public/ageru/horny/` からランダム表示
+
+---
+
+## v2.467.0 — 2026-06-05
+
+### ageru.html — ぷるぷる canvas の親要素を修正
+
+- `public/ageru.html`: `#charFrame`（width:100% の flex）に直接 canvas を貼っていたため、画像より広い領域に canvas が伸びてぷるぷるが機能しなかった
+  - `#charBg`（`display:inline-block; position:relative; line-height:0`）を `#charImg` の直接の親として追加
+  - canvas が `#charBg`（= 画像とぴったり同じ大きさ）に貼り付くよう修正
+
+---
+
+## v2.466.0 — 2026-06-05
+
+### ageru.html — スマホ拡大防止・ぷるぷる反映
+
+- `public/ageru.html`:
+  - `#msgInput` の `font-size` を `14px → 16px` に変更（iOS Safari の自動拡大を防止）
+  - ぷるぷるエンジン（`_puruWeight` / `_puruDisplace` / `_puruTri` / `_puruRenderCanvas` / `_puruStartLoop` / `_puruAttach`）を app.js から移植
+  - `updatePurupuru()` を追加。`localStorage: purupuruConfig` の `__agru__/...` キー設定を読み込み、キャラ画像に適用
+  - 画像切り替え時・初期表示時に `updatePurupuru()` を呼び出し
+
+---
+
+## v2.465.0 — 2026-06-05
+
+### ageru.html — システムプロンプト独立化・サーバー保存・画像拡大
+
+- `public/ageru.html`:
+  - 基本プロンプト（AGRU_DEFAULT_SYSTEM）を除去。システムプロンプトはモーダルで設定した内容のみを使用
+  - システムプロンプトをサーバー（`/api/ageru-page-system`）から取得・保存に変更
+  - キャラ画像を1.5倍に拡大（`clamp(160px,30vh,260px)` → `clamp(240px,45vh,390px)`）
+- `server.js`: `GET/POST /api/ageru-page-system` エンドポイント追加（`data/settings.json` の `agruPageSystem` キーに保存）
+
+---
+
+## v2.464.0 — 2026-06-05
+
+### アゲルちゃん独立ページ追加（/ageru.html）
+
+- `public/ageru.html`: 新規作成
+  - スマホ最適化の縦長UI（max-width 480px、dvh 対応、safe-area 対応）
+  - キャラ画像・感情切り替え・チャットバブル表示
+  - 直接チャット送信（ユーザー入力欄 + Enterキー送信）
+  - 専用追加システムプロンプト（`localStorage: agruPageSystem`、設定モーダルで編集）
+  - モデル選択プルダウン（`localStorage: aiModel` と共有）
+  - VoiceVox 読み上げ対応（元の設定と共有）
+  - 元の会話モード（index.html）には影響なし
+
+---
+
+## v2.463.0 — 2026-06-05
+
+### ダメージランキング — ボス撃破ごとにリセットされるバグを修正
+
+- `public/app.js`: `renderRankingPanel()` のダメージ表示を修正
+  - 修正前: `bossState ? bossDamageMap : cumulativeDmgMap`（新ボス湧き時に空の `bossDamageMap` を表示してリセットに見えた）
+  - 修正後: 常に `cumulativeDmgMap`（全ボス通算）と `bossDamageMap`（現ボス分）をマージして表示
+
+---
+
+## v2.462.0 — 2026-06-05
+
+### アゲルちゃん VoiceVox — 括弧内テキストを読み上げから除外
+
+- `public/app.js`: `_agruPlayVoicevox()` で VoiceVox 送信前に全角・半角括弧 `（）`/`()` で囲まれた文字列を除去
+
+---
+
+## v2.461.0 — 2026-06-05
+
+### AIモデル選択に3モデルを追加
+
+- `public/admin.html`: `aiModelInput` プルダウンに以下の3モデルを追加
+  - `huihui_ai/qwen2.5-1m-abliterated:14b`
+  - `mdq100/Gemma3-Instruct-Abliterated:12b`
+  - `huihui_ai/gemma-4-abliterated:31b`
+
+---
+
+## v2.460.0 — 2026-06-05
+
+### アゲルちゃん — 返答文字数を70文字程度に変更
+
+- `public/app.js`: `AGRU_DEFAULT_SYSTEM` の返答文字数指示を40文字→70文字に変更
+  - `[コメントへの返答（40文字程度、必ず日本語のみ）]` → `[コメントへの返答（70文字程度。短くてもよい。必ず日本語のみ）]`
+
+---
+
 ## v2.459.0 — 2026-06-03
 
 ### ぷるぷる新モード追加・アゲルちゃん会話中カメラ手振れ

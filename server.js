@@ -1,6 +1,7 @@
 const express          = require('express');
 const https            = require('https');
 const http             = require('http');
+const zlib             = require('zlib');
 const path             = require('path');
 const fs               = require('fs');
 const net              = require('net');
@@ -96,6 +97,87 @@ app.get('/api/live-info', async (req, res) => {
   }
 });
 
+// リダイレクト追跡 + gzip対応でHTMLを取得
+function _fetchHtml(url, depth, cookies, cb) {
+  if (depth <= 0) return cb(null);
+  let parsed;
+  try { parsed = new URL(url); } catch { return cb(null); }
+  const mod = parsed.protocol === 'https:' ? https : http;
+  const opts = {
+    hostname: parsed.hostname,
+    path: parsed.pathname + parsed.search,
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'ja,en-US;q=0.7,en;q=0.3',
+      'Accept-Encoding': 'gzip, deflate',
+      ...(cookies ? { 'Cookie': cookies } : {}),
+    },
+  };
+  const r2 = mod.get(opts, (r) => {
+    const setCookies = [].concat(r.headers['set-cookie'] || []).map(c => c.split(';')[0]);
+    const nextCookies = [cookies, ...setCookies].filter(Boolean).join('; ');
+    const location = r.headers['location'];
+    if (location && [301, 302, 307, 308].includes(r.statusCode)) {
+      r.resume();
+      const next = /^https?:\/\//i.test(location) ? location : new URL(location, url).href;
+      return _fetchHtml(next, depth - 1, nextCookies, cb);
+    }
+    const enc = r.headers['content-encoding'] || '';
+    let stream = r;
+    if (enc.includes('gzip'))    stream = r.pipe(zlib.createGunzip());
+    else if (enc.includes('deflate')) stream = r.pipe(zlib.createInflate());
+    const chunks = [];
+    stream.on('data', chunk => chunks.push(chunk));
+    stream.on('end', () => cb(Buffer.concat(chunks).toString('utf8')));
+    stream.on('error', () => cb(null));
+  });
+  r2.on('error', () => cb(null));
+  r2.setTimeout(8000, () => { r2.destroy(); cb(null); });
+}
+
+// kuku.luページをプロキシ: MutationObserverでSunoリンクを傍受してpostMessage
+app.get('/api/kuku-proxy', (req, res) => {
+  const { url } = req.query;
+  if (!url || !/^https?:\/\/kuku\.lu\//i.test(url)) return res.status(400).send('invalid');
+  _fetchHtml(url, 5, '', (html) => {
+    if (!html) return res.status(500).send('fetch failed');
+    const inject = `<script>(function(){
+var _n=function(u){try{window.parent.postMessage({__kuku:String(u)},'*')}catch(e){}};
+try{new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(function(n){
+  if(n.nodeType!==1)return;
+  var as=(n.tagName==='A'?[n]:[]).concat(Array.from(n.querySelectorAll?n.querySelectorAll('a[href]'):[]));
+  as.forEach(function(a){if(a.href&&/suno\.com/i.test(a.href))_n(a.href);});
+})})}).observe(document.documentElement,{childList:true,subtree:true});}catch(e){}
+window.addEventListener('load',function(){setTimeout(function(){
+  document.querySelectorAll('a[href]').forEach(function(a){if(a.href&&/suno\.com/i.test(a.href))_n(a.href);});
+},800);});
+})();</script>`;
+    const modified = html.replace(/(<head[^>]*>)/i, '$1' + inject);
+    res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+    res.send(modified);
+  });
+});
+
+// suno.com/s/{shortId} → song UUID を解決
+app.get('/api/suno-resolve', (req, res) => {
+  const { id } = req.query;
+  if (!id || /[^A-Za-z0-9_-]/.test(id)) return res.status(400).json({ error: 'invalid id' });
+  const opts = {
+    hostname: 'suno.com', path: `/s/${id}`,
+    headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'text/html' },
+  };
+  const r2 = https.get(opts, (r) => {
+    const loc = r.headers['location'] || '';
+    const m = loc.match(/\/song\/([a-f0-9-]{36})/i);
+    r.resume();
+    if (m) res.json({ songId: m[1] });
+    else res.json({ songId: id }); // 解決できなければそのまま返す
+  });
+  r2.on('error', () => res.json({ songId: id }));
+  r2.setTimeout(5000, () => { r2.destroy(); res.json({ songId: id }); });
+});
+
 app.get('/api/comments', async (req, res) => {
   const { apikey, hash, cnum } = req.query;
   if (!apikey) return res.status(400).json({ error: 'apikey が必要です' });
@@ -176,6 +258,22 @@ const DATA = p => path.join(__dirname, 'data', p);
 makeDataEndpoints('/api/char-images',  DATA('charImages.json'));
 makeDataEndpoints('/api/char-aliases', DATA('charAliases.json'));
 makeDataEndpoints('/api/settings',     DATA('settings.json'));
+
+// ageru.html 専用システムプロンプト（settings.json に agruPageSystem キーで保存）
+app.get('/api/ageru-page-system', (req, res) => {
+  try {
+    const file = DATA('agruPageSystem.txt');
+    const system = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+    res.json({ system });
+  } catch { res.json({ system: '' }); }
+});
+app.post('/api/ageru-page-system', (req, res) => {
+  try {
+    const system = typeof req.body.system === 'string' ? req.body.system : '';
+    fs.writeFileSync(DATA('agruPageSystem.txt'), system, 'utf8');
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 // char-save: GET は全データ返却、POST はマージ（上書きしない）
 app.get('/api/char-save', (req, res) => {
@@ -389,8 +487,96 @@ async function sendToDiscord(imageDataUrl, prompt, translatedPrompt, charName) {
 
 // Stable Diffusion 画像生成プロキシ（Gradio WebSocket queue API）
 const SD_DEFAULTS_PATH = 'C:/Users/swift/AppData/Local/Temp/sd_defaults.json';
-const SD_IDX = { PROMPT:1, NEGATIVE:2, BATCH_COUNT:4, BATCH_SIZE:5, CFG:6, HEIGHT:7, WIDTH:8, HIRES_FIX:9, OVERRIDE:22, SCRIPT:23, STEPS:24, SAMPLER:25 };
+// SD_IDX はsd_defaults.jsonのidxMapで上書きされる（後方互換のデフォルト値）
+let SD_IDX = { PROMPT:1, NEGATIVE:2, BATCH_COUNT:4, BATCH_SIZE:5, CFG:6, HEIGHT:7, WIDTH:8, HIRES_FIX:9, OVERRIDE:22, SCRIPT:23, STEPS:24, SAMPLER:25 };
 const SD_NEGATIVE = '(worst quality:2),(low quality:2),(normal quality:2),lowres,extra fingers,fewer fingers,monochrome,grayscale,text,watermark,logo,';
+
+// /config から txt2img の fn_index・defaults・idxMap を取得してキャッシュ
+async function _sdFetchDefaults() {
+  return new Promise((resolve, reject) => {
+    http.get('http://127.0.0.1:7860/config', res => {
+      let raw = '';
+      res.on('data', c => raw += c);
+      res.on('end', () => {
+        try {
+          const config = JSON.parse(raw);
+          const deps = config.dependencies || [];
+          const comps = {};
+          (config.components || []).forEach(c => { comps[c.id] = c; });
+
+          // txt2img を探す: inputs[1]=Prompt, inputs[2]=Negative prompt, inputs に Width/Height を含む
+          let bestDep = null, bestIdx = -1;
+          deps.forEach((dep, i) => {
+            const inputs = dep.inputs || [];
+            if (inputs.length < 200 || inputs.length > 700) return;
+            const labels = inputs.map(id => (comps[id]?.props?.label || '').trim());
+            if (labels[1] === 'Prompt' && labels[2] === 'Negative prompt' &&
+                labels.includes('Width') && labels.includes('Height')) {
+              if (!bestDep || inputs.length > bestDep.inputs.length) {
+                bestDep = dep; bestIdx = i;
+              }
+            }
+          });
+          if (!bestDep) return reject(new Error('txt2img not found in /config'));
+
+          const inputs = bestDep.inputs;
+          const defaults = inputs.map(id => {
+            const comp = comps[id] || {};
+            const val = comp.props?.value;
+            const type = comp.type || '';
+            if (type === 'image') return null;
+            if (val !== undefined && val !== null) return val;
+            if (type === 'checkbox') return false;
+            if (type === 'slider' || type === 'number') return comp.props?.minimum ?? 0;
+            if (type === 'textbox' || type === 'dropdown' || type === 'radio') return '';
+            if (type === 'checkboxgroup') return [];
+            return null;
+          });
+
+          const idxMap = {};
+          inputs.forEach((id, i) => {
+            const label = (comps[id]?.props?.label || '').trim();
+            if (label === 'Prompt')           idxMap.PROMPT = i;
+            if (label === 'Negative prompt')  idxMap.NEGATIVE = i;
+            // 最初の Width/Height を使用（Forge では後方に拡張機能の同名スライダーが複数存在するため）
+            if (label === 'Width'  && idxMap.WIDTH  === undefined) idxMap.WIDTH  = i;
+            if (label === 'Height' && idxMap.HEIGHT === undefined) idxMap.HEIGHT = i;
+            if (label === 'Sampling steps')   idxMap.STEPS = i;
+            if (label === 'Sampling method')  idxMap.SAMPLER = i;
+            if (label === 'CFG Scale')        idxMap.CFG = i;
+            if (label === 'Batch count')      idxMap.BATCH_COUNT = i;
+            if (label === 'Batch size')       idxMap.BATCH_SIZE = i;
+            if (label.startsWith('Hires. fix')) idxMap.HIRES_FIX = i;
+            if (label === 'Override settings') idxMap.OVERRIDE = i;
+            if (label === 'Script')           idxMap.SCRIPT = i;
+          });
+
+          const result = { fn_index: bestIdx, defaults, idxMap };
+          fs.writeFileSync(SD_DEFAULTS_PATH, JSON.stringify(result));
+          SD_IDX = { ...SD_IDX, ...idxMap };
+          console.log(`[SD] defaults 再取得: fn_index=${bestIdx} params=${defaults.length} idxMap=${JSON.stringify(idxMap)}`);
+          resolve(result);
+        } catch (e) { reject(e); }
+      });
+    }).on('error', reject);
+  });
+}
+
+async function _sdGetDefaults() {
+  // idxMap がないキャッシュは古いので無条件に再取得
+  try {
+    const cached = JSON.parse(fs.readFileSync(SD_DEFAULTS_PATH, 'utf-8'));
+    if (cached.fn_index && Array.isArray(cached.defaults) && cached.idxMap) {
+      SD_IDX = { ...SD_IDX, ...cached.idxMap };
+      return cached;
+    }
+  } catch {}
+  return _sdFetchDefaults();
+}
+
+// 起動時にキャッシュを削除して必ず再取得（idxMap の Width/Height 検出ロジック変更に追従）
+try { fs.unlinkSync(SD_DEFAULTS_PATH); } catch {}
+_sdFetchDefaults().catch(() => {});
 
 app.post('/api/sd-generate', async (req, res) => {
   const { prompt, charName, width, height, steps, cfgScale, sampler, positiveSuffix, negative } = req.body || {};
@@ -398,9 +584,9 @@ app.post('/api/sd-generate', async (req, res) => {
 
   let fn_index, defaults;
   try {
-    ({ fn_index, defaults } = JSON.parse(fs.readFileSync(SD_DEFAULTS_PATH, 'utf-8')));
+    ({ fn_index, defaults } = await _sdGetDefaults());
   } catch (e) {
-    return res.status(500).json({ error: 'sd_defaults.json 読み込み失敗: ' + e.message });
+    return res.status(500).json({ error: 'SD defaults 取得失敗: ' + e.message });
   }
 
   let translatedPrompt = prompt;
@@ -413,12 +599,15 @@ app.post('/api/sd-generate', async (req, res) => {
     }
   }
 
+  const _w = parseInt(width)  || 1600;
+  const _h = parseInt(height) || 1000;
   const data = [...defaults];
+  if (data[0] === null || (typeof data[0] === 'object' && !Array.isArray(data[0]) && data[0] !== null && Object.keys(data[0]).length === 0)) data[0] = {};
   data[SD_IDX.PROMPT]      = translatedPrompt + (positiveSuffix ? ', ' + positiveSuffix : '');
   data[SD_IDX.NEGATIVE]    = negative || SD_NEGATIVE;
-  data[SD_IDX.WIDTH]       = parseInt(width)  || 1600;
-  data[SD_IDX.HEIGHT]      = parseInt(height) || 1000;
-  data[SD_IDX.STEPS]       = parseInt(steps)  || 20;
+  data[SD_IDX.WIDTH]       = _w;
+  data[SD_IDX.HEIGHT]      = _h;
+  data[SD_IDX.STEPS]       = parseInt(steps)      || 20;
   data[SD_IDX.CFG]         = parseFloat(cfgScale) || 3;
   data[SD_IDX.SAMPLER]     = sampler || 'Euler a';
   data[SD_IDX.BATCH_COUNT] = 1;
@@ -427,72 +616,78 @@ app.post('/api/sd-generate', async (req, res) => {
   data[SD_IDX.OVERRIDE]    = [];
   data[SD_IDX.SCRIPT]      = 'None';
 
-  const sessionHash = Math.random().toString(36).slice(2, 12);
-  console.log(`[SD] generating: "${prompt}" session=${sessionHash}`);
+  console.log(`[SD] generating via /api/predict: "${prompt}" ${_w}x${_h} fn_index=${fn_index} WIDTH_idx=${SD_IDX.WIDTH}(default=${defaults[SD_IDX.WIDTH]}) HEIGHT_idx=${SD_IDX.HEIGHT}(default=${defaults[SD_IDX.HEIGHT]}) data[0]=${JSON.stringify(data[0]).slice(0,80)}`);
 
-  const ws = new ws_lib('ws://127.0.0.1:7860/queue/join');
+  const body = JSON.stringify({ fn_index, data, session_hash: Math.random().toString(36).slice(2, 12) });
+  const options = {
+    hostname: '127.0.0.1', port: 7860, path: '/api/predict',
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+  };
 
-  const timeout = setTimeout(() => {
-    ws.close();
-    if (!res.headersSent) res.status(500).json({ error: 'SD generation timeout' });
-  }, 120000);
+  const sdReq = http.request(options, sdRes => {
+    const chunks = [];
+    sdRes.on('data', c => chunks.push(c));
+    sdRes.on('end', () => {
+      try {
+        const result = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+        console.log('[SD] predict response:', JSON.stringify(result).slice(0, 300));
+        if (result.error) return res.status(500).json({ error: 'SD error: ' + result.error });
 
-  ws.on('message', raw => {
-    let msg;
-    try { msg = JSON.parse(raw); } catch { return; }
-    console.log('[SD WS]', msg.msg, msg.rank != null ? `rank=${msg.rank}` : '');
+        const gallery = result.data?.[0];
+        let imageInfo = null;
+        if (Array.isArray(gallery) && gallery.length > 0) {
+          imageInfo = gallery[gallery.length - 1];
+        } else if (gallery && typeof gallery === 'object') {
+          imageInfo = gallery;
+        }
+        if (!imageInfo) return res.status(500).json({ error: 'SD: 画像情報が取得できませんでした' });
 
-    if (msg.msg === 'send_hash') {
-      ws.send(JSON.stringify({ fn_index, session_hash: sessionHash }));
-    } else if (msg.msg === 'send_data') {
-      ws.send(JSON.stringify({ fn_index, data, session_hash: sessionHash }));
-    } else if (msg.msg === 'process_completed') {
-      clearTimeout(timeout);
-      ws.close();
-      const gallery = msg.output?.data?.[0];
-      if (!Array.isArray(gallery) || gallery.length === 0) {
-        console.error('[SD] empty gallery:', JSON.stringify(msg.output).slice(0, 300));
-        return res.status(500).json({ error: 'Empty gallery from SD' });
+        console.log('[SD] imageInfo:', JSON.stringify(imageInfo).slice(0, 150));
+
+        function resolveAndSend(info) {
+          if (info.url) {
+            const fileUrl = info.url.startsWith('http') ? info.url : `http://127.0.0.1:7860${info.url}`;
+            http.get(fileUrl, r => {
+              const cs = [];
+              r.on('data', c => cs.push(c));
+              r.on('end', () => {
+                const img = 'data:image/png;base64,' + Buffer.concat(cs).toString('base64');
+                console.log('[SD] success (url)');
+                sendToDiscord(img, prompt, translatedPrompt, charName).catch(() => {});
+                res.json({ image: img, translatedPrompt });
+              });
+            }).on('error', e => res.status(500).json({ error: 'SD 画像DL失敗: ' + e.message }));
+          } else if (info.data && info.data.startsWith('data:')) {
+            console.log('[SD] success (base64)');
+            sendToDiscord(info.data, prompt, translatedPrompt, charName).catch(() => {});
+            res.json({ image: info.data, translatedPrompt });
+          } else if (info.name) {
+            const fileUrl = `http://127.0.0.1:7860/file=${info.name.split('?')[0]}`;
+            http.get(fileUrl, r => {
+              const cs = [];
+              r.on('data', c => cs.push(c));
+              r.on('end', () => {
+                const img = 'data:image/png;base64,' + Buffer.concat(cs).toString('base64');
+                console.log('[SD] success (name)');
+                sendToDiscord(img, prompt, translatedPrompt, charName).catch(() => {});
+                res.json({ image: img, translatedPrompt });
+              });
+            }).on('error', e => res.status(500).json({ error: 'SD 画像DL失敗: ' + e.message }));
+          } else {
+            res.status(500).json({ error: 'SD: 画像フォーマット不明 ' + JSON.stringify(info).slice(0, 80) });
+          }
+        }
+        resolveAndSend(imageInfo);
+      } catch (e) {
+        if (!res.headersSent) res.status(500).json({ error: 'SD レスポンス解析失敗: ' + e.message });
       }
-      const imageInfo = gallery[gallery.length - 1];
-      console.log('[SD] imageInfo keys:', Object.keys(imageInfo));
-
-      if (imageInfo.data && imageInfo.data.startsWith('data:')) {
-        sendToDiscord(imageInfo.data, prompt, translatedPrompt, charName).catch(() => {});
-        return res.json({ image: imageInfo.data, translatedPrompt });
-      }
-      if (imageInfo.name) {
-        const fileUrl = `http://127.0.0.1:7860/file=${imageInfo.name.split('?')[0]}`;
-        console.log('[SD] downloading:', fileUrl);
-        http.get(fileUrl, imgRes => {
-          const chunks = [];
-          imgRes.on('data', c => chunks.push(c));
-          imgRes.on('end', () => {
-            const b64 = Buffer.concat(chunks).toString('base64');
-            console.log('[SD] success, b64 length:', b64.length);
-            const imageDataUrl = 'data:image/png;base64,' + b64;
-            sendToDiscord(imageDataUrl, prompt, translatedPrompt, charName).catch(() => {});
-            res.json({ image: imageDataUrl, translatedPrompt });
-          });
-        }).on('error', err => {
-          if (!res.headersSent) res.status(500).json({ error: '画像ダウンロード失敗: ' + err.message });
-        });
-        return;
-      }
-      res.status(500).json({ error: '画像フォーマット不明: ' + JSON.stringify(imageInfo).slice(0, 100) });
-    } else if (msg.msg === 'process_errored') {
-      clearTimeout(timeout);
-      ws.close();
-      console.error('[SD] process_errored:', JSON.stringify(msg).slice(0, 300));
-      if (!res.headersSent) res.status(500).json({ error: 'SD process error' });
-    }
+    });
   });
-
-  ws.on('error', err => {
-    clearTimeout(timeout);
-    console.error('[SD WS error]', err.message);
-    if (!res.headersSent) res.status(500).json({ error: err.message });
-  });
+  sdReq.setTimeout(120000, () => { sdReq.destroy(); if (!res.headersSent) res.status(500).json({ error: 'SD timeout' }); });
+  sdReq.on('error', e => { if (!res.headersSent) res.status(500).json({ error: e.message }); });
+  sdReq.write(body);
+  sdReq.end();
 });
 
 // TTS（RVC 7870）

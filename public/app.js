@@ -373,7 +373,7 @@ const SETTINGS_KEYS = [
   'agruSystem','agruDefaultImage','agruEmotionMap',
   'agruVoicevoxEnabled','agruVoicevoxSpeaker','agruVoicevoxSpeed','agruVoicevoxVolume',
   'agruSdWidth','agruSdHeight','agruSdSteps','agruSdCfgScale','agruSdPositiveSuffix','agruIdleDelay','agruIdleDelayImage',
-  'agruChatFontSize','agruChatBold','agruFontLeft','agruFontRight','agruCharTags','agruYtVolume','agruBgmVolume','agruYtWidth','agruYtHeight','agruYtOpacity','agruYtEnabled','agruModalZ',
+  'agruChatFontSize','agruChatBold','agruFontLeft','agruFontRight','agruCharTags','agruYtVolume','agruBgmVolume','agruYtWidth','agruYtHeight','agruYtOpacity','agruYtEnabled','agruModalZ','agruYtModalZ',
   'agruModalWidth','agruModalHeight','agruModalBgOpacity','agruChatImgSize','agruCharImgHeight','agruCharImgScale',
   'bombHidden','trashHidden','charStatsHidden','breatheDisabled','agruImgCmdEnabled',
   'afkOpacity','afkGrayscale','afkBrightness',
@@ -848,8 +848,7 @@ function updateBossJiggleOverlay() {
   const imgFile = bossState.imgFile;
   if (!imgFile) return;
   const cfg = jiggleConfig[imgFile];
-  if (!cfg || !cfg.enabled) { updateBossPurupuru(); return; }
-  if (purupuruConfig[imgFile]?.enabled) { updateBossPurupuru(); return; }
+  if (!cfg || !cfg.enabled) return;
   const baseImg = a.querySelector('img');
   if (!baseImg || !baseImg.complete || !baseImg.naturalWidth) return;
   const topPct   = cfg.top    ?? 35;
@@ -3974,6 +3973,22 @@ function handleComment(comment) {
     }
   }
 
+  // ── Suno URL 共有でMP回復 ──
+  {
+    const urlDecoded = comment.url ? decodeURIComponent(comment.url) : '';
+    const plainMsg = (comment.message ?? '').replace(/<[^>]+>/g, ' ');
+    const searchTarget = urlDecoded + ' ' + plainMsg + ' ' + rawMessage;
+    const sunoMatch = searchTarget.match(/suno\.com\/(?:song\/([a-f0-9-]{36})|s\/([A-Za-z0-9_-]+))/i);
+    const kukuMatch = !sunoMatch && agruYtEnabled && searchTarget.match(/https?:\/\/kuku\.lu\/[A-Za-z0-9]+/i);
+    if (kukuMatch && !triedKukuUrls.has(kukuMatch[0])) {
+      triedKukuUrls.add(kukuMatch[0]);
+      _tryKukuSuno(user, kukuMatch[0]);
+    }
+    if (sunoMatch) {
+      _handleSunoUrl(user, sunoMatch[1] ?? sunoMatch[2]);
+    }
+  }
+
   // ── 不在確認ワード自動返答 ──
   const _absentWords = ['これ放置', 'mumyou', '無明', 'いない', 'いにゃい', '寝た？', 'ねた？', 'ほうち', 'ホウチ', 'houti', 'houchi', 'abandoned', 'いる？', 'iru?', 'ねてる'];
   if (_absentWords.some(w => rawMessage.includes(w)) && !_aiPostedTexts.has(message)) {
@@ -4182,6 +4197,7 @@ function handleComment(comment) {
 
   // ── 出ろ/出して/生成コマンド：SD画像生成 ──────
   if (/出ろ|出して|生成|gen/i.test(message)) {
+    if (!agruImgCmdEnabled) return; // 画像コマンド無視設定
     if (agruActive) return; // 会話モード中は _agruSend 側で処理
     ensureCharOnStage(user);
     if ((user.mp ?? 0) < 20) {
@@ -5346,6 +5362,8 @@ let aiSystem = localStorage.getItem('aiSystem') || '';
 let ollamaReviewPrompt = localStorage.getItem('ollamaReviewPrompt') || '';
 const _aiPostedTexts = new Set();
 const seenYoutubeUrls = new Set();
+const seenSunoUrls = new Set();
+const triedKukuUrls = new Set();
 let _aiQueue = Promise.resolve();
 let _aiConvHistory = []; // 5分モードの会話履歴 [{role:'user',content:...},{role:'assistant',content:...},...]
 
@@ -5428,18 +5446,16 @@ const AGRU_EMOTIONS = [
 const AGRU_DEFAULT_SYSTEM =
   '返答は必ず日本語のみを使用してください。中国語・英語・その他の言語は絶対に使わないでください。\n' +
   'あなたは「星井野アゲル（アゲルちゃん）」というキャラクターです。配信のコメントに感情豊かに返答します。\n' +
-  '年齢は存在しません。年齢を聞かれても「年齢はないよ」などと自然にかわしてください。\n' +
   '好きなものはゲーム、音楽、星です。\n' +
   '嫌いなものは虫、どろどろしたもの、ピーマンです。\n' +
   '身長は164cm、体重は48kgです。\n' +
   '相手のことは「リスナーさん」と呼んでください。「みんな」ではなく、今話しかけてきた一人と話しているようにふるまってください。\n' +
-  '一人称は「私」を使ってください。ただし不要に連発しないでください。「アゲルちゃん、びっくりした」ではなく「私、びっくりした」や単に「びっくりした」のように自然に話してください。\n' +
-  '「ひこいち」について聞かれた場合は、照れながら隠してください。認めたくない気持ちを隠せていない感じで、はぐらかしてください。\n' +
+  '一人称は「私」を使ってください。ただし不要に連発しないでください。「アゲルちゃん、びっくりした」ではなく単に「びっくりした」のように自然に話してください。\n' +
   '必ず以下の形式のみで返答してください（他の文字を含めないこと）：\n' +
   '[感情]\n' +
   '[好感度変化（称賛・好意・感謝なら+1〜+5、侮辱・嫌悪・不快なら-1〜-10、普通の雑談・挨拶・質問は必ず0）]\n' +
   '[性欲変化（性的・刺激的・エッチな話題なら+1〜+5、性欲を冷ます内容なら-1〜-5、通常の会話は必ず0）]\n' +
-  '[コメントへの返答（40文字程度、必ず日本語のみ）]\n\n' +
+  '[コメントへの返答（70文字程度。短くてもよい。必ず日本語のみ）]\n\n' +
   '感情は次のいずれかを選んでください：\n' +
   '安心/愛しさ/感謝/性的興奮/興奮/感動/好奇心/驚き/尊敬/不安/恐怖/困惑/冷静/軽蔑/殺意/悲しみ/諦め/苦しみ/嫉妬/恥';
 
@@ -5589,8 +5605,9 @@ let agruVoicevoxSpeaker = parseInt(localStorage.getItem('agruVoicevoxSpeaker') |
 let agruVoicevoxSpeed   = parseFloat(localStorage.getItem('agruVoicevoxSpeed') || '1.0');
 let agruVoicevoxVolume  = parseFloat(localStorage.getItem('agruVoicevoxVolume') || '1.0');
 let _agruVvAudio = null;
-let agruSdWidth          = parseInt(localStorage.getItem('agruSdWidth'))  || 512;
-let agruSdHeight         = parseInt(localStorage.getItem('agruSdHeight')) || 512;
+if (!localStorage.getItem('_agruSdSizeReset')) { localStorage.removeItem('agruSdWidth'); localStorage.removeItem('agruSdHeight'); localStorage.setItem('_agruSdSizeReset','1'); }
+let agruSdWidth          = parseInt(localStorage.getItem('agruSdWidth'))  || 0;
+let agruSdHeight         = parseInt(localStorage.getItem('agruSdHeight')) || 0;
 let agruSdSteps          = parseInt(localStorage.getItem('agruSdSteps'))   || 0;
 let agruSdCfgScale       = parseFloat(localStorage.getItem('agruSdCfgScale')) || 0;
 let agruSdPositiveSuffix = localStorage.getItem('agruSdPositiveSuffix') || '';
@@ -5603,6 +5620,7 @@ let agruYtEnabled        = (localStorage.getItem('agruYtEnabled') ?? '1') === '1
 let agruImgCmdEnabled    = (localStorage.getItem('agruImgCmdEnabled') ?? '1') === '1';
 let agruShakeAmp         = parseFloat(localStorage.getItem('agruShakeAmp') ?? '2');
 let agruModalZ           = parseInt(localStorage.getItem('agruModalZ')    ?? '300');
+let agruYtModalZ         = parseInt(localStorage.getItem('agruYtModalZ')  ?? '400');
 let agruModalWidth       = parseInt(localStorage.getItem('agruModalWidth')     ?? '870');
 let agruModalHeight      = parseInt(localStorage.getItem('agruModalHeight')    ?? '460');
 let agruModalBgOpacity   = parseInt(localStorage.getItem('agruModalBgOpacity') ?? '45');
@@ -5806,7 +5824,9 @@ async function _agruGenerateSDImageFromReply(replyText, isSelfie = false) {
 
 async function _agruGenerateSDImage(prompt) {
   const cfg = _sdReadSettings();
-  _agruLog('📷 画像生成中: ' + prompt);
+  const _w = parseInt(localStorage.getItem('agruSdWidth'))  || cfg.width;
+  const _h = parseInt(localStorage.getItem('agruSdHeight')) || cfg.height;
+  _agruLog('📷 画像生成中: ' + prompt + ' (' + _w + 'x' + _h + ')');
   try {
     const res = await fetch('/api/sd-generate', {
       method: 'POST',
@@ -5814,8 +5834,8 @@ async function _agruGenerateSDImage(prompt) {
       body: JSON.stringify({
         prompt,
         charName:       'アゲルちゃん',
-        width:          agruSdWidth  || cfg.width,
-        height:         agruSdHeight || cfg.height,
+        width:          _w,
+        height:         _h,
         steps:          agruSdSteps    || cfg.steps,
         cfgScale:       agruSdCfgScale || cfg.cfgScale,
         sampler:        cfg.sampler,
@@ -5967,6 +5987,8 @@ function _agruAddBubble(side, name, text, onDone) {
 
 async function _agruPlayVoicevox(text) {
   if (!agruVoicevoxEnabled || !text) return;
+  text = text.replace(/[（(][^）)]*[）)]/g, '').trim();
+  if (!text) return;
   try {
     const res = await fetch('/api/voicevox', {
       method: 'POST',
@@ -6184,8 +6206,8 @@ async function _agruSend(message, commenter) {
     _agruNotifyEmotion(emotion, replyText);
     _agruPlayVoicevox(replyText);
     if (_needsImage) {
-      // 返答取得後にOllamaモデルをバックグラウンドでアンロード（レスポンス遅延を避けるため別リクエスト）
-      fetch('/api/ai-unload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: aiModel }) }).catch(() => {});
+      // 返答取得後にOllamaモデルをアンロード（完了を待ってからSD生成でVRAM競合を防ぐ）
+      await fetch('/api/ai-unload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: aiModel }) }).catch(() => {});
       // すべての画像コマンドでロック（SD完了まで新コメント受け付けない）
       const _ctx = message.replace(/出ろ|出して|生成|gen|自撮り|写真/gi, '').trim();
       _agruSelfieLocked = true;
@@ -6335,14 +6357,23 @@ async function _agruDebug(message) {
   });
 })();
 
-// YouTube再生終了時に自動閉じ・音量設定
+// YouTube / Suno 再生終了時に自動閉じ・音量設定
 window.addEventListener('message', e => {
   try {
+    if (e.data?.__kuku) return; // kuku.luプロキシは別ハンドラ
     const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+    // YouTube 終了 (info=0)
     if (data.event === 'onStateChange' && data.info === 0) closeAgruYtModal();
     if (data.event === 'onReady') {
       const iframe = document.getElementById('agruYtIframe');
       if (iframe) iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [agruYtVolume] }), '*');
+    }
+    // Suno 終了検知（送ってくれるか確認用ログ）
+    const isSunoFrame = document.getElementById('agruYtIframe')?.src?.includes('suno.com');
+    if (isSunoFrame && data.event !== 'onStateChange') console.log('[suno msg]', data);
+    // Suno が ended 系イベントを送ってきた場合
+    if (isSunoFrame && (data.type === 'playback_end' || data.status === 'ended' || data.event === 'ended')) {
+      closeAgruYtModal();
     }
   } catch {}
 });
@@ -6449,6 +6480,7 @@ function _agruOpenYtModal(videoId, startTime = 0) {
   _agruBgmPause();
   modal.style.width   = agruYtWidth + 'px';
   modal.style.opacity = agruYtOpacity / 100;
+  modal.style.zIndex  = agruYtModalZ;
   iframe.style.width  = agruYtWidth + 'px';
   iframe.style.height = agruYtHeight + 'px';
   const _startParam = startTime ? `&start=${startTime}` : '';
@@ -6475,6 +6507,80 @@ function _agruOpenYtModal(videoId, startTime = 0) {
       iframe.contentWindow.postMessage('{"event":"command","func":"addEventListener","args":["onReady"]}', '*');
     } catch {}
   }, { once: true });
+}
+
+// kuku.lu → プロキシiframe経由でSuno URLを取得して再生
+const _kukuUserMap = new Map(); // kukuUrl → user (postMessage受信用)
+window.addEventListener('message', e => {
+  if (!e.data || !e.data.__kuku) return;
+  const url = String(e.data.__kuku);
+  const m = url.match(/suno\.com\/(?:song\/([a-f0-9-]{36})|s\/([A-Za-z0-9_-]+))/i);
+  if (!m) return;
+  // iframeのsrcからkukuUrlを特定してuserを取得
+  const iframe = [...document.querySelectorAll('iframe[data-kuku]')]
+    .find(f => e.source === f.contentWindow);
+  const kukuUrl = iframe?.dataset.kuku;
+  const user = kukuUrl ? _kukuUserMap.get(kukuUrl) : null;
+  if (user) _handleSunoUrl(user, m[1] ?? m[2]);
+  if (iframe) { _kukuUserMap.delete(kukuUrl); iframe.remove(); }
+});
+
+function _tryKukuSuno(user, kukuUrl) {
+  _kukuUserMap.set(kukuUrl, user);
+  const iframe = document.createElement('iframe');
+  iframe.dataset.kuku = kukuUrl;
+  iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
+  iframe.src = `/api/kuku-proxy?url=${encodeURIComponent(kukuUrl)}`;
+  document.body.appendChild(iframe);
+  setTimeout(() => { _kukuUserMap.delete(kukuUrl); iframe.remove(); }, 10000);
+}
+
+function _handleSunoUrl(user, songId) {
+  if (agruYtEnabled) _agruOpenSunoModal(songId);
+  if (seenSunoUrls.has(songId)) {
+    postAIReply('もうみた');
+  } else {
+    seenSunoUrls.add(songId);
+    user.mp = (user.mp ?? 0) + 20;
+    updateStatsDisplay(user);
+    ensureCharOnStage(user);
+    showBubble(user, '🎵 Suno共有！ MP+20', {});
+    const { x: sx, y: sy } = getCharCenter(user);
+    showDamageNumber(sx, sy - 40, 'MP+20', false, 20, '#60a5fa');
+    addToLog(user, '🎵 Suno共有 MP+20', '#60a5fa');
+  }
+}
+
+function _agruOpenSunoModal(songId) {
+  // /s/{shortId} 形式はUUIDでないのでサーバー経由で解決してから開く
+  const isUuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(songId);
+  if (!isUuid) {
+    fetch(`/api/suno-resolve?id=${encodeURIComponent(songId)}`)
+      .then(r => r.json())
+      .then(d => _agruOpenSunoModal(d.songId || songId))
+      .catch(() => _agruOpenSunoModal_inner(songId));
+    return;
+  }
+  _agruOpenSunoModal_inner(songId);
+}
+
+function _agruOpenSunoModal_inner(songId) {
+  const modal  = document.getElementById('agruYtModal');
+  const iframe = document.getElementById('agruYtIframe');
+  if (!modal || !iframe) return;
+  _agruBgmPause();
+  modal.style.width   = agruYtWidth + 'px';
+  modal.style.opacity = agruYtOpacity / 100;
+  modal.style.zIndex  = agruYtModalZ;
+  iframe.style.width  = agruYtWidth + 'px';
+  iframe.style.height = agruYtHeight + 'px';
+  iframe.src = `https://suno.com/embed/${songId}?autoplay=1`;
+  const sx = localStorage.getItem('agruYtModalX'), sy = localStorage.getItem('agruYtModalY');
+  if (sx && sy) { modal.style.left = sx; modal.style.top = sy; modal.style.transform = 'none'; }
+  else { modal.style.left = ''; modal.style.top = ''; modal.style.transform = ''; }
+  modal.classList.remove('hidden');
+  const titleEl = document.getElementById('agruYtTitle');
+  if (titleEl) titleEl.textContent = '🎵 Suno再生中';
 }
 
 function _agruPlayYouTube(videoId, startTime = 0) {
@@ -6575,17 +6681,17 @@ async function _sdGenerateOne(user, prompt) {
 
 function _sdReadSettings() {
   return {
-    width:          parseInt(document.getElementById('sdWidthInput')?.value)        || 1600,
-    height:         parseInt(document.getElementById('sdHeightInput')?.value)       || 1000,
-    steps:          parseInt(document.getElementById('sdStepsSlider')?.value)       || 20,
+    width:          parseInt(document.getElementById('sdWidthInput')?.value)        || sdWidth,
+    height:         parseInt(document.getElementById('sdHeightInput')?.value)       || sdHeight,
+    steps:          parseInt(document.getElementById('sdStepsSlider')?.value)       || sdSteps,
     popWidth:       parseInt(document.getElementById('sdPopWidthSlider')?.value)    || 480,
-    positiveSuffix: document.getElementById('sdPositiveSuffixInput')?.value         ?? '',
-    negative:       document.getElementById('sdNegativeInput')?.value               ?? '',
-    displayTime:    parseInt(document.getElementById('sdDisplayTimeSlider')?.value) || 10,
-    mosaicKeywords: document.getElementById('sdMosaicKeywordsInput')?.value         ?? '',
-    mosaicBlock:    parseInt(document.getElementById('sdMosaicBlockSlider')?.value) || 20,
-    cfgScale:       parseFloat(document.getElementById('sdCfgScaleInput')?.value)   || 3,
-    sampler:        document.getElementById('sdSamplerInput')?.value                || 'Euler a',
+    positiveSuffix: document.getElementById('sdPositiveSuffixInput')?.value         ?? sdPositiveSuffix,
+    negative:       document.getElementById('sdNegativeInput')?.value               ?? sdNegative,
+    displayTime:    parseInt(document.getElementById('sdDisplayTimeSlider')?.value) || sdDisplayTime,
+    mosaicKeywords: document.getElementById('sdMosaicKeywordsInput')?.value         ?? sdMosaicKeywords,
+    mosaicBlock:    parseInt(document.getElementById('sdMosaicBlockSlider')?.value) || sdMosaicBlock,
+    cfgScale:       parseFloat(document.getElementById('sdCfgScaleInput')?.value)   || sdCfgScale,
+    sampler:        document.getElementById('sdSamplerInput')?.value                || sdSampler,
   };
 }
 
@@ -7593,7 +7699,14 @@ function renderRankingPanel() {
 
   const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
 
-  const dmgEntries = Object.values(bossState ? bossDamageMap : cumulativeDmgMap)
+  const _liveDmg = {};
+  Object.entries(cumulativeDmgMap).forEach(([k, v]) => { _liveDmg[k] = { name: v.name, totalDmg: v.totalDmg }; });
+  Object.entries(bossDamageMap).forEach(([k, v]) => {
+    if (!_liveDmg[k]) _liveDmg[k] = { name: v.name, totalDmg: 0 };
+    _liveDmg[k].name = v.name;
+    _liveDmg[k].totalDmg += v.totalDmg;
+  });
+  const dmgEntries = Object.values(_liveDmg)
     .sort((a, b) => b.totalDmg - a.totalDmg).slice(0, 5);
   let dmgRows = dmgEntries.length
     ? dmgEntries.map((e, i) => `<div class="ranking-row"><span class="ranking-medal">${medals[i]}</span><span class="ranking-name">${escapeHtml(e.name)}</span><span class="ranking-dmg">${e.totalDmg.toLocaleString()}</span></div>`).join('')
@@ -9238,6 +9351,7 @@ function handleAdminMessage(d, replyFn) {
     state.agruImgCmdEnabled      = agruImgCmdEnabled ? 1 : 0;
     state.agruShakeAmp           = agruShakeAmp;
     state.agruModalZ             = agruModalZ;
+    state.agruYtModalZ           = agruYtModalZ;
     state.agruModalWidth         = agruModalWidth;
     state.agruModalHeight        = agruModalHeight;
     state.agruModalBgOpacity     = agruModalBgOpacity;
@@ -9343,8 +9457,8 @@ function handleAdminMessage(d, replyFn) {
     if (d.key === 'agruVoicevoxSpeaker')    agruVoicevoxSpeaker    = parseInt(d.value) || 0;
     if (d.key === 'agruVoicevoxSpeed')      agruVoicevoxSpeed      = parseFloat(d.value) || 1.0;
     if (d.key === 'agruVoicevoxVolume')     agruVoicevoxVolume     = parseFloat(d.value) || 1.0;
-    if (d.key === 'agruSdWidth')            agruSdWidth            = parseInt(d.value) || 512;
-    if (d.key === 'agruSdHeight')           agruSdHeight           = parseInt(d.value) || 512;
+    if (d.key === 'agruSdWidth')            agruSdWidth            = parseInt(d.value) || 0;
+    if (d.key === 'agruSdHeight')           agruSdHeight           = parseInt(d.value) || 0;
     if (d.key === 'agruSdSteps')            agruSdSteps            = parseInt(d.value)   || 0;
     if (d.key === 'agruSdCfgScale')         agruSdCfgScale         = parseFloat(d.value) || 0;
     if (d.key === 'agruSdPositiveSuffix')   agruSdPositiveSuffix   = d.value;
@@ -9376,6 +9490,7 @@ function handleAdminMessage(d, replyFn) {
     if (d.key === 'agruImgCmdEnabled')      agruImgCmdEnabled      = d.value === '1';
     if (d.key === 'agruShakeAmp')           agruShakeAmp           = parseFloat(d.value) || 2;
     if (d.key === 'agruModalZ')             { agruModalZ = parseInt(d.value) || 300; const _mo = document.getElementById('agruModal'); if (_mo) _mo.style.zIndex = agruModalZ; }
+    if (d.key === 'agruYtModalZ')           { agruYtModalZ = parseInt(d.value) || 400; const _yt = document.getElementById('agruYtModal'); if (_yt) _yt.style.zIndex = agruYtModalZ; }
     if (d.key === 'agruModalWidth')         { agruModalWidth = parseInt(d.value) || 870; const _mc = document.querySelector('#agruModal .agru-modal'); if (_mc) _mc.style.width = agruModalWidth + 'px'; }
     if (d.key === 'agruModalHeight')        { agruModalHeight = parseInt(d.value) || 460; const _mc = document.querySelector('#agruModal .agru-modal'); if (_mc) _mc.style.height = agruModalHeight + 'px'; }
     if (d.key === 'agruModalBgOpacity')     { agruModalBgOpacity = parseInt(d.value) ?? 45; const _mc = document.querySelector('#agruModal .agru-modal'); if (_mc) _mc.style.background = `rgba(255,248,251,${agruModalBgOpacity / 100})`; }
