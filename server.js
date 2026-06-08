@@ -813,8 +813,19 @@ function saveServerConfig(cfg) {
 }
 
 const _initSrvCfg = loadServerConfig();
-let ollamaHost = _initSrvCfg.ollamaHost || '127.0.0.1';
+let ollamaHost      = _initSrvCfg.ollamaHost      || '127.0.0.1';
+let ollamaNumGpu    = _initSrvCfg.ollamaNumGpu    ?? -1;
+let ollamaNumThread = _initSrvCfg.ollamaNumThread ?? -1;
+let ollamaNumCtx    = _initSrvCfg.ollamaNumCtx    ?? -1;
 const OLLAMA_PORT = 11434;
+
+function buildOllamaOptions() {
+  const o = {};
+  if (ollamaNumGpu    !== -1) o.num_gpu    = ollamaNumGpu;
+  if (ollamaNumThread !== -1) o.num_thread = ollamaNumThread;
+  if (ollamaNumCtx    !== -1) o.num_ctx    = ollamaNumCtx;
+  return Object.keys(o).length ? o : null;
+}
 
 app.get('/api/ollama-host', (req, res) => {
   res.json({ host: ollamaHost === '127.0.0.1' ? '' : ollamaHost });
@@ -829,6 +840,51 @@ app.post('/api/ollama-host', (req, res) => {
   if (MANAGED_SERVERS.ollama) MANAGED_SERVERS.ollama.host = ollamaHost;
   console.log(`[Ollama] host → ${ollamaHost}`);
   res.json({ ok: true, host: ollamaHost });
+});
+
+app.get('/api/ollama-num-gpu', (req, res) => {
+  res.json({ numGpu: ollamaNumGpu });
+});
+
+app.post('/api/ollama-num-gpu', (req, res) => {
+  const { numGpu } = req.body || {};
+  ollamaNumGpu = (numGpu === undefined || numGpu === null || numGpu === '') ? -1 : parseInt(numGpu, 10);
+  if (isNaN(ollamaNumGpu)) ollamaNumGpu = -1;
+  const cfg = loadServerConfig();
+  cfg.ollamaNumGpu = ollamaNumGpu;
+  saveServerConfig(cfg);
+  console.log(`[Ollama] num_gpu → ${ollamaNumGpu}`);
+  res.json({ ok: true, numGpu: ollamaNumGpu });
+});
+
+app.get('/api/ollama-num-thread', (req, res) => {
+  res.json({ numThread: ollamaNumThread });
+});
+
+app.post('/api/ollama-num-thread', (req, res) => {
+  const { numThread } = req.body || {};
+  ollamaNumThread = (numThread === undefined || numThread === null || numThread === '') ? -1 : parseInt(numThread, 10);
+  if (isNaN(ollamaNumThread)) ollamaNumThread = -1;
+  const cfg = loadServerConfig();
+  cfg.ollamaNumThread = ollamaNumThread;
+  saveServerConfig(cfg);
+  console.log(`[Ollama] num_thread → ${ollamaNumThread}`);
+  res.json({ ok: true, numThread: ollamaNumThread });
+});
+
+app.get('/api/ollama-num-ctx', (req, res) => {
+  res.json({ numCtx: ollamaNumCtx });
+});
+
+app.post('/api/ollama-num-ctx', (req, res) => {
+  const { numCtx } = req.body || {};
+  ollamaNumCtx = (numCtx === undefined || numCtx === null || numCtx === '') ? -1 : parseInt(numCtx, 10);
+  if (isNaN(ollamaNumCtx)) ollamaNumCtx = -1;
+  const cfg = loadServerConfig();
+  cfg.ollamaNumCtx = ollamaNumCtx;
+  saveServerConfig(cfg);
+  console.log(`[Ollama] num_ctx → ${ollamaNumCtx}`);
+  res.json({ ok: true, numCtx: ollamaNumCtx });
 });
 
 // ── サーバー管理 ────────────────────────────────────────────────
@@ -906,6 +962,7 @@ app.post('/api/ai-reply', (req, res) => {
     const chatMessages = [{ role: 'system', content: systemText }, ...messages];
     const ollamaBody = { model, messages: chatMessages, stream: false };
     if (keepAlive !== undefined) ollamaBody.keep_alive = keepAlive;
+    const _opts1 = buildOllamaOptions(); if (_opts1) ollamaBody.options = _opts1;
     const body = JSON.stringify(ollamaBody);
     const opts = {
       hostname: ollamaHost, port: OLLAMA_PORT,
@@ -932,6 +989,7 @@ app.post('/api/ai-reply', (req, res) => {
     if (!prompt) return res.status(400).json({ error: 'prompt is required' });
     const ollamaBody2 = { model, prompt, system: systemText, stream: false };
     if (keepAlive !== undefined) ollamaBody2.keep_alive = keepAlive;
+    const _opts2 = buildOllamaOptions(); if (_opts2) ollamaBody2.options = _opts2;
     const body = JSON.stringify(ollamaBody2);
     const opts = {
       hostname: ollamaHost, port: OLLAMA_PORT,
@@ -1031,7 +1089,9 @@ app.post('/api/ollama-review', (req, res) => {
   const commentsText = comments.length > 0 ? comments.join('\n') : '（コメントなし）';
   const userPrompt = `${userName ? `${userName}さん` : 'ユーザー'}のコメント一覧:\n${commentsText}`;
   const chatMessages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }];
-  const body = JSON.stringify({ model, messages: chatMessages, stream: false });
+  const reviewBody = { model, messages: chatMessages, stream: false };
+  const _optsR = buildOllamaOptions(); if (_optsR) reviewBody.options = _optsR;
+  const body = JSON.stringify(reviewBody);
   const opts = {
     hostname: ollamaHost, port: OLLAMA_PORT,
     path: '/api/chat', method: 'POST',
@@ -1057,6 +1117,88 @@ app.post('/api/ollama-review', (req, res) => {
 app.get('/api/time', (req, res) => {
   const now = new Date();
   res.json({ hour: now.getHours(), day: now.getDay() });
+});
+
+// ── ニュースフィード RSS プロキシ ────────────────────────────────────────
+const _newsCache = { data: null, at: 0 };
+const NEWS_FEEDS = [
+  { url: 'https://gigazine.net/news/rss_2.0/',                        source: 'Gigazine' },
+  { url: 'https://news.yahoo.co.jp/rss/topics/top-picks.xml',         source: 'Yahoo!' },
+];
+
+function _fetchRss(feedUrl) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(feedUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; kukuCome/1.0)' } }, res => {
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+      res.on('error', reject);
+    });
+    req.on('error', reject);
+    req.setTimeout(8000, () => { req.destroy(); reject(new Error('timeout')); });
+  });
+}
+
+function _parseRss(xml, source) {
+  const items = [];
+  const itemRe = /<item[\s>]([\s\S]*?)<\/item>/g;
+  let m;
+  while ((m = itemRe.exec(xml)) !== null) {
+    const block = m[1];
+    const titleM = block.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/);
+    const linkM  = block.match(/<link>([^<\s]+)<\/link>/) || block.match(/<link\s[^>]*href="([^"]+)"/);
+    if (titleM) {
+      const title = titleM[1].replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#039;/g,"'").trim();
+      if (title) items.push({ title, link: linkM ? linkM[1].trim() : '', source });
+    }
+  }
+  return items;
+}
+
+app.get('/api/news', async (req, res) => {
+  const now = Date.now();
+  if (_newsCache.data && now - _newsCache.at < 5 * 60 * 1000) return res.json(_newsCache.data);
+  try {
+    const results = await Promise.allSettled(NEWS_FEEDS.map(f => _fetchRss(f.url).then(xml => _parseRss(xml, f.source))));
+    const bySource = {};
+    results.forEach((r, i) => {
+      if (r.status === 'fulfilled') bySource[NEWS_FEEDS[i].source] = r.value;
+    });
+    // 交互に並べる
+    const interleaved = [];
+    let added = true;
+    const queues = Object.values(bySource).map(arr => [...arr]);
+    while (added) {
+      added = false;
+      queues.forEach(q => { if (q.length) { interleaved.push(q.shift()); added = true; } });
+    }
+    _newsCache.data = interleaved.slice(0, 50);
+    _newsCache.at = now;
+    res.json(_newsCache.data);
+  } catch(e) {
+    console.error('[news]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// URLをPCのデフォルトブラウザで開く（OBSブラウザソース対応）
+app.get('/api/open-url', (req, res) => {
+  const url = req.query.url || '';
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') throw new Error('invalid protocol');
+  } catch {
+    return res.status(400).json({ error: 'invalid url' });
+  }
+  const cmd = process.platform === 'win32'
+    ? `start "" "${url.replace(/"/g, '')}"`
+    : process.platform === 'darwin'
+      ? `open "${url.replace(/"/g, '')}"`
+      : `xdg-open "${url.replace(/"/g, '')}"`;
+  exec(cmd, err => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ ok: true });
+  });
 });
 
 const server = app.listen(PORT, () => {

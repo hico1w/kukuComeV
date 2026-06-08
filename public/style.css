@@ -1818,6 +1818,33 @@ body {
 .boss-avatar.boss-hit-flash {
   animation: bossHitFlash 0.3s ease;
 }
+@keyframes bossHitShake {
+  0%   { transform: translateX(0); }
+  10%  { transform: translateX(-12px); }
+  24%  { transform: translateX(10px); }
+  38%  { transform: translateX(-9px); }
+  52%  { transform: translateX(7px); }
+  66%  { transform: translateX(-5px); }
+  80%  { transform: translateX(3px); }
+  100% { transform: translateX(0); }
+}
+.boss-hit-shake {
+  animation: bossHitShake 0.4s ease-out !important;
+}
+@keyframes bossDeath {
+  0%   { transform: rotate(0deg);                  opacity: 1; }
+  40%  { transform: rotate(88deg);                 opacity: 1; }
+  65%  { transform: rotate(90deg) translateX(0);   opacity: 0.7; }
+  100% { transform: rotate(90deg) translateX(260px); opacity: 0; }
+}
+.boss-dying {
+  transform-origin: bottom center !important;
+  animation: bossDeath 0.85s ease-in forwards !important;
+  pointer-events: none !important;
+}
+.boss-dying * {
+  animation-play-state: paused !important;
+}
 .boss-hp-wrap {
   width: 190px;
   height: 18px;
@@ -2042,6 +2069,41 @@ body {
 .pg-panel-rarity { font-size: 10px; font-weight: 800; letter-spacing: 0.05em; }
 .pg-panel-name   { font-size: 12px; font-weight: 900; margin-top: 2px; }
 .pg-panel-desc   { font-size: 11px; color: #94a3b8; margin-top: 3px; max-width: 110px; text-align: center; line-height: 1.3; }
+
+/* 10連ペットガチャパネル */
+.pet-gacha10-panel {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 12, 20, 0.96);
+  border: 2px solid #a78bfa;
+  border-radius: 12px;
+  padding: 8px 10px 10px;
+  text-align: center;
+  pointer-events: none;
+  z-index: 60;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+}
+.pg10-title { font-size: 12px; font-weight: 700; color: #a78bfa; margin-bottom: 6px; white-space: nowrap; }
+.pg10-grid  { display: grid; grid-template-columns: repeat(5, 68px); gap: 4px; }
+.pg10-card  {
+  border: 2px solid #374151;
+  border-radius: 7px;
+  padding: 3px;
+  background: rgba(255,255,255,0.04);
+  width: 68px;
+  box-sizing: border-box;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.pg10-pending { opacity: 0.45; }
+.pg10-reveal  { animation: pgPanelReveal 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+.pg10-best    { outline: 2px solid #fbbf24; outline-offset: 2px; border-radius: 7px; }
+.pg10-card-img { width: 50px; height: 50px; margin: 0 auto 2px; border: 1px solid #374151; border-radius: 5px; overflow: hidden; background: rgba(255,255,255,0.05); }
+.pg10-card-img img { width: 100%; height: 100%; object-fit: contain; }
+.pg10-card-rarity { font-size: 9px; font-weight: 800; letter-spacing: 0.03em; white-space: nowrap; }
+.pg10-card-name   { font-size: 9px; font-weight: 700; line-height: 1.2; white-space: normal; word-break: break-all; color: #e2e8f0; }
+#stage.content-mode .pet-gacha10-panel { transform: translateX(-50%) scale(0.5); transform-origin: bottom center; }
 
 /* ステータスモーダルのペット表示 */
 .sm-pet-row { display: flex; flex-direction: row; gap: 12px; flex-wrap: wrap; }
@@ -2280,14 +2342,14 @@ body {
 /* ── Wordle パネル ── */
 #wordlePanel {
   position: absolute;
-  background: rgba(14, 12, 22, 0.93);
+  background: rgba(14, 12, 22, var(--wordle-bg, 0.93));
   border: 2px solid rgba(140,110,180,0.35);
   border-radius: 12px;
   padding: 10px 12px 12px;
   z-index: 65;
   cursor: grab;
   user-select: none;
-  width: 200px;
+  width: var(--wordle-w, 200px);
   box-shadow: 0 4px 24px rgba(0,0,0,0.6), 0 0 0 1px rgba(160,120,200,0.08) inset;
 }
 #wordlePanel:active { cursor: grabbing; }
@@ -2368,7 +2430,7 @@ body {
 /* ── クイズパネル ── */
 #quizPanel {
   position: absolute;
-  background: rgba(14, 12, 22, 0.93);
+  background: rgba(14, 12, 22, var(--quiz-bg, 0.93));
   border: 2px solid rgba(100,90,180,0.65);
   border-radius: 12px;
   padding: 10px 14px 12px;
@@ -2470,7 +2532,7 @@ body {
 /* ── ダメージランキングパネル ── */
 #rankingPanel {
   position: absolute;
-  background: rgba(14, 12, 22, 0.92);
+  background: rgba(14, 12, 22, var(--ranking-bg, 0.92));
   border: 2px solid rgba(140,100,170,0.45);
   border-radius: 10px;
   padding: 8px 12px 10px;
@@ -2484,9 +2546,15 @@ body {
 .ranking-section-head {
   font-size: 11px; font-weight: 800; letter-spacing: 0.05em;
   padding: 2px 0 4px; position: relative;
+  cursor: pointer;
 }
+.ranking-section-head:hover .ranking-all-btn { opacity: 1; }
 .ranking-section-dmg { color: #c08898; text-shadow: 0 0 6px rgba(180,100,130,0.4); }
 .ranking-section-mp  { color: #8898c8; text-shadow: 0 0 6px rgba(100,120,200,0.4); margin-top: 8px; border-top: 1px solid rgba(140,110,180,0.15); padding-top: 6px; }
+.ranking-all-btn {
+  font-size: 9px; font-weight: 600; opacity: 0.45;
+  margin-left: 5px; letter-spacing: 0; transition: opacity 0.15s;
+}
 .ranking-empty { font-size: 11px; color: #7868a0; padding: 2px 0 4px; }
 .ranking-row {
   display: flex; align-items: center; gap: 6px;
@@ -2498,6 +2566,13 @@ body {
   flex: 1; font-size: 12px; color: #c8b8e0; font-weight: 600;
   overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 100px;
 }
+.ranking-reset {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  font-size: 11px; color: #7868a0; cursor: pointer; line-height: 1; opacity: 0;
+  transition: opacity 0.15s;
+}
+.ranking-section-head:hover .ranking-reset { opacity: 1; }
+.ranking-reset:hover { color: #c8b8e0; }
 .ranking-close {
   position: absolute; right: 0; top: 50%; transform: translateY(-50%);
   font-size: 11px; color: #7868a0; cursor: pointer; line-height: 1;
@@ -2505,6 +2580,51 @@ body {
 .ranking-close:hover { color: #c8b8e0; }
 .ranking-dmg { font-size: 12px; color: #c4a85a; font-weight: 700; flex-shrink: 0; }
 .ranking-mp  { font-size: 12px; color: #8898c8; font-weight: 700; flex-shrink: 0; }
+
+/* ── ランキング全順位モーダル ── */
+.ranking-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 9200;
+  display: grid; place-items: center;
+}
+.ranking-modal-box {
+  background: rgba(14, 12, 22, 0.97);
+  border: 2px solid rgba(140,100,170,0.5);
+  border-radius: 12px;
+  padding: 14px 16px 16px;
+  width: 280px;
+  max-height: 80vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 8px 48px rgba(0,0,0,0.85);
+}
+.ranking-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.ranking-modal-title { font-size: 13px; font-weight: 800; color: #c8b8e0; letter-spacing: 0.05em; }
+.ranking-modal-close { font-size: 14px; color: #7868a0; cursor: pointer; line-height: 1; }
+.ranking-modal-close:hover { color: #c8b8e0; }
+.ranking-modal-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.ranking-modal-tab {
+  flex: 1; padding: 5px 0;
+  font-size: 11px; font-weight: 700;
+  border: 1px solid rgba(140,100,170,0.3);
+  border-radius: 6px;
+  background: transparent; color: #7868a0;
+  cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.ranking-modal-tab:hover { color: #c8b8e0; }
+.ranking-modal-tab.active {
+  background: rgba(140,100,170,0.22);
+  color: #c8b8e0;
+  border-color: rgba(140,100,170,0.6);
+}
+.ranking-modal-list {
+  overflow-y: auto; flex: 1;
+}
+.ranking-modal-list .ranking-name { max-width: 150px; }
+.ranking-modal-list .ranking-medal { font-size: 14px; min-width: 32px; text-align: center; }
 
 /* ── 早押しパネル ── */
 #hayaoshiPanel {
@@ -2974,9 +3094,308 @@ a.btn-debug    { text-decoration: none; display: inline-block; }
 
 /* ── ステータス非表示 ── */
 body.stats-hidden .char-stats        { display: none !important; }
+body.char-name-hidden .char-name     { display: none !important; }
 
-/* ── 呼吸アニメーション無効 ── */
-body.no-breathe .avatar              { animation: none !important; }
+/* ── 呼吸アニメーション無効（モーション・歩行中は除外） ── */
+body.no-breathe .character:not(.bouncing):not(.spinning):not(.trembling):not(.wavy):not(.floating):not(.swaying):not(.pulsing):not(.skipping):not(.drunk):not(.walking) .avatar { animation: none !important; }
+body.no-boss-float .boss-avatar { animation: none !important; }
+
+/* ── ニューステッカー ── */
+#newsTicker {
+  position: fixed;
+  left: 0; top: 97%; width: 100%; /* JS で上書き */
+  height: 36px;
+  display: flex;
+  align-items: stretch;
+  background: rgba(15, 8, 38, var(--ntbg, 0.90));
+  backdrop-filter: blur(6px);
+  z-index: 9100;
+  overflow: hidden;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  border-radius: 6px;
+  transition: height 0.3s ease;
+}
+#newsTicker.hidden { display: none !important; }
+.news-ticker-wrap {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.news-ticker-row {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.news-ticker-row:last-child { border-bottom: none; }
+.news-ticker-track {
+  display: inline-flex;
+  white-space: nowrap;
+  will-change: transform;
+  flex-shrink: 0;
+  align-items: center;
+}
+@keyframes newsTickerScroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.news-ticker-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 44px 0 0;
+  font-size: var(--ntf, 13px);
+  color: #ddd6fe;
+  cursor: pointer;
+}
+.news-ticker-item:hover { color: #f0e6ff; }
+.news-ticker-sep {
+  display: inline-block;
+  margin-right: 44px;
+  color: #a855f7;
+  font-size: 9px;
+}
+.news-ticker-item .news-source {
+  font-size: calc(var(--ntf, 13px) - 2px);
+  font-weight: bold;
+  margin-right: 7px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.news-ticker-item .news-source.src-gigazine { background: #2563eb; color: #fff; }
+.news-ticker-item .news-source.src-yahoo    { background: #7c3aed; color: #fff; }
+.news-ticker-item .news-source.src-nhk      { background: #0e7490; color: #fff; }
+.news-ticker-item .news-source.src-other    { background: #6b21a8; color: #e9d5ff; }
+
+/* ── 縦書きモード ── */
+#newsTicker.tategaki .news-ticker-item {
+  writing-mode: vertical-rl;
+  padding: 6px 20px 6px 0;
+  align-items: flex-start;
+  overflow: hidden;
+}
+#newsTicker.tategaki .news-ticker-sep {
+  writing-mode: vertical-rl;
+  margin-right: 0;
+  margin-bottom: 0;
+  padding: 0 10px;
+  align-self: center;
+}
+#newsTicker.tategaki .news-ticker-item .news-source {
+  margin-right: 0;
+  margin-bottom: 5px;
+}
+#newsTicker.tategaki .news-ticker-vitem {
+  writing-mode: vertical-rl;
+  height: auto;
+  min-height: var(--ntrowh, 36px);
+  align-items: flex-start;
+  padding: 6px 10px;
+}
+#newsTicker.tategaki .news-ticker-vitem .news-source {
+  margin-right: 0;
+  margin-bottom: 5px;
+}
+#newsTicker.tategaki .news-ticker-vitem-title {
+  writing-mode: vertical-rl;
+  white-space: normal;
+}
+#newsTicker.tategaki .news-ticker-slide-item {
+  writing-mode: vertical-rl;
+  align-items: flex-start;
+  padding: 10px 16px;
+  flex-direction: column;
+}
+#newsTicker.tategaki .news-ticker-slide-item .news-source {
+  margin-right: 0;
+  margin-bottom: 6px;
+  writing-mode: horizontal-tb;
+}
+#newsTicker.tategaki .news-ticker-slide-title {
+  writing-mode: vertical-rl;
+  overflow: hidden;
+}
+
+/* ── 縦スクロールモード ── */
+.news-ticker-vtrack {
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+@keyframes newsTickerVScroll {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-50%); }
+}
+.news-ticker-vitem {
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 8px;
+  height: var(--ntrowh, 36px);
+  font-size: var(--ntf, 13px);
+  color: #ddd6fe;
+  cursor: pointer;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(168,85,247,0.12);
+  box-sizing: border-box;
+}
+.news-ticker-vitem:hover { color: #f0e6ff; background: rgba(168,85,247,0.08); }
+.news-ticker-vitem .news-source {
+  font-size: calc(var(--ntf, 13px) - 2px);
+  font-weight: bold;
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.news-ticker-vitem .news-source.src-gigazine { background: #2563eb; color: #fff; }
+.news-ticker-vitem .news-source.src-yahoo    { background: #7c3aed; color: #fff; }
+.news-ticker-vitem .news-source.src-nhk      { background: #0e7490; color: #fff; }
+.news-ticker-vitem .news-source.src-other    { background: #6b21a8; color: #e9d5ff; }
+.news-ticker-vitem-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── スライドモード ── */
+.news-ticker-slide-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+.news-ticker-slide-item {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  gap: 10px;
+  font-size: var(--ntf, 13px);
+  color: #ddd6fe;
+  cursor: pointer;
+}
+.news-ticker-slide-item:hover { color: #f0e6ff; }
+.news-ticker-slide-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.news-ticker-slide-item .news-source {
+  font-size: calc(var(--ntf, 13px) - 2px);
+  font-weight: bold;
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.news-ticker-slide-item .news-source.src-gigazine { background: #2563eb; color: #fff; }
+.news-ticker-slide-item .news-source.src-yahoo    { background: #7c3aed; color: #fff; }
+.news-ticker-slide-item .news-source.src-nhk      { background: #0e7490; color: #fff; }
+.news-ticker-slide-item .news-source.src-other    { background: #6b21a8; color: #e9d5ff; }
+@keyframes ntSlideIn {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes ntSlideOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-24px); }
+}
+.news-ticker-slide-item.nt-entering { animation: ntSlideIn 0.55s cubic-bezier(0.22,1,0.36,1) forwards; }
+.news-ticker-slide-item.nt-leaving  { animation: ntSlideOut 0.45s ease forwards; }
+
+/* ── ニュース記事モーダル ── */
+.news-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 2, 18, 0.88);
+  z-index: 10200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.news-modal-box {
+  width: min(820px, 90vw);
+  max-height: 82vh;
+  background: #120a28;
+  border: 1px solid #7c3aed;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 0 40px rgba(124,58,237,0.35);
+}
+.news-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #3b1a7a, #7a1a4a);
+  flex-shrink: 0;
+}
+.news-modal-source {
+  font-size: 11px;
+  font-weight: bold;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.15);
+  color: #e9d5ff;
+  flex-shrink: 0;
+}
+.news-modal-title-text {
+  flex: 1;
+  font-size: 13px;
+  color: #f0e6ff;
+  font-weight: bold;
+  line-height: 1.4;
+}
+.news-modal-open-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #c4b5fd;
+  font-size: 18px;
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.news-modal-open-btn:hover { background: rgba(255,255,255,0.1); }
+.news-modal-close {
+  cursor: pointer;
+  color: #a78bfa;
+  font-size: 20px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.news-modal-close:hover { color: #f0e6ff; }
+.news-modal-body {
+  padding: 36px 28px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+}
+.news-modal-body-title {
+  color: #e9d5ff;
+  font-size: 17px;
+  line-height: 1.65;
+  text-align: center;
+}
+.news-modal-link-btn {
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #7c3aed, #db2777);
+  color: #fff;
+  padding: 12px 32px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 0.04em;
+  transition: opacity 0.15s;
+}
+.news-modal-link-btn:hover { opacity: 0.85; }
 
 /* ── コンパクトモード ── */
 body.compact-mode .char-stats        { display: none !important; }

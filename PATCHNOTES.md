@@ -2,6 +2,382 @@
 
 ---
 
+## v2.512.0 — 2026-06-09
+
+### ボス撃破モーション変更（倒れて床にスライド消滅）
+
+- **`defeatBoss()`** (`app.js`)
+  - 従来の「膨張してフェードアウト」を廃止
+  - `.boss-dying` クラスを付与するだけに変更
+  - 要素削除タイムアウトを 600ms → 950ms に延長（アニメーション完了後に削除）
+- **新アニメーション** (`style.css`)
+  - `@keyframes bossDeath`: 0→40%で90度回転（倒れる）、65→100%で260px下スライドしながらフェードアウト
+  - `transform-origin: bottom center` でボスの足元を軸に回転（木が倒れるような動き）
+  - `.boss-dying * { animation-play-state: paused }` で子要素の浮遊アニメを停止しリアルな倒れ方に
+
+---
+
+## v2.511.0 — 2026-06-09
+
+### ボス被弾シェイク修正（CSS cascade 競合解消）
+
+- **`applyBossHitShake` の対象を変更** (`app.js`)
+  - `.boss-avatar`（`#bossAvatar`）→ `bossState.el`（ボスコンテナ全体）
+  - `.boss-avatar` には `bossFloat` / `bossHitFlash` アニメーションが競合するため、アニメーションなしの外側コンテナに移動
+- **CSS 修正** (`style.css`)
+  - セレクタを `.boss-avatar.boss-hit-shake` → `.boss-hit-shake` に変更
+  - キーフレームを `translate:` プロパティ → `transform: translateX()` に変更（ブラウザ互換性向上）
+  - `!important` 追加でコンテナ上の他スタイルに優先
+
+---
+
+## v2.510.0 — 2026-06-09
+
+### ぷるぷる RAF ループのパフォーマンス改善
+
+- **`_puruStartLoop` 自動停止** (`app.js`)
+  - キャンバスが0枚になったら RAF ループを自律停止、次回 `_puruAttach` 時に再起動
+  - アイドル時（ぷるぷる設定なし）は 60fps ループが完全に止まる
+- **`getBoundingClientRect` フレーム分散** (`_puruAttach`)
+  - 新規キャンバスの `_puruTick` 初期値をランダム（0〜118）に設定
+  - 多数キャラが同時スポーン時の強制レイアウト集中（フレームスパイク）を解消
+
+---
+
+## v2.509.0 — 2026-06-09
+
+### ボス被弾エフェクトをぷるぷる→振動アニメーションに変更
+
+- ぷるぷるエフェクト（`applyBossHitPuruEffect` / `_bossHitPuruTimer` 等）を廃止
+- **CSS振動アニメーション** `bossHitShake` を追加（`style.css`）
+  - `translate` プロパティを使用（既存の `transform: scaleX(-1)` フリップと独立）
+  - 0.38s、8ステップの左右振動 + わずかな上下
+- `applyBossHitShake(ba)` 関数を追加（`app.js`）、ヒット時に `boss-hit-flash` と同時に適用
+
+---
+
+## v2.508.0 — 2026-06-09
+
+### ダメージ文字サイズ設定・ボス被弾ぷるぷるエフェクト追加
+
+- **⚔️ ダメージ演出グループ** を `index.html` / `admin.html` に新設
+- **ダメージ文字サイズ** `dmgFontScale`：25〜200%（デフォルト 100%）
+  - `showDamageNumber()` の fontSize 計算に乗算、通常攻撃・クリティカル・反撃すべて対象
+- **ボス被弾時ランダムぷるぷるエフェクト** (`app.js`)
+  - `applyBossHitPuruEffect()` 追加
+  - `purupuruConfig` の `enabled: true` エントリをランダムに1つ選択し、ボスに一時適用（700ms後に元の設定に戻す）
+  - 連続ヒット時はタイマーを延長（エフェクトが重複しない）
+  - ぷるぷる設定が1件もない場合は何もしない
+
+---
+
+## v2.506.0 — 2026-06-09
+
+### ニューステッカー：縦書きオプション追加
+
+- **縦書きトグルボタン** `newsTickerTategaki`（`index.html`, `admin.html`）
+  - 全表示モード（横スクロール・縦スクロール・スライド）に対応
+  - `#newsTicker.tategaki` クラスで CSS `writing-mode: vertical-rl` を適用
+  - ソースバッジ（Yahoo!/Gigazine）も縦書きで表示
+  - スライドモード時のバッジのみ `horizontal-tb` を維持（読みやすさ優先）
+- **CSS追加** (`style.css`): `#newsTicker.tategaki` 配下の各要素スタイル
+
+---
+
+## v2.505.0 — 2026-06-09
+
+### パネル外観設定を管理パネルに追加（もじあて・ランキング・クイズ）
+
+- **📐 パネル外観グループ** を `index.html` / `admin.html` に新設
+- **もじあてパネル幅** `wordlePanelWidth`：100〜500px（デフォルト 200px）、`--wordle-w` CSS変数で制御
+- **もじあてパネル背景透明度** `wordlePanelBgOpacity`：0〜100%（デフォルト 93%）、`--wordle-bg` CSS変数で制御
+- **ダメージランキング背景透明度** `rankingPanelBgOpacity`：0〜100%（デフォルト 92%）、`--ranking-bg` CSS変数で制御
+- **クイズ背景透明度** `quizPanelBgOpacity`：0〜100%（デフォルト 93%）、`--quiz-bg` CSS変数で制御
+- 各パネルの `background: rgba(...)` をCSS変数化（`style.css`）
+- `applyPanelSettings()` 関数を `app.js` に追加、初期化時に呼び出し
+
+---
+
+## v2.504.0 — 2026-06-09
+
+### ニューステッカー：表示モード3種追加（横スクロール／縦スクロール／スライド）
+
+- **新設定：表示モード** `newsTickerMode` (`app.js`, `index.html`, `admin.html`)
+  - `hscroll`（横スクロール）: 従来の左流れマーキー（デフォルト）
+  - `vscroll`（縦スクロール）: 記事が下から上へ流れる縦マーキー、行数で可視アイテム数を制御
+  - `slide`（スライド切り替え）: 1件ずつ表示し、設定秒数ごとに下→上のスライドアニメーションで自動切り替え
+- **新設定：切替間隔** `newsTickerInterval` 3〜30秒（スライドモード専用）
+- **CSS追加** (`style.css`): `.news-ticker-vtrack`, `.news-ticker-vitem`, `@keyframes newsTickerVScroll`, `.news-ticker-slide-wrap`, `.news-ticker-slide-item`, `@keyframes ntSlideIn/ntSlideOut`
+- `renderNewsTicker()` を `_renderHScroll` / `_renderVScroll` / `_renderSlide` に分割
+- モード変更時は自動でスライドタイマーをクリア・再起動
+
+---
+
+## v2.503.0 — 2026-06-09
+
+### ニューステッカー：OBSブラウザソース対応・サーバー経由でブラウザ起動
+
+- **`/api/open-url` エンドポイント追加** (`server.js`)
+  - `GET /api/open-url?url=<encoded>` でPCのデフォルトブラウザを起動
+  - http/https のみ許可（それ以外は400）
+  - Windows: `start ""`, macOS: `open`, Linux: `xdg-open`
+- **モーダルのリンクボタンをサーバー経由に変更** (`app.js`, `style.css`)
+  - `<a target="_blank">` → `<button onclick="fetch('/api/open-url?...')">` に変更
+  - OBSブラウザソース内でクリックしてもPCのブラウザが開くようになった
+  - ヘッダーの↗ボタン・本文の「🔗 記事を開く」ボタン両方対応
+
+---
+
+## v2.502.0 — 2026-06-09
+
+### ニューステッカー：NEWSラベル削除・クリックモーダル改修
+
+- **NEWSラベル削除** (`index.html`, `style.css`)
+  - `<span class="news-ticker-label">NEWS</span>` を削除
+  - `.news-ticker-label` CSSブロックを削除
+- **クリックモーダルをiframeなし構成に変更** (`app.js`, `style.css`)
+  - X-Frame-Options によりiframeが無音でブロックされ何も表示されない問題を修正
+  - iframeを廃止し、記事タイトル + 「🔗 記事を開く」ボタンのみ表示するシンプルなモーダルに変更
+  - `.news-modal-iframe` / `.news-modal-fallback` CSS を `.news-modal-body` / `.news-modal-body-title` / `.news-modal-link-btn` に置き換え
+
+---
+
+## v2.501.0 — 2026-06-09
+
+### ニューステッカー：設定項目を大幅拡張
+
+- **新設定スライダー（admin.html・index.html 両対応）**
+  - **横幅** `newsTickerWidth`：20〜100%（デフォルト 100%）
+  - **位置X** `newsTickerX`：0〜90%（左端からの距離）
+  - **位置Y** `newsTickerY`：0〜99%（画面上端からの距離、デフォルト 97% = 画面下部）
+  - **背景透明度** `newsTickerBgOpacity`：0〜100%（デフォルト 90%）
+  - **速度** `newsTickerSpeed`：25〜400%（デフォルト 100%、数値が大きいほど速い）
+  - **行数**・**文字サイズ**は既存スライダーを継続
+- **削除**: 上下トグルボタン `newsTickerPos` を廃止し X/Y 座標で自由配置に変更
+- `public/style.css`: `#newsTicker` を `left/top/width` の JS 制御に変更、背景に `--ntbg` CSS 変数を追加
+- `public/app.js`:
+  - `applyNewsTickerSettings()` を全面刷新（位置・幅・透明度・フォントを `style` に直接適用）
+  - `renderNewsTicker()` でスクロール速度を `newsTickerSpeed` から計算
+  - スライダーイベントリスナーを IIFE にまとめて整理
+- 全設定は `SETTINGS_KEYS` 経由でサーバー同期
+
+---
+
+## v2.500.0 — 2026-06-09
+
+### ニューステッカー：管理パネル設定・クリックモーダル・バグ修正
+
+- **バグ修正**
+  - `#newsTicker` を `<script src="app.js">` より前に配置し、起動時 null エラーを解消
+  - `flex-shrink` でトラックが潰れてスクロールしない問題を修正（`flex-shrink: 0` + `inline-flex`）
+  - `wordleDragState`・`quizDragState`・`raceDragState` の TDZ エラーを修正（mousemove ハンドラより前に前出し宣言）
+
+- **管理パネル設定（index.html・admin.html）**
+  - 「📰 ニューステッカー設定」グループを追加
+  - **位置**ボタン：上 / 下を切り替え（`body.news-ticker-top` クラスで CSS 制御）
+  - **行数**スライダー：1〜3行（行ごとに異なるアイテムが流れる・速度も微差）
+  - **文字サイズ**スライダー：10〜20px（CSS 変数 `--ntf` で反映）
+
+- **クリックでニュースモーダル表示**
+  - 各ニュース項目をクリックすると `.news-modal-overlay` を生成
+  - ヘッダーにソースバッジ・タイトル・外部リンクボタン・✕
+  - iframe で記事を埋め込み表示（X-Frame-Options ブロック時は「外部ブラウザで開く」ボタン表示）
+
+- **app.js**
+  - `fetchNewsAndRender()` を `fetchNewsAndRender` + `renderNewsTicker()` に分離
+  - `applyNewsTickerSettings()`: 位置・フォントサイズ・高さ・スライダー値を一括適用
+  - `openNewsModal(url, title, source)` 追加
+  - 設定 3 件（`newsTickerPos`・`newsTickerFontSize`・`newsTickerRows`）を `SETTINGS_KEYS` に追加・サーバー同期
+
+- **style.css**：ニュースモーダル CSS 追加・多段行 `.news-ticker-row` 追加
+
+---
+
+## v2.499.0 — 2026-06-08
+
+### ニューステッカー追加（Gigazine・Yahoo!ニュース 横スクロール）
+
+- `server.js`: `/api/news` エンドポイント追加
+  - Gigazine RSS (`rss_2.0/`) と Yahoo!ニュース RSS (`top-picks.xml`) をサーバー側でフェッチ
+  - CDATA 対応 XML パーサー `_parseRss()` を内蔵
+  - 2ソースを交互に並べて最大50件返却、5分キャッシュ付き
+- `public/index.html`: `#newsTicker` 要素（`</body>` 直前）を追加
+- `public/style.css`: `.news-ticker-*` スタイル追加（固定下部バー・赤ラベル・無限スクロールアニメーション）
+  - ソースごとに色分けバッジ（Gigazine: オレンジ, Yahoo!: 紫）
+- `public/app.js`:
+  - `SETTINGS_KEYS` に `'newsTickerEnabled'` を追加
+  - `let newsTickerEnabled` 変数を追加
+  - `fetchNewsAndRender()`: `/api/news` を叩いてトラックを構築、文字数に応じてスクロール速度調整（`newsTickerScroll` animation）
+  - 5分 `setInterval` で自動更新
+  - `toggleNewsTickerBtn` クリックでオン/オフ・localStorage保存・サーバー同期
+  - 起動時に前回の状態を復元
+- `public/admin.html`: 「📰 ニュース」トグルボタン追加
+
+---
+
+## v2.498.0 — 2026-06-08
+
+### ボス浮遊アニメーション（bossFloat）の管理パネルトグル追加
+
+- `public/admin.html`: 「🆙 ボス浮遊」ボタン（`id="toggleBossFloatBtn"`）を追加（呼吸ボタン横）
+- `public/app.js`:
+  - `SETTINGS_KEYS` に `'bossFloatDisabled'` を追加（サーバー同期対象）
+  - `let bossFloatDisabled` 変数を追加（localStorage 初期値読み込み）
+  - `toggleBossFloatBtn` のクリックリスナー追加：`no-boss-float` クラスをトグル・localStorage 保存・サーバー同期
+  - 起動時に `bossFloatDisabled === true` ならクラスとボタン active を復元
+- `public/style.css`: `body.no-boss-float .boss-avatar { animation: none !important; }` を追加
+
+---
+
+## v2.497.0 — 2026-06-08
+
+### 「止めて」コマンド：50MP消費制に変更
+
+- `public/app.js`: `handleComment()` の YouTube停止処理を変更
+  - MP が 50 未満の場合は「MPが足りない…」バブルを表示して停止しない
+  - MP が 50 以上の場合は 50MP 消費して `closeAgruYtModal()` を呼び出す
+- `public/app.js`: `_agruSend()` 内の `closeAgruYtModal()` 呼び出しを削除（`handleComment` 側で処理済みのため重複排除）
+
+---
+
+## v2.496.0 — 2026-06-08
+
+### ぷるぷる：ボス（正方形コンテナ）での位置・サイズずれを修正
+
+- `public/app.js`: `_puruRenderCanvas()` でメッシュ座標とコントロールポイントを**画像コンテンツ領域基準**で計算するよう変更
+  - **問題**: admin プレビューは `height:420px;width:auto` で画像そのもののサイズ=コンテナ。コントロールポイント % は画像基準。ボスアバターは正方形コンテナに `object-fit:contain` → 縦長・横長画像でレターボックスが生じ、同じ % が別の位置を指してしまっていた
+  - **修正**: `srcX/srcW/iw` から画像コンテンツの左端オフセット `contentL/contentT` と幅高さ `cW/cH` を算出。余白ありの場合は頂点・点座標をコンテンツ領域内にマップ、UV は 0→1 の線形に変更
+  - cover やレターボックスなしの場合は `contentL=0` のため従来と同じ動作を維持
+- `public/app.js`: `ampScale` を `cssH/420` からコンテンツ実高 `cH/(dpr*SS)/420` に変更（横長画像のボスで振幅が正しくスケールされるよう）
+
+---
+
+## v2.495.0 — 2026-06-08
+
+### ボスぷるぷる：揺れ設定なし時も正しく適用されるよう修正
+
+- `public/app.js`: `spawnBoss()` を修正
+  - 従来: `updateBossJiggleOverlay()` のみ呼び出し → 揺れ設定がないとその関数内で `return` するため `updateBossPurupuru()` に未到達
+  - 修正後: `_initBossEffects()` ヘルパーで `updateBossJiggleOverlay()` と `updateBossPurupuru()` を**独立して**呼び出す（ユーザーキャラの処理と同じ構造）
+- `public/app.js`: `updateBossJiggleOverlay()` 末尾の `updateBossPurupuru()` 呼び出しを削除（`spawnBoss` 側で明示的に呼ぶことで重複排除）
+
+---
+
+## v2.494.0 — 2026-06-07
+
+### ランキングパネル：位置リセット機能＋画面外自動補正
+
+- `public/app.js`: `resetRankingPanelPos()` 関数を追加
+  - ダメージセクションヘッドにホバーで表示される `↺` ボタンをクリックすると右上デフォルト位置にリセット
+  - localStorage の保存済み位置も更新
+- `public/app.js`: `renderRankingPanel()` でステージ外にはみ出した場合に自動クランプ（ウィンドウ縮小時などにパネルが画面外に消えなくなる）
+- `public/style.css`: `.ranking-reset` スタイル追加（ホバー時のみ表示）
+
+---
+
+## v2.493.0 — 2026-06-07
+
+### ランキングパネル：上位3位表示＋全順位モーダル追加
+
+- `public/app.js`: `renderRankingPanel()` をダメージ・MP それぞれ上位3位表示に変更（従来は5位まで）
+- `public/app.js`: `showRankingModal(type)` 関数を新規追加
+  - ⚔️ ダメージ / 💎 MP セクションヘッドをクリックするとモーダルを表示
+  - モーダルはタブ切り替えで全参加者の順位を確認可能（4位以降は「4位」「5位」と表示）
+  - オーバーレイクリックで閉じる
+- `public/style.css`: `.ranking-all-btn`（「全順位」ラベル）スタイル追加
+- `public/style.css`: `.ranking-modal-overlay` / `.ranking-modal-box` / `.ranking-modal-tabs` などモーダル用スタイル追加
+
+---
+
+## v2.492.0 — 2026-06-07
+
+### 回転・はずむなどのモーションが動かないバグ修正
+
+- `public/style.css`: `no-breathe`（呼吸無効モード）の CSS セレクタを修正
+  - 変更前: `body.no-breathe .avatar { animation: none !important }` → bounce/spin/walk など全アバターアニメーションも抑制してしまっていた
+  - 変更後: `:not(.bouncing):not(.spinning):...:not(.walking)` 付きのセレクタに変更し、モーション・歩行中のキャラクターはアニメーションを維持
+- `public/app.js`: `applyMotion` 関数を修正
+  - モーション適用時に `walking` クラスを除去。`.character.walking .avatar { animation: walkBob !important }` が bounce/spin アニメーションを上書きする問題を解消
+  - `u.el.style.transition = ''` を追加。`全員停止` が設定する `transition: none` インラインスタイルの残留によるアニメーション非表示を解消
+  - モーション終了後（10秒）に `user.walking` フラグで walking クラスを復元、または `applyWalking` で movement に応じた状態を再設定
+
+---
+
+## v2.491.0 — 2026-06-07
+
+### キャラ名前非表示/表示ボタンを管理パネルに追加
+
+- `public/index.html`: `toggleCharNameBtn`（👤 名前）ボタンを追加
+- `public/style.css`: `body.char-name-hidden .char-name { display: none !important; }` を追加
+- `public/app.js`:
+  - `charNameHidden` 変数追加・設定キーリストに追加
+  - `toggleCharNameBtn` クリックで `body.char-name-hidden` トグル・localStorage 保存
+  - 起動時に保存済み状態を復元
+- `public/admin.html`: 「👤 名前」ボタンを表示切替グループに追加
+
+---
+
+## v2.490.0 — 2026-06-07
+
+### 10連ペットガチャコマンド実装
+
+- `public/app.js`:
+  - `10連ペットガチャ` / `ペットガチャ10連` コマンド追加（MP200消費）
+  - `showPetGacha10Anim(user, pets)` 関数追加: 10枚カードをグリッド表示し150ms間隔で順次解放
+    - 最高レアリティカードにゴールドのアウトライン表示
+    - myth: 花火＋紙吹雪、legend: 花火、それ以外は全解放後に最高レアリティ音
+    - 7秒後に自動消去
+  - `_isAgruSkipCmd` の `/ペットガチャ/` パターンで10連も自動スキップ
+  - ペットガチャ回数カウント（`tc.petGachas`）は10回分加算（称号・スロット解放も正常動作）
+- `public/style.css`: `.pet-gacha10-panel` / `.pg10-*` CSS追加
+
+---
+
+## v2.489.0 — 2026-06-07
+
+### Ollama CPUスレッド数・コンテキスト長を管理パネルから設定可能に
+
+- `server.js`:
+  - `ollamaNumThread`・`ollamaNumCtx` 変数追加（デフォルト -1 = 自動/モデルデフォルト）
+  - `buildOllamaOptions()` 関数を追加し、num_gpu / num_thread / num_ctx を一括管理
+  - `GET/POST /api/ollama-num-thread`・`/api/ollama-num-ctx` エンドポイント追加
+  - `/api/ai-reply`（chat・generate）と `/api/ollama-review` の options 注入を `buildOllamaOptions()` に統一
+- `public/admin.html`: AI設定セクションに「CPUスレッド数」「コンテキスト長」入力欄を追加
+  - CPUスレッド数: -1=自動、物理コア数を指定するとCPU推論が速くなる
+  - コンテキスト長: -1=モデルデフォルト、短くすると推論速度が上がる
+
+---
+
+## v2.488.0 — 2026-06-07
+
+### 画像コマンド時のOllamaアンロードを管理パネルから設定可能に／unload無効時SD並行生成
+
+- `public/app.js`:
+  - `agruUnloadEnabled` 変数追加（デフォルト: 有効）
+  - 設定キーリスト・state保存・agruText同期ハンドラに `agruUnloadEnabled` を追加
+  - unload **有効**時: 従来通り Ollama 返答 → unload → SD 生成（直列）
+  - unload **無効**時: Ollama 返答生成と並行して SD に先行リクエストを送信（並列化でトータル待ち時間を短縮）
+- `public/admin.html`: アゲルちゃんセクションに「画像時unload」トグルボタンを追加
+  - 無効にするとVRAMを解放せずSD生成を先行開始（速くなる可能性あり）
+  - 起動時に設定値を復元
+
+---
+
+## v2.487.0 — 2026-06-07
+
+### Ollama GPU レイヤー数を管理パネルから設定可能に
+
+- `server.js`: `ollamaNumGpu` 変数追加（デフォルト -1 = 全レイヤー GPU）
+  - `GET/POST /api/ollama-num-gpu` エンドポイント追加
+  - `/api/ai-reply`（chat・generate 両パス）と `/api/ollama-review` の Ollama 呼び出し時に `options: { num_gpu }` を注入
+  - 値はサーバー設定ファイルに永続化
+- `public/admin.html`: AI設定セクションに「GPU レイヤー数」入力フィールドを追加
+  - 範囲: -1（全レイヤー・デフォルト）〜任意の正数（例: 0=CPUのみ、24=半分）
+  - 起動時にサーバーから現在値を取得して表示
+  - `saveOllamaNumGpu()` 関数でリアルタイム反映
+
+---
+
 ## v2.486.0 — 2026-06-07
 
 ### もじあて・クイズ・ダメージ/MPランキングをミュートカラーにリデザイン

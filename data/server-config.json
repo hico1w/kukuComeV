@@ -1,3 +1,6 @@
 {
-  "ollamaHost": "127.0.0.1"
+  "ollamaHost": "127.0.0.1",
+  "ollamaNumGpu": -1,
+  "ollamaNumThread": 24,
+  "ollamaNumCtx": 2048
 }

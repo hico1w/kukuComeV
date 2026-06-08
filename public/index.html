@@ -102,7 +102,61 @@
           <button id="toggleTrashBtn" class="btn-toggle-trash">🗑 ゴミ箱</button>
           <button id="toggleStatsBtn" class="btn-toggle-stats">📊 ステータス</button>
           <button id="toggleBreatheBtn" class="btn-toggle-breathe">🫁 呼吸</button>
+          <button id="toggleBossFloatBtn" class="btn-toggle-bossfloat">🆙 ボス浮遊</button>
+          <button id="toggleNewsTickerBtn" class="btn-toggle-newsticker">📰 ニュース</button>
+          <button id="toggleCharNameBtn" class="btn-toggle-charname">👤 名前</button>
           <a href="/help.html" target="_blank" class="btn btn-help">❓ コマンド</a>
+        </div>
+
+        <div class="admin-group">
+          <div class="admin-group-title">📰 ニューステッカー設定</div>
+          <div class="size-row">
+            <span class="size-label">横幅</span>
+            <input id="newsTickerWidthSlider" type="range" min="20" max="100" step="1" value="100" class="size-slider">
+            <span id="newsTickerWidthVal" class="size-val">100%</span>
+          </div>
+          <div class="size-row">
+            <span class="size-label">位置X</span>
+            <input id="newsTickerXSlider" type="range" min="0" max="90" step="1" value="0" class="size-slider">
+            <span id="newsTickerXVal" class="size-val">0%</span>
+          </div>
+          <div class="size-row">
+            <span class="size-label">位置Y</span>
+            <input id="newsTickerYSlider" type="range" min="0" max="99" step="1" value="97" class="size-slider">
+            <span id="newsTickerYVal" class="size-val">97%</span>
+          </div>
+          <div class="size-row">
+            <span class="size-label">行数</span>
+            <input id="newsTickerRowsSlider" type="range" min="1" max="3" step="1" value="1" class="size-slider">
+            <span id="newsTickerRowsVal" class="size-val">1</span>
+          </div>
+          <div class="size-row">
+            <span class="size-label">文字サイズ</span>
+            <input id="newsTickerFontSlider" type="range" min="10" max="20" step="1" value="13" class="size-slider">
+            <span id="newsTickerFontVal" class="size-val">13px</span>
+          </div>
+          <div class="size-row">
+            <span class="size-label">背景透明度</span>
+            <input id="newsTickerBgOpacitySlider" type="range" min="0" max="100" step="1" value="90" class="size-slider">
+            <span id="newsTickerBgOpacityVal" class="size-val">90%</span>
+          </div>
+          <div class="size-row">
+            <span class="size-label">速度</span>
+            <input id="newsTickerSpeedSlider" type="range" min="25" max="400" step="5" value="100" class="size-slider">
+            <span id="newsTickerSpeedVal" class="size-val">100%</span>
+          </div>
+          <div class="size-row" style="flex-wrap:wrap;gap:4px;">
+            <span class="size-label">表示モード</span>
+            <button id="newsTickerModeHBtn" class="btn-admin active">↔ 横</button>
+            <button id="newsTickerModeVBtn" class="btn-admin">↕ 縦</button>
+            <button id="newsTickerModeSBtn" class="btn-admin">⏱ スライド</button>
+            <button id="newsTickerTategakiBtn" class="btn-admin">縦書き</button>
+          </div>
+          <div class="size-row">
+            <span class="size-label">切替間隔</span>
+            <input id="newsTickerIntervalSlider" type="range" min="3" max="30" step="1" value="8" class="size-slider">
+            <span id="newsTickerIntervalVal" class="size-val">8秒</span>
+          </div>
         </div>
 
         <div class="admin-group">
@@ -118,6 +172,39 @@
           <button id="battleRoyaleBtn"   class="btn-br">👑 バトルロイヤル</button>
           <button id="brTimerBtn"        class="btn-br-timer">⏰ BR次回</button>
           <button id="brAutoBtn"         class="btn-br-auto">🔄 自動BR</button>
+        </div>
+
+        <div class="admin-group">
+          <div class="admin-group-title">📐 パネル外観</div>
+          <div class="size-row">
+            <span class="size-label">もじあて 幅</span>
+            <input id="wordlePanelWidthSlider" type="range" min="100" max="500" step="10" value="200" class="size-slider">
+            <span id="wordlePanelWidthVal" class="size-val">200px</span>
+          </div>
+          <div class="size-row">
+            <span class="size-label">もじあて 背景</span>
+            <input id="wordlePanelBgSlider" type="range" min="0" max="100" step="1" value="93" class="size-slider">
+            <span id="wordlePanelBgVal" class="size-val">93%</span>
+          </div>
+          <div class="size-row">
+            <span class="size-label">ランキング 背景</span>
+            <input id="rankingPanelBgSlider" type="range" min="0" max="100" step="1" value="92" class="size-slider">
+            <span id="rankingPanelBgVal" class="size-val">92%</span>
+          </div>
+          <div class="size-row">
+            <span class="size-label">クイズ 背景</span>
+            <input id="quizPanelBgSlider" type="range" min="0" max="100" step="1" value="93" class="size-slider">
+            <span id="quizPanelBgVal" class="size-val">93%</span>
+          </div>
+        </div>
+
+        <div class="admin-group">
+          <div class="admin-group-title">⚔️ ダメージ演出</div>
+          <div class="size-row">
+            <span class="size-label">文字サイズ</span>
+            <input id="dmgFontScaleSlider" type="range" min="25" max="200" step="5" value="100" class="size-slider">
+            <span id="dmgFontScaleVal" class="size-val">100%</span>
+          </div>
         </div>
 
         <div class="admin-group">
@@ -1075,6 +1162,11 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- ニューステッカー（app.js より前に配置） -->
+  <div id="newsTicker" class="news-ticker hidden">
+    <div id="newsTickerWrap" class="news-ticker-wrap"></div>
   </div>
 
   <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>

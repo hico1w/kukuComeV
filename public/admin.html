@@ -201,7 +201,62 @@
     <button onclick="cmd('toggleTrashBtn')">🗑 ゴミ箱</button>
     <button id="toggleStatsBtn" onclick="cmd('toggleStatsBtn')">📊 ステータス</button>
     <button onclick="cmd('toggleBreatheBtn')">🫁 呼吸</button>
+    <button id="toggleBossFloatBtn" onclick="cmd('toggleBossFloatBtn')">🆙 ボス浮遊</button>
+    <button id="toggleNewsTickerBtn" onclick="cmd('toggleNewsTickerBtn')">📰 ニュース</button>
+    <button onclick="cmd('toggleCharNameBtn')">👤 名前</button>
     <a href="/help.html" target="_blank" class="btn">❓ コマンド</a>
+  </div>
+</div>
+
+<!-- ニューステッカー設定 -->
+<div class="section">
+  <div class="section-title">📰 ニューステッカー設定</div>
+  <div class="size-row">
+    <span class="size-label">横幅</span>
+    <input id="newsTickerWidthSlider" type="range" min="20" max="100" step="1" value="100" class="size-slider" oninput="syncSlider(this,'newsTickerWidthVal',v=>v+'%')">
+    <span id="newsTickerWidthVal">100%</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">位置X</span>
+    <input id="newsTickerXSlider" type="range" min="0" max="90" step="1" value="0" class="size-slider" oninput="syncSlider(this,'newsTickerXVal',v=>v+'%')">
+    <span id="newsTickerXVal">0%</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">位置Y</span>
+    <input id="newsTickerYSlider" type="range" min="0" max="99" step="1" value="97" class="size-slider" oninput="syncSlider(this,'newsTickerYVal',v=>v+'%')">
+    <span id="newsTickerYVal">97%</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">行数</span>
+    <input id="newsTickerRowsSlider" type="range" min="1" max="3" step="1" value="1" class="size-slider" oninput="syncSlider(this,'newsTickerRowsVal',v=>v+'行')">
+    <span id="newsTickerRowsVal">1行</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">文字サイズ</span>
+    <input id="newsTickerFontSlider" type="range" min="10" max="20" step="1" value="13" class="size-slider" oninput="syncSlider(this,'newsTickerFontVal',v=>v+'px')">
+    <span id="newsTickerFontVal">13px</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">背景透明度</span>
+    <input id="newsTickerBgOpacitySlider" type="range" min="0" max="100" step="1" value="90" class="size-slider" oninput="syncSlider(this,'newsTickerBgOpacityVal',v=>v+'%')">
+    <span id="newsTickerBgOpacityVal">90%</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">速度</span>
+    <input id="newsTickerSpeedSlider" type="range" min="25" max="400" step="5" value="100" class="size-slider" oninput="syncSlider(this,'newsTickerSpeedVal',v=>v+'%')">
+    <span id="newsTickerSpeedVal">100%</span>
+  </div>
+  <div class="size-row" style="flex-wrap:wrap;gap:4px;">
+    <span class="size-label">表示モード</span>
+    <button id="newsTickerModeHBtn" class="btn active" onclick="adminSend({type:'click',id:'newsTickerModeHBtn'})">↔ 横</button>
+    <button id="newsTickerModeVBtn" class="btn"        onclick="adminSend({type:'click',id:'newsTickerModeVBtn'})">↕ 縦</button>
+    <button id="newsTickerModeSBtn" class="btn"        onclick="adminSend({type:'click',id:'newsTickerModeSBtn'})">⏱ スライド</button>
+    <button id="newsTickerTategakiBtn" class="btn"     onclick="adminSend({type:'click',id:'newsTickerTategakiBtn'})">縦書き</button>
+  </div>
+  <div class="size-row">
+    <span class="size-label">切替間隔</span>
+    <input id="newsTickerIntervalSlider" type="range" min="3" max="30" step="1" value="8" class="size-slider" oninput="syncSlider(this,'newsTickerIntervalVal',v=>v+'秒')">
+    <span id="newsTickerIntervalVal">8秒</span>
   </div>
 </div>
 
@@ -215,6 +270,16 @@
            onchange="sendCharExclude(this.value)">
   </div>
   <div style="font-size:10px;color:#64748b;margin-top:3px">キャラ生成時のランダム選択から除外するキャラ番号（カンマ区切り）</div>
+</div>
+
+<!-- ダメージ演出 -->
+<div class="section">
+  <div class="section-title">⚔️ ダメージ演出</div>
+  <div class="size-row">
+    <span class="size-label">文字サイズ</span>
+    <input id="dmgFontScaleSlider" type="range" min="25" max="200" step="5" value="100" class="size-slider" oninput="syncSlider(this,'dmgFontScaleVal',v=>v+'%')">
+    <span id="dmgFontScaleVal">100%</span>
+  </div>
 </div>
 
 <!-- ゲーム操作 -->
@@ -244,6 +309,31 @@
     <button onclick="adminSend({type:'allBounce'})">🎵 全員はずむ</button>
     <button onclick="adminSend({type:'allSpin'})">🌀 全員回転</button>
     <button onclick="cmd('stopAllBtn')" class="btn-red">⏹ 全員停止</button>
+  </div>
+</div>
+
+<!-- パネル外観 -->
+<div class="section">
+  <div class="section-title">📐 パネル外観</div>
+  <div class="size-row">
+    <span class="size-label">もじあて 幅</span>
+    <input id="wordlePanelWidthSlider" type="range" min="100" max="500" step="10" value="200" class="size-slider" oninput="syncSlider(this,'wordlePanelWidthVal',v=>v+'px')">
+    <span id="wordlePanelWidthVal">200px</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">もじあて 背景</span>
+    <input id="wordlePanelBgSlider" type="range" min="0" max="100" step="1" value="93" class="size-slider" oninput="syncSlider(this,'wordlePanelBgVal',v=>v+'%')">
+    <span id="wordlePanelBgVal">93%</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">ランキング 背景</span>
+    <input id="rankingPanelBgSlider" type="range" min="0" max="100" step="1" value="92" class="size-slider" oninput="syncSlider(this,'rankingPanelBgVal',v=>v+'%')">
+    <span id="rankingPanelBgVal">92%</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">クイズ 背景</span>
+    <input id="quizPanelBgSlider" type="range" min="0" max="100" step="1" value="93" class="size-slider" oninput="syncSlider(this,'quizPanelBgVal',v=>v+'%')">
+    <span id="quizPanelBgVal">93%</span>
   </div>
 </div>
 
@@ -1009,6 +1099,22 @@
            oninput="document.getElementById('agruYtVolumeVal').textContent=this.value+'%';sendAgruText('agruYtVolume',this.value)">
     <span id="agruYtVolumeVal" style="font-size:11px;color:#e2e8f0;min-width:36px;text-align:right">100%</span>
   </div>
+  <!-- Ollamaアンロード ON/OFF -->
+  <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+    <label style="font-size:11px;color:#94a3b8;min-width:72px">画像時unload</label>
+    <button id="agruUnloadEnabledBtn"
+            style="padding:2px 12px;font-size:11px;border-radius:4px;border:1px solid #334155;cursor:pointer;background:#166534;color:#86efac"
+            onclick="
+              const on = this.dataset.on==='1' ? '0' : '1';
+              this.dataset.on = on;
+              this.textContent = on==='1' ? '有効' : '無効';
+              this.style.background = on==='1' ? '#166534' : '#7f1d1d';
+              this.style.color      = on==='1' ? '#86efac' : '#fca5a5';
+              this.style.borderColor= on==='1' ? '#16a34a' : '#991b1b';
+              sendAgruText('agruUnloadEnabled', on);"
+            data-on="1">有効</button>
+    <span style="font-size:10px;color:#64748b">無効にするとVRAMを解放せずSD生成（速くなる可能性あり）</span>
+  </div>
   <!-- 画像コマンドON/OFF -->
   <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
     <label style="font-size:11px;color:#94a3b8;min-width:72px">画像コマンド</label>
@@ -1481,6 +1587,27 @@
            onchange="saveOllamaHost(this.value)">
   </div>
   <div style="font-size:10px;color:#64748b;margin-bottom:6px">別PCのOllamaを使う場合はIPアドレスを入力。別PC側は OLLAMA_HOST=0.0.0.0 で起動すること。</div>
+  <div class="size-row">
+    <span class="size-label">GPU レイヤー数</span>
+    <input type="number" id="ollamaNumGpuInput" min="-1" max="200" step="1" value="-1"
+           style="width:70px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:2px 6px"
+           onchange="saveOllamaNumGpu(this.value)">
+    <span style="font-size:10px;color:#64748b;margin-left:8px">-1=全層GPU（デフォルト） 0=CPUのみ</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">CPUスレッド数</span>
+    <input type="number" id="ollamaNumThreadInput" min="-1" max="256" step="1" value="-1"
+           style="width:70px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:2px 6px"
+           onchange="saveOllamaNumThread(this.value)">
+    <span style="font-size:10px;color:#64748b;margin-left:8px">-1=自動 推奨:物理コア数</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">コンテキスト長</span>
+    <input type="number" id="ollamaNumCtxInput" min="-1" max="131072" step="512" value="-1"
+           style="width:90px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:2px 6px"
+           onchange="saveOllamaNumCtx(this.value)">
+    <span style="font-size:10px;color:#64748b;margin-left:8px">-1=モデルデフォルト 短くすると速い</span>
+  </div>
   <div class="size-row">
     <span class="size-label">モデル</span>
     <select id="aiModelInput" class="admin-text-input"
@@ -2134,6 +2261,7 @@
     if (s.agruYtOpacity       !== undefined) { const el = document.getElementById('agruYtOpacityInput'); if (el) { el.value = s.agruYtOpacity; const v = document.getElementById('agruYtOpacityVal'); if (v) v.textContent = s.agruYtOpacity + '%'; } }
     if (s.agruYtEnabled !== undefined) { const btn = document.getElementById('agruYtEnabledBtn'); if (btn) { const on = s.agruYtEnabled ? '1' : '0'; btn.dataset.on = on; btn.textContent = on==='1' ? '受付中' : '無視'; btn.style.background = on==='1' ? '#166534' : '#7f1d1d'; btn.style.color = on==='1' ? '#86efac' : '#fca5a5'; btn.style.borderColor = on==='1' ? '#16a34a' : '#991b1b'; } }
     if (s.agruImgCmdEnabled !== undefined) { const btn = document.getElementById('agruImgCmdEnabledBtn'); if (btn) { const on = s.agruImgCmdEnabled ? '1' : '0'; btn.dataset.on = on; btn.textContent = on==='1' ? '許可' : '無視'; btn.style.background = on==='1' ? '#166534' : '#7f1d1d'; btn.style.color = on==='1' ? '#86efac' : '#fca5a5'; btn.style.borderColor = on==='1' ? '#16a34a' : '#991b1b'; } }
+    if (s.agruUnloadEnabled !== undefined) { const btn = document.getElementById('agruUnloadEnabledBtn'); if (btn) { const on = s.agruUnloadEnabled ? '1' : '0'; btn.dataset.on = on; btn.textContent = on==='1' ? '有効' : '無効'; btn.style.background = on==='1' ? '#166534' : '#7f1d1d'; btn.style.color = on==='1' ? '#86efac' : '#fca5a5'; btn.style.borderColor = on==='1' ? '#16a34a' : '#991b1b'; } }
     if (s.agruModalZ          !== undefined) { const el = document.getElementById('agruModalZInput'); if (el) el.value = s.agruModalZ; }
     if (s.agruYtModalZ        !== undefined) { const el = document.getElementById('agruYtModalZInput'); if (el) el.value = s.agruYtModalZ; }
     if (s.agruShakeAmp        !== undefined) { const el = document.getElementById('agruShakeAmpInput'); if (el) { el.value = s.agruShakeAmp; const v = document.getElementById('agruShakeAmpVal'); if (v) v.textContent = s.agruShakeAmp + 'px'; } }
@@ -2870,6 +2998,63 @@
   fetch('/api/ollama-host').then(r => r.json()).then(d => {
     const el = document.getElementById('ollamaHostInput');
     if (el) el.value = d.host || '';
+  }).catch(() => {});
+
+  async function saveOllamaNumGpu(value) {
+    const numGpu = (value === '' || value === null) ? -1 : parseInt(value, 10);
+    try {
+      await fetch('/api/ollama-num-gpu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ numGpu }),
+      });
+      dbgLog('[Ollama] num_gpu → ' + (numGpu === -1 ? '全レイヤー（デフォルト）' : numGpu), 'ok');
+    } catch (e) {
+      dbgLog('[Ollama] num_gpu 変更失敗: ' + e.message, 'err');
+    }
+  }
+
+  fetch('/api/ollama-num-gpu').then(r => r.json()).then(d => {
+    const el = document.getElementById('ollamaNumGpuInput');
+    if (el) el.value = d.numGpu ?? -1;
+  }).catch(() => {});
+
+  async function saveOllamaNumThread(value) {
+    const numThread = (value === '' || value === null) ? -1 : parseInt(value, 10);
+    try {
+      await fetch('/api/ollama-num-thread', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ numThread }),
+      });
+      dbgLog('[Ollama] num_thread → ' + (numThread === -1 ? '自動' : numThread), 'ok');
+    } catch (e) {
+      dbgLog('[Ollama] num_thread 変更失敗: ' + e.message, 'err');
+    }
+  }
+
+  fetch('/api/ollama-num-thread').then(r => r.json()).then(d => {
+    const el = document.getElementById('ollamaNumThreadInput');
+    if (el) el.value = d.numThread ?? -1;
+  }).catch(() => {});
+
+  async function saveOllamaNumCtx(value) {
+    const numCtx = (value === '' || value === null) ? -1 : parseInt(value, 10);
+    try {
+      await fetch('/api/ollama-num-ctx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ numCtx }),
+      });
+      dbgLog('[Ollama] num_ctx → ' + (numCtx === -1 ? 'モデルデフォルト' : numCtx), 'ok');
+    } catch (e) {
+      dbgLog('[Ollama] num_ctx 変更失敗: ' + e.message, 'err');
+    }
+  }
+
+  fetch('/api/ollama-num-ctx').then(r => r.json()).then(d => {
+    const el = document.getElementById('ollamaNumCtxInput');
+    if (el) el.value = d.numCtx ?? -1;
   }).catch(() => {});
 
   async function saveDiscordWebhook(value) {

@@ -375,7 +375,11 @@ const SETTINGS_KEYS = [
   'agruSdWidth','agruSdHeight','agruSdSteps','agruSdCfgScale','agruSdPositiveSuffix','agruIdleDelay','agruIdleDelayImage',
   'agruChatFontSize','agruChatBold','agruFontLeft','agruFontRight','agruCharTags','agruYtVolume','agruBgmVolume','agruYtWidth','agruYtHeight','agruYtOpacity','agruYtEnabled','agruModalZ','agruYtModalZ',
   'agruModalWidth','agruModalHeight','agruModalBgOpacity','agruChatImgSize','agruCharImgHeight','agruCharImgScale',
-  'bombHidden','trashHidden','charStatsHidden','breatheDisabled','agruImgCmdEnabled',
+  'bombHidden','trashHidden','charStatsHidden','charNameHidden','breatheDisabled','bossFloatDisabled',
+  'newsTickerEnabled','newsTickerWidth','newsTickerX','newsTickerY','newsTickerRows','newsTickerFontSize','newsTickerBgOpacity','newsTickerSpeed','newsTickerMode','newsTickerInterval','newsTickerTategaki',
+  'dmgFontScale',
+  'wordlePanelWidth','wordlePanelBgOpacity','rankingPanelBgOpacity','quizPanelBgOpacity',
+  'agruImgCmdEnabled','agruUnloadEnabled',
   'afkOpacity','afkGrayscale','afkBrightness',
 ];
 let _settingsSaveTimer = null;
@@ -870,13 +874,14 @@ function updateBossJiggleOverlay() {
   img2.style.setProperty('--jiggle-origin-y', topPct + '%');
   overlay.appendChild(img2);
   a.appendChild(overlay);
-  updateBossPurupuru();
 }
 
 // ── ぷるぷるエンジン（Canvas メッシュ変形・画像別設定）──────────────────────
 // purupuruConfig は画像ファイル名をキーとする辞書
 // キャラ/ボス: ファイル名 (例: 'kisyokeee.png')
 // アゲルちゃん: '__agru__' という特殊キー
+let dmgFontScale = parseInt(localStorage.getItem('dmgFontScale')) || 100;
+
 let purupuruConfig = {};
 try {
   const _ps = localStorage.getItem('purupuruConfig');
@@ -1074,7 +1079,15 @@ function _puruRenderCanvas(canvas) {
     canvas._puruSrcX=srcX; canvas._puruSrcY=srcY; canvas._puruSrcW=srcW; canvas._puruSrcH=srcH;
   }
   const srcX=canvas._puruSrcX, srcY=canvas._puruSrcY, srcW=canvas._puruSrcW, srcH=canvas._puruSrcH;
-  const ampScale = cssH / 420;
+  // object-fit:contain でレターボックスが生じる場合、画像コンテンツ領域をcanvas座標で算出。
+  // admimプレビューは width:auto で余白なし（contentL=0, cW=W）なので既存と同動作。
+  // cover や余白なしの場合も contentL=0 になり既存と同動作。
+  const contentL = Math.max(0, (-srcX / srcW) * W);
+  const contentT = Math.max(0, (-srcY / srcH) * H);
+  const cW = contentL > 0 ? Math.min(W - contentL, (iw / srcW) * W) : W;
+  const cH = contentT > 0 ? Math.min(H - contentT, (ih / srcH) * H) : H;
+  // ampScale はadminプレビュー高さ420pxを基準に画像コンテンツの実高で正規化
+  const ampScale = (cH / (dpr * SS)) / 420;
   const gs = cfg.gridSize || 12;
   const cols = gs + 1, rows = gs + 1;
   const needed = cols * rows * 2;
@@ -1087,15 +1100,17 @@ function _puruRenderCanvas(canvas) {
   const allPts = cfg.points || [];
   for (let j = 0; j < rows; j++) {
     for (let i = 0; i < cols; i++) {
-      const bx=(i/gs)*W, by=(j/gs)*H;
+      // 頂点ベース座標を画像コンテンツ領域内で計算（レターボックス分オフセット）
+      const bx = contentL + (i/gs)*cW, by = contentT + (j/gs)*cH;
       let tdx=0, tdy=0;
       for (let pi = 0; pi < allPts.length; pi++) {
         const pt = allPts[pi];
         if (!pt.enabled) continue;
         // canvas全体にCSSでscaleX(-1)を適用するため、点座標はミラー不要。
         // 画像も揺れも同じcanvas空間にあり、CSS反転で一緒にミラーされる。
-        const px=(pt.x/100)*W, py=(pt.y/100)*H;
-        const w=_puruWeight(pt, bx-px, by-py, W, H);
+        // pt.x/y はadminプレビューと同じく画像コンテンツ内 % なのでコンテンツ領域にマップ
+        const px = contentL + (pt.x/100)*cW, py = contentT + (pt.y/100)*cH;
+        const w=_puruWeight(pt, bx-px, by-py, cW, cH);
         if (w <= 0) continue;
         const d=_puruDisplace(pt,_puruTime);
         // direction trig をキャッシュ（変更時のみ再計算）
@@ -1106,7 +1121,10 @@ function _puruRenderCanvas(canvas) {
       }
       const idx=(j*cols+i)*2;
       verts[idx]=bx+tdx; verts[idx+1]=by+tdy;
-      uvs[idx]=(srcX+(i/gs)*srcW)/iw; uvs[idx+1]=(srcY+(j/gs)*srcH)/ih;
+      // レターボックスありの場合はメッシュが画像領域のみをカバーするので UV は 0→1 の線形
+      // cover（クロップ）や余白なしの場合は従来の srcX ベース式を使う
+      uvs[idx]   = contentL > 0 ? (i/gs) : (srcX + (i/gs)*srcW) / iw;
+      uvs[idx+1] = contentT > 0 ? (j/gs) : (srcY + (j/gs)*srcH) / ih;
     }
   }
   for (let j=0; j<gs; j++) {
@@ -1122,12 +1140,14 @@ function _puruRenderCanvas(canvas) {
 function _puruStartLoop() {
   if (_puruRAF) return;
   const loop = ts => {
+    const canvases = document.querySelectorAll('.puru-canvas');
+    if (!canvases.length) { _puruRAF = 0; _puruLastTs = null; return; } // キャンバスが0枚なら停止
     _puruRAF = requestAnimationFrame(loop);
     if (_puruLastTs === null) _puruLastTs = ts;
     const dt = Math.min((ts - _puruLastTs) / 1000, 0.05);
     _puruLastTs = ts;
     _puruTime += dt;
-    document.querySelectorAll('.puru-canvas').forEach(_puruRenderCanvas);
+    canvases.forEach(_puruRenderCanvas);
   };
   _puruRAF = requestAnimationFrame(loop);
 }
@@ -1140,6 +1160,7 @@ function _puruAttach(parent, imgEl, imgFile, flipped) {
   canvas._puruImg     = imgEl;
   canvas._puruImgFile = imgFile;
   canvas._puruFlipped = !!flipped;
+  canvas._puruTick    = Math.floor(Math.random() * 119); // 初回getBCRをフレーム分散
   if (flipped) canvas.style.transform = 'scaleX(-1)';
   const cs = window.getComputedStyle(parent);
   if (cs.position === 'static') parent.style.position = 'relative';
@@ -1173,6 +1194,14 @@ function updateBossPurupuru() {
   // ボス画像はCSS で常時 scaleX(-1) のため flipped=true で固定
   if (!imgEl.complete || !imgEl.naturalWidth) imgEl.addEventListener('load', () => _puruAttach(a, imgEl, imgFile, true), { once: true });
   else _puruAttach(a, imgEl, imgFile, true);
+}
+
+function applyBossHitShake(bossEl) {
+  if (!bossEl) return;
+  bossEl.classList.remove('boss-hit-shake');
+  void bossEl.offsetWidth;
+  bossEl.classList.add('boss-hit-shake');
+  bossEl.addEventListener('animationend', () => bossEl.classList.remove('boss-hit-shake'), { once: true });
 }
 
 function updateAgruPurupuru() {
@@ -1389,11 +1418,17 @@ function applyMotion(user, type) {
   if (user.motionTimer) { clearTimeout(user.motionTimer); user.motionTimer = null; }
   user.motion = type || null;
   if (!type || !user.el) return;
+  user.el.classList.remove('walking');  // walking の !important が bounce/spin を上書きするのを防ぐ
+  user.el.style.transition = '';        // transition:none が残るとアニメーションが描画されない場合がある
   user.el.classList.add(type);
   user.motionTimer = setTimeout(() => {
     if (user.el) user.el.classList.remove(type);
     user.motion = null;
     user.motionTimer = null;
+    if (user.el) {
+      if (user.walking) user.el.classList.add('walking');
+      else applyWalking(user);
+    }
   }, 10000);
 }
 
@@ -1929,7 +1964,24 @@ let brAutoEnabled = true;        // 自動バトルロイヤル有効フラグ
 let bombHidden      = localStorage.getItem('bombHidden')      === 'true';
 let trashHidden     = localStorage.getItem('trashHidden')     === 'true';
 let charStatsHidden = localStorage.getItem('charStatsHidden') === 'true';
-let breatheDisabled = localStorage.getItem('breatheDisabled') === 'true';
+let charNameHidden  = localStorage.getItem('charNameHidden')  === 'true';
+let breatheDisabled   = localStorage.getItem('breatheDisabled')   === 'true';
+let bossFloatDisabled = localStorage.getItem('bossFloatDisabled') === 'true';
+let newsTickerEnabled   = localStorage.getItem('newsTickerEnabled') === 'true';
+let newsTickerWidth     = parseInt(localStorage.getItem('newsTickerWidth'))     || 100;
+let newsTickerX         = parseInt(localStorage.getItem('newsTickerX'))         || 0;
+let newsTickerY         = parseInt(localStorage.getItem('newsTickerY'))         ?? 97;
+let newsTickerRows      = parseInt(localStorage.getItem('newsTickerRows'))      || 1;
+let newsTickerFontSize  = parseInt(localStorage.getItem('newsTickerFontSize'))  || 13;
+let newsTickerBgOpacity = parseInt(localStorage.getItem('newsTickerBgOpacity')) ?? 90;
+let newsTickerSpeed     = parseInt(localStorage.getItem('newsTickerSpeed'))     || 100;
+let newsTickerMode     = localStorage.getItem('newsTickerMode')                 || 'hscroll';
+let newsTickerInterval = parseInt(localStorage.getItem('newsTickerInterval'))   || 8;
+let newsTickerTategaki = localStorage.getItem('newsTickerTategaki') === 'true';
+let wordlePanelWidth      = parseInt(localStorage.getItem('wordlePanelWidth'))      || 200;
+let wordlePanelBgOpacity  = localStorage.getItem('wordlePanelBgOpacity')  !== null ? parseInt(localStorage.getItem('wordlePanelBgOpacity'))  : 93;
+let rankingPanelBgOpacity = localStorage.getItem('rankingPanelBgOpacity') !== null ? parseInt(localStorage.getItem('rankingPanelBgOpacity')) : 92;
+let quizPanelBgOpacity    = localStorage.getItem('quizPanelBgOpacity')    !== null ? parseInt(localStorage.getItem('quizPanelBgOpacity'))    : 93;
 let slotSoundEnabled = true;    // スロット効果音ON/OFF
 // TTS設定
 let seVolume      = 1.0;  // 効果音マスター音量
@@ -3070,9 +3122,9 @@ function showDamageNumber(x, y, text, isCrit, forceFontSize, color) {
   el.className = 'dmg-number' + (isCrit ? ' dmg-crit' : '');
   el.textContent = String(text);
   const numVal = typeof text === 'number' ? text : (parseInt(String(text).replace(/\D/g, '')) || 0);
-  el.style.fontSize = (forceFontSize
+  el.style.fontSize = Math.round((forceFontSize
     ? forceFontSize * 3
-    : Math.min((18 + Math.floor(numVal / 4) * 3) * 3, 174)) + 'px';
+    : Math.min((18 + Math.floor(numVal / 4) * 3) * 3, 174)) * (dmgFontScale / 100)) + 'px';
   if (color) el.style.color = color;
   const rawX = x - 15 + (Math.random() - 0.5) * 60;
   const rawY = y      + (Math.random() - 0.5) * 30;
@@ -3256,10 +3308,11 @@ function spawnBoss(maxHp) {
   if (bossImg) {
     const bossAvatarEl = document.getElementById('bossAvatar');
     const bossImgEl = bossAvatarEl?.querySelector('img');
+    const _initBossEffects = () => { updateBossJiggleOverlay(); updateBossPurupuru(); };
     if (bossImgEl && !bossImgEl.complete) {
-      bossImgEl.addEventListener('load', updateBossJiggleOverlay, { once: true });
+      bossImgEl.addEventListener('load', _initBossEffects, { once: true });
     } else {
-      updateBossJiggleOverlay();
+      _initBossEffects();
     }
   }
 
@@ -3398,6 +3451,7 @@ function attackBoss(user, msgLen) {
           ba.classList.add('boss-hit-flash');
           ba.addEventListener('animationend', () => ba.classList.remove('boss-hit-flash'), { once: true });
         }
+        applyBossHitShake(bossState.el);
         const br = bossState.el.getBoundingClientRect();
         const sr = stage.getBoundingClientRect();
         const bx = br.left - sr.left + br.width / 2;
@@ -3596,10 +3650,8 @@ function defeatBoss() {
   const bossMaxHp = bossState.maxHp;
   const el = bossState.el;
 
-  // ボス撃破アニメーション
-  el.style.transition = 'transform 0.5s ease-in, opacity 0.5s ease-in';
-  el.style.transform  = 'scale(3) rotate(25deg)';
-  el.style.opacity    = '0';
+  // ボス撃破アニメーション（倒れて床にスライド）
+  el.classList.add('boss-dying');
 
   // 大花火・紙吹雪
   const sw = stage.clientWidth, sh = stage.clientHeight;
@@ -3690,7 +3742,7 @@ function defeatBoss() {
         spawnBoss(nextBossHp());
       }, 6000);
     }
-  }, 600);
+  }, 950);
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -4006,8 +4058,16 @@ function handleComment(comment) {
     }
   }
 
-  // ── YouTube停止（会話モード外でも有効）──
-  if (/止めて/.test(message)) { closeAgruYtModal(); }
+  // ── YouTube停止（会話モード外でも有効）── 50MP消費
+  if (/止めて/.test(message)) {
+    if ((user.mp ?? 0) < 50) {
+      showBubble(user, `MPが足りない… (${user.mp ?? 0}/50)`, {});
+    } else {
+      user.mp -= 50;
+      updateStatsDisplay(user);
+      closeAgruYtModal();
+    }
+  }
 
   // ── アゲルちゃん会話モード ──
   if (agruActive && message.trim() === 'カフェオレ投与') {
@@ -4240,6 +4300,35 @@ function handleComment(comment) {
   if (message.trim() === '開ける') {
     ensureCharOnStage(user); showBubble(user, message, {});
     openTreasureChest(user);
+    return;
+  }
+
+  // ── ペットガチャ10連 ──────────────────────────
+  if (/10連ペットガチャ|ペットガチャ10連/.test(message)) {
+    if (compactMode) { ensureCharOnStage(user); showBubble(user, 'コンパクトモード中は使用できません', {}); return; }
+    ensureCharOnStage(user);
+    if ((user.mp ?? 0) < 200) {
+      showBubble(user, `MPが足りない… (${user.mp ?? 0}/200)`, {});
+      return;
+    }
+    user.mp -= 200;
+    updateStatsDisplay(user);
+    if (!user.tc) user.tc = {};
+    const _RARITY_ORD = {'rarity-myth':4,'rarity-legend':3,'rarity-epic':2,'rarity-rare':1,'':0};
+    const _10pets = [];
+    for (let i = 0; i < 10; i++) {
+      user.tc.petGachas = (user.tc.petGachas || 0) + 1;
+      const _p = rollPetGacha();
+      const _gc = user.tc.petGachas;
+      const _s2 = _gc >= 20 && _gc % 2 === 0;
+      if (_s2) { user.pet2 = _p; } else { user.pet = _p; }
+      if (_gc === 20) addToLog(user, `🎉 ペット2枠目解放 → ${_p.abilityName}[${_p.rarityName}]`, '#fbbf24');
+      _10pets.push(_p);
+    }
+    renderPetBadge(user);
+    showPetGacha10Anim(user, _10pets);
+    const _best10 = _10pets.reduce((a, b) => (_RARITY_ORD[b.rarityCls]||0) > (_RARITY_ORD[a.rarityCls]||0) ? b : a, _10pets[0]);
+    addToLog(user, `🐾 10連ガチャ → 最高: ${_best10.abilityName}[${_best10.rarityName}]`, '#a78bfa');
     return;
   }
 
@@ -5618,6 +5707,7 @@ let agruYtHeight         = parseInt(localStorage.getItem('agruYtHeight')  ?? '24
 let agruYtOpacity        = parseInt(localStorage.getItem('agruYtOpacity') ?? '100');
 let agruYtEnabled        = (localStorage.getItem('agruYtEnabled') ?? '1') === '1';
 let agruImgCmdEnabled    = (localStorage.getItem('agruImgCmdEnabled') ?? '1') === '1';
+let agruUnloadEnabled    = (localStorage.getItem('agruUnloadEnabled') ?? '1') === '1';
 let agruShakeAmp         = parseFloat(localStorage.getItem('agruShakeAmp') ?? '2');
 let agruModalZ           = parseInt(localStorage.getItem('agruModalZ')    ?? '300');
 let agruYtModalZ         = parseInt(localStorage.getItem('agruYtModalZ')  ?? '400');
@@ -6018,7 +6108,7 @@ function _agruLog(msg, type) {
 function _isAgruSkipCmd(msg) {
   const m = msg.trim();
   // 明示的コマンド
-  if (/ペットガチャ/.test(m))        return true;
+  if (/ペットガチャ/.test(m))        return true; // 10連も含む
   if (/スロット/.test(m))             return true;
   if (/ランダムタイマン/.test(m))     return true;
   if (/^タイマン[：:]/.test(m))       return true;
@@ -6175,9 +6265,27 @@ async function _agruSend(message, commenter) {
   const _needsImage = agruImgCmdEnabled && /出ろ|出して|生成|gen|自撮り|写真/i.test(message);
   const _isSelfie   = /自撮り/i.test(message);
 
-  // 音楽キーワード検出 → YouTubeランダム再生 / 停止
-  if (/止めて/.test(message)) closeAgruYtModal();
-  else if (agruYtEnabled && /曲|歌/.test(message)) _agruPlayYouTube();
+  // 音楽キーワード検出 → YouTubeランダム再生
+  // ※止めて は handleComment 側で MP消費込みで処理済みのためここでは省略
+  if (!(/止めて/.test(message)) && agruYtEnabled && /曲|歌/.test(message)) _agruPlayYouTube();
+
+  // unload無効時: Ollamaと並行してSD生成を先行リクエスト
+  if (_needsImage && !agruUnloadEnabled) {
+    _agruSelfieLocked = true;
+    const _ctx0 = message.replace(/出ろ|出して|生成|gen|自撮り|写真/gi, '').trim();
+    const _fin0 = () => {
+      _agruSelfieLocked = false;
+      clearTimeout(_agruIdleTimer);
+      if (agruActive) { agruIdle = true; _agruSetStatus('コメント待ち...'); }
+    };
+    if (_isSelfie && _ctx0) {
+      fetch('/api/translate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: _ctx0 }) })
+        .then(r => r.json()).then(d => _agruGenerateSDImage(agruCharTags + ', ' + (d.result || _ctx0)).finally(_fin0))
+        .catch(() => _agruGenerateSDImage(agruCharTags + ', ' + _ctx0).finally(_fin0));
+    } else {
+      _agruGenerateSDImage(_isSelfie ? agruCharTags : (_ctx0 || '1girl, anime')).finally(_fin0);
+    }
+  }
 
   try {
     const messages = [..._agruConvHistory, { role: 'user', content: message }];
@@ -6205,7 +6313,7 @@ async function _agruSend(message, commenter) {
     _agruLog('emotion: ' + emotion + ' / reply: ' + replyText + ' / 好感度Δ' + affinityDelta + ' / 性欲Δ' + libidoDelta, 'ok');
     _agruNotifyEmotion(emotion, replyText);
     _agruPlayVoicevox(replyText);
-    if (_needsImage) {
+    if (_needsImage && agruUnloadEnabled) {
       // 返答取得後にOllamaモデルをアンロード（完了を待ってからSD生成でVRAM競合を防ぐ）
       await fetch('/api/ai-unload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: aiModel }) }).catch(() => {});
       // すべての画像コマンドでロック（SD完了まで新コメント受け付けない）
@@ -7062,6 +7170,11 @@ function rectsOverlap(r1, r2) {
   return !(r1.right < r2.left || r1.left > r2.right || r1.bottom < r2.top || r1.top > r2.bottom);
 }
 
+// TDZ 対策: mousemove/mouseup ハンドラより後に宣言されるため前出し
+let wordleDragState  = null;
+let quizDragState    = null;
+let raceDragState    = null;
+
 document.addEventListener('mousemove', e => {
   if (rankingDragState) {
     const panel = document.getElementById('rankingPanel');
@@ -7364,6 +7477,88 @@ function showPetGachaAnim(user, finalPet) {
   }, 3000);
 }
 
+// ── ペットガチャ10連アニメーション ────────────────────────────────
+function showPetGacha10Anim(user, pets) {
+  if (!user.el) return;
+  const prev = user.el.querySelector('.pet-gacha10-panel');
+  if (prev) prev.remove();
+
+  if (petGachaDrumAudio) { petGachaDrumAudio.pause(); petGachaDrumAudio = null; }
+  if (!compactMode) {
+    try {
+      petGachaDrumAudio = new Audio(SOUND_GACHA_DRUM);
+      petGachaDrumAudio.volume = Math.min(1, 0.7 * seVolume);
+      petGachaDrumAudio.loop = true;
+      petGachaDrumAudio.play().catch(() => {});
+    } catch {}
+  }
+
+  const RC = cls => ({
+    '':              { border:'#374151', color:'#9ca3af' },
+    'rarity-rare':   { border:'#16a34a', color:'#4ade80' },
+    'rarity-epic':   { border:'#3b82f6', color:'#60a5fa' },
+    'rarity-legend': { border:'#a855f7', color:'#c084fc' },
+    'rarity-myth':   { border:'#f59e0b', color:'#fbbf24' },
+  }[cls || '']);
+
+  const RARITY_ORD = {'rarity-myth':4,'rarity-legend':3,'rarity-epic':2,'rarity-rare':1,'':0};
+  const bestOrder  = Math.max(...pets.map(p => RARITY_ORD[p.rarityCls] || 0));
+  const bestCls    = Object.keys(RARITY_ORD).find(k => RARITY_ORD[k] === bestOrder) || '';
+
+  const panel = document.createElement('div');
+  panel.className = 'pet-gacha10-panel';
+  panel.innerHTML =
+    `<div class="pg10-title">🐾 10連ガチャ中...</div>` +
+    `<div class="pg10-grid">` +
+    Array(10).fill(0).map(() =>
+      `<div class="pg10-card pg10-pending">` +
+      `<div class="pg10-card-img"><img src="/chara/kisyokeee.png"></div>` +
+      `<div class="pg10-card-rarity" style="color:#64748b">？</div>` +
+      `<div class="pg10-card-name">...</div></div>`
+    ).join('') +
+    `</div>`;
+  user.el.appendChild(panel);
+
+  setTimeout(() => {
+    if (petGachaDrumAudio) { petGachaDrumAudio.pause(); petGachaDrumAudio = null; }
+    panel.querySelector('.pg10-title').textContent = '🎉 10連ガチャ結果！';
+
+    const cards = panel.querySelectorAll('.pg10-card');
+    pets.forEach((pet, i) => {
+      setTimeout(() => {
+        const rc = RC(pet.rarityCls);
+        const isBest = (RARITY_ORD[pet.rarityCls] || 0) === bestOrder;
+        const card = cards[i];
+        card.className = `pg10-card pg10-reveal${isBest ? ' pg10-best' : ''}`;
+        card.style.borderColor = rc.border;
+        card.style.boxShadow   = `0 0 8px ${rc.border}88`;
+        card.innerHTML =
+          `<div class="pg10-card-img" style="border-color:${rc.border}"><img src="/chara/${encodeURIComponent(pet.img)}"></div>` +
+          `<div class="pg10-card-rarity" style="color:${rc.color}">${pet.rarityName}</div>` +
+          `<div class="pg10-card-name"   style="color:${rc.color}">${escapeHtml(pet.abilityName)}</div>`;
+
+        if (pet.rarityCls === 'rarity-myth') {
+          playLocalSound(SOUND_GACHA_MYTH);
+          spawnFireworks(Math.random() * stage.clientWidth, Math.random() * stage.clientHeight * 0.8);
+        } else if (pet.rarityCls === 'rarity-legend') {
+          playLocalSound(SOUND_GACHA_LEGEND);
+          spawnFireworks(stage.clientWidth / 2, stage.clientHeight / 2);
+        }
+
+        // 最後のカード開封時：myth/legend以外の最高レアリティ音を鳴らす
+        if (i === pets.length - 1 && bestCls !== 'rarity-myth' && bestCls !== 'rarity-legend') {
+          const snd = { 'rarity-epic':'', 'rarity-rare':'', '':'' };
+          playLocalSound(bestCls === 'rarity-epic' ? SOUND_GACHA_EPIC : bestCls === 'rarity-rare' ? SOUND_GACHA_RARE : SOUND_GACHA_NORMAL);
+        }
+
+        if (i === pets.length - 1 && bestCls === 'rarity-myth') spawnConfetti();
+      }, i * 150);
+    });
+
+    setTimeout(() => panel.remove(), 7000);
+  }, 2000);
+}
+
 // ── ステータスモーダル ─────────────────────────────────────────────
 function showStatusModal(user, autoClose = true, triggerCnum = null) {
   const imgFile = user.charImage || (user.charDef ? (charImages[user.charDef.id] || 'kisyokeee.png') : 'kisyokeee.png');
@@ -7647,6 +7842,15 @@ function closeRankingPanel() {
   document.getElementById('rankingPanel')?.remove();
 }
 
+function resetRankingPanelPos() {
+  if (!rankingState) return;
+  rankingState.panelX = Math.max(0, stage.clientWidth - 220);
+  rankingState.panelY = 10;
+  localStorage.setItem(panelKey('rankingPanelX'), Math.round(rankingState.panelX));
+  localStorage.setItem(panelKey('rankingPanelY'), Math.round(rankingState.panelY));
+  renderRankingPanel();
+}
+
 function showDamageRanking(dmgMap) {
   if (compactMode) return;
   if (!Object.keys(dmgMap).length) return;
@@ -7694,10 +7898,16 @@ function renderRankingPanel() {
   }
 
   panel.className = '';
+
+  // ステージ内にクランプ
+  const _sr = stage.getBoundingClientRect();
+  rankingState.panelX = Math.max(0, Math.min(_sr.width  - 210, rankingState.panelX));
+  rankingState.panelY = Math.max(0, Math.min(_sr.height - 60,  rankingState.panelY));
+
   panel.style.left = rankingState.panelX + 'px';
   panel.style.top  = rankingState.panelY + 'px';
 
-  const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+  const medals = ['🥇', '🥈', '🥉'];
 
   const _liveDmg = {};
   Object.entries(cumulativeDmgMap).forEach(([k, v]) => { _liveDmg[k] = { name: v.name, totalDmg: v.totalDmg }; });
@@ -7707,28 +7917,302 @@ function renderRankingPanel() {
     _liveDmg[k].totalDmg += v.totalDmg;
   });
   const dmgEntries = Object.values(_liveDmg)
-    .sort((a, b) => b.totalDmg - a.totalDmg).slice(0, 5);
+    .sort((a, b) => b.totalDmg - a.totalDmg).slice(0, 3);
   let dmgRows = dmgEntries.length
     ? dmgEntries.map((e, i) => `<div class="ranking-row"><span class="ranking-medal">${medals[i]}</span><span class="ranking-name">${escapeHtml(e.name)}</span><span class="ranking-dmg">${e.totalDmg.toLocaleString()}</span></div>`).join('')
     : '<div class="ranking-empty">データなし</div>';
 
   const mpEntries = Object.values(users).filter(u => u.el)
     .map(u => ({ name: u.name || u.ipid, mp: u.mp ?? 0 }))
-    .sort((a, b) => b.mp - a.mp).slice(0, 5);
+    .sort((a, b) => b.mp - a.mp).slice(0, 3);
   const mpRows = mpEntries.map((e, i) =>
     `<div class="ranking-row"><span class="ranking-medal">${medals[i]}</span><span class="ranking-name">${escapeHtml(e.name)}</span><span class="ranking-mp">${e.mp.toLocaleString()} MP</span></div>`
   ).join('');
 
   panel.innerHTML =
-    `<div class="ranking-section-head ranking-section-dmg">⚔️ ダメージ<span class="ranking-close" onclick="closeRankingPanel()">✕</span></div>` +
+    `<div class="ranking-section-head ranking-section-dmg" onclick="showRankingModal('dmg')" onmousedown="event.stopPropagation()">⚔️ ダメージ<span class="ranking-all-btn">全順位</span><span class="ranking-reset" onclick="event.stopPropagation();resetRankingPanelPos()" title="位置リセット">↺</span><span class="ranking-close" onclick="event.stopPropagation();closeRankingPanel()">✕</span></div>` +
     dmgRows +
-    `<div class="ranking-section-head ranking-section-mp">💎 MP</div>` +
+    `<div class="ranking-section-head ranking-section-mp" onclick="showRankingModal('mp')" onmousedown="event.stopPropagation()">💎 MP<span class="ranking-all-btn">全順位</span></div>` +
     mpRows;
+}
+
+function showRankingModal(type) {
+  document.getElementById('rankingModal')?.remove();
+
+  const medals = ['🥇', '🥈', '🥉'];
+  const rankLabel = i => i < 3 ? medals[i] : `${i + 1}位`;
+
+  const _liveDmg = {};
+  Object.entries(cumulativeDmgMap).forEach(([k, v]) => { _liveDmg[k] = { name: v.name, totalDmg: v.totalDmg }; });
+  Object.entries(bossDamageMap).forEach(([k, v]) => {
+    if (!_liveDmg[k]) _liveDmg[k] = { name: v.name, totalDmg: 0 };
+    _liveDmg[k].name = v.name;
+    _liveDmg[k].totalDmg += v.totalDmg;
+  });
+  const dmgAll = Object.values(_liveDmg).sort((a, b) => b.totalDmg - a.totalDmg);
+  const mpAll = Object.values(users).filter(u => u.el)
+    .map(u => ({ name: u.name || u.ipid, mp: u.mp ?? 0 }))
+    .sort((a, b) => b.mp - a.mp);
+
+  const dmgRows = dmgAll.length
+    ? dmgAll.map((e, i) => `<div class="ranking-row"><span class="ranking-medal">${rankLabel(i)}</span><span class="ranking-name">${escapeHtml(e.name)}</span><span class="ranking-dmg">${e.totalDmg.toLocaleString()}</span></div>`).join('')
+    : '<div class="ranking-empty">データなし</div>';
+  const mpRows = mpAll.length
+    ? mpAll.map((e, i) => `<div class="ranking-row"><span class="ranking-medal">${rankLabel(i)}</span><span class="ranking-name">${escapeHtml(e.name)}</span><span class="ranking-mp">${e.mp.toLocaleString()} MP</span></div>`).join('')
+    : '<div class="ranking-empty">データなし</div>';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'rankingModal';
+  overlay.className = 'ranking-modal-overlay';
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+  overlay.innerHTML = `
+    <div class="ranking-modal-box">
+      <div class="ranking-modal-header">
+        <span class="ranking-modal-title">${type === 'dmg' ? '⚔️ ダメージ' : '💎 MP'} ランキング</span>
+        <span class="ranking-modal-close" onclick="document.getElementById('rankingModal').remove()">✕</span>
+      </div>
+      <div class="ranking-modal-tabs">
+        <button class="ranking-modal-tab${type === 'dmg' ? ' active' : ''}" onclick="showRankingModal('dmg')">⚔️ ダメージ</button>
+        <button class="ranking-modal-tab${type === 'mp' ? ' active' : ''}" onclick="showRankingModal('mp')">💎 MP</button>
+      </div>
+      <div class="ranking-modal-list">${type === 'dmg' ? dmgRows : mpRows}</div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
 }
 
 setInterval(() => {
   if (rankingState) renderRankingPanel();
 }, 1000);
+
+// ── パネル外観設定（もじあて・ランキング・クイズ） ──────────────────
+function applyPanelSettings() {
+  const s = document.getElementById('stage');
+  if (!s) return;
+  s.style.setProperty('--wordle-w',   wordlePanelWidth + 'px');
+  s.style.setProperty('--wordle-bg',  (wordlePanelBgOpacity  / 100).toFixed(2));
+  s.style.setProperty('--ranking-bg', (rankingPanelBgOpacity / 100).toFixed(2));
+  s.style.setProperty('--quiz-bg',    (quizPanelBgOpacity    / 100).toFixed(2));
+  const _p = (id, val, txt) => {
+    const el = document.getElementById(id); if (!el) return;
+    if (el.tagName === 'INPUT') el.value = val;
+    const sp = document.getElementById(id.replace('Slider','Val')); if (sp) sp.textContent = txt;
+  };
+  _p('wordlePanelWidthSlider',   wordlePanelWidth,      wordlePanelWidth + 'px');
+  _p('wordlePanelBgSlider',      wordlePanelBgOpacity,  wordlePanelBgOpacity + '%');
+  _p('rankingPanelBgSlider',     rankingPanelBgOpacity, rankingPanelBgOpacity + '%');
+  _p('quizPanelBgSlider',        quizPanelBgOpacity,    quizPanelBgOpacity + '%');
+}
+
+// ── ニューステッカー ────────────────────────────────────────────────
+function _newsSourceClass(src) {
+  if (src === 'Gigazine') return 'src-gigazine';
+  if (src === 'Yahoo!')   return 'src-yahoo';
+  if (src === 'NHK')      return 'src-nhk';
+  return 'src-other';
+}
+
+function applyNewsTickerSettings() {
+  const ticker = document.getElementById('newsTicker');
+  if (!ticker) return;
+  // 位置・サイズ
+  ticker.style.left  = newsTickerX + '%';
+  ticker.style.top   = newsTickerY + '%';
+  ticker.style.width = newsTickerWidth + '%';
+  // フォントサイズ CSS 変数
+  ticker.style.setProperty('--ntf', newsTickerFontSize + 'px');
+  // 背景透明度
+  ticker.style.setProperty('--ntbg', (newsTickerBgOpacity / 100).toFixed(2));
+  // 高さ（行数 × 行高）
+  const rowH = Math.max(30, newsTickerFontSize * 2.6);
+  ticker.style.height = (newsTickerRows * rowH) + 'px';
+  ticker.style.setProperty('--ntrowh', rowH + 'px');
+  // コントロール同期（存在する要素のみ）
+  const _set = (id, val, txt) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (el.tagName === 'INPUT') el.value = val;
+    const span = document.getElementById(id.replace('Slider','Val'));
+    if (span) span.textContent = txt;
+  };
+  _set('newsTickerWidthSlider',     newsTickerWidth,     newsTickerWidth + '%');
+  _set('newsTickerXSlider',         newsTickerX,         newsTickerX + '%');
+  _set('newsTickerYSlider',         newsTickerY,         newsTickerY + '%');
+  _set('newsTickerRowsSlider',      newsTickerRows,      newsTickerRows + '行');
+  _set('newsTickerFontSlider',      newsTickerFontSize,  newsTickerFontSize + 'px');
+  _set('newsTickerBgOpacitySlider', newsTickerBgOpacity, newsTickerBgOpacity + '%');
+  _set('newsTickerSpeedSlider',     newsTickerSpeed,     newsTickerSpeed + '%');
+  _set('newsTickerIntervalSlider',  newsTickerInterval,  newsTickerInterval + '秒');
+  // モードボタン active 状態
+  ['H','V','S'].forEach(m => {
+    document.querySelectorAll('#newsTickerMode' + m + 'Btn').forEach(b => {
+      b.classList.toggle('active', newsTickerMode === {H:'hscroll',V:'vscroll',S:'slide'}[m]);
+    });
+  });
+  // 縦書きクラス（先頭で取得済みの ticker を再利用）
+  if (ticker) ticker.classList.toggle('tategaki', newsTickerTategaki);
+  document.querySelectorAll('#newsTickerTategakiBtn').forEach(b => b.classList.toggle('active', newsTickerTategaki));
+}
+
+let _newsCachedItems = [];
+let _newsModalData   = []; // クリック時のデータをインデックスで参照
+let _newsSlideTimer  = null;
+let _newsSlideIdx    = 0;
+function _clearSlideTimer() { if (_newsSlideTimer) { clearInterval(_newsSlideTimer); _newsSlideTimer = null; } }
+
+async function fetchNewsAndRender() {
+  if (!newsTickerEnabled) return;
+  try {
+    const items = await fetch('/api/news').then(r => r.json());
+    if (Array.isArray(items) && items.length > 0) _newsCachedItems = items;
+  } catch(e) { console.warn('[news fetch]', e.message); }
+  renderNewsTicker();
+}
+
+function renderNewsTicker() {
+  if (!newsTickerEnabled) return;
+  const items = _newsCachedItems;
+  if (!items.length) return;
+  const wrap = document.getElementById('newsTickerWrap');
+  if (!wrap) return;
+  _clearSlideTimer();
+  applyNewsTickerSettings();
+  wrap.innerHTML = '';
+  _newsModalData = [];
+  if      (newsTickerMode === 'vscroll') _renderVScroll(wrap, items);
+  else if (newsTickerMode === 'slide')   _renderSlide(wrap, items);
+  else                                   _renderHScroll(wrap, items);
+  applyNewsTickerSettings();
+}
+
+function _renderHScroll(wrap, items) {
+  const rows = Math.max(1, Math.min(3, newsTickerRows));
+  const perRow = Math.ceil(items.length / rows);
+  for (let r = 0; r < rows; r++) {
+    const rowItems = items.slice(r * perRow, (r + 1) * perRow);
+    if (!rowItems.length) break;
+    const rowEl = document.createElement('div');
+    rowEl.className = 'news-ticker-row';
+    const track = document.createElement('div');
+    track.className = 'news-ticker-track';
+    const baseIdx = _newsModalData.length;
+    rowItems.forEach(i => _newsModalData.push(i));
+    const makeHtml = () => rowItems.map((i, j) =>
+      `<span class="news-ticker-item" onclick="openNewsModalByIdx(${baseIdx + j})">` +
+      `<span class="news-source ${_newsSourceClass(i.source)}">${i.source}</span>${escapeHtml(i.title)}</span>`
+    ).join('<span class="news-ticker-sep">✦</span>');
+    const half = makeHtml();
+    track.innerHTML = half + '<span class="news-ticker-sep">✦</span>' + half;
+    track.style.animation = 'none';
+    rowEl.appendChild(track);
+    wrap.appendChild(rowEl);
+    const totalChars = rowItems.reduce((s, i) => s + i.title.length, 0);
+    const speedFactor = Math.max(0.1, newsTickerSpeed / 100);
+    const duration = Math.max(5, (totalChars * 0.22 + r * 8) / speedFactor);
+    requestAnimationFrame(() => { void track.offsetWidth; track.style.animation = `newsTickerScroll ${duration}s linear infinite`; });
+  }
+}
+
+function _renderVScroll(wrap, items) {
+  items.forEach(i => _newsModalData.push(i));
+  const track = document.createElement('div');
+  track.className = 'news-ticker-vtrack';
+  const makeItem = (item, idx) =>
+    `<div class="news-ticker-vitem" onclick="openNewsModalByIdx(${idx})">` +
+    `<span class="news-source ${_newsSourceClass(item.source)}">${item.source}</span>` +
+    `<span class="news-ticker-vitem-title">${escapeHtml(item.title)}</span></div>`;
+  const half = items.map((item, i) => makeItem(item, i)).join('');
+  track.innerHTML = half + half;
+  track.style.animation = 'none';
+  wrap.appendChild(track);
+  const speedFactor = Math.max(0.1, newsTickerSpeed / 100);
+  const duration = Math.max(5, items.length * 2.5 / speedFactor);
+  requestAnimationFrame(() => { void track.offsetWidth; track.style.animation = `newsTickerVScroll ${duration}s linear infinite`; });
+}
+
+function _renderSlide(wrap, items) {
+  items.forEach(i => _newsModalData.push(i));
+  _newsSlideIdx = 0;
+  const slideWrap = document.createElement('div');
+  slideWrap.className = 'news-ticker-slide-wrap';
+  wrap.appendChild(slideWrap);
+  const makeEl = (idx, entering) => {
+    const item = items[idx];
+    const el = document.createElement('div');
+    el.className = 'news-ticker-slide-item' + (entering ? ' nt-entering' : '');
+    el.onclick = () => openNewsModalByIdx(idx);
+    const src = document.createElement('span');
+    src.className = `news-source ${_newsSourceClass(item.source)}`;
+    src.textContent = item.source;
+    const t = document.createElement('span');
+    t.className = 'news-ticker-slide-title';
+    t.textContent = item.title;
+    el.append(src, t);
+    return el;
+  };
+  let cur = makeEl(0, false);
+  slideWrap.appendChild(cur);
+  _newsSlideTimer = setInterval(() => {
+    _newsSlideIdx = (_newsSlideIdx + 1) % items.length;
+    cur.classList.add('nt-leaving');
+    const next = makeEl(_newsSlideIdx, true);
+    slideWrap.appendChild(next);
+    setTimeout(() => { cur.remove(); cur = next; }, 600);
+  }, Math.max(3, newsTickerInterval) * 1000);
+}
+
+function openNewsModalByIdx(idx) {
+  const d = _newsModalData[idx];
+  if (d) openNewsModal(d.link, d.title, d.source);
+}
+
+function openNewsModal(url, title, source) {
+  document.getElementById('newsModalOverlay')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'newsModalOverlay';
+  overlay.className = 'news-modal-overlay';
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  const srcClass = _newsSourceClass(source || '');
+  const box = document.createElement('div');
+  box.className = 'news-modal-box';
+  // header
+  const header = document.createElement('div');
+  header.className = 'news-modal-header';
+  const srcBadge = document.createElement('span');
+  srcBadge.className = `news-modal-source ${srcClass}`;
+  srcBadge.textContent = source || '';
+  const titleEl = document.createElement('span');
+  titleEl.className = 'news-modal-title-text';
+  titleEl.textContent = title;
+  const openBtn = document.createElement('button');
+  openBtn.className = 'news-modal-open-btn';
+  openBtn.title = '外部ブラウザで開く';
+  openBtn.textContent = '↗';
+  openBtn.onclick = () => fetch('/api/open-url?url=' + encodeURIComponent(url));
+  const closeBtn = document.createElement('span');
+  closeBtn.className = 'news-modal-close';
+  closeBtn.textContent = '✕';
+  closeBtn.onclick = () => overlay.remove();
+  header.append(srcBadge, titleEl, openBtn, closeBtn);
+  // 埋め込み不可サイトが多いためiframeを廃止し、リンクボタンのみ表示
+  const body = document.createElement('div');
+  body.className = 'news-modal-body';
+  const titleBig = document.createElement('div');
+  titleBig.className = 'news-modal-body-title';
+  titleBig.textContent = title;
+  const linkBtn = document.createElement('button');
+  linkBtn.className = 'news-modal-link-btn';
+  linkBtn.textContent = '🔗 記事を開く';
+  linkBtn.onclick = () => fetch('/api/open-url?url=' + encodeURIComponent(url));
+  body.append(titleBig, linkBtn);
+  box.append(header, body);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+
+setInterval(() => { if (newsTickerEnabled) fetchNewsAndRender(); }, 5 * 60 * 1000);
 
 // ── テキストプール読み込み ────────────────────────────────────────
 (async function loadTextPools() {
@@ -7786,7 +8270,7 @@ setInterval(() => {
 // ── Wordle ────────────────────────────────────────────────────────
 let wordleWords      = [];
 let wordleState      = null; // { answer, guesses[], panelX, panelY, winnerName }
-let wordleDragState  = null;
+wordleDragState  = null;
 let wordleDisplayRows = parseInt(localStorage.getItem('wordleDisplayRows')) || 10;
 
 (async function loadWordleWords() {
@@ -7955,7 +8439,7 @@ function handleWordleGuess(user, word) {
 // ── クイズゲーム ──────────────────────────────────────────────────
 let quizQuestions = [];
 let quizState = null; // { question, answer, answered, winnerName, timeLeft, timer, panelX, panelY }
-let quizDragState = null;
+quizDragState = null;
 
 (async function loadQuizQuestions() {
   try {
@@ -8367,11 +8851,140 @@ document.getElementById('toggleBreatheBtn').addEventListener('click', () => {
   saveSettingsToServer();
 });
 
+document.getElementById('toggleBossFloatBtn').addEventListener('click', () => {
+  bossFloatDisabled = !bossFloatDisabled;
+  document.body.classList.toggle('no-boss-float', bossFloatDisabled);
+  document.getElementById('toggleBossFloatBtn').classList.toggle('active', bossFloatDisabled);
+  localStorage.setItem('bossFloatDisabled', bossFloatDisabled);
+  saveSettingsToServer();
+});
+
+document.getElementById('toggleNewsTickerBtn').addEventListener('click', () => {
+  newsTickerEnabled = !newsTickerEnabled;
+  const ticker = document.getElementById('newsTicker');
+  if (ticker) {
+    if (newsTickerEnabled) {
+      ticker.classList.remove('hidden');
+      applyNewsTickerSettings();
+      fetchNewsAndRender();
+    } else {
+      ticker.classList.add('hidden');
+    }
+  }
+  document.querySelectorAll('#toggleNewsTickerBtn').forEach(btn => btn.classList.toggle('active', newsTickerEnabled));
+  localStorage.setItem('newsTickerEnabled', newsTickerEnabled);
+  saveSettingsToServer();
+});
+
+// ニューステッカー各種スライダー
+(function() {
+  function ntSave(key, val) { localStorage.setItem(key, val); saveSettingsToServer(); }
+  document.getElementById('newsTickerWidthSlider').addEventListener('input', function() {
+    newsTickerWidth = parseInt(this.value); ntSave('newsTickerWidth', newsTickerWidth); applyNewsTickerSettings();
+  });
+  document.getElementById('newsTickerXSlider').addEventListener('input', function() {
+    newsTickerX = parseInt(this.value); ntSave('newsTickerX', newsTickerX); applyNewsTickerSettings();
+  });
+  document.getElementById('newsTickerYSlider').addEventListener('input', function() {
+    newsTickerY = parseInt(this.value); ntSave('newsTickerY', newsTickerY); applyNewsTickerSettings();
+  });
+  document.getElementById('newsTickerRowsSlider').addEventListener('input', function() {
+    newsTickerRows = parseInt(this.value); ntSave('newsTickerRows', newsTickerRows); renderNewsTicker();
+  });
+  document.getElementById('newsTickerFontSlider').addEventListener('input', function() {
+    newsTickerFontSize = parseInt(this.value); ntSave('newsTickerFontSize', newsTickerFontSize); applyNewsTickerSettings();
+  });
+  document.getElementById('newsTickerBgOpacitySlider').addEventListener('input', function() {
+    newsTickerBgOpacity = parseInt(this.value); ntSave('newsTickerBgOpacity', newsTickerBgOpacity); applyNewsTickerSettings();
+  });
+  document.getElementById('newsTickerSpeedSlider').addEventListener('input', function() {
+    newsTickerSpeed = parseInt(this.value); ntSave('newsTickerSpeed', newsTickerSpeed);
+    applyNewsTickerSettings();
+    if (newsTickerEnabled) renderNewsTicker();
+  });
+  document.getElementById('newsTickerIntervalSlider').addEventListener('input', function() {
+    newsTickerInterval = parseInt(this.value); ntSave('newsTickerInterval', newsTickerInterval);
+    applyNewsTickerSettings();
+    if (newsTickerEnabled && newsTickerMode === 'slide') renderNewsTicker();
+  });
+})();
+
+// パネル外観スライダー
+(function() {
+  function ppSave(key, val) { localStorage.setItem(key, val); saveSettingsToServer(); }
+  document.getElementById('wordlePanelWidthSlider')?.addEventListener('input', function() {
+    wordlePanelWidth = parseInt(this.value); ppSave('wordlePanelWidth', wordlePanelWidth); applyPanelSettings();
+  });
+  document.getElementById('wordlePanelBgSlider')?.addEventListener('input', function() {
+    wordlePanelBgOpacity = parseInt(this.value); ppSave('wordlePanelBgOpacity', wordlePanelBgOpacity); applyPanelSettings();
+  });
+  document.getElementById('rankingPanelBgSlider')?.addEventListener('input', function() {
+    rankingPanelBgOpacity = parseInt(this.value); ppSave('rankingPanelBgOpacity', rankingPanelBgOpacity); applyPanelSettings();
+  });
+  document.getElementById('quizPanelBgSlider')?.addEventListener('input', function() {
+    quizPanelBgOpacity = parseInt(this.value); ppSave('quizPanelBgOpacity', quizPanelBgOpacity); applyPanelSettings();
+  });
+})();
+
+// ダメージ文字サイズスライダー
+document.getElementById('dmgFontScaleSlider')?.addEventListener('input', function() {
+  dmgFontScale = parseInt(this.value);
+  localStorage.setItem('dmgFontScale', dmgFontScale);
+  saveSettingsToServer();
+  document.querySelectorAll('#dmgFontScaleVal').forEach(s => s.textContent = dmgFontScale + '%');
+});
+
+// 縦書きトグル
+document.querySelectorAll('#newsTickerTategakiBtn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    newsTickerTategaki = !newsTickerTategaki;
+    localStorage.setItem('newsTickerTategaki', newsTickerTategaki);
+    saveSettingsToServer();
+    applyNewsTickerSettings();
+    if (newsTickerEnabled) renderNewsTicker();
+  });
+});
+
+// ニューステッカー表示モード切り替え
+['H','V','S'].forEach(m => {
+  const modeMap = {H:'hscroll', V:'vscroll', S:'slide'};
+  document.querySelectorAll('#newsTickerMode' + m + 'Btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      newsTickerMode = modeMap[m];
+      localStorage.setItem('newsTickerMode', newsTickerMode);
+      saveSettingsToServer();
+      applyNewsTickerSettings();
+      if (newsTickerEnabled) renderNewsTicker();
+    });
+  });
+});
+
+document.getElementById('toggleCharNameBtn').addEventListener('click', () => {
+  charNameHidden = !charNameHidden;
+  document.body.classList.toggle('char-name-hidden', charNameHidden);
+  document.getElementById('toggleCharNameBtn').classList.toggle('active', charNameHidden);
+  localStorage.setItem('charNameHidden', charNameHidden);
+  saveSettingsToServer();
+});
+
 // 保存された表示状態を復元
 if (bombHidden)       { document.getElementById('bombBtn').style.display  = 'none'; document.getElementById('toggleBombBtn').classList.add('active'); }
 if (trashHidden)      { document.getElementById('trashCan').style.display = 'none'; document.getElementById('toggleTrashBtn').classList.add('active'); }
 if (charStatsHidden)  { document.body.classList.add('stats-hidden'); document.getElementById('toggleStatsBtn').classList.add('active'); }
-if (breatheDisabled)  { document.body.classList.add('no-breathe'); document.getElementById('toggleBreatheBtn').classList.add('active'); }
+if (breatheDisabled)   { document.body.classList.add('no-breathe');    document.getElementById('toggleBreatheBtn').classList.add('active'); }
+if (bossFloatDisabled) { document.body.classList.add('no-boss-float'); document.getElementById('toggleBossFloatBtn').classList.add('active'); }
+if (charNameHidden)    { document.body.classList.add('char-name-hidden'); document.getElementById('toggleCharNameBtn').classList.add('active'); }
+applyNewsTickerSettings();
+applyPanelSettings();
+(function() {
+  const el = document.getElementById('dmgFontScaleSlider');
+  if (el) { el.value = dmgFontScale; document.querySelectorAll('#dmgFontScaleVal').forEach(s => s.textContent = dmgFontScale + '%'); }
+})();
+if (newsTickerEnabled) {
+  document.getElementById('newsTicker').classList.remove('hidden');
+  document.getElementById('toggleNewsTickerBtn').classList.add('active');
+  fetchNewsAndRender();
+}
 
 document.getElementById('slotSoundBtn').addEventListener('click', () => {
   slotSoundEnabled = !slotSoundEnabled;
@@ -9349,6 +9962,7 @@ function handleAdminMessage(d, replyFn) {
     state.agruYtOpacity          = agruYtOpacity;
     state.agruYtEnabled          = agruYtEnabled ? 1 : 0;
     state.agruImgCmdEnabled      = agruImgCmdEnabled ? 1 : 0;
+    state.agruUnloadEnabled      = agruUnloadEnabled ? 1 : 0;
     state.agruShakeAmp           = agruShakeAmp;
     state.agruModalZ             = agruModalZ;
     state.agruYtModalZ           = agruYtModalZ;
@@ -9488,6 +10102,7 @@ function handleAdminMessage(d, replyFn) {
     if (d.key === 'agruYtOpacity')          agruYtOpacity          = parseInt(d.value) ?? 100;
     if (d.key === 'agruYtEnabled')          agruYtEnabled          = d.value === '1';
     if (d.key === 'agruImgCmdEnabled')      agruImgCmdEnabled      = d.value === '1';
+    if (d.key === 'agruUnloadEnabled')      agruUnloadEnabled      = d.value === '1';
     if (d.key === 'agruShakeAmp')           agruShakeAmp           = parseFloat(d.value) || 2;
     if (d.key === 'agruModalZ')             { agruModalZ = parseInt(d.value) || 300; const _mo = document.getElementById('agruModal'); if (_mo) _mo.style.zIndex = agruModalZ; }
     if (d.key === 'agruYtModalZ')           { agruYtModalZ = parseInt(d.value) || 400; const _yt = document.getElementById('agruYtModal'); if (_yt) _yt.style.zIndex = agruYtModalZ; }
@@ -9820,7 +10435,7 @@ setInterval(() => {
 // ── 競馬 ──────────────────────────────────────────────────────────
 let raceState     = null;
 let raceJackpot   = parseInt(localStorage.getItem('raceJackpot')) || 0;
-let raceDragState = null;
+raceDragState = null;
 const RACE_TOTAL_SEC = 20;
 
 const RACE_BUBBLE_PHRASES = [
