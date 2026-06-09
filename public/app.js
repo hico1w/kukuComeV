@@ -787,7 +787,7 @@ function applyAvatarStyle(user) {
   a.style.height = px + 'px';
   a.style.transform = '';
   const imgFile = user.charImage || charImages[user.charDef.id] || 'kisyokeee.png';
-  a.innerHTML      = `<img src="/chara/${encodeURIComponent(imgFile)}" alt="${escapeHtml(user.name)}">`;
+  a.innerHTML      = `<img src="/chara-s/${encodeURIComponent(imgFile)}" alt="${escapeHtml(user.name)}">`;
   a.style.fontSize = '0';
   const img = a.querySelector('img');
   if (img) {
@@ -909,7 +909,7 @@ function _puruDefaultCfg() {
   };
 }
 
-let _puruTime = 0, _puruLastTs = null, _puruRAF = null;
+let _puruTime = 0, _puruLastTs = null, _puruRAF = null, _puruRenderLastTs = null;
 const _puruDispBuf = {dx:0, dy:0}; // scratchオブジェクト（毎フレームのnewを排除）
 
 function _puruWeight(pt, dx, dy, W, H) {
@@ -1139,15 +1139,19 @@ function _puruRenderCanvas(canvas) {
 
 function _puruStartLoop() {
   if (_puruRAF) return;
+  const _PURU_INTERVAL = 1000 / 48; // 48fps = 約20.83ms
   const loop = ts => {
     const canvases = document.querySelectorAll('.puru-canvas');
-    if (!canvases.length) { _puruRAF = 0; _puruLastTs = null; return; } // キャンバスが0枚なら停止
+    if (!canvases.length) { _puruRAF = 0; _puruLastTs = null; _puruRenderLastTs = null; return; }
     _puruRAF = requestAnimationFrame(loop);
-    if (_puruLastTs === null) _puruLastTs = ts;
+    if (_puruLastTs === null) { _puruLastTs = ts; _puruRenderLastTs = ts; }
     const dt = Math.min((ts - _puruLastTs) / 1000, 0.05);
     _puruLastTs = ts;
     _puruTime += dt;
-    canvases.forEach(_puruRenderCanvas);
+    if (ts - _puruRenderLastTs >= _PURU_INTERVAL) {
+      _puruRenderLastTs = ts;
+      canvases.forEach(_puruRenderCanvas);
+    }
   };
   _puruRAF = requestAnimationFrame(loop);
 }
@@ -1261,7 +1265,7 @@ function renderPetBadge(user) {
     if (!petObj) { slot.className = baseCls; slot.innerHTML = ''; return; }
     slot.className = `${baseCls} ${petObj.rarityCls || ''}`;
     const img = document.createElement('img');
-    img.src          = `/chara/${encodeURIComponent(petObj.img)}`;
+    img.src          = `/chara-s/${encodeURIComponent(petObj.img)}`;
     img.alt          = 'pet';
     img.title        = `${escapeHtml(petObj.abilityName)}: ${escapeHtml(petObj.abilityDesc)}`;
     img.style.width  = px + 'px';
@@ -2866,7 +2870,7 @@ function endTaiman(winner, loser) {
     // 敗者の画像を敗北画像に変更
     const loserAvatar = document.getElementById('a-' + loser.ipid);
     if (loserAvatar) {
-      loserAvatar.innerHTML = `<img src="/chara/248106.png" alt="${escapeHtml(loser.name)}">`;
+      loserAvatar.innerHTML = `<img src="/chara-s/248106.png" alt="${escapeHtml(loser.name)}">`;
     }
     loser._taimanDefeated = true;
 
@@ -3261,7 +3265,7 @@ function spawnBoss(maxHp) {
     ? availableImages[Math.floor(Math.random() * availableImages.length)]
     : null;
   const avatarInner = bossImg
-    ? `<img src="/chara/${encodeURIComponent(bossImg)}" alt="boss">`
+    ? `<img src="/chara-s/${encodeURIComponent(bossImg)}" alt="boss">`
     : '🐉';
 
   const bossSize = Math.round(200 * bossSizeScale);
@@ -3337,7 +3341,7 @@ function spawnSpikiBoss() {
   spawnBoss(hp);
   // 画像をスピキ専用に差し替え
   const ba = bossState.el.querySelector('#bossAvatar');
-  if (ba) ba.innerHTML = `<img src="/chara/img_-0002-2607607172.png" alt="スピキ">`;
+  if (ba) ba.innerHTML = `<img src="/chara-s/img_-0002-2607607172.png" alt="スピキ">`;
   // ラベル変更
   const lbl = bossState.el.querySelector('.boss-label');
   if (lbl) lbl.textContent = '👾 スピキ';
@@ -3412,7 +3416,7 @@ function attackBoss(user, msgLen) {
     showBubble(user, `Lv.${newLv} に上がった！🎉`, {});
     const { x: lvx, y: lvy } = getCharCenter(user);
     spawnHeartShower(lvx, lvy);
-    showLevelUpBanner();
+    showLevelUpBanner(user);
   }
 
   // 反撃は全ヒット終了後に判定（ボス生存時のみ）
@@ -3698,7 +3702,6 @@ function defeatBoss() {
         existing.value += gain;
         const r2 = RARITY[Math.min(existing.value, RARITY.length - 1)] || RARITY[1];
         existing.rarityName = r2.name; existing.rarityCls = r2.cls;
-        showBubble(u, `${existing.icon}${existing.name}合成！ ${existing.stat === 'atk' ? 'ATK' : 'HP'}+${existing.value}(+${gain})`, {});
       } else {
         u.equips.push(newEquip);
         const statLabel = newEquip.stat === 'atk' ? 'ATK' : 'HP';
@@ -3711,6 +3714,13 @@ function defeatBoss() {
       updateStatsDisplay(u);
 
       const { x, y } = getCharCenter(u);
+      if (existing) {
+        const area = u.el?.querySelector('.char-equip-area');
+        const badge = area && [...area.querySelectorAll('.char-equip-badge')]
+          .find(b => b.title.startsWith(existing.name + '['));
+        if (badge) showEquipSynthPop(badge, existing);
+        showDamageNumber(x, y - 40, `${existing.stat === 'atk' ? 'ATK' : 'HP'}+${existing.value}`, false, 14, '#fbbf24');
+      }
       if (value >= 9) { spawnFireworks(x, y); spawnHeartShower(x, y); showMythDrop(u); }
       else if (value >= 7) spawnFireworks(x, y);
       else if (value >= 5) spawnHeartShower(x, y);
@@ -3784,15 +3794,25 @@ function showMythDrop(user) {
   setTimeout(() => panel.remove(), 3800);
 }
 
-function showLevelUpBanner() {
-  const prev = document.getElementById('levelupBanner');
+function showLevelUpBanner(user) {
+  const wrap = user?.el?.querySelector('.avatar-wrap');
+  if (!wrap) return;
+  const prev = wrap.querySelector('.levelup-char-banner');
   if (prev) prev.remove();
   const el = document.createElement('div');
-  el.id = 'levelupBanner';
+  el.className = 'levelup-char-banner';
   el.innerHTML = '<img src="/img/levelup.png" alt="Level Up!">';
-  stage.appendChild(el);
+  wrap.appendChild(el);
   el.addEventListener('animationend', () => el.remove(), { once: true });
   playLocalSound('/sound/char/maplestory-lvl-up.mp3');
+}
+
+function showEquipSynthPop(badge, equip) {
+  const pop = document.createElement('span');
+  pop.className = 'equip-synth-pop';
+  pop.textContent = (equip?.icon || '') + '+';
+  badge.appendChild(pop);
+  pop.addEventListener('animationend', () => pop.remove(), { once: true });
 }
 
 // 音声再生
@@ -3916,7 +3936,7 @@ function handleComment(comment) {
       showBubble(user, `Lv.${newLv} に上がった！🎉`, {});
       const { x: lvx, y: lvy } = getCharCenter(user);
       spawnHeartShower(lvx, lvy);
-      showLevelUpBanner();
+      showLevelUpBanner(user);
     }
   }
 
@@ -4066,6 +4086,36 @@ function handleComment(comment) {
       user.mp -= 50;
       updateStatsDisplay(user);
       closeAgruYtModal();
+    }
+  }
+
+  // ── 字幕コマンド ── 20MP消費
+  {
+    const jmatch = message.match(/^字幕[：:](.+)/);
+    if (jmatch) {
+      const ccText = jmatch[1].trim();
+      if ((user.mp ?? 0) < 20) {
+        showBubble(user, `MPが足りない… (${user.mp ?? 0}/20)`, {});
+      } else {
+        user.mp -= 20;
+        updateStatsDisplay(user);
+        fetch(`https://live.erinn.biz/api/?category=comment&type=speech&apikey=${encodeURIComponent(apikey)}&text=${encodeURIComponent(ccText)}`)
+          .then(r => r.json())
+          .then(data => {
+            if (data.success === 1) {
+              showBubble(user, `🎤 字幕送信！`, {});
+            } else {
+              user.mp += 20;
+              updateStatsDisplay(user);
+              showBubble(user, `字幕エラー: ${data.error_display || data.error || '不明'}`, {});
+            }
+          })
+          .catch(() => {
+            user.mp += 20;
+            updateStatsDisplay(user);
+            showBubble(user, `字幕送信失敗`, {});
+          });
+      }
     }
   }
 
@@ -9342,28 +9392,36 @@ function openTreasureChest(user) {
     existing.value += gain;
     const r2 = RARITY[Math.min(existing.value, RARITY.length - 1)] || RARITY[1];
     existing.rarityName = r2.name; existing.rarityCls = r2.cls;
-    showBubble(user, `${existing.icon}${existing.name}合成！ ${existing.stat === 'atk' ? 'ATK' : 'HP'}+${existing.value}(+${gain})`, {});
   } else {
     user.equips.push(newEquip);
     showBubble(user, `${newEquip.icon}${newEquip.name}[${newEquip.rarityName}]入手！`, {});
   }
   // HP +30
   user.hp = Math.min(calcMaxHp(user), (user.hp ?? 30) + 30);
+  updateEquipBadge(user);
   updateStatsDisplay(user);
+  if (existing) {
+    const area = user.el?.querySelector('.char-equip-area');
+    const badge = area && [...area.querySelectorAll('.char-equip-badge')]
+      .find(b => b.title.startsWith(existing.name + '['));
+    if (badge) showEquipSynthPop(badge, existing);
+    const { x: ex, y: ey } = getCharCenter(user);
+    showDamageNumber(ex, ey - 40, `${existing.stat === 'atk' ? 'ATK' : 'HP'}+${existing.value}`, false, 14, '#fbbf24');
+  }
 
   addSystemLog(`💎 ${user.name} が宝箱ゲット！ ${newEquip.icon}${newEquip.name}[${newEquip.rarityName}] HP+30`, '#fbbf24');
   if (typeof checkTitles === 'function') setTimeout(() => checkTitles(user), 200);
 }
 
 function showTreasureOverlay(user) {
-  const prev = document.getElementById('treasureOverlay');
+  const wrap = user?.el?.querySelector('.avatar-wrap');
+  if (!wrap) return;
+  const prev = wrap.querySelector('.treasure-char-overlay');
   if (prev) prev.remove();
   const ov = document.createElement('div');
-  ov.id = 'treasureOverlay';
-  ov.innerHTML =
-    `<div id="treasureOverlayText">💎 お宝ゲット！！ 💎<br>` +
-    `<span style="font-size:0.5em">${escapeHtml(user.name || '名無し')} が開けた！</span></div>`;
-  document.body.appendChild(ov);
+  ov.className = 'treasure-char-overlay';
+  ov.innerHTML = `💎お宝ゲット！💎<span class="tco-name">${escapeHtml(user.name || '名無し')}</span>`;
+  wrap.appendChild(ov);
   setTimeout(() => {
     ov.style.transition = 'opacity 0.8s';
     ov.style.opacity = '0';
@@ -9881,7 +9939,8 @@ function handleAdminMessage(d, replyFn) {
                        'bossHpScaleSlider','bossAtkCoeffSlider','counterRateSlider','charSizeSlider','bossSizeSlider','brHpMultSlider','taimanHpMultSlider',
                        'slotProbCherry','slotProbBell','slotProbStar','slotProbDiamond','slotProbJackpot',
                        'afkOpacitySlider','afkGrayscaleSlider','afkBrightnessSlider',
-                       'kaiSpeedSlider','kaiRestitutionSlider','kaiGravitySlider','kaiBulletSizeSlider'];
+                       'kaiSpeedSlider','kaiRestitutionSlider','kaiGravitySlider','kaiBulletSizeSlider',
+                       'dmgFontScaleSlider','wordlePanelWidthSlider','wordlePanelBgSlider','rankingPanelBgSlider','quizPanelBgSlider','newsTickerIntervalSlider'];
     const state = {};
     sliderIds.forEach(sid => { const el = document.getElementById(sid); if (el) state[sid] = el.value; });
     state.bgColor    = document.getElementById('bgColor')?.value;

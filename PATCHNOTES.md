@@ -2,6 +2,112 @@
 
 ---
 
+## v2.519.0 — 2026-06-10
+
+### 字幕コマンド追加
+
+- **`handleComment`** (`app.js`)
+  - コメントで `字幕：テキスト` または `字幕:テキスト` と入力すると字幕APIを呼び出す機能を追加
+  - MP20消費。MP不足時はバブル `MPが足りない… (X/20)` を表示
+  - API: `https://live.erinn.biz/api/?category=comment&type=speech&apikey=...&text=...`
+  - 成功時: バブル `🎤 字幕送信！` を表示
+  - エラー時・通信失敗時: MP返金 + エラー内容をバブルで表示
+
+---
+
+## v2.518.0 — 2026-06-10
+
+### 呼吸オフ時にペットの呼吸モーションも停止
+
+- **`style.css`**
+  - `body.no-breathe .char-pet, body.no-breathe .char-pet2 { animation: none !important; }` を追加
+  - 管理パネルの呼吸ボタンでOFFにするとペット（`.char-pet`/`.char-pet2`）の呼吸アニメーションも同時に無効化
+
+---
+
+## v2.517.0 — 2026-06-09
+
+### お宝オーバーレイをキャラ個別表示に変更
+
+- **`showTreasureOverlay(user)`** (`app.js`)
+  - フルスクリーン固定表示（`position: fixed; inset: 0`）→ 宝箱を開けたキャラの `.avatar-wrap` 内に追加
+  - レベルアップバナーと同じ方式でキャラ上にポップアップ
+- **`style.css`**
+  - 旧 `#treasureOverlay` / `#treasureOverlayText`（72px 巨大テキスト）を削除
+  - 新 `.treasure-char-overlay` / `@keyframes treasureCharAnim` を追加（20px、キャラ上でポップして上昇フェード）
+
+---
+
+## v2.516.0 — 2026-06-09
+
+### ぷるぷる描画を48fps制限・CSS contain 追加による軽量化
+
+- **ぷるぷる48fps制限** (`app.js`)
+  - `_puruRenderLastTs` 変数を追加
+  - RAFループは60fpsで継続（`_puruTime` の進行は正確に維持）
+  - キャンバス描画（`_puruRenderCanvas`）は 1000/48 ≈ 20.83ms 未満の間隔ではスキップ
+  - ループ停止時に `_puruRenderLastTs` もリセット
+- **CSS `contain: layout style`** (`style.css`)
+  - `.character` に追加
+  - 1キャラの変化が他キャラや画面全体のレイアウト再計算を引き起こさなくなる
+  - `paint` は除外（吹き出し等のはみ出し表示を壊さないため）
+
+---
+
+## v2.515.0 — 2026-06-09
+
+### 管理パネルのスライダー値が保存されない問題を修正
+
+- **原因**: admin.html 接続時に `getState` でスライダーの現在値を同期するリストに、新しく追加したスライダーが含まれていなかった。admin.html を開くたびにデフォルト値（100%等）に戻り、そのまま操作すると保存済みの値を上書きしていた
+- **修正 `app.js`**: `getState` の `sliderIds` に以下を追加
+  - `dmgFontScaleSlider`、`wordlePanelWidthSlider`、`wordlePanelBgSlider`、`rankingPanelBgSlider`、`quizPanelBgSlider`、`newsTickerIntervalSlider`
+- **修正 `admin.html`**: `applyState` の `sliderDefs` に同スライダーを追加（接続時に正しい値を表示）
+
+---
+
+## v2.514.0 — 2026-06-09
+
+### キャラ画像の半サイズ配信による軽量化
+
+- **`server.js`**
+  - `sharp` を追加（`npm install sharp` 済み）
+  - `/chara-s/:filename` エンドポイントを新設
+    - `public/chara/` の元画像を幅1/2にリサイズしてブラウザに返す
+    - GIF・SVGはリサイズ不要のため元ファイルをそのまま返す
+    - サーバープロセス内にメモリキャッシュ（起動後初回のみ処理、以降は即返却）
+    - `Cache-Control: public, max-age=86400` でブラウザ側にも1日キャッシュ
+    - 変換失敗時は元ファイルをフォールバックで返す
+- **`public/app.js`**
+  - キャラアバター・ペット・ボス・スピキ・タイマン敗北画像の `img.src` を `/chara/` → `/chara-s/` に変更
+  - 管理パネルのサムネイルグリッドは `/chara/`（元画像）のまま維持
+- **エフェクト・ぷるぷるへの影響なし**
+  - ブラウザが受け取る `naturalWidth/naturalHeight` が最初から半分になるため、ぷるぷるUV計算・CSS表示サイズ計算・じゃぎキャンバスがすべて自動整合
+
+---
+
+## v2.513.0 — 2026-06-09
+
+### レベルアップ演出をキャラ個別表示に変更
+
+- **`showLevelUpBanner(user)`** (`app.js`)
+  - 引数なし→`user`引数付きに変更
+  - `#stage` 中央配置 (`#levelupBanner`) から各キャラの `.avatar-wrap` 内に `.levelup-char-banner` を追加する方式に変更
+  - 複数キャラが同時にレベルアップしても各自の上にバナーが出る
+- **`style.css`**
+  - 旧 `#levelupBanner`（中央固定）と `@keyframes lvupBanner` を削除
+  - 新 `.levelup-char-banner` と `@keyframes lvupCharBanner` を追加（キャラ上でポップアップして上に流れる）
+
+### 装備合成演出をシンプル化
+
+- **合成時の `showBubble` を廃止** (`app.js` — `defeatBoss` / `grantSpikiEquip` 内)
+  - 合成バブルテキスト（「〇〇合成！ ATK+X(+Y)」）を削除
+  - 代わりに装備バッジに金色の `+` マークがポップするエフェクト（`.equip-synth-pop`）
+  - 合成後のステータス（`ATK+X` or `HP+X`）を `showDamageNumber` で金色フロート表示
+- **新規装備入手の `showBubble` は従来通り維持**
+- **`style.css`**: `.char-equip-badge { position: relative }` + `.equip-synth-pop` + `@keyframes synthPopAnim` を追加
+
+---
+
 ## v2.512.0 — 2026-06-09
 
 ### ボス撃破モーション変更（倒れて床にスライド消滅）

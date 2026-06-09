@@ -6,6 +6,7 @@ const path             = require('path');
 const fs               = require('fs');
 const net              = require('net');
 const { spawn, exec }  = require('child_process');
+const sharp            = require('sharp');
 const ws_lib = require('ws');
 const { WebSocketServer } = ws_lib;
 
@@ -1178,6 +1179,57 @@ app.get('/api/news', async (req, res) => {
   } catch(e) {
     console.error('[news]', e.message);
     res.status(500).json({ error: e.message });
+  }
+});
+
+// キャラ画像を半サイズにリサイズして配信（軽量化用）
+const _charaDir   = path.join(__dirname, 'public', 'chara');
+const _charaSCache = new Map(); // filename → { buf, ct }
+
+app.get('/chara-s/:filename', async (req, res) => {
+  const filename = req.params.filename;
+  if (/[/\\]/.test(filename)) return res.status(400).end();
+
+  const filepath = path.join(_charaDir, filename);
+  if (!fs.existsSync(filepath)) return res.status(404).end();
+
+  const ext = path.extname(filename).toLowerCase();
+
+  // GIF・SVGはリサイズ不要のままそのまま返す
+  if (ext === '.gif' || ext === '.svg') {
+    return res.sendFile(filepath);
+  }
+
+  if (_charaSCache.has(filename)) {
+    const { buf, ct } = _charaSCache.get(filename);
+    res.setHeader('Content-Type', ct);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return res.send(buf);
+  }
+
+  try {
+    const meta = await sharp(filepath).metadata();
+    const halfW = Math.max(1, Math.round(meta.width / 2));
+    const s = sharp(filepath).resize(halfW);
+
+    let buf, ct;
+    if (ext === '.png') {
+      buf = await s.png().toBuffer(); ct = 'image/png';
+    } else if (ext === '.jpg' || ext === '.jpeg') {
+      buf = await s.jpeg({ quality: 85 }).toBuffer(); ct = 'image/jpeg';
+    } else if (ext === '.webp') {
+      buf = await s.webp({ quality: 85 }).toBuffer(); ct = 'image/webp';
+    } else {
+      return res.sendFile(filepath);
+    }
+
+    _charaSCache.set(filename, { buf, ct });
+    res.setHeader('Content-Type', ct);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(buf);
+  } catch (err) {
+    console.error('[chara-s] resize error:', err.message);
+    res.sendFile(filepath); // fallback: 元ファイルをそのまま返す
   }
 });
 
