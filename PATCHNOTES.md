@@ -2,6 +2,40 @@
 
 ---
 
+## v2.523.0 — 2026-06-10
+
+### 不在自動返答を管理パネルから設定可能に
+
+- **`app.js`**
+  - `autoReplyWords` / `autoReplyMessages` グローバル変数を追加（localStorage永続化）
+  - 不在確認ワード・返答内容のハードコードを廃止し、これらの変数を参照
+  - 返答が複数ある場合はランダムに1つ選んで `postAIReply`
+  - `getState` に `autoReplyWords` / `autoReplyMessages` を追加
+  - `handleAdminMessage` に `autoReplyConfig` タイプのハンドラを追加
+- **`admin.html`**
+  - 「💬 不在自動返答」セクションを追加（タイマン設定の直後）
+  - 対象ワード（テキストエリア・1行1ワード）・返答内容（テキストエリア・1行1メッセージ）・保存ボタン
+  - `saveAutoReplyConfig()` → `adminSend({type:'autoReplyConfig', words, messages})`
+  - `applyState` で管理パネル開時に現在の設定を復元
+
+---
+
+## v2.521.0 — 2026-06-10
+
+### 大きさ：大 コマンドにMP制限追加・が先頭コマンド追加
+
+- **`大きさ：大`** (`app.js` `handleComment`)
+  - `SIZE_MAP['大']` (120px) の適用に200MP消費を追加
+  - MP不足時はバブル `MPが足りない… (X/200)` を表示してコマンドをキャンセル
+  - `中` / `小` は引き続き無料
+- **`>` / `＞`先頭コメント** (`app.js` `handleComment`, `style.css`)
+  - `>` または `＞`（全角）を先頭から除去し、本文のみを吹き出しに表示
+  - 吹き出しフォントを4倍（`charFontSizes.bubble × 4` px）に拡大
+  - `.bubble-gatagata`（`@keyframes bubbleGatagata`）: 0.12s × 6回の激しいガタガタ振動 + ゴールドアウトライン＆グロー
+  - 20MP消費。MP不足時はバブルでエラー表示し通常表示をスキップ
+
+---
+
 ## v2.519.0 — 2026-06-10
 
 ### 字幕コマンド追加

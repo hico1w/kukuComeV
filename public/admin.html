@@ -398,6 +398,26 @@
   <div style="font-size:10px;color:#64748b;margin-top:3px">タイマンで負けたキャラが発言するコマンド（空欄で無効）</div>
 </div>
 
+<!-- 不在返答設定 -->
+<div class="section">
+  <div class="section-title">💬 不在自動返答</div>
+  <div class="input-row" style="align-items:flex-start">
+    <span class="input-label" style="padding-top:4px">対象ワード</span>
+    <textarea id="autoReplyWordsInput" rows="4"
+      placeholder="1行に1ワード&#10;例: いる？&#10;いない&#10;寝た？"
+      style="flex:1;background:#0f1117;border:1px solid #374151;color:#e2e8f0;border-radius:4px;padding:4px 6px;font-size:12px;resize:vertical;font-family:inherit"></textarea>
+  </div>
+  <div style="font-size:10px;color:#64748b;margin-top:2px;margin-bottom:6px">コメントにこのワードが含まれると自動返答（1行1ワード）</div>
+  <div class="input-row" style="align-items:flex-start">
+    <span class="input-label" style="padding-top:4px">返答内容</span>
+    <textarea id="autoReplyMessagesInput" rows="4"
+      placeholder="1行に1メッセージ&#10;例: いますよ&#10;います！&#10;みてるよ"
+      style="flex:1;background:#0f1117;border:1px solid #374151;color:#e2e8f0;border-radius:4px;padding:4px 6px;font-size:12px;resize:vertical;font-family:inherit"></textarea>
+  </div>
+  <div style="font-size:10px;color:#64748b;margin-top:2px;margin-bottom:6px">複数ある場合はランダムに1つ選んで投稿（1行1メッセージ）</div>
+  <button onclick="saveAutoReplyConfig()" style="font-size:12px;padding:3px 10px">💾 保存</button>
+</div>
+
 <!-- タイマンハンデ -->
 <div class="section">
   <div class="section-title">⚔️ タイマンハンデ</div>
@@ -1937,6 +1957,14 @@
   // ── コントロール関数 ─────────────────────────────────────────────
   function cmd(id) { adminSend({ type: 'click', id }); }
 
+  function saveAutoReplyConfig() {
+    const wordsRaw    = document.getElementById('autoReplyWordsInput')?.value    || '';
+    const messagesRaw = document.getElementById('autoReplyMessagesInput')?.value || '';
+    const words    = wordsRaw.split('\n').map(s => s.trim()).filter(s => s);
+    const messages = messagesRaw.split('\n').map(s => s.trim()).filter(s => s);
+    adminSend({ type: 'autoReplyConfig', words, messages });
+  }
+
   function toggleContentModeAdmin() {
     adminSend({ type: 'contentMode' });
     const btn = document.getElementById('contentModeBtn');
@@ -2288,6 +2316,8 @@
     }
     if (s.charExcludeIds !== undefined)      { const el = document.getElementById('charExcludeInput');      if (el) el.value = s.charExcludeIds; }
     if (s.taimanDefeatCommand !== undefined) { const el = document.getElementById('taimanDefeatCmdInput'); if (el) el.value = s.taimanDefeatCommand; }
+    if (s.autoReplyWords    !== undefined) { try { const el = document.getElementById('autoReplyWordsInput');    if (el) el.value = JSON.parse(s.autoReplyWords).join('\n');    } catch {} }
+    if (s.autoReplyMessages !== undefined) { try { const el = document.getElementById('autoReplyMessagesInput'); if (el) el.value = JSON.parse(s.autoReplyMessages).join('\n'); } catch {} }
     if (s.taimanCharScale !== undefined) { const sl = document.getElementById('taimanCharScaleSlider'); if (sl) { sl.value = s.taimanCharScale; document.getElementById('taimanCharScaleVal').textContent = s.taimanCharScale + 'x'; } }
     if (s.taimanCooldown !== undefined) { const sl = document.getElementById('taimanCooldownSlider'); if (sl) { const sec = Math.round(s.taimanCooldown / 1000); sl.value = sec; document.getElementById('taimanCooldownVal').textContent = sec + '秒'; } }
     if (s.autoDeleteMinutes !== undefined) { const sl = document.getElementById('autoDeleteMinutesSlider'); if (sl) { sl.value = s.autoDeleteMinutes; document.getElementById('autoDeleteMinutesVal').textContent = s.autoDeleteMinutes + '分'; } }

@@ -1931,6 +1931,8 @@ let taimanHpMult   = 10;   // タイマン仮想HP倍率
 let taimanDefeatCommand = localStorage.getItem('taimanDefeatCommand') || '';
 let taimanCharScale     = parseFloat(localStorage.getItem('taimanCharScale') || '4');
 let taimanCooldown      = parseInt(localStorage.getItem('taimanCooldown')) || 5 * 60 * 1000;
+let autoReplyWords    = JSON.parse(localStorage.getItem('autoReplyWords')    || 'null') || ['これ放置','mumyou','無明','いない','いにゃい','寝た？','ねた？','ほうち','ホウチ','houti','houchi','abandoned','いる？','iru?','ねてる'];
+let autoReplyMessages = JSON.parse(localStorage.getItem('autoReplyMessages') || 'null') || ['いますよ'];
 let autoDeleteMinutes   = parseInt(localStorage.getItem('autoDeleteMinutes')) || 30;
 let charAspectExp       = parseFloat(localStorage.getItem('charAspectExp') ?? '0.5');
 let charPortraitBoost   = parseFloat(localStorage.getItem('charPortraitBoost') ?? '0');
@@ -4062,9 +4064,10 @@ function handleComment(comment) {
   }
 
   // ── 不在確認ワード自動返答 ──
-  const _absentWords = ['これ放置', 'mumyou', '無明', 'いない', 'いにゃい', '寝た？', 'ねた？', 'ほうち', 'ホウチ', 'houti', 'houchi', 'abandoned', 'いる？', 'iru?', 'ねてる'];
-  if (_absentWords.some(w => rawMessage.includes(w)) && !_aiPostedTexts.has(message)) {
-    postAIReply('いますよ');
+  if (autoReplyWords.length > 0 && autoReplyMessages.length > 0 &&
+      autoReplyWords.some(w => w && rawMessage.includes(w)) && !_aiPostedTexts.has(message)) {
+    const reply = autoReplyMessages[Math.floor(Math.random() * autoReplyMessages.length)];
+    postAIReply(reply);
   }
 
   // ── 5分モード：AI自動返答（master本人とAI投稿はスキップ） ──
@@ -4647,7 +4650,24 @@ function handleComment(comment) {
   }
 
   const sizeM = display.match(/大きさ[：:]([\S]+)/);
-  if (sizeM) { const sz = SIZE_MAP[sizeM[1]]; if (sz) { user.size = sz; ensureCharOnStage(user); applyAvatarStyle(user); } display = display.replace(sizeM[0], '').trim(); }
+  if (sizeM) {
+    const sizeKey = sizeM[1];
+    const sz = SIZE_MAP[sizeKey];
+    if (sz) {
+      if (sizeKey === '大') {
+        if ((user.mp ?? 0) < 200) {
+          showBubble(user, `MPが足りない… (${user.mp ?? 0}/200)`, {});
+          return;
+        }
+        user.mp -= 200;
+        updateStatsDisplay(user);
+      }
+      user.size = sz;
+      ensureCharOnStage(user);
+      applyAvatarStyle(user);
+    }
+    display = display.replace(sizeM[0], '').trim();
+  }
 
   // フォント："Font Name" or フォント：エイリアス
   const fontM = display.match(/フォント[：:](?:"([^"]+)"|(\S+))/);
@@ -4835,7 +4855,30 @@ function handleComment(comment) {
   if (!display) { addToLog(user, message, '#475569'); return; }
 
   ensureCharOnStage(user);
+
+  // ── >/＞先頭コメント：吹き出し4倍サイズ＋ガタガタ ── 20MP消費
+  let _gatagata = false;
+  if (/^[>＞]/.test(message)) {
+    if ((user.mp ?? 0) < 20) {
+      showBubble(user, `MPが足りない… (${user.mp ?? 0}/20)`, {});
+      addToLog(user, message, user.textColor === '#111111' ? '#e2e8f0' : user.textColor);
+      return;
+    }
+    user.mp -= 20;
+    updateStatsDisplay(user);
+    commentStyle.fontSize = (charFontSizes.bubble * 4) + 'px';
+    display = display.replace(/^[>＞]/, '').trim() || display;
+    _gatagata = true;
+  }
+
   showBubble(user, display, commentStyle);
+  if (_gatagata) {
+    const _bEl = document.getElementById('b-' + user.ipid);
+    if (_bEl) {
+      _bEl.classList.add('bubble-gatagata');
+      _bEl.addEventListener('animationend', () => _bEl.classList.remove('bubble-gatagata'), { once: true });
+    }
+  }
 
   // Wordle チェック：元のメッセージがカタカナ5文字なら推測として処理
   if (wordleState && /^[゠-ヿ]{5}$/.test(message.trim())) {
@@ -10032,9 +10075,14 @@ function handleAdminMessage(d, replyFn) {
     state.agruCharImgHeight      = agruCharImgHeight;
     state.agruCharImgScale       = agruCharImgScale;
     state.autoDeleteMinutes   = autoDeleteMinutes;
+    state.autoReplyWords    = JSON.stringify(autoReplyWords);
+    state.autoReplyMessages = JSON.stringify(autoReplyMessages);
     state.fiveMinMode   = fiveMinMode;
     state.brAutoEnabled = brAutoEnabled;
     replyFn({ type: d.type === 'ping' ? 'pong' : 'state', data: state });
+  } else if (d.type === 'autoReplyConfig') {
+    if (Array.isArray(d.words))    { autoReplyWords    = d.words;    localStorage.setItem('autoReplyWords',    JSON.stringify(d.words));    }
+    if (Array.isArray(d.messages)) { autoReplyMessages = d.messages; localStorage.setItem('autoReplyMessages', JSON.stringify(d.messages)); }
   } else if (d.type === 'volumeText') {
     const elMap = { seVolume:'seVolumeSlider', voiceVolume:'voiceVolumeSlider' };
     const elId = elMap[d.key];
