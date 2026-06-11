@@ -5758,16 +5758,34 @@ function startAgruBattle(maxHP) {
   agruBattleStatusEffects.clear();
   _agruBattleKilledIds.clear();
   agruBattleBerserkUntil = 0;
+
+  // モーダルを直接表示（openAgruModal は副作用が多いので使わない）
+  const _modalEl = document.getElementById('agruModal');
+  if (_modalEl?.classList.contains('hidden')) {
+    _modalEl.classList.remove('hidden');
+    _modalEl.style.zIndex = agruModalZ || 300;
+    const _cm = _modalEl.querySelector('.agru-modal');
+    if (_cm) {
+      _cm.style.width  = (agruModalWidth  || 420) + 'px';
+      _cm.style.height = (agruModalHeight || 600) + 'px';
+    }
+  }
+  // 会話モードが起動していなければ最低限の状態だけ立ち上げる
+  if (!agruActive) {
+    agruActive = true;
+    agruIdle   = true;
+    const img = document.getElementById('agruCharImg');
+    if (img && agruDefaultImage && !img.src.includes('/ageru/')) {
+      img.src = `/ageru/${encodeURIComponent(agruDefaultImage)}`;
+    }
+    _agruStartShake?.();
+  }
+
   updateAgruBattleHpDisplay();
   _agruAddSystemMsg('⚔️ バトル開始！アゲルちゃんを倒せ！');
-  if (!document.getElementById('agruModal')?.classList.contains('hidden')) {
-    // モーダルが既に開いていれば何もしない
-  } else {
-    openAgruModal?.();
-  }
-  _agruBattleGetSpeech('バトル開始した。リスナーたちとの戦闘を宣言して。');
-  agruBattleTimerInterval  = setInterval(_agruBattleUpdateTimer, 1000);
-  agruBattleCounterTimer   = setInterval(_agruBattleDoCounter, agruBattleCounterInterval * 1000);
+  _agruBattleGetSpeech('バトルが始まった。リスナーたちとの戦闘を宣言して。戦闘態勢で短く力強く。');
+  agruBattleTimerInterval = setInterval(_agruBattleUpdateTimer, 1000);
+  agruBattleCounterTimer  = setInterval(_agruBattleDoCounter, agruBattleCounterInterval * 1000);
 }
 
 function endAgruBattle(result) {
@@ -6077,7 +6095,7 @@ function _agruBattleDoCounter() {
 }
 
 async function _agruBattleGetSpeech(prompt) {
-  if (!agruActive) return;
+  if (!agruBattleActive && !prompt.includes('敗北') && !prompt.includes('勝利')) return;
   try {
     const pct = Math.round(agruBattleHP / agruBattleMaxHP * 100);
     const left = Math.max(0, Math.ceil((agruBattleEndTime - Date.now()) / 1000));
