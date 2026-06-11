@@ -2,6 +2,112 @@
 
 ---
 
+## v2.528.0 — 2026-06-11
+
+### アゲルちゃんボスバトルシステム実装
+
+- **`server.js`**
+  - `/api/sprite-folders` — `public/sprite` 内のフォルダ一覧を返す
+  - `/api/sprite-list/:folder` — 指定フォルダ内のスプライト画像一覧（サブフォルダ含む再帰）
+  - `/api/sounds` — `public/sound` 内の音声ファイル一覧（再帰）
+  - `/api/boss-ageru-config` GET/POST — `data/bossAgruConfig.json` でバトル設定を保存・取得
+  - `/api/ageru-images/:folder` のサニタイズ改修（日本語フォルダ名対応済）
+
+- **`app.js`**
+  - **バトル状態変数**追加: `agruBattleActive`, `agruBattleHP`, `agruBattleMaxHP`, `agruBattleEndTime`, `agruBattleCounterInterval`, `agruBattleBerserkUntil`, `agruBattleStatusEffects`, `_agruBattleKilledIds`
+  - **`startAgruBattle(maxHP)`**: バトル開始・HP初期化・タイマー開始・AIバトル宣言
+  - **`endAgruBattle(result)`**: リスナー勝利（+50MP, 会話モード終了）/ アゲルちゃん勝利（全員MP0）
+  - **`attackAgruBoss(user, msgLen)`**: コメントでアゲルちゃんにダメージ（`calcAtk` ベースのボス戦と同一ダメージ計算・クリティカル・ペット・称号ボーナス適用・MP+1）
+  - **射コマンド対応**: `_kaiAgruBossTarget()` 追加・物理弾がアゲルちゃんに当たるように
+  - **自動バトル開始トリガー**: 空腹度0からの強制復活時・好感度0になった時
+  - **12スキル反撃システム**: `_agruBattleDoCounter()` が60秒ごとに自動発動
+    - 通常攻撃・集中砲火・全体乱打・即死撃・MP吸収・全体MP吸収・石化・眠り・魅了・呪い・自己回復・バーサーク
+    - HPティア（100-75% / 74-50% / 49-25% / 24-0%）で発動確率が変動
+  - **スプライトエフェクト再生**: `_agruBattlePlayEffect(skillId, cx, cy)` — スキルごとのsprite/image/soundを再生
+  - **ステータス効果管理**: `agruBattleStatusEffects` Map でプレイヤーごとに石化/眠り/魅了/呪いの終了時刻を追跡
+  - **討伐システム**: `_agruBattleKillUser(user)` — キャラDOMとセーブデータをサーバーから完全削除
+  - **`_agruBattleGetSpeech(prompt)`**: バトル中AIがリアルタイムでセリフを生成
+  - バトル中は通常チャット(`_agruSend`)を無効化
+  - `handleAdminMessage` に `agruBattleStart` / `agruBattleEnd` コマンドを追加
+
+- **`public/index.html`**
+  - アゲルちゃんモーダル内にバトルHPバーUI追加（`#agruBattleHpWrap`, `#agruBattleHpBar`, `#agruBattleTimerText`）
+
+- **`public/admin.html`**
+  - 「⚔️ ボスアゲル設定画面」ボタン（`/ageru-boss.html` を別タブで開く）追加
+  - 「⚔️ バトル開始」「強制終了」ボタン追加
+
+- **`public/ageru-boss.html`** (新規作成)
+  - バトル設定専用ページ（ダークテーマ）
+  - バトル基本設定（maxHP / timeLimit / counterInterval）
+  - 12スキルのアコーディオン設定UI（有効/無効・HPティア別確率・アゲル画像・スプライト・効果音）
+  - スプライト選択モーダル（フォルダ選択 → 画像一覧 → プレビュー）
+  - サウンド選択モーダル（絞り込み検索・プレビュー再生）
+  - `GET/POST /api/boss-ageru-config` で設定を読み書き
+
+---
+
+## v2.527.0 — 2026-06-11
+
+### アゲルちゃん会話モード — 毒投与コマンド
+
+- **`app.js`**
+  - 毒投与ハンドラを追加（アゲルちゃん会話モード中に有効）
+    - `agruHunger` を 10 減少
+    - `_agruPoisonTurns = 6` をセット（以後6往復は毒状態コンテキスト付与）
+    - `ageru/毒/` フォルダからランダム画像を表示（`_agruShowStateImage('毒')`）
+    - システムメッセージ「☠️ xxxが毒を投与した！空腹度が減った…」をチャットに表示
+    - idle状態なら AI に返答させる（`_agruSend`）
+  - `_agruGetStateContext()`: `_agruPoisonTurns > 0` のとき毒状態プロンプトを追加（死にそうな苦しさ・恐怖）
+  - `_agruSend()`: AI返答ごとに `_agruPoisonTurns` をデクリメント（0になったら毒コンテキスト消滅）
+  - グローバル変数 `_agruPoisonTurns` を追加
+
+- **`server.js`**
+  - `/api/ageru-images/:folder` のフォルダ名サニタイズを改修
+    - 旧: ASCII英数字のみ許可 → 日本語フォルダ名（`毒` 等）が空文字になるバグ
+    - 新: パストラバーサル（`..` `/` `\`）のみ除外し、Unicode文字を許容
+
+---
+
+## v2.526.0 — 2026-06-11
+
+### ニュースクリック時に別記事のリンクに飛ぶ不具合を修正
+
+- **`_parseRss()`** (`server.js`)
+  - `<link>` 内コンテンツのみを抽出するよう変更（CDATA description 内の `<link href=...>` への誤マッチを防止）
+  - `<link>` 直後の空白・改行を許容（Yahoo RSS 等でURLが次行に来るケース対応）
+  - Atom形式フォールバック: `<link rel="alternate" href="...">` に限定（旧: 任意の `<link href>`）
+  - guid フォールバック追加: `<guid isPermaLink="true">` からURL取得（Yahoo RSS 対応）
+  - いずれも `https?:` 始まりのURLのみ採用
+
+---
+
+## v2.525.0 — 2026-06-11
+
+### 画像生成結果パネルをキャラより前面に表示
+
+- **`showSDImage()`** (`app.js`): `el.style.zIndex = charZCounter + 100` を追加
+  - 静的な `z-index: 150`（CSS）は `charZCounter` が増えると追い越されて埋もれていた
+  - 表示時点の最前面キャラより常に100上のレイヤーに配置
+- **`style.css`**: `.sd-image-popup` の固定 `z-index: 150` を削除（JS側で動的管理）
+
+---
+
+## v2.524.0 — 2026-06-11
+
+### ボス画像に縦長補正・縦長ブーストを適用
+
+- **`applyBossAvatarAspect(basePx)`** を新設 (`app.js`)
+  - `charAspectExp` / `charPortraitBoost` をボス画像にも適用（キャラと同じロジック）
+  - 画像ロード後に `naturalWidth/naturalHeight` を参照してアスペクト補正
+- 適用箇所:
+  - `spawnBoss()`: 画像ロード時の `_initBossEffects`
+  - `spawnSpikiBoss()`: スピキ差し替え画像のロード後
+  - ボスサイズスライダー変更時
+  - コンテンツモード有効化・無効化時の復元
+
+---
+
 ## v2.523.0 — 2026-06-10
 
 ### 不在自動返答を管理パネルから設定可能に

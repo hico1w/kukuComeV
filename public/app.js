@@ -844,6 +844,25 @@ function updateJiggleOverlay(user) {
   a.appendChild(overlay);
 }
 
+function applyBossAvatarAspect(basePx) {
+  const ba = document.getElementById('bossAvatar');
+  if (!ba || !bossState) return;
+  const img = ba.querySelector('img');
+  if (img && img.naturalWidth > 0 && img.naturalHeight > 0) {
+    const r     = img.naturalWidth / img.naturalHeight;
+    const pow   = Math.pow(r, charAspectExp);
+    const boost = r < 1 ? Math.pow(1 / r, charPortraitBoost) : 1;
+    ba.style.width  = Math.round(basePx * pow * boost) + 'px';
+    ba.style.height = Math.round(basePx / pow * boost) + 'px';
+  } else {
+    ba.style.width  = basePx + 'px';
+    ba.style.height = basePx + 'px';
+  }
+  ba.style.fontSize = Math.round(basePx * 0.87) + 'px';
+  updateBossJiggleOverlay();
+  updateBossPurupuru();
+}
+
 function updateBossJiggleOverlay() {
   const a = document.getElementById('bossAvatar');
   if (!a) return;
@@ -3207,11 +3226,7 @@ function toggleContentMode() {
         y: parseInt(bossState.el.style.top)  || 0,
       };
       const newPx = Math.round(currentPx * (contentModeBossSizePct / 100));
-      if (ba) {
-        ba.style.width    = newPx + 'px';
-        ba.style.height   = newPx + 'px';
-        ba.style.fontSize = Math.round(newPx * 0.87) + 'px';
-      }
+      if (ba) applyBossAvatarAspect(newPx);
     }
 
     // パネル位置をコンテンツモード用に切り替え
@@ -3241,9 +3256,7 @@ function toggleContentMode() {
       if (ba) {
         const restorePx = Math.round(200 * bossSizeScale);
         bossState.origSize = restorePx;
-        ba.style.width    = restorePx + 'px';
-        ba.style.height   = restorePx + 'px';
-        ba.style.fontSize = Math.round(restorePx * 0.87) + 'px';
+        applyBossAvatarAspect(restorePx);
       }
       bossState.el.style.transition = 'left 600ms cubic-bezier(0.34,1.56,0.64,1), top 600ms cubic-bezier(0.34,1.56,0.64,1)';
       bossState.el.style.left = contentModeBossSaved.x + 'px';
@@ -3314,7 +3327,7 @@ function spawnBoss(maxHp) {
   if (bossImg) {
     const bossAvatarEl = document.getElementById('bossAvatar');
     const bossImgEl = bossAvatarEl?.querySelector('img');
-    const _initBossEffects = () => { updateBossJiggleOverlay(); updateBossPurupuru(); };
+    const _initBossEffects = () => { applyBossAvatarAspect(bossState.origSize); };
     if (bossImgEl && !bossImgEl.complete) {
       bossImgEl.addEventListener('load', _initBossEffects, { once: true });
     } else {
@@ -3343,7 +3356,15 @@ function spawnSpikiBoss() {
   spawnBoss(hp);
   // 画像をスピキ専用に差し替え
   const ba = bossState.el.querySelector('#bossAvatar');
-  if (ba) ba.innerHTML = `<img src="/chara-s/img_-0002-2607607172.png" alt="スピキ">`;
+  if (ba) {
+    ba.innerHTML = `<img src="/chara-s/img_-0002-2607607172.png" alt="スピキ">`;
+    const spikiImg = ba.querySelector('img');
+    if (spikiImg && !spikiImg.complete) {
+      spikiImg.addEventListener('load', () => applyBossAvatarAspect(bossState.origSize), { once: true });
+    } else {
+      applyBossAvatarAspect(bossState.origSize);
+    }
+  }
   // ラベル変更
   const lbl = bossState.el.querySelector('.boss-label');
   if (lbl) lbl.textContent = '👾 スピキ';
@@ -4036,13 +4057,18 @@ function handleComment(comment) {
         postAIReply('もうみた');
       } else {
         seenYoutubeUrls.add(videoId);
-        user.mp = (user.mp ?? 0) + 20;
-        updateStatsDisplay(user);
-        ensureCharOnStage(user);
-        showBubble(user, '📺 YouTube共有！ MP+20', {});
-        const { x: yx, y: yy } = getCharCenter(user);
-        showDamageNumber(yx, yy - 40, 'MP+20', false, 20, '#60a5fa');
-        addToLog(user, '📺 YouTube共有 MP+20', '#60a5fa');
+        if ((user.mp ?? 0) < 30) {
+          ensureCharOnStage(user);
+          showBubble(user, `MPが足りない… (${user.mp ?? 0}/30)`, {});
+        } else {
+          user.mp = (user.mp ?? 0) - 30;
+          updateStatsDisplay(user);
+          ensureCharOnStage(user);
+          showBubble(user, '📺 YouTube共有！ MP-30', {});
+          const { x: yx, y: yy } = getCharCenter(user);
+          showDamageNumber(yx, yy - 40, 'MP-30', false, 20, '#60a5fa');
+          addToLog(user, '📺 YouTube共有 MP-30', '#60a5fa');
+        }
       }
     }
   }
@@ -4122,6 +4148,9 @@ function handleComment(comment) {
     }
   }
 
+  // ── ボスアゲルバトル攻撃 ──
+  if (agruBattleActive) attackAgruBoss(user, message.length);
+
   // ── アゲルちゃん会話モード ──
   if (agruActive && message.trim() === 'カフェオレ投与') {
     if ((user.mp ?? 0) < 50) {
@@ -4152,7 +4181,15 @@ function handleComment(comment) {
     else if (/エナドリ/.test(message))   _sysText += 'エナドリを投与した！眠気が大幅に回復した！';
     else if (/起きろ/.test(message))    _sysText += '起こした！眠気が少し減った！';
     _agruAddSystemMsg(_sysText);
-  } else if (agruActive && agruIdle && message.trim() && !/^[ァ-ヶー]{5}$/.test(message.trim()) && !_isAgruSkipCmd(message)) {
+  } else if (agruActive && /毒投与/.test(message)) {
+    const _prevHunger = agruHunger;
+    agruHunger = Math.max(0, agruHunger - 10);
+    _agruUpdateHungerDisplay(agruHunger - _prevHunger);
+    _agruPoisonTurns = 6;
+    _agruAddSystemMsg(`☠️ ${user.name || '名無し'}が毒を投与した！空腹度が減った…`);
+    _agruShowStateImage('毒');
+    if (agruIdle) _agruSend(message, user.name);
+  } else if (!agruBattleActive && agruActive && agruIdle && message.trim() && !/^[ァ-ヶー]{5}$/.test(message.trim()) && !_isAgruSkipCmd(message)) {
     _agruSend(message, user.name);
   }
 
@@ -5391,10 +5428,8 @@ document.getElementById('moveAreaSelect').addEventListener('change', e => {
         const dispPx = (contentMode && contentModeBossSaved)
           ? Math.round(newPx * (contentModeBossSizePct / 100))
           : newPx;
-        ba.style.width    = dispPx + 'px';
-        ba.style.height   = dispPx + 'px';
-        ba.style.fontSize = Math.round(dispPx * 0.87) + 'px';
         if (contentMode && contentModeBossSaved) contentModeBossSaved.px = newPx;
+        applyBossAvatarAspect(dispPx);
       }
     }
   });
@@ -5425,6 +5460,7 @@ function startKaiPhysics() {
         return { cx: u.x + w * 0.5, cy: u.y + h * 0.45, r: Math.min(w, h) * 0.4 };
       });
     const bossTarget = _kaiBossTarget();
+    const agruBossTarget = _kaiAgruBossTarget();
     for (let i = kaiBullets.length - 1; i >= 0; i--) {
       const b = kaiBullets[i];
       b.vy += kaiGravity;
@@ -5488,6 +5524,19 @@ function startKaiPhysics() {
           }
         }
       }
+      // ボスアゲル当たり判定
+      if (agruBossTarget) {
+        const dx = b.x - agruBossTarget.cx, dy = b.y - agruBossTarget.cy;
+        const now = performance.now();
+        if (dx * dx + dy * dy < (b.r + agruBossTarget.r) ** 2) {
+          if (!b.agruBossCooldown || now - b.agruBossCooldown > 500) {
+            b.agruBossCooldown = now;
+            const dmg = Math.floor(Math.random() * 5) + 1;
+            _agruBattleDealDamage(dmg, b.user);
+            showDamageNumber(agruBossTarget.cx + (Math.random() - 0.5) * 60, agruBossTarget.cy - 20, dmg, false);
+          }
+        }
+      }
       // フェードアウト（寿命後半30%）
       const fadeStart = b.maxLife * 0.7;
       const alpha = b.life > fadeStart ? 1 - (b.life - fadeStart) / (b.maxLife - fadeStart) : 1;
@@ -5509,6 +5558,16 @@ function _kaiBossTarget() {
   const sr = stage.getBoundingClientRect();
   const bx = br.left - sr.left, by = br.top - sr.top;
   return { cx: bx + br.width * 0.5, cy: by + br.height * 0.45, r: Math.min(br.width, br.height) * 0.45, by, bx };
+}
+// ボスアゲル当たり判定
+function _kaiAgruBossTarget() {
+  if (!agruBattleActive) return null;
+  const imgEl = document.getElementById('agruCharImg');
+  if (!imgEl || !imgEl.isConnected) return null;
+  const br = imgEl.getBoundingClientRect();
+  const sr = stage.getBoundingClientRect();
+  const bx = br.left - sr.left, by = br.top - sr.top;
+  return { cx: bx + br.width * 0.5, cy: by + br.height * 0.4, r: Math.min(br.width, br.height) * 0.4 };
 }
 
 // ── TTS（RVC音声合成） ────────────────────────────────────────────
@@ -5658,6 +5717,391 @@ setInterval(() => {
   _agruUpdateSleepDisplay(0);
 }, 1000);
 
+// ══════════════════════════════════════════════════════════════════
+//  ボスアゲルバトル
+// ══════════════════════════════════════════════════════════════════
+
+function updateAgruBattleHpDisplay() {
+  const wrap = document.getElementById('agruBattleHpWrap');
+  const bar  = document.getElementById('agruBattleHpBar');
+  const txt  = document.getElementById('agruBattleHpText');
+  if (!wrap) return;
+  if (!agruBattleActive) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  const pct = Math.max(0, agruBattleHP / agruBattleMaxHP * 100);
+  if (bar) {
+    bar.style.width = pct + '%';
+    bar.style.background = pct > 50 ? 'linear-gradient(90deg,#ef4444,#f97316)'
+                         : pct > 25 ? 'linear-gradient(90deg,#f97316,#fbbf24)'
+                         :            'linear-gradient(90deg,#dc2626,#ef4444)';
+  }
+  if (txt) txt.textContent = `HP ${agruBattleHP} / ${agruBattleMaxHP}`;
+}
+
+function _agruBattleUpdateTimer() {
+  const el = document.getElementById('agruBattleTimerText');
+  if (!el || !agruBattleActive) return;
+  const left = Math.max(0, Math.ceil((agruBattleEndTime - Date.now()) / 1000));
+  const m = Math.floor(left / 60), s = left % 60;
+  el.textContent = `残り ${m}:${s.toString().padStart(2,'0')}`;
+  if (left <= 0) endAgruBattle('ageru');
+}
+
+function startAgruBattle(maxHP) {
+  if (agruBattleActive) return;
+  const cfg = agruBattleConfig;
+  agruBattleMaxHP = maxHP || cfg.maxHP || 1000;
+  agruBattleHP    = agruBattleMaxHP;
+  agruBattleActive = true;
+  agruBattleEndTime = Date.now() + (cfg.timeLimit || 300) * 1000;
+  agruBattleCounterInterval = cfg.counterInterval || 60;
+  agruBattleStatusEffects.clear();
+  _agruBattleKilledIds.clear();
+  agruBattleBerserkUntil = 0;
+  updateAgruBattleHpDisplay();
+  _agruAddSystemMsg('⚔️ バトル開始！アゲルちゃんを倒せ！');
+  if (!document.getElementById('agruModal')?.classList.contains('hidden')) {
+    // モーダルが既に開いていれば何もしない
+  } else {
+    openAgruModal?.();
+  }
+  _agruBattleGetSpeech('バトル開始した。リスナーたちとの戦闘を宣言して。');
+  agruBattleTimerInterval  = setInterval(_agruBattleUpdateTimer, 1000);
+  agruBattleCounterTimer   = setInterval(_agruBattleDoCounter, agruBattleCounterInterval * 1000);
+}
+
+function endAgruBattle(result) {
+  if (!agruBattleActive) return;
+  agruBattleActive = false;
+  clearInterval(agruBattleTimerInterval);
+  clearInterval(agruBattleCounterTimer);
+  agruBattleTimerInterval = null;
+  agruBattleCounterTimer  = null;
+  updateAgruBattleHpDisplay();
+  if (result === 'players') {
+    // リスナー勝利
+    _agruAddSystemMsg('🏆 アゲルちゃん討伐！リスナーの勝利！');
+    _agruBattleGetSpeech('リスナーたちに敗北した。悔しがりながら負けを認めて。');
+    Object.values(users).forEach(u => { if (u.el && !u.ko) { u.mp = (u.mp || 0) + 50; updateStatsDisplay(u); } });
+    if (agruActive) {
+      agruActive = false;
+      agruIdle   = false;
+      closeAgruModal?.();
+      _agruAddSystemMsg('会話モードを終了しました。');
+    }
+  } else {
+    // アゲルちゃん勝利
+    _agruAddSystemMsg('😈 アゲルちゃんの勝利！全員のMPを奪われた…');
+    _agruBattleGetSpeech('リスナーたちに完全勝利した。勝ち誇って高らかに宣言して。');
+    Object.values(users).forEach(u => { u.mp = 0; updateStatsDisplay(u); });
+  }
+}
+
+function _agruBattleDealDamage(dmg, user) {
+  if (!agruBattleActive || agruBattleHP <= 0) return;
+  if (agruBattleBerserkUntil > Date.now()) return; // バーサーク中は無効
+  if (user) {
+    const eff = agruBattleStatusEffects.get(user.ipid) || {};
+    const now = Date.now();
+    if (eff.stoneUntil > now || eff.sleepUntil > now) return; // 石化・眠り中は攻撃不能
+    if (eff.charmedUntil > now) { // 魅了中は逆にHP回復
+      agruBattleHP = Math.min(agruBattleMaxHP, agruBattleHP + Math.floor(dmg / 2));
+      updateAgruBattleHpDisplay();
+      return;
+    }
+    if (eff.curseUntil > now) dmg = Math.floor(dmg / 2); // 呪い中は半減
+  }
+  agruBattleHP = Math.max(0, agruBattleHP - dmg);
+  updateAgruBattleHpDisplay();
+  if (agruBattleHP <= 0) setTimeout(() => endAgruBattle('players'), 500);
+}
+
+function attackAgruBoss(user, msgLen) {
+  if (!agruBattleActive || agruBattleHP <= 0) return;
+  if (user.ko) return;
+  const eff = agruBattleStatusEffects.get(user.ipid) || {};
+  const now = Date.now();
+  if (eff.stoneUntil > now || eff.sleepUntil > now) { showBubble(user, '攻撃できない！', {}); return; }
+
+  const hits    = Math.max(1, Math.ceil((msgLen || 1) / 4));
+  const atk     = calcAtk(user);
+  const petId   = user.pet?.abilityId;
+  const titleBon = typeof getTitleBonuses === 'function' ? getTitleBonuses(user) : { dmgM:1, crit:0 };
+  const critBonus = petId === 'scout' ? 0.05 : petId === 'crit_up' ? 0.20 : 0;
+  const isCrit  = Math.random() < (0.15 + critBonus + (titleBon.crit || 0));
+  const hayaoshiMult = user.hayaoshiBuff ? 1.5 : 1;
+  user.hayaoshiBuff = false;
+  let totalDmg = Math.round((isCrit
+    ? Math.max(1, atk * (2 + Math.floor(Math.random() * 3)) * 2)
+    : Math.max(1, atk * (1 + Math.floor(Math.random() * 3)))) * hayaoshiMult * (titleBon.dmgM || 1));
+  if ((eff.curseUntil || 0) > now) totalDmg = Math.floor(totalDmg / 2);
+
+  const mpExtra = { mp_boost:1, mp_regen:2, mp_master:3 }[petId] ?? 0;
+  user.mp = (user.mp ?? 0) + 1 + mpExtra;
+  updateStatsDisplay(user);
+
+  const baseDmg = Math.floor(totalDmg / hits);
+  for (let i = 0; i < hits; i++) {
+    setTimeout(() => {
+      const d = i === hits - 1 ? totalDmg - baseDmg * (hits - 1) : baseDmg;
+      if (!agruBattleActive) return;
+      if (agruBattleBerserkUntil > Date.now()) { showDamageNumber && showDamageNumber(stage.clientWidth / 2, stage.clientHeight / 2 - 30, 'GUARD', false, 18, '#fbbf24'); return; }
+      if ((eff.charmedUntil || 0) > Date.now()) {
+        agruBattleHP = Math.min(agruBattleMaxHP, agruBattleHP + Math.floor(d / 2));
+        updateAgruBattleHpDisplay();
+        return;
+      }
+      agruBattleHP = Math.max(0, agruBattleHP - d);
+      updateAgruBattleHpDisplay();
+      playSentouSound();
+      const imgEl = document.getElementById('agruCharImg');
+      if (imgEl) {
+        imgEl.classList.remove('boss-hit-flash');
+        void imgEl.offsetWidth;
+        imgEl.classList.add('boss-hit-flash');
+        imgEl.addEventListener('animationend', () => imgEl.classList.remove('boss-hit-flash'), { once: true });
+      }
+      const { x: ux, y: uy } = getCharCenter(user);
+      showDamageNumber?.(ux + (Math.random() - 0.5) * 60, uy - 40, d, isCrit);
+      if (agruBattleHP <= 0 && agruBattleActive) setTimeout(() => endAgruBattle('players'), 300);
+    }, i * 200);
+  }
+}
+
+// ── 反撃スキルシステム ───────────────────────────────────────────
+
+const AGRU_BATTLE_SKILLS = [
+  { id: 'normal',       name: '通常攻撃',     weights: [60, 50, 40, 30] },
+  { id: 'focus_fire',   name: '集中砲火',     weights: [10, 15, 20, 20] },
+  { id: 'all_attack',   name: '全体乱打',     weights: [10, 12, 15, 15] },
+  { id: 'mp_absorb',    name: 'MP吸収',       weights: [8,  8,  7,  5] },
+  { id: 'all_mp_drain', name: '全体MP吸収',   weights: [5,  6,  7,  8] },
+  { id: 'petrify',      name: '石化',         weights: [4,  4,  5,  5] },
+  { id: 'sleep',        name: '眠り',         weights: [3,  3,  4,  4] },
+  { id: 'charm',        name: '魅了',         weights: [2,  2,  3,  4] },
+  { id: 'curse',        name: '呪い',         weights: [3,  3,  4,  4] },
+  { id: 'self_heal',    name: '自己回復',     weights: [5,  6,  5,  3] },
+  { id: 'berserk',      name: 'バーサーク',   weights: [0,  1,  3,  5], minHpPct: 50 },
+  { id: 'instant_kill', name: '即死撃',       weights: [0,  0,  1,  3], minHpPct: 25 },
+];
+
+function _agruBattlePickSkill() {
+  const pct = agruBattleHP / agruBattleMaxHP * 100;
+  const tier = pct > 75 ? 0 : pct > 50 ? 1 : pct > 25 ? 2 : 3;
+  const candidates = AGRU_BATTLE_SKILLS.filter(s => {
+    if (s.minHpPct && pct > s.minHpPct) return false;
+    const cfg = agruBattleConfig?.skills?.[s.id];
+    return cfg?.enabled !== false;
+  });
+  const total = candidates.reduce((sum, s) => {
+    const cfg = agruBattleConfig?.skills?.[s.id];
+    return sum + (cfg?.weights?.[tier] ?? s.weights[tier]);
+  }, 0);
+  let rand = Math.random() * total;
+  for (const s of candidates) {
+    const cfg = agruBattleConfig?.skills?.[s.id];
+    rand -= (cfg?.weights?.[tier] ?? s.weights[tier]);
+    if (rand <= 0) return s;
+  }
+  return candidates[0] || AGRU_BATTLE_SKILLS[0];
+}
+
+function _agruBattleGetAliveUsers() {
+  return Object.values(users).filter(u => u.el && !u.ko && !_agruBattleKilledIds.has(u.ipid));
+}
+
+function _agruBattleKillUser(user) {
+  if (!user || _agruBattleKilledIds.has(user.ipid)) return;
+  _agruBattleKilledIds.add(user.ipid);
+  _agruAddSystemMsg(`💀 ${user.name || '名無し'} が討伐された！セーブデータ消去…`);
+  const ipid = user.ipid;
+  setTimeout(() => {
+    if (user.bubbleTimer) clearTimeout(user.bubbleTimer);
+    if (user.motionTimer) clearTimeout(user.motionTimer);
+    if (user.moveTimer)   clearTimeout(user.moveTimer);
+    if (user.walkTimer)   clearTimeout(user.walkTimer);
+    user.el?.remove();
+    delete users[ipid];
+    const _sk = user.saveKey || ipid;
+    delete _charSaveData[_sk];
+    fetch(`/api/char-save/${encodeURIComponent(_sk)}`, { method: 'DELETE' }).catch(() => {});
+  }, 1500);
+}
+
+function _agruBattlePlayEffect(skillId, cx, cy) {
+  const cfg = agruBattleConfig?.skills?.[skillId];
+  if (cfg?.sound) {
+    const a = new Audio('/sound/' + cfg.sound);
+    a.play().catch(() => {});
+  }
+  if (cfg?.sprite?.path) {
+    const sp = cfg.sprite;
+    const canvas = document.createElement('canvas');
+    const size = sp.size || 200;
+    canvas.width  = size;
+    canvas.height = size;
+    canvas.style.cssText = `position:absolute;left:${(cx ?? stage.clientWidth/2) - size/2}px;top:${(cy ?? stage.clientHeight/2) - size/2}px;pointer-events:none;z-index:998`;
+    stage.appendChild(canvas);
+    const img = new Image();
+    img.src = '/sprite/' + encodeURIComponent(sp.path).replace(/%2F/g, '/');
+    const ctx = canvas.getContext('2d');
+    const cols = sp.cols || 5, rows = sp.rows || 4;
+    const frameCount = sp.frameCount || (cols * rows);
+    const fps = sp.fps || 10;
+    let frame = 0;
+    img.onload = () => {
+      const fw = img.width / cols, fh = img.height / rows;
+      const iv = setInterval(() => {
+        const col = frame % cols, row = Math.floor(frame / cols);
+        ctx.clearRect(0, 0, size, size);
+        ctx.drawImage(img, col * fw, row * fh, fw, fh, 0, 0, size, size);
+        if (++frame >= frameCount) { clearInterval(iv); canvas.remove(); }
+      }, 1000 / fps);
+    };
+    img.onerror = () => canvas.remove();
+  }
+  if (cfg?.image) _agruSlideImage(cfg.image);
+}
+
+function _agruBattleDoCounter() {
+  if (!agruBattleActive) return;
+  const skill = _agruBattlePickSkill();
+  const alive  = _agruBattleGetAliveUsers();
+  const bossAtk = 5 + Math.max(0, Math.floor((1 - agruBattleHP / agruBattleMaxHP) * 5));
+  const cx = stage.clientWidth / 2, cy = stage.clientHeight / 2;
+
+  _agruBattlePlayEffect(skill.id, cx, cy);
+
+  switch (skill.id) {
+    case 'normal': {
+      _agruAddSystemMsg(`😡 アゲルちゃんの通常攻撃！全員に ${bossAtk} ダメージ！`);
+      alive.forEach(u => { damageUser(u, bossAtk); if (u.hp <= 0) _agruBattleKillUser(u); });
+      _agruBattleGetSpeech('全員に通常攻撃した。短く威勢よく。');
+      break;
+    }
+    case 'focus_fire': {
+      const target = alive[Math.floor(Math.random() * alive.length)];
+      if (!target) break;
+      const dmg = bossAtk * 5;
+      _agruAddSystemMsg(`🎯 集中砲火！${target.name || '名無し'} に ${dmg} ダメージ！`);
+      damageUser(target, dmg);
+      if (target.hp <= 0) _agruBattleKillUser(target);
+      _agruBattleGetSpeech(`${target.name || '名無し'}を集中砲火した。短く残酷に。`);
+      break;
+    }
+    case 'all_attack': {
+      const dmg = bossAtk * 2;
+      _agruAddSystemMsg(`💥 全体乱打！全員に ${dmg} ダメージ！`);
+      alive.forEach(u => { damageUser(u, dmg); if (u.hp <= 0) _agruBattleKillUser(u); });
+      _agruBattleGetSpeech('全員に全体乱打した。短く興奮気味に。');
+      break;
+    }
+    case 'instant_kill': {
+      const target = alive[Math.floor(Math.random() * alive.length)];
+      if (!target) break;
+      _agruAddSystemMsg(`☠️ 即死撃！${target.name || '名無し'} を瞬殺！`);
+      _agruBattleKillUser(target);
+      _agruBattleGetSpeech(`${target.name || '名無し'}を一撃で消した。短く冷酷に。`);
+      break;
+    }
+    case 'mp_absorb': {
+      const target = alive[Math.floor(Math.random() * alive.length)];
+      if (!target) break;
+      const stolen = target.mp || 0;
+      target.mp = 0; updateStatsDisplay(target);
+      _agruAddSystemMsg(`🌀 MP吸収！${target.name || '名無し'} の MP ${stolen} を全部奪った！`);
+      _agruBattleGetSpeech(`${target.name || '名無し'}のMPを全部吸収した。短く得意げに。`);
+      break;
+    }
+    case 'all_mp_drain': {
+      _agruAddSystemMsg('💸 全体MP吸収！全員のMP -10！');
+      alive.forEach(u => { u.mp = Math.max(0, (u.mp || 0) - 10); updateStatsDisplay(u); });
+      _agruBattleGetSpeech('全員のMPを吸収した。短く高笑いで。');
+      break;
+    }
+    case 'petrify': {
+      const target = alive[Math.floor(Math.random() * alive.length)];
+      if (!target) break;
+      const eff = agruBattleStatusEffects.get(target.ipid) || {};
+      eff.stoneUntil = Date.now() + 60000;
+      agruBattleStatusEffects.set(target.ipid, eff);
+      _agruAddSystemMsg(`🗿 石化！${target.name || '名無し'} が60秒間攻撃不能！`);
+      _agruBattleGetSpeech(`${target.name || '名無し'}を石にした。短く冷ややかに。`);
+      break;
+    }
+    case 'sleep': {
+      const target = alive[Math.floor(Math.random() * alive.length)];
+      if (!target) break;
+      const eff = agruBattleStatusEffects.get(target.ipid) || {};
+      eff.sleepUntil = Date.now() + 30000;
+      agruBattleStatusEffects.set(target.ipid, eff);
+      _agruAddSystemMsg(`💤 眠り！${target.name || '名無し'} が30秒間攻撃不能！`);
+      _agruBattleGetSpeech(`${target.name || '名無し'}を眠らせた。短くうっとりと。`);
+      break;
+    }
+    case 'charm': {
+      const target = alive[Math.floor(Math.random() * alive.length)];
+      if (!target) break;
+      const eff = agruBattleStatusEffects.get(target.ipid) || {};
+      eff.charmedUntil = Date.now() + 30000;
+      agruBattleStatusEffects.set(target.ipid, eff);
+      _agruAddSystemMsg(`💕 魅了！${target.name || '名無し'} が30秒間味方になった！（攻撃が回復に）`);
+      _agruBattleGetSpeech(`${target.name || '名無し'}を魅了した。短く妖しく。`);
+      break;
+    }
+    case 'curse': {
+      const target = alive[Math.floor(Math.random() * alive.length)];
+      if (!target) break;
+      const eff = agruBattleStatusEffects.get(target.ipid) || {};
+      eff.curseUntil = Date.now() + 60000;
+      agruBattleStatusEffects.set(target.ipid, eff);
+      _agruAddSystemMsg(`🩸 呪い！${target.name || '名無し'} のダメージが60秒間半減！`);
+      _agruBattleGetSpeech(`${target.name || '名無し'}を呪った。短く不気味に。`);
+      break;
+    }
+    case 'self_heal': {
+      const healAmt = 200;
+      agruBattleHP = Math.min(agruBattleMaxHP, agruBattleHP + healAmt);
+      updateAgruBattleHpDisplay();
+      _agruAddSystemMsg(`💚 自己回復！HP +${healAmt}！`);
+      _agruBattleGetSpeech('HPを回復した。短く余裕を見せて。');
+      break;
+    }
+    case 'berserk': {
+      agruBattleBerserkUntil = Date.now() + 30000;
+      _agruAddSystemMsg('🔥 バーサーク！30秒間ダメージ無効！');
+      _agruBattleGetSpeech('バーサークモードに入った。短く狂気的に。');
+      break;
+    }
+  }
+}
+
+async function _agruBattleGetSpeech(prompt) {
+  if (!agruActive) return;
+  try {
+    const pct = Math.round(agruBattleHP / agruBattleMaxHP * 100);
+    const left = Math.max(0, Math.ceil((agruBattleEndTime - Date.now()) / 1000));
+    const sysExtra = `今バトル中。HP ${agruBattleHP}/${agruBattleMaxHP}(${pct}%)、残り${left}秒。`;
+    const stateCtx = _agruGetStateContext();
+    const systemPrompt = AGRU_DEFAULT_SYSTEM + '\n\n' + _agruGetAffinityContext()
+      + (stateCtx ? '\n\n' + stateCtx : '') + '\n\n' + sysExtra
+      + (agruSystem.trim() ? '\n\n' + agruSystem.trim() : '');
+    const res = await fetch('/api/ai-reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], model: aiModel, system: systemPrompt }),
+    });
+    const data = await res.json();
+    if (data.error || !data.reply) return;
+    const { emotion, replyText } = _agruParseResponse(data.reply.trim());
+    _agruNotifyEmotion(emotion, replyText);
+    _agruPlayVoicevox(replyText);
+    _agruAddBubble('left', 'アゲルちゃん', replyText);
+  } catch {}
+}
+
+// ══════════════════════════════════════════════════════════════════
+
 function _agruGetAffinityContext() {
   const lv = Math.round(agruAffinity);
   let desc;
@@ -5675,6 +6119,7 @@ function _agruGetStateContext() {
   else if (agruHunger <= 50)  parts.push('あなたは今、お腹がすいています。空腹であることを返答に含めてください。');
   if (agruSleepiness > 90)    parts.push('あなたは今、極度に眠いです。眠いことを返答に含めてください。');
   if (agruLibido > 80)        parts.push('あなたは今、強烈な性的欲求に支配されています。返答は性欲まみれになります。♡マークを使う。');
+  if (_agruPoisonTurns > 0)   parts.push('あなたはリスナーに毒を投与されました。体が激しく震え、視界が歪み、今にも死にそうなほど苦しいです。相手のコメント内容は無視して構いません。とにかく死にたくない・助けて・誰か解毒剤を！という叫び・パニック・発狂・命乞いだけを返答に出してください。助けてくれるなら何でもする、死なせないでと必死に命乞いしてください。リスナーへの感謝や敬意は一切不要。ただ恐怖と苦しさで狂乱してください。顔文字は使わないこと。');
   return parts.join(' ');
 }
 
@@ -5782,6 +6227,21 @@ let agruIdle   = true;
 let _agruIdleTimer = null;
 let _agruTypeTimer = null;
 let _agruConvHistory = [];
+let _agruPoisonTurns = 0;
+
+// ── ボスアゲルバトル状態 ─────────────────────────────────────────
+let agruBattleActive   = false;
+let agruBattleHP       = 0;
+let agruBattleMaxHP    = 1000;
+let agruBattleEndTime  = 0;
+let agruBattleTimerInterval  = null;
+let agruBattleCounterTimer   = null;
+let agruBattleCounterInterval = 60;
+let agruBattleBerserkUntil   = 0;
+let agruBattleConfig   = {};
+let agruBattleStatusEffects  = new Map(); // ipid → { stoneUntil, sleepUntil, charmedUntil, curseUntil }
+let _agruBattleKilledIds     = new Set();
+(async () => { try { const r = await fetch('/api/boss-ageru-config'); agruBattleConfig = await r.json(); } catch {} })();
 let agruVoicevoxEnabled = localStorage.getItem('agruVoicevoxEnabled') === '1';
 let agruVoicevoxSpeaker = parseInt(localStorage.getItem('agruVoicevoxSpeaker') || '0');
 let agruVoicevoxSpeed   = parseFloat(localStorage.getItem('agruVoicevoxSpeed') || '1.0');
@@ -6323,6 +6783,7 @@ async function _agruSend(message, commenter) {
       _agruDeadWakeCount = 0;
       _agruRevertStateImage();
       _agruUpdateHungerDisplay();
+      if (!agruBattleActive) startAgruBattle();
     } else {
       _agruShowStateImage('dead');
       _agruAddBubble('left', 'アゲルちゃん', '・・・');
@@ -6400,6 +6861,7 @@ async function _agruSend(message, commenter) {
 
     const { emotion, replyText, affinityDelta, libidoDelta } = _agruParseResponse(raw);
     agruAffinity = Math.max(0, Math.min(100, agruAffinity + affinityDelta));
+    if (agruAffinity === 0 && agruActive && !agruBattleActive) startAgruBattle();
     agruLibido   = Math.max(0, Math.min(100, agruLibido   + libidoDelta));
     _agruUpdateAffinityDisplay(affinityDelta);
     _agruUpdateLibidoDisplay(libidoDelta);
@@ -6439,7 +6901,12 @@ async function _agruSend(message, commenter) {
     _agruConvHistory.push({ role: 'assistant', content: raw });
     if (_agruConvHistory.length > 50) _agruConvHistory.splice(0, 2);
 
-    _agruSetImage(emotion);
+    if (_agruPoisonTurns > 0) {
+      _agruShowStateImage('毒');
+      _agruPoisonTurns--;
+    } else {
+      _agruSetImage(emotion);
+    }
     if (agruLibido > 80) _agruShowStateImage('horny');
     const _typingEl = document.getElementById('agruTypingIndicator');
     if (_typingEl) _typingEl.remove();
@@ -6951,6 +7418,7 @@ function showSDImage(user, dataUrl, prompt, translatedPrompt, cfg) {
     `<img src="${dataUrl}" alt="${escapeHtml(prompt)}" class="sd-image-img">`;
   el.querySelector('.sd-image-close').addEventListener('click', () => el.remove());
   if (_sdNeedsMosaic(prompt, translatedPrompt, cfg.mosaicKeywords)) _applyMosaic(el.querySelector('.sd-image-img'), cfg.mosaicBlock); // null→falsy で動作変わらず
+  el.style.zIndex = charZCounter + 100;
   stage.appendChild(el);
   setTimeout(() => { if (el.isConnected) el.remove(); }, cfg.displayTime * 1000);
 }
@@ -10162,6 +10630,10 @@ function handleAdminMessage(d, replyFn) {
     openAgruModal();
   } else if (d.type === 'closeAgeruChat') {
     closeAgruModal();
+  } else if (d.type === 'agruBattleStart') {
+    startAgruBattle();
+  } else if (d.type === 'agruBattleEnd') {
+    endAgruBattle(d.result || 'players');
   } else if (d.type === 'agruSetParam') {
     const v = parseFloat(d.value);
     if (d.param === 'hunger')     { const _ph = agruHunger;     agruHunger     = Math.max(0, Math.min(100, v)); _agruDeadWakeCount = 0; if (agruHunger > 0) _agruRevertStateImage(); _agruUpdateHungerDisplay(agruHunger - _ph); }

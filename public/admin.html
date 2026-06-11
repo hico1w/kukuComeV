@@ -1061,6 +1061,20 @@
       ✕ 会話モードを閉じる
     </button>
   </div>
+  <div class="size-row" style="gap:6px;margin-top:6px">
+    <button onclick="window.open('/ageru-boss.html','_blank')"
+            style="flex:1;padding:6px 10px;font-size:12px;background:#450a0a;color:#fca5a5;border:1px solid #7f1d1d;border-radius:6px;cursor:pointer">
+      ⚔️ ボスアゲル設定画面
+    </button>
+    <button onclick="adminSend({type:'agruBattleStart'})"
+            style="flex:1;padding:6px 10px;font-size:12px;background:#7f1d1d;color:#fca5a5;border:1px solid #b91c1c;border-radius:6px;cursor:pointer">
+      ⚔️ バトル開始
+    </button>
+    <button onclick="adminSend({type:'agruBattleEnd',result:'players'})"
+            style="padding:6px 10px;font-size:12px;background:#1e293b;color:#94a3b8;border:1px solid #475569;border-radius:6px;cursor:pointer">
+      強制終了
+    </button>
+  </div>
   <div class="size-row" style="align-items:flex-start;margin-top:8px">
     <span class="size-label" style="padding-top:4px">ルール</span>
     <textarea id="agruSystemInput" rows="6" class="admin-text-input"

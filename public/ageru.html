@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>🌸 アゲルちゃん</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+      background: linear-gradient(160deg, #fce7f3 0%, #f3e8ff 100%);
+      overflow: hidden;
+    }
+
+    #app {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      max-width: 480px;
+      margin: 0 auto;
+      background: rgba(255,248,251,0.6);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 40px rgba(236,72,153,0.1);
+    }
+
+    /* ── ヘッダー ──────────────────────────────── */
+    #header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      padding-top: max(10px, env(safe-area-inset-top));
+      background: linear-gradient(90deg, #f472b6 0%, #ec4899 45%, #db2777 100%);
+      color: #fff;
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+      box-shadow: 0 2px 10px rgba(236,72,153,0.3);
+      text-shadow: 0 1px 4px rgba(157,23,77,0.4);
+    }
+    #header-right { display: flex; gap: 8px; align-items: center; }
+    .hbtn {
+      background: rgba(255,255,255,0.22);
+      border: 1px solid rgba(255,255,255,0.4);
+      color: #fff;
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .hbtn:active { background: rgba(255,255,255,0.35); }
+    #modelSel {
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.35);
+      color: #fff;
+      border-radius: 8px;
+      padding: 3px 5px;
+      font-size: 11px;
+      cursor: pointer;
+      max-width: 110px;
+    }
+    #modelSel option { color: #333; background: #fff; }
+
+    /* ── キャラクターエリア ──────────────────────── */
+    #charArea {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: linear-gradient(180deg, rgba(255,240,250,0.5) 0%, rgba(255,248,251,0.2) 100%);
+      padding-bottom: 4px;
+      position: relative;
+      overflow: hidden;
+    }
+    #charFrame {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+    #charBg {
+      position: relative;
+      display: inline-block;
+      line-height: 0;
+    }
+    #charImg {
+      height: clamp(240px, 45vh, 390px);
+      max-width: 100%;
+      object-fit: contain;
+      object-position: bottom center;
+      transition: opacity 0.3s;
+      display: block;
+    }
+    #charImg.fading { opacity: 0; }
+    #emotionLabel {
+      font-size: 12px;
+      color: #ec4899;
+      font-weight: 700;
+      min-height: 18px;
+      text-align: center;
+      letter-spacing: 0.06em;
+    }
+    #statusBar {
+      font-size: 11px;
+      color: #9ca3af;
+      min-height: 16px;
+      text-align: center;
+      padding-bottom: 2px;
+    }
+
+    /* ── チャットログ ────────────────────────────── */
+    #chatLog {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #chatLog::-webkit-scrollbar { width: 3px; }
+    #chatLog::-webkit-scrollbar-thumb { background: rgba(236,72,153,0.3); border-radius: 2px; }
+
+    .brow { display: flex; }
+    .brow-r { justify-content: flex-end; }
+    .brow-l { justify-content: flex-start; }
+    .bwrap { max-width: 84%; display: flex; flex-direction: column; gap: 2px; }
+    .bwrap-r { align-items: flex-end; }
+    .bwrap-l { align-items: flex-start; }
+    .bname { font-size: 10px; padding: 0 4px; }
+    .bwrap-r .bname { color: #93c5fd; }
+    .bwrap-l .bname { color: #f9a8d4; }
+    .bubble {
+      padding: 8px 13px;
+      border-radius: 18px;
+      font-size: 14px;
+      line-height: 1.55;
+      word-break: break-word;
+      animation: fadeUp 0.2s ease;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .bubble-l {
+      background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(249,168,212,0.35);
+      border-bottom-left-radius: 5px;
+      color: #374151;
+      box-shadow: 0 1px 4px rgba(236,72,153,0.08);
+    }
+    .bubble-r {
+      background: linear-gradient(135deg, #f9a8d4, #ec4899);
+      color: #fff;
+      border-bottom-right-radius: 5px;
+      box-shadow: 0 2px 8px rgba(236,72,153,0.25);
+    }
+    .bubble-sys {
+      text-align: center;
+      font-size: 11px;
+      color: #9ca3af;
+      padding: 2px 0;
+    }
+
+    /* ── 入力エリア ──────────────────────────────── */
+    #inputArea {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      padding: 10px 12px;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+      background: rgba(255,248,251,0.95);
+      border-top: 1px solid rgba(249,168,212,0.4);
+      flex-shrink: 0;
+    }
+    #msgInput {
+      flex: 1;
+      border: 1.5px solid #fbb6ce;
+      border-radius: 22px;
+      padding: 10px 16px;
+      font-size: 16px;
+      background: rgba(255,255,255,0.9);
+      color: #374151;
+      outline: none;
+      resize: none;
+      max-height: 120px;
+      overflow-y: auto;
+      font-family: inherit;
+      line-height: 1.5;
+      transition: border-color 0.15s;
+    }
+    #msgInput:focus { border-color: #ec4899; }
+    #sendBtn {
+      width: 46px;
+      height: 46px;
+      background: linear-gradient(135deg, #f472b6, #ec4899);
+      border: none;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 3px 10px rgba(236,72,153,0.4);
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    #sendBtn:active { transform: scale(0.93); }
+    #sendBtn:disabled { opacity: 0.4; cursor: default; transform: none; }
+
+    /* ── システムプロンプトモーダル ──────────────── */
+    #sysModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0,0,0,0.45);
+      align-items: flex-end;
+      justify-content: center;
+    }
+    #sysModal.open { display: flex; animation: fadeIn 0.15s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    #sysInner {
+      background: #fff;
+      border-radius: 22px 22px 0 0;
+      width: 100%;
+      max-width: 480px;
+      padding: 20px 16px;
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      animation: slideUp 0.2s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(40px); }
+      to   { transform: translateY(0); }
+    }
+    #sysInner h3 { font-size: 15px; font-weight: 800; color: #ec4899; }
+    #sysInner p  { font-size: 11px; color: #9ca3af; line-height: 1.5; }
+    #sysInput {
+      width: 100%;
+      border: 1.5px solid #fbb6ce;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 130px;
+      color: #374151;
+      outline: none;
+      line-height: 1.5;
+    }
+    #sysInput:focus { border-color: #ec4899; }
+    .mbtns { display: flex; gap: 8px; justify-content: flex-end; }
+    .mbtn-cancel {
+      padding: 9px 22px;
+      background: #f3f4f6;
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      cursor: pointer;
+      color: #6b7280;
+    }
+    .mbtn-save {
+      padding: 9px 22px;
+      background: linear-gradient(135deg, #f472b6, #ec4899);
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(236,72,153,0.3);
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <span>🌸 星井野アゲル</span>
+    <div id="header-right">
+      <select id="modelSel"></select>
+      <button class="hbtn" onclick="openSys()">設定</button>
+    </div>
+  </div>
+
+  <div id="charArea">
+    <div id="charFrame">
+      <div id="charBg">
+        <img id="charImg" src="" alt="アゲルちゃん">
+      </div>
+    </div>
+    <div id="emotionLabel"></div>
+    <div id="statusBar">コメント待ち...</div>
+  </div>
+
+  <div id="chatLog"></div>
+
+  <div id="inputArea">
+    <textarea id="msgInput" rows="1" placeholder="アゲルちゃんに話しかける..."
+      onkeydown="onKey(event)"></textarea>
+    <button id="sendBtn" onclick="send()">➤</button>
+  </div>
+</div>
+
+<!-- システムプロンプトモーダル -->
+<div id="sysModal" onclick="closeSysBg(event)">
+  <div id="sysInner">
+    <h3>⚙️ 追加システムプロンプト</h3>
+    <p>基本プロンプト（星井野アゲル設定）に追記する内容を入力します。<br>ここで入力した内容はこのページ専用です。</p>
+    <textarea id="sysInput" placeholder="例: ますます元気よく返答してください。&#10;例: 必ず敬語を使わないでください。"></textarea>
+    <div class="mbtns">
+      <button class="mbtn-cancel" onclick="closeSys()">キャンセル</button>
+      <button class="mbtn-save" onclick="saveSys()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── ぷるぷるエンジン（app.js から移植） ──────────────────────────
+  let purupuruConfig = {};
+  try { const _ps = localStorage.getItem('purupuruConfig'); if (_ps) purupuruConfig = JSON.parse(_ps); } catch {}
+
+  let _puruTime = 0, _puruLastTs = null, _puruRAF = null;
+  const _puruDispBuf = { dx: 0, dy: 0 };
+
+  function _puruWeight(pt, dx, dy, W, H) {
+    const mn = Math.min(W, H), shape = pt.shape || 'circle';
+    if (shape === 'rect') {
+      const hw = ((pt.width ?? (pt.radius ?? 30)) / 100) * W / 2;
+      const hh = ((pt.height ?? (pt.radius ?? 30)) / 100) * H / 2;
+      if (!hw || !hh || Math.abs(dx) >= hw || Math.abs(dy) >= hh) return 0;
+      return (1 - Math.max(Math.abs(dx) / hw, Math.abs(dy) / hh)) ** 2;
+    }
+    if (shape === 'triangle') {
+      const R = (pt.radius ?? 30) / 100 * mn; if (!R) return 0;
+      const rotDeg = pt.rotation ?? 0;
+      if (pt._wRot !== rotDeg) { pt._wRot = rotDeg; pt._wC = Math.cos(rotDeg * Math.PI / 180); pt._wS = Math.sin(rotDeg * Math.PI / 180); }
+      const lx = dx * pt._wC + dy * pt._wS, ly = -dx * pt._wS + dy * pt._wC;
+      const h = R * 0.8660254, hy = R * 0.5, R15 = R * 1.5;
+      const d0 = h * (ly + R) - R15 * lx, d1 = -2 * h * (ly - hy), d2 = h * (ly - hy) + R15 * (lx + h);
+      if (!((d0 >= 0 && d1 >= 0 && d2 >= 0) || (d0 <= 0 && d1 <= 0 && d2 <= 0))) return 0;
+      return Math.max(0, 1 - Math.sqrt(lx * lx + ly * ly) / R) ** 2;
+    }
+    const rr = (pt.radius ?? 30) / 100 * mn; if (!rr) return 0;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    return dist >= rr ? 0 : (1 - dist / rr) ** 2;
+  }
+
+  function _puruDisplace(pt, t) {
+    const ph = (pt.phase || 0) * Math.PI / 180, om = (pt.speed || 1) * Math.PI * 2, a = pt.amplitude || 0;
+    let dx = 0, dy = 0;
+    switch (pt.mode || 'circle') {
+      case 'circle':     dx = Math.cos(t*om+ph)*a;                          dy = Math.sin(t*om+ph)*a; break;
+      case 'pendulum_x': dx = Math.sin(t*om+ph)*a; break;
+      case 'pendulum_y': dy = Math.sin(t*om+ph)*a; break;
+      case 'sin_y':      dx = Math.sin(t*om*2+ph)*a*0.3;                   dy = Math.sin(t*om+ph)*a; break;
+      case 'lissajous':  dx = Math.sin(t*om+ph)*a;                         dy = Math.sin(t*om*2+ph+Math.PI/2)*a; break;
+      case 'breast':     dx = Math.sin(t*om*1.5+ph+Math.PI/4)*a*0.3;      dy = Math.sin(t*om+ph)*a; break;
+      case 'bounce':     dy = Math.abs(Math.sin(t*om*0.5+ph))*a; break;
+      case 'spring':     dy = (Math.sin(t*om+ph)+0.3*Math.sin(t*om*3+ph))*a/1.3; break;
+      case 'flutter':    dx = Math.sin(t*om*2.7+ph)*a*0.7;                 dy = Math.cos(t*om*2.5+ph)*a; break;
+      case 'skirt': { const c=t*om+ph; dx=Math.sin(c)*a*(1+0.4*Math.sin(c*0.53+1.2)+0.15*Math.sin(c*2.3)); dy=Math.sin(c*0.7+0.5)*a*0.15; break; }
+      case 'neko':  { const c=t*om+ph, base=Math.max(0,Math.sin(c)); dx=Math.sin(c*1.3+ph)*a*0.2; dy=-(base+base*0.3*Math.sin(c*4))*a; break; }
+      case 'swing': { const p=Math.sin(t*om+ph); dx=p*a; dy=(0.4-0.6*p*p)*a; break; }
+      case 'purun': { const c=(t*om+ph)%(Math.PI*2), jig=Math.exp(-c*0.8)*Math.cos(c*5)*a; dx=jig*0.25; dy=jig; break; }
+      case 'heart': { const c=((t*om+ph)%(Math.PI*2))/(Math.PI*2), p1=Math.exp(-Math.pow((c-0.15)*14,2)), p2=Math.exp(-Math.pow((c-0.35)*11,2))*0.65; dy=-(p1+p2)*a; dx=p1*a*0.15; break; }
+      case 'punipuni': { const c=t*om+ph; dx=(Math.sin(c*1.0)*0.55+Math.sin(c*2.3+0.7)*0.45)*a; dy=(Math.cos(c*0.7)*0.55+Math.cos(c*1.9+1.1)*0.45)*a; break; }
+    }
+    _puruDispBuf.dx = dx; _puruDispBuf.dy = dy;
+    return _puruDispBuf;
+  }
+
+  function _puruTri(ctx, img, x0,y0,u0,v0, x1,y1,u1,v1, x2,y2,u2,v2) {
+    const iw=img.naturalWidth, ih=img.naturalHeight;
+    const p0u=u0*iw,p0v=v0*ih, p1u=u1*iw,p1v=v1*ih, p2u=u2*iw,p2v=v2*ih;
+    const det=p0u*(p1v-p2v)+p1u*(p2v-p0v)+p2u*(p0v-p1v);
+    if (Math.abs(det) < 0.001) return;
+    const a_=(x0*(p1v-p2v)+x1*(p2v-p0v)+x2*(p0v-p1v))/det;
+    const b_=(y0*(p1v-p2v)+y1*(p2v-p0v)+y2*(p0v-p1v))/det;
+    const c_=(x0*(p2u-p1u)+x1*(p0u-p2u)+x2*(p1u-p0u))/det;
+    const d_=(y0*(p2u-p1u)+y1*(p0u-p2u)+y2*(p1u-p0u))/det;
+    const ecx=(x0+x1+x2)/3, ecy=(y0+y1+y2)/3;
+    const d0x=x0-ecx,d0y=y0-ecy,l0=Math.sqrt(d0x*d0x+d0y*d0y);
+    const ex0=l0<.001?x0:x0+d0x/l0*.6, ey0=l0<.001?y0:y0+d0y/l0*.6;
+    const d1x=x1-ecx,d1y=y1-ecy,l1=Math.sqrt(d1x*d1x+d1y*d1y);
+    const ex1=l1<.001?x1:x1+d1x/l1*.6, ey1=l1<.001?y1:y1+d1y/l1*.6;
+    const d2x=x2-ecx,d2y=y2-ecy,l2=Math.sqrt(d2x*d2x+d2y*d2y);
+    const ex2=l2<.001?x2:x2+d2x/l2*.6, ey2=l2<.001?y2:y2+d2y/l2*.6;
+    ctx.save(); ctx.beginPath(); ctx.moveTo(ex0,ey0); ctx.lineTo(ex1,ey1); ctx.lineTo(ex2,ey2);
+    ctx.closePath(); ctx.clip(); ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+    ctx.transform(a_,b_,c_,d_, x0-a_*p0u-c_*p0v, y0-b_*p0u-d_*p0v);
+    ctx.drawImage(img,0,0); ctx.restore();
+  }
+
+  function _puruRenderCanvas(canvas) {
+    const img = canvas._puruImg;
+    const cfg = purupuruConfig[canvas._puruImgFile];
+    if (!cfg || !cfg.enabled || !img || !img.isConnected || !img.complete || !img.naturalWidth) {
+      canvas.style.display = 'none'; if (img) img.style.opacity = ''; return;
+    }
+    const SS=2, dpr=window.devicePixelRatio||1;
+    canvas._puruTick = ((canvas._puruTick||0)+1)%120;
+    let cssW=canvas._puruCssW||0, cssH=canvas._puruCssH||0;
+    if (!cssW||!cssH||canvas._puruTick===0) {
+      const rect=img.getBoundingClientRect();
+      if (cssW!==rect.width||cssH!==rect.height) canvas._puruFitKey=null;
+      cssW=rect.width; cssH=rect.height; canvas._puruCssW=cssW; canvas._puruCssH=cssH;
+    }
+    const W=Math.round(cssW*dpr*SS), H=Math.round(cssH*dpr*SS);
+    if (!W||!H) { canvas.style.display='none'; return; }
+    if (canvas.width!==W||canvas.height!==H) { canvas.width=W; canvas.height=H; canvas._puruFitKey=null; }
+    img.style.opacity='0'; canvas.style.display='block';
+    const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,W,H);
+    const iw=img.naturalWidth, ih=img.naturalHeight;
+    const fitKey=`${iw},${ih},${W},${H}`;
+    if (canvas._puruFitKey!==fitKey) {
+      canvas._puruFitKey=fitKey;
+      let srcX=0,srcY=0,srcW=iw,srcH=ih;
+      const fit=getComputedStyle(img).objectFit;
+      if ((fit==='cover'||fit==='contain')&&iw&&ih) {
+        const s=fit==='cover'?Math.max(cssW/iw,cssH/ih):Math.min(cssW/iw,cssH/ih);
+        const sw=iw*s, sh=ih*s;
+        const pos=getComputedStyle(img).objectPosition.split(' ');
+        const pv=(v,total,avail)=>{if(!v||v==='center')return(total-avail)/2;if(v==='left'||v==='top')return 0;if(v==='right'||v==='bottom')return total-avail;if(v.endsWith('%'))return(total-avail)*parseFloat(v)/100;return(total-avail)/2;};
+        srcX=pv(pos[0],sw,cssW)/s; srcY=pv(pos[1]||pos[0],sh,cssH)/s; srcW=cssW/s; srcH=cssH/s;
+      }
+      canvas._puruSrcX=srcX; canvas._puruSrcY=srcY; canvas._puruSrcW=srcW; canvas._puruSrcH=srcH;
+    }
+    const srcX=canvas._puruSrcX, srcY=canvas._puruSrcY, srcW=canvas._puruSrcW, srcH=canvas._puruSrcH;
+    const ampScale=cssH/420, gs=cfg.gridSize||12, cols=gs+1, rows=gs+1, needed=cols*rows*2;
+    if (!canvas._puruVerts||canvas._puruVerts.length<needed) { canvas._puruVerts=new Float32Array(needed); canvas._puruUvs=new Float32Array(needed); }
+    const verts=canvas._puruVerts, uvs=canvas._puruUvs, allPts=cfg.points||[];
+    for (let j=0;j<rows;j++) for (let i=0;i<cols;i++) {
+      const bx=(i/gs)*W, by=(j/gs)*H; let tdx=0, tdy=0;
+      for (let pi=0;pi<allPts.length;pi++) {
+        const pt=allPts[pi]; if (!pt.enabled) continue;
+        const px=(pt.x/100)*W, py=(pt.y/100)*H;
+        const w=_puruWeight(pt,bx-px,by-py,W,H); if (w<=0) continue;
+        const d=_puruDisplace(pt,_puruTime);
+        const dirDeg=pt.direction??0;
+        if (pt._dDir!==dirDeg) { pt._dDir=dirDeg; pt._dC=Math.cos(dirDeg*Math.PI/180); pt._dS=Math.sin(dirDeg*Math.PI/180); }
+        tdx+=(d.dx*pt._dC-d.dy*pt._dS)*w*dpr*SS*ampScale;
+        tdy+=(d.dx*pt._dS+d.dy*pt._dC)*w*dpr*SS*ampScale;
+      }
+      const idx=(j*cols+i)*2; verts[idx]=bx+tdx; verts[idx+1]=by+tdy;
+      uvs[idx]=(srcX+(i/gs)*srcW)/iw; uvs[idx+1]=(srcY+(j/gs)*srcH)/ih;
+    }
+    for (let j=0;j<gs;j++) for (let i=0;i<gs;i++) {
+      const i00=(j*cols+i)*2, i10=(j*cols+i+1)*2, i01=((j+1)*cols+i)*2, i11=((j+1)*cols+i+1)*2;
+      _puruTri(ctx,img,verts[i00],verts[i00+1],uvs[i00],uvs[i00+1],verts[i10],verts[i10+1],uvs[i10],uvs[i10+1],verts[i01],verts[i01+1],uvs[i01],uvs[i01+1]);
+      _puruTri(ctx,img,verts[i10],verts[i10+1],uvs[i10],uvs[i10+1],verts[i11],verts[i11+1],uvs[i11],uvs[i11+1],verts[i01],verts[i01+1],uvs[i01],uvs[i01+1]);
+    }
+  }
+
+  function _puruStartLoop() {
+    if (_puruRAF) return;
+    const loop = ts => {
+      _puruRAF = requestAnimationFrame(loop);
+      if (_puruLastTs === null) _puruLastTs = ts;
+      const dt = Math.min((ts - _puruLastTs) / 1000, 0.05);
+      _puruLastTs = ts; _puruTime += dt;
+      document.querySelectorAll('.puru-canvas').forEach(_puruRenderCanvas);
+    };
+    _puruRAF = requestAnimationFrame(loop);
+  }
+
+  function _puruAttach(parent, imgEl, imgFile) {
+    parent.querySelectorAll('.puru-canvas').forEach(c => { if (c._puruImg) c._puruImg.style.opacity = ''; c.remove(); });
+    const canvas = document.createElement('canvas');
+    canvas.className = 'puru-canvas';
+    canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;display:none;z-index:3';
+    canvas._puruImg = imgEl; canvas._puruImgFile = imgFile;
+    parent.appendChild(canvas);
+    _puruStartLoop();
+  }
+
+  function updatePurupuru() {
+    const imgEl = document.getElementById('charImg');
+    if (!imgEl) return;
+    const parent = imgEl.parentElement;
+    if (!parent) return;
+    parent.querySelectorAll('.puru-canvas').forEach(c => { if (c._puruImg) c._puruImg.style.opacity = ''; c.remove(); });
+    if (!imgEl.src || imgEl.src === location.href) return;
+    const m = new URL(imgEl.src).pathname.match(/^\/ageru\/(.+)$/);
+    const imgKey = m ? '__agru__/' + decodeURIComponent(m[1]) : '__agru__';
+    const cfg = purupuruConfig[imgKey];
+    if (!cfg || !cfg.enabled) return;
+    if (!imgEl.complete || !imgEl.naturalWidth) imgEl.addEventListener('load', () => _puruAttach(parent, imgEl, imgKey), { once: true });
+    else _puruAttach(parent, imgEl, imgKey);
+  }
+
+  // ── 定数 ─────────────────────────────────────────────────────────
+  const EMOTIONS = [
+    '安心','愛しさ','感謝','性的興奮','興奮','感動','好奇心','驚き','尊敬','不安',
+    '恐怖','困惑','冷静','軽蔑','殺意','悲しみ','諦め','苦しみ','嫉妬','恥',
+  ];
+
+
+  const MODELS = [
+    'gemma3:4b', 'gemma3:12b', 'qwen2.5:7b', 'gemma4:e4b', 'dolphin-llama3:8b',
+    'huihui_ai/qwen2.5-1m-abliterated:14b',
+    'mdq100/Gemma3-Instruct-Abliterated:12b',
+    'huihui_ai/gemma-4-abliterated:31b',
+  ];
+
+  // ── 状態 ─────────────────────────────────────────────────────────
+  let convHistory  = [];
+  let hornyImages  = [];
+  let isBusy       = false;
+  let pageSystem   = '';
+  let aiModel      = localStorage.getItem('aiModel') || 'gemma3:12b';
+  let vvEnabled    = localStorage.getItem('agruVoicevoxEnabled') === '1';
+  let vvSpeaker    = parseInt(localStorage.getItem('agruVoicevoxSpeaker') || '0');
+  let vvSpeed      = parseFloat(localStorage.getItem('agruVoicevoxSpeed') || '1.0');
+  let vvVolume     = parseFloat(localStorage.getItem('agruVoicevoxVolume') || '1.0');
+  let vvAudio      = null;
+
+  // ── 初期化 ────────────────────────────────────────────────────────
+  (function init() {
+    // モデル選択
+    const sel = document.getElementById('modelSel');
+    MODELS.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m;
+      const short = m.split('/').pop().split(':')[0];
+      opt.textContent = short.length > 14 ? short.slice(-14) : short;
+      if (m === aiModel) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', () => {
+      aiModel = sel.value;
+      localStorage.setItem('aiModel', aiModel);
+    });
+
+    // サーバーからシステムプロンプト取得
+    fetch('/api/ageru-page-system')
+      .then(r => r.json())
+      .then(d => { pageSystem = d.system || ''; })
+      .catch(() => {});
+
+    // hornyフォルダ画像一覧取得 → 初期表示
+    fetch('/api/ageru-images/horny')
+      .then(r => r.json())
+      .then(d => {
+        hornyImages = (d.images || []).filter(f => /\.(png|jpg|jpeg|gif|webp)$/i.test(f));
+        setImage();
+      })
+      .catch(() => {});
+
+    // textarea 自動高さ
+    const ta = document.getElementById('msgInput');
+    ta.addEventListener('input', () => {
+      ta.style.height = 'auto';
+      ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+    });
+  })();
+
+  // ── 画像切り替え（hornyフォルダからランダム） ──────────────────────
+  function setImage() {
+    if (!hornyImages.length) return;
+    const f = hornyImages[Math.floor(Math.random() * hornyImages.length)];
+    const src = `/ageru/horny/${encodeURIComponent(f)}`;
+    const img = document.getElementById('charImg');
+    img.classList.add('fading');
+    setTimeout(() => {
+      img.src = src;
+      img.onload = () => { img.classList.remove('fading'); updatePurupuru(); };
+    }, 150);
+  }
+
+  // ── レスポンス解析 ────────────────────────────────────────────────
+  function parseReply(raw) {
+    let emotion = '安心', text = raw, aff = 0, lib = 0;
+    const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
+    let i = 1;
+
+    if (lines.length >= 1) {
+      const m = lines[0].match(/^\[(.+)\]$/);
+      if (m) {
+        const e = m[1].replace(/[！!。、…～「」]/g, '').trim();
+        emotion = EMOTIONS.find(x => x === e) || EMOTIONS.find(x => e.includes(x) || x.includes(e)) || '安心';
+      } else if (lines[0].length <= 10) {
+        const ex = EMOTIONS.find(x => x === lines[0]);
+        const pt = !ex && EMOTIONS.find(x => lines[0].includes(x));
+        if (ex || pt) emotion = ex || pt;
+      }
+    }
+    if (lines[i]) {
+      const v = lines[i].replace(/^\[|\]$/g, '').trim();
+      if (/^[+-]?\d+$/.test(v)) { aff = Math.max(-10, Math.min(5, parseInt(v))); i++; }
+    }
+    if (lines[i]) {
+      const v = lines[i].replace(/^\[|\]$/g, '').trim();
+      if (/^[+-]?\d+$/.test(v)) { lib = Math.max(-5, Math.min(5, parseInt(v))); i++; }
+    }
+    text = lines.slice(i).join('\n').replace(/^\[/, '').replace(/\]$/, '').replace(/^「|」$/g, '').trim();
+    return { emotion, text, aff, lib };
+  }
+
+  // ── VoiceVox ──────────────────────────────────────────────────────
+  async function playVV(text) {
+    if (!vvEnabled || !text) return;
+    const clean = text.replace(/[（(][^）)]*[）)]/g, '').trim();
+    if (!clean) return;
+    try {
+      const r = await fetch('/api/voicevox', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: clean, speaker: vvSpeaker, speedScale: vvSpeed }),
+      });
+      const d = await r.json();
+      if (d.error || !d.audio) return;
+      if (vvAudio) { vvAudio.pause(); vvAudio = null; }
+      const a = new Audio(d.audio);
+      a.volume = vvVolume;
+      vvAudio = a;
+      a.play().catch(() => {});
+      a.onended = () => { if (vvAudio === a) vvAudio = null; };
+    } catch {}
+  }
+
+  // ── チャットUI ────────────────────────────────────────────────────
+  function addBubble(side, name, text) {
+    const log = document.getElementById('chatLog');
+    const row = document.createElement('div');
+    row.className = `brow brow-${side === 'left' ? 'l' : 'r'}`;
+    const wrap = document.createElement('div');
+    wrap.className = `bwrap bwrap-${side === 'left' ? 'l' : 'r'}`;
+    const nameEl = document.createElement('div');
+    nameEl.className = 'bname';
+    nameEl.textContent = name;
+    const bub = document.createElement('div');
+    bub.className = `bubble bubble-${side === 'left' ? 'l' : 'r'}`;
+    bub.textContent = text;
+    wrap.appendChild(nameEl);
+    wrap.appendChild(bub);
+    row.appendChild(wrap);
+    log.appendChild(row);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function addSys(text) {
+    const log = document.getElementById('chatLog');
+    const d = document.createElement('div');
+    d.className = 'bubble-sys';
+    d.textContent = text;
+    log.appendChild(d);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function setStatus(t) { document.getElementById('statusBar').textContent = t; }
+
+  // ── 送信 ──────────────────────────────────────────────────────────
+  async function send() {
+    const ta = document.getElementById('msgInput');
+    const msg = ta.value.trim();
+    if (!msg || isBusy) return;
+
+    ta.value = '';
+    ta.style.height = 'auto';
+    isBusy = true;
+    document.getElementById('sendBtn').disabled = true;
+
+    addBubble('right', 'あなた', msg);
+    setStatus('返答中...');
+
+    const system = pageSystem.trim() || undefined;
+    const messages = [...convHistory, { role: 'user', content: msg }];
+
+    try {
+      const res = await fetch('/api/ai-reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages, model: aiModel, system }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        addSys('エラー: ' + data.error);
+        setStatus('エラー');
+        return;
+      }
+
+      const { emotion, text } = parseReply(data.reply.trim());
+
+      document.getElementById('emotionLabel').textContent = emotion;
+      setImage();
+      addBubble('left', 'アゲルちゃん', text);
+      playVV(text);
+
+      convHistory.push({ role: 'user', content: msg });
+      convHistory.push({ role: 'assistant', content: data.reply.trim() });
+      if (convHistory.length > 40) convHistory.splice(0, 2);
+
+      setStatus('コメント待ち...');
+    } catch (e) {
+      addSys('通信エラー');
+      setStatus('エラー');
+    } finally {
+      isBusy = false;
+      document.getElementById('sendBtn').disabled = false;
+    }
+  }
+
+  function onKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  }
+
+  // ── システムプロンプトモーダル ────────────────────────────────────
+  function openSys()  {
+    document.getElementById('sysInput').value = pageSystem;
+    document.getElementById('sysModal').classList.add('open');
+  }
+  function closeSys() { document.getElementById('sysModal').classList.remove('open'); }
+  function closeSysBg(e) { if (e.target.id === 'sysModal') closeSys(); }
+  async function saveSys() {
+    const val = document.getElementById('sysInput').value;
+    try {
+      const r = await fetch('/api/ageru-page-system', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ system: val }),
+      });
+      const d = await r.json();
+      if (!d.ok) throw new Error();
+      pageSystem = val;
+      closeSys();
+      addSys('システムプロンプトを保存しました');
+    } catch {
+      addSys('保存に失敗しました');
+    }
+  }
+</script>
+</body>
+</html>

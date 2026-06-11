@@ -332,7 +332,8 @@ app.get('/api/ageru-images', (req, res) => {
 });
 
 app.get('/api/ageru-images/:folder', (req, res) => {
-  const folder = req.params.folder.replace(/[^a-z0-9_-]/gi, '');
+  const folder = decodeURIComponent(req.params.folder);
+  if (!folder || folder.includes('..') || folder.includes('/') || folder.includes('\\')) return res.json({ images: [] });
   const dir = path.join(__dirname, 'public', 'ageru', folder);
   try {
     const files = fs.readdirSync(dir)
@@ -342,6 +343,65 @@ app.get('/api/ageru-images/:folder', (req, res) => {
   } catch {
     res.json({ images: [] });
   }
+});
+
+// sprite フォルダ一覧
+app.get('/api/sprite-folders', (req, res) => {
+  const dir = path.join(__dirname, 'public', 'sprite');
+  try {
+    const folders = fs.readdirSync(dir, { withFileTypes: true })
+      .filter(d => d.isDirectory()).map(d => d.name);
+    res.json({ folders });
+  } catch { res.json({ folders: [] }); }
+});
+
+// sprite フォルダ内画像一覧（サブフォルダ含む再帰）
+app.get('/api/sprite-list/:folder', (req, res) => {
+  const folder = decodeURIComponent(req.params.folder);
+  if (!folder || folder.includes('..') || folder.includes('/') || folder.includes('\\')) return res.json({ images: [] });
+  const base = path.join(__dirname, 'public', 'sprite', folder);
+  function collect(dir, rel) {
+    let results = [];
+    try {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const rp = rel ? rel + '/' + e.name : e.name;
+        if (e.isDirectory()) results = results.concat(collect(path.join(dir, e.name), rp));
+        else if (/\.(png|jpg|jpeg|gif|webp)$/i.test(e.name)) results.push(rp);
+      }
+    } catch {}
+    return results;
+  }
+  res.json({ images: collect(base, '') });
+});
+
+// サウンドファイル一覧（再帰）
+app.get('/api/sounds', (req, res) => {
+  const base = path.join(__dirname, 'public', 'sound');
+  function collect(dir, rel) {
+    let results = [];
+    try {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const rp = rel ? rel + '/' + e.name : e.name;
+        if (e.isDirectory()) results = results.concat(collect(path.join(dir, e.name), rp));
+        else if (/\.(mp3|wav|ogg)$/i.test(e.name)) results.push(rp);
+      }
+    } catch {}
+    return results;
+  }
+  res.json({ sounds: collect(base, '') });
+});
+
+// ボスアゲル設定 GET/POST
+const _bossAgruConfigPath = path.join(__dirname, 'data', 'bossAgruConfig.json');
+let _bossAgruConfig = {};
+try { _bossAgruConfig = JSON.parse(fs.readFileSync(_bossAgruConfigPath, 'utf8')); } catch {}
+app.get('/api/boss-ageru-config', (req, res) => res.json(_bossAgruConfig));
+app.post('/api/boss-ageru-config', (req, res) => {
+  try {
+    _bossAgruConfig = req.body;
+    fs.writeFileSync(_bossAgruConfigPath, JSON.stringify(_bossAgruConfig, null, 2));
+    res.json({ ok: true });
+  } catch { res.json({ ok: false }); }
 });
 
 app.get('/api/yt-random-video', async (req, res) => {
@@ -1147,10 +1207,17 @@ function _parseRss(xml, source) {
   while ((m = itemRe.exec(xml)) !== null) {
     const block = m[1];
     const titleM = block.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/);
-    const linkM  = block.match(/<link>([^<\s]+)<\/link>/) || block.match(/<link\s[^>]*href="([^"]+)"/);
+    // <link> の中身のみを検索対象に絞る（CDATA description 内の誤マッチを防ぐ）
+    const linkTagM = block.match(/<link>\s*([\s\S]*?)\s*<\/link>/);
+    const linkUrl  = linkTagM ? linkTagM[1].trim() : '';
+    // Atom形式 <link href="..." rel="alternate"/> 専用フォールバック
+    const linkAtomM = !linkUrl && block.match(/<link\s[^>]*rel="alternate"[^>]*href="(https?:[^"]+)"/);
+    // guid isPermaLink="true" フォールバック（Yahoo RSS 等）
+    const linkGuidM = !linkUrl && !linkAtomM && block.match(/<guid[^>]*isPermaLink="true"[^>]*>\s*(https?:[^\s<]+)\s*<\/guid>/);
+    const link = (linkUrl.startsWith('http') ? linkUrl : '') || (linkAtomM && linkAtomM[1]) || (linkGuidM && linkGuidM[1]) || '';
     if (titleM) {
       const title = titleM[1].replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#039;/g,"'").trim();
-      if (title) items.push({ title, link: linkM ? linkM[1].trim() : '', source });
+      if (title) items.push({ title, link, source });
     }
   }
   return items;
