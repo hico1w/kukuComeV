@@ -647,10 +647,12 @@
     </div>
   </div>
   <div style="margin-top:14px">
-    <div class="skill-subsection-title">アゲル系キャラ（リスナー勝利時に消滅するキャラのファイル名リスト）</div>
-    <div style="font-size:11px;color:#64748b;margin-bottom:8px;">登録した画像ファイル名と一致するキャラが勝利時に消滅します。</div>
-    <div id="agruTypeImgList"></div>
-    <button class="btn-secondary btn-sm" style="margin-top:6px" onclick="_addAgruTypeImg()">＋ 追加</button>
+    <div class="skill-subsection-title">アゲル系キャラ（リスナー勝利時に消滅するキャラ）</div>
+    <div style="font-size:11px;color:#64748b;margin-bottom:10px;">チェックを入れたキャラ画像と一致するキャラが勝利時に消滅します。</div>
+    <div id="agruTypeImgGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;max-height:320px;overflow-y:auto;padding:4px 2px;">
+      <div style="color:#475569;font-size:11px;grid-column:1/-1;padding:8px 0">読み込み中...</div>
+    </div>
+    <button class="btn-secondary btn-sm" style="margin-top:8px" onclick="_loadAgruTypeImgGrid()">↺ 再読み込み</button>
   </div>
 </div>
 
@@ -697,6 +699,10 @@
       </label>
       <span style="font-size:12px;color:#94a3b8">ボス画像の後ろに表示</span>
     </label>
+  </div>
+  <div class="field-row">
+    <span class="field-label">フォント</span>
+    <select class="sel w-full boss-font-select" id="timerFont"></select>
   </div>
 </div>
 
@@ -768,6 +774,10 @@
     <input type="number" class="w100" id="hpGaugeNumSize" placeholder="自動">
   </div>
   <div class="field-row">
+    <span class="field-label">フォント</span>
+    <select class="sel w-full boss-font-select" id="hpNumFont"></select>
+  </div>
+  <div class="field-row">
     <span class="field-label">表示レイヤー</span>
     <label class="toggle-wrap" style="gap:10px">
       <label class="toggle">
@@ -794,6 +804,77 @@
     <span class="field-label">幅 (px)</span>
     <input type="number" class="w100" id="battleLogWidth" value="260">
   </div>
+  <div class="field-row">
+    <span class="field-label">文字サイズ (px)</span>
+    <input type="number" class="w100" id="battleLogFontSize" value="12" min="8" max="32">
+  </div>
+  <div class="field-row">
+    <span class="field-label">背景透明度 (0〜1)</span>
+    <input type="number" class="w100" id="battleLogBgOpacity" value="0.78" min="0" max="1" step="0.05">
+  </div>
+  <div class="field-row">
+    <span class="field-label">フォント</span>
+    <select class="sel w-full boss-font-select" id="battleLogFont"></select>
+  </div>
+</div>
+
+<!-- 歌詞フロートエフェクト設定 -->
+<div class="section">
+  <div class="section-title">歌詞フロートエフェクト設定</div>
+  <div class="field-row">
+    <span class="field-label">有効</span>
+    <input type="checkbox" id="lyricsEnabled">
+  </div>
+  <div class="field-row">
+    <span class="field-label">BPM</span>
+    <input type="number" class="w100" id="lyricsBpm" value="80" min="20" max="240">
+  </div>
+  <div class="field-row">
+    <span class="field-label">スポーン間隔 (拍)</span>
+    <input type="number" class="w100" id="lyricsSpawnBeats" value="4" min="1" max="32">
+  </div>
+  <div class="field-row">
+    <span class="field-label">最大同時表示</span>
+    <input type="number" class="w100" id="lyricsMaxLines" value="5" min="1" max="15">
+  </div>
+  <div class="field-row">
+    <span class="field-label">表示時間 (秒)</span>
+    <input type="number" class="w100" id="lyricsDuration" value="5" min="1" max="20">
+  </div>
+  <div class="field-row">
+    <span class="field-label">最小サイズ (px)</span>
+    <input type="number" class="w100" id="lyricsMinSize" value="24" min="8" max="100">
+  </div>
+  <div class="field-row">
+    <span class="field-label">最大サイズ (px)</span>
+    <input type="number" class="w100" id="lyricsMaxSize" value="120" min="20" max="300">
+  </div>
+  <div class="field-row">
+    <span class="field-label">透明度 (0〜100)</span>
+    <input type="number" class="w100" id="lyricsOpacity" value="85" min="10" max="100">
+  </div>
+  <div class="field-row">
+    <span class="field-label">回転角度 (°)</span>
+    <input type="number" class="w100" id="lyricsAngle" value="30" min="0" max="90">
+  </div>
+  <div class="field-row">
+    <span class="field-label">カラーモード</span>
+    <select id="lyricsColorMode" class="sel">
+      <option value="dark">🌙 ダーク（青〜紫〜ピンク）</option>
+      <option value="light">☀ ライト（白〜淡色）</option>
+      <option value="colorful">🌈 カラフル</option>
+      <option value="black">⬛ 黒のみ</option>
+    </select>
+  </div>
+  <div class="field-row">
+    <span class="field-label">ブラー (px)</span>
+    <input type="number" class="w100" id="lyricsBlur" value="0" min="0" max="20" step="0.5">
+    <span style="color:#64748b;font-size:12px;margin-left:4px">0=なし</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">フォント</span>
+    <select class="sel w-full boss-font-select" id="lyricsFont"></select>
+  </div>
 </div>
 
 <!-- セリフ表示設定 -->
@@ -811,6 +892,10 @@
   <div class="field-row">
     <span class="field-label">幅 (px)</span>
     <input type="number" class="w100" id="speechWidth" value="500">
+  </div>
+  <div class="field-row">
+    <span class="field-label">フォント</span>
+    <select class="sel w-full boss-font-select" id="speechFont"></select>
   </div>
 </div>
 
@@ -1626,6 +1711,7 @@ function applyConfigToDOM() {
   document.getElementById('timerY').value = timer.y ?? 12;
   document.getElementById('timerSize').value = timer.size ?? 88;
   document.getElementById('timerBehindBoss').checked = !!timer.behindBoss;
+  document.getElementById('timerFont').value = timer.font || '';
 
   const bossChar = config.bossChar || {};
   document.getElementById('bossCharX').value = bossChar.x !== undefined && bossChar.x !== '' ? bossChar.x : '';
@@ -1642,17 +1728,36 @@ function applyConfigToDOM() {
   document.getElementById('hpGaugeNumX').value = hpGauge.numX !== undefined && hpGauge.numX !== '' ? hpGauge.numX : '';
   document.getElementById('hpGaugeNumY').value = hpGauge.numY !== undefined && hpGauge.numY !== '' ? hpGauge.numY : '';
   document.getElementById('hpGaugeNumSize').value = hpGauge.numSize !== undefined && hpGauge.numSize !== '' ? hpGauge.numSize : '';
+  document.getElementById('hpNumFont').value = hpGauge.numFont || '';
   document.getElementById('hpGaugeBehindBoss').checked = !!hpGauge.behindBoss;
 
   const battleLog = config.battleLog || {};
   document.getElementById('battleLogX').value = battleLog.x ?? 16;
   document.getElementById('battleLogY').value = battleLog.y ?? 16;
   document.getElementById('battleLogWidth').value = battleLog.width ?? 260;
+  document.getElementById('battleLogFontSize').value = battleLog.fontSize ?? 12;
+  document.getElementById('battleLogBgOpacity').value = battleLog.bgOpacity ?? 0.78;
+  document.getElementById('battleLogFont').value = battleLog.font || '';
+
+  const lf = config.lyricsEffect || {};
+  document.getElementById('lyricsEnabled').checked      = !!lf.enabled;
+  document.getElementById('lyricsBpm').value            = lf.bpm        ?? 80;
+  document.getElementById('lyricsSpawnBeats').value     = lf.spawnBeats ?? 4;
+  document.getElementById('lyricsMaxLines').value       = lf.maxLines   ?? 5;
+  document.getElementById('lyricsDuration').value       = lf.duration   ?? 5;
+  document.getElementById('lyricsMinSize').value        = lf.minSize    ?? 24;
+  document.getElementById('lyricsMaxSize').value        = lf.maxSize    ?? 120;
+  document.getElementById('lyricsOpacity').value        = lf.opacity    ?? 85;
+  document.getElementById('lyricsAngle').value          = lf.angle      ?? 30;
+  document.getElementById('lyricsColorMode').value      = lf.colorMode  || 'dark';
+  document.getElementById('lyricsBlur').value           = lf.blur       ?? 0;
+  document.getElementById('lyricsFont').value           = lf.font       || '';
 
   const speech = config.speech || {};
   document.getElementById('speechX').value = speech.x !== undefined && speech.x !== '' ? speech.x : '';
   document.getElementById('speechY').value = speech.y ?? 40;
   document.getElementById('speechWidth').value = speech.width ?? 500;
+  document.getElementById('speechFont').value = speech.font || '';
 
   const geo = config.geoEffect || {};
   document.getElementById('geoShape').value  = geo.shape      ?? 'triangle';
@@ -1742,7 +1847,7 @@ function applyConfigToDOM() {
   else winPrev.style.display = 'none';
 
   _agruTypeImgs = Array.isArray(config.agruTypeImages) ? [...config.agruTypeImages] : [];
-  _renderAgruTypeImgList();
+  _loadAgruTypeImgGrid();
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -1770,7 +1875,7 @@ function collectConfig() {
       size:       parseInt(document.getElementById('deleteSpriteSizeVal').value) || 200,
     },
     winImage: document.getElementById('winImage').value.trim(),
-    agruTypeImages: _agruTypeImgs.map(s => s.trim()).filter(Boolean),
+    agruTypeImages: _getAgruTypeImgsFromGrid(),
     background: { image: bgImage, color: bgColor, blur: bgBlur },
     purupuruMap: JSON.parse(JSON.stringify(_bossPuruMap)),
     bgm: {
@@ -1782,6 +1887,7 @@ function collectConfig() {
       y:          parseInt(document.getElementById('timerY').value) || 12,
       size:       parseInt(document.getElementById('timerSize').value) || 88,
       behindBoss: document.getElementById('timerBehindBoss').checked,
+      font:       document.getElementById('timerFont').value || '',
     },
     bossChar: {
       x:     document.getElementById('bossCharX').value.trim() !== '' ? parseInt(document.getElementById('bossCharX').value) : '',
@@ -1798,17 +1904,36 @@ function collectConfig() {
       numX:       document.getElementById('hpGaugeNumX').value.trim() !== '' ? parseInt(document.getElementById('hpGaugeNumX').value) : '',
       numY:       document.getElementById('hpGaugeNumY').value.trim() !== '' ? parseInt(document.getElementById('hpGaugeNumY').value) : '',
       numSize:    document.getElementById('hpGaugeNumSize').value.trim() !== '' ? parseInt(document.getElementById('hpGaugeNumSize').value) : '',
+      numFont:    document.getElementById('hpNumFont').value || '',
       behindBoss: document.getElementById('hpGaugeBehindBoss').checked,
     },
     battleLog: {
-      x:     parseInt(document.getElementById('battleLogX').value) || 16,
-      y:     parseInt(document.getElementById('battleLogY').value) || 16,
-      width: parseInt(document.getElementById('battleLogWidth').value) || 260,
+      x:         parseInt(document.getElementById('battleLogX').value) || 16,
+      y:         parseInt(document.getElementById('battleLogY').value) || 16,
+      width:     parseInt(document.getElementById('battleLogWidth').value) || 260,
+      fontSize:  parseInt(document.getElementById('battleLogFontSize').value) || 12,
+      bgOpacity: parseFloat(document.getElementById('battleLogBgOpacity').value) || 0.78,
+      font:      document.getElementById('battleLogFont').value || '',
+    },
+    lyricsEffect: {
+      enabled:     document.getElementById('lyricsEnabled').checked,
+      bpm:         parseInt(document.getElementById('lyricsBpm').value)        || 80,
+      spawnBeats:  parseInt(document.getElementById('lyricsSpawnBeats').value) || 4,
+      maxLines:    parseInt(document.getElementById('lyricsMaxLines').value)   || 5,
+      duration:    parseInt(document.getElementById('lyricsDuration').value)   || 5,
+      minSize:     parseInt(document.getElementById('lyricsMinSize').value)    || 24,
+      maxSize:     parseInt(document.getElementById('lyricsMaxSize').value)    || 120,
+      opacity:     parseInt(document.getElementById('lyricsOpacity').value)    || 85,
+      angle:       parseInt(document.getElementById('lyricsAngle').value)      || 30,
+      colorMode:   document.getElementById('lyricsColorMode').value            || 'dark',
+      blur:        parseFloat(document.getElementById('lyricsBlur').value)     || 0,
+      font:        document.getElementById('lyricsFont').value                 || '',
     },
     speech: {
       x:     document.getElementById('speechX').value.trim() !== '' ? parseInt(document.getElementById('speechX').value) : '',
       y:     parseInt(document.getElementById('speechY').value) || 40,
       width: parseInt(document.getElementById('speechWidth').value) || 500,
+      font:  document.getElementById('speechFont').value || '',
     },
     geoEffect: {
       shape:            document.getElementById('geoShape').value                      || 'triangle',
@@ -2047,33 +2172,65 @@ function previewDeleteSprite() {
 }
 
 // ────────────────────────────────────────────────────────────────────
-// アゲル系キャラ設定リスト
+// アゲル系キャラ設定（チェックボックスグリッド）
 // ────────────────────────────────────────────────────────────────────
 let _agruTypeImgs = [];
 
-function _renderAgruTypeImgList() {
-  const wrap = document.getElementById('agruTypeImgList');
-  wrap.innerHTML = '';
-  _agruTypeImgs.forEach((img, i) => {
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:6px';
-    row.innerHTML = `
-      <input type="text" class="w-full" value="${escapeHtmlAttr(img)}" placeholder="キャラ画像ファイル名.png" oninput="_agruTypeImgs[${i}]=this.value">
-      <img src="/chara-s/${encodeURIComponent(img)}" alt="" style="height:32px;border-radius:4px;object-fit:contain;max-width:48px" onerror="this.style.display='none'" onload="this.style.display=''">
-      <button class="btn-secondary btn-sm" onclick="_removeAgruTypeImg(${i})">✕</button>
-    `;
-    wrap.appendChild(row);
+function _getAgruTypeImgsFromGrid() {
+  const checked = [];
+  document.querySelectorAll('#agruTypeImgGrid input[type=checkbox]:checked').forEach(cb => {
+    checked.push(cb.value);
+  });
+  return checked;
+}
+
+async function _loadAgruTypeImgGrid() {
+  const grid = document.getElementById('agruTypeImgGrid');
+  if (!grid) return;
+  grid.innerHTML = '<div style="color:#475569;font-size:11px;grid-column:1/-1;padding:8px 0">読み込み中...</div>';
+  let files = [];
+  try {
+    const r = await fetch('/api/chara-images');
+    const d = await r.json();
+    files = d.images || [];
+  } catch { files = []; }
+  if (!files.length) {
+    grid.innerHTML = '<div style="color:#475569;font-size:11px;grid-column:1/-1;padding:8px 0">public/chara/ に画像が見つかりません</div>';
+    return;
+  }
+  const checked = new Set(_agruTypeImgs);
+  grid.innerHTML = '';
+  files.forEach(fname => {
+    const cell = document.createElement('label');
+    cell.title = fname;
+    cell.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border-radius:8px;padding:6px 4px;border:2px solid transparent;transition:border-color 0.15s,background 0.15s;user-select:none;';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = fname;
+    cb.checked = checked.has(fname);
+    cb.style.cssText = 'display:none';
+    cb.addEventListener('change', () => {
+      cell.style.borderColor = cb.checked ? '#a78bfa' : 'transparent';
+      cell.style.background  = cb.checked ? 'rgba(167,139,250,0.15)' : '';
+    });
+    if (cb.checked) { cell.style.borderColor = '#a78bfa'; cell.style.background = 'rgba(167,139,250,0.15)'; }
+    const img = document.createElement('img');
+    img.src = '/chara-s/' + encodeURIComponent(fname);
+    img.alt = fname;
+    img.style.cssText = 'width:64px;height:64px;object-fit:contain;border-radius:4px';
+    img.onerror = () => { img.style.display = 'none'; };
+    const lbl = document.createElement('div');
+    lbl.textContent = fname.replace(/\.[^.]+$/, '');
+    lbl.style.cssText = 'font-size:9px;color:#94a3b8;text-align:center;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:76px';
+    cell.appendChild(cb);
+    cell.appendChild(img);
+    cell.appendChild(lbl);
+    grid.appendChild(cell);
   });
 }
 
-function _addAgruTypeImg() {
-  _agruTypeImgs.push('');
-  _renderAgruTypeImgList();
-}
-
-function _removeAgruTypeImg(i) {
-  _agruTypeImgs.splice(i, 1);
-  _renderAgruTypeImgList();
+function _syncAgruTypeImgsFromGrid() {
+  _agruTypeImgs = _getAgruTypeImgsFromGrid();
 }
 
 function escapeHtmlAttr(s) {
@@ -2745,7 +2902,91 @@ function _sendLayoutUpdate() {
   });
 }
 
+// ── フォントセレクト共通オプション（OBS互換フォント一覧） ──
+const _BOSS_FONT_OPTS = `<option value="">デフォルト</option>
+<optgroup label="Webフォント（OBS対応）">
+<option value="'Noto Sans JP', sans-serif">Noto Sans JP</option>
+<option value="'M PLUS Rounded 1c', sans-serif">M PLUS Rounded 1c</option>
+<option value="'Zen Maru Gothic', sans-serif">Zen Maru Gothic</option>
+<option value="'Kosugi Maru', sans-serif">Kosugi Maru</option>
+<option value="'Reggae One', cursive">Reggae One</option>
+<option value="'Kaisei Opti', serif">Kaisei Opti</option>
+<option value="'Yuji Syuku', serif">Yuji Syuku</option>
+<option value="'RocknRoll One', sans-serif">RocknRoll One</option>
+<option value="'Stick', sans-serif">Stick</option>
+</optgroup>
+<optgroup label="Windows 日本語">
+<option value="Meiryo">メイリオ</option>
+<option value='"Meiryo UI"'>メイリオUI</option>
+<option value='"MS Gothic"'>MSゴシック</option>
+<option value='"MS PGothic"'>MSPゴシック</option>
+<option value='"MS UI Gothic"'>MS UIゴシック</option>
+<option value='"MS Mincho"'>MS明朝</option>
+<option value='"MS PMincho"'>MSP明朝</option>
+<option value='"Yu Gothic"'>游ゴシック</option>
+<option value='"Yu Gothic Light"'>游ゴシック Light</option>
+<option value='"Yu Gothic Medium"'>游ゴシック Medium</option>
+<option value='"Yu Gothic UI"'>游ゴシック UI</option>
+<option value='"Yu Mincho"'>游明朝</option>
+<option value='"BIZ UDGothic"'>BIZ UDゴシック</option>
+<option value='"BIZ UDPGothic"'>BIZ UDPゴシック</option>
+<option value='"BIZ UDMincho Medium"'>BIZ UD明朝</option>
+</optgroup>
+<optgroup label="Windows 英語">
+<option value='"Arial Black"'>Arial Black</option>
+<option value='"Cascadia Code"'>Cascadia Code</option>
+<option value='"Comic Sans MS"'>Comic Sans</option>
+<option value='"Courier New"'>Courier New</option>
+<option value='"Franklin Gothic Medium"'>Franklin Gothic</option>
+<option value='"Ink Free"'>Ink Free</option>
+<option value='"Segoe Print"'>Segoe Print</option>
+<option value='"Segoe Script"'>Segoe Script</option>
+<option value='"Segoe UI"'>Segoe UI</option>
+<option value='"Times New Roman"'>Times New Roman</option>
+<option value='"Trebuchet MS"'>Trebuchet MS</option>
+</optgroup>
+<optgroup label="カスタム（/user-fonts/）">
+<option value='"Dela Gothic One"'>Dela Gothic One</option>
+<option value='"851MkPOP"'>851POP</option>
+<option value='"27_kurundeco"'>くるんデコ</option>
+<option value="omatsuri">おまつり</option>
+<option value="KazukiReiwa">かずき令和</option>
+<option value='"KazukiReiwa Light"'>かずき令和 Light</option>
+<option value='"07TetsubinGothic"'>鉄瓶ゴシック</option>
+<option value='"07ReallyScaryMinchotai"'>ホラー明朝</option>
+<option value="mitubachi">みつばち</option>
+<option value="Genkaimincho">源界明朝</option>
+<option value="SoukouMincho">蒼空明朝</option>
+<option value="MatatakinoMincho">またたき明朝</option>
+<option value='"ShokakiUtage-FreeVer."'>書楽宴</option>
+<option value="sushiki">数式フォント</option>
+<option value='"MOBO-ExtraLight"'>MOBO</option>
+<option value='"Kotonoru Muryou-Shiyou Kw-N Black"'>コトノル</option>
+<option value='"SmartFont UI"'>SmartFont</option>
+<option value='"02UtsukushiMincho"'>美しい明朝</option>
+<option value='"kurobara gothic bold"'>黒薔薇</option>
+<option value='"kurobara gothic black"'>黒薔薇ブラック</option>
+<option value='"kurobara gothic heavy"'>黒薔薇ヘビー</option>
+<option value='"kurobara gothic thin"'>黒薔薇シン</option>
+<option value='"fontopoBOKU"'>fontopoBOKU</option>
+<option value='"fontopoKEISEN"'>fontopoKEISEN</option>
+<option value='"fontopoSOLID"'>fontopoSOLID</option>
+<option value='"FontopoORIENTAL"'>ORIENTAL</option>
+<option value='"FontopoNIKUKYU"'>NIKUKYU</option>
+</optgroup>
+<optgroup label="汎用">
+<option value="serif">serif</option>
+<option value="monospace">monospace</option>
+</optgroup>`;
+
+function _initFontSelects() {
+  document.querySelectorAll('.boss-font-select').forEach(el => {
+    el.innerHTML = _BOSS_FONT_OPTS;
+  });
+}
+
 (async function init() {
+  _initFontSelects();
   buildSkillCards();
   _buildHpImageRows();
   document.getElementById('bgmVolume')?.addEventListener('input', e => {

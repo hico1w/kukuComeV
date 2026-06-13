@@ -570,11 +570,11 @@ body {
   pointer-events: none;
 }
 .agru-battle-log-entry {
-  background: rgba(15,23,42,0.78);
+  background: rgba(15,23,42, var(--agru-log-bg-opacity, 0.78));
   border-left: 3px solid #f87171;
   border-radius: 0 6px 6px 0;
   padding: 4px 8px;
-  font-size: 12px;
+  font-size: var(--agru-log-font-size, 12px);
   font-weight: 600;
   color: #fef2f2;
   line-height: 1.4;
@@ -4844,3 +4844,46 @@ body.compact-mode .title-tag         { display: none !important; }
   font-size: 11px;
   color: #94a3b8;
 }
+
+/* ─── 歌詞フロートエフェクト ────────────────────────────────────────────── */
+#lyricsFloatContainer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  overflow: hidden;
+}
+.lyr-outer { position: absolute; pointer-events: none; }
+.lyr-inner { display: inline-block; transform-origin: center center; }
+
+/* ── 出現（静かで切ない） ── */
+@keyframes lyrFadeIn    { from{opacity:0}                                                      to{opacity:1} }
+@keyframes lyrDriftL    { from{opacity:0;transform:translateX(-28px)}                          to{opacity:1;transform:translateX(0)} }
+@keyframes lyrDriftR    { from{opacity:0;transform:translateX(28px)}                           to{opacity:1;transform:translateX(0)} }
+@keyframes lyrRiseUp    { from{opacity:0;transform:translateY(22px)}                           to{opacity:1;transform:translateY(0)} }
+@keyframes lyrSinkIn    { from{opacity:0;transform:translateY(-22px)}                          to{opacity:1;transform:translateY(0)} }
+@keyframes lyrBlurIn    { from{opacity:0;filter:blur(10px);transform:scale(.97)}               to{opacity:1;filter:blur(0);transform:scale(1)} }
+@keyframes lyrBreathIn  { from{opacity:0;transform:scale(.93)}                                 to{opacity:1;transform:scale(1)} }
+
+/* ── 消失（切ない） ── */
+@keyframes lyrFadeOut   { from{opacity:1}                                                      to{opacity:0} }
+@keyframes lyrBlurOut   { from{opacity:1;filter:blur(0);transform:scale(1)}                    to{opacity:0;filter:blur(10px);transform:scale(1.02)} }
+@keyframes lyrDriftUpO  { from{opacity:1;transform:translateY(0)}                              to{opacity:0;transform:translateY(-28px)} }
+@keyframes lyrSinkOut   { from{opacity:1;transform:translateY(0)}                              to{opacity:0;transform:translateY(28px)} }
+@keyframes lyrDissipate { from{opacity:1;transform:scale(1)}                                   to{opacity:0;transform:scale(1.05)} }
+@keyframes lyrBreathOut { from{opacity:1;transform:scale(1)}                                   to{opacity:0;transform:scale(.94)} }
+
+.lyr-in-fade    { animation: lyrFadeIn   1.40s ease                    forwards }
+.lyr-in-drift-l { animation: lyrDriftL   1.30s cubic-bezier(.25,.8,.4,1) forwards }
+.lyr-in-drift-r { animation: lyrDriftR   1.30s cubic-bezier(.25,.8,.4,1) forwards }
+.lyr-in-rise    { animation: lyrRiseUp   1.30s cubic-bezier(.25,.8,.4,1) forwards }
+.lyr-in-sink    { animation: lyrSinkIn   1.30s cubic-bezier(.25,.8,.4,1) forwards }
+.lyr-in-blur    { animation: lyrBlurIn   1.60s ease                    forwards }
+.lyr-in-breath  { animation: lyrBreathIn 1.50s ease                    forwards }
+
+.lyr-out-fade     { animation: lyrFadeOut  2.00s ease                  forwards }
+.lyr-out-blur     { animation: lyrBlurOut  1.80s ease                  forwards }
+.lyr-out-drift-up { animation: lyrDriftUpO 2.00s ease                  forwards }
+.lyr-out-sink     { animation: lyrSinkOut  2.00s ease                  forwards }
+.lyr-out-diss     { animation: lyrDissipate 1.80s ease                 forwards }
+.lyr-out-breath   { animation: lyrBreathOut 1.80s ease                 forwards }

@@ -2,6 +2,42 @@
 
 ---
 
+## v2.644.0 — 2026-06-13
+
+### 歌詞：黒のみカラーモード追加・点滅廃止・黒カラー追加
+
+- **`public/app.js`**: `_LYRIC_COLORS` に `black: ['#000000']` を追加、全パレットに `#000000` を追加
+- **`public/ageru-boss.html`**: カラーモード選択肢に「⬛ 黒のみ」を追加
+- **`public/style.css`**: beat 点滅アニメーション（`lyrBeatPulse` / `.lyr-beat`）を廃止
+
+---
+
+## v2.643.0 — 2026-06-13
+
+### ボスアゲル設定：フォント指定・歌詞ブラー・静かな演出
+
+- **`public/ageru-boss.html`**: タイマー・HP数値・バトルログ・セリフ・歌詞の各設定セクションにフォント選択を追加（`_BOSS_FONT_OPTS` 共通テンプレート、OBS 対応 Webフォント・カスタムフォント含む）
+- **`public/ageru-boss.html`**: `applyConfigToDOM()` / `collectConfig()` にて各フォント設定（timer.font / hpGauge.numFont / battleLog.font / speech.font / lyricsEffect.font）を読み書き
+- **`public/app.js`**: `_applyBossLayoutConfig()` / `_applyTimerConfig()` でタイマー・HP数値・ログ・セリフにフォントを適用
+- **`public/ageru-boss.html`**: 歌詞フロートエフェクト設定に「ブラー (px)」欄を追加（0〜20px）
+- **`public/app.js`**: `.lyr-outer` に `filter:blur(Xpx)` を適用、`lyricsFloatBlur` / `lyricsFloatFont` state var を追加
+- **`public/style.css`**: 歌詞アニメを全面改定。派手な演出を廃止し、フェード・ドリフト・ブリーズを中心とした7種の出現/6種の消失アニメに変更（出現 1.3〜1.6s、消失 1.8〜2.0s）
+
+---
+
+## v2.642.0 — 2026-06-13
+
+### 歌詞フロートエフェクト・盾キャラ 2倍サイズ＋引っ張りモーション実装
+
+- **`public/app.js`**: `LYRICS_DATA`（65フレーズ、重み付き）定数を追加
+- **`public/app.js`**: `lyricsFloat*` 状態変数群・`_lyricsSpawnLine()` / `startLyricsFloat()` / `stopLyricsFloat()` 関数を追加
+- **`public/app.js`**: `_applyBossLayoutConfig()` にて `config.lyricsEffect` から各設定を読み込み。`startAgruBattle()` / `endAgruBattle()` で開始/停止
+- **`public/style.css`**: `#lyricsFloatContainer` / `.lyr-outer` / `.lyr-inner` スタイル・歌詞アニメを追加
+- **`public/style.css`**: `.agru-battle-log-entry` に `--agru-log-bg-opacity` / `--agru-log-font-size` CSS 変数を適用
+- **`public/app.js`**: `_agruActivateShield()` を改修 — Phase 1（160ms 逆引き 7%）+ Phase 2（`cubic-bezier(0.25,0,0.1,1.45)` バネ、2倍サイズで中央へ）
+
+---
+
 ## v2.631.0 — 2026-06-13
 
 ### ボスアゲルバトル解説セクションをルートの index.html に追加
