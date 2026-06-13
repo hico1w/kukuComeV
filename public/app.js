@@ -13710,3 +13710,10 @@ setInterval(() => {
     document.getElementById('startBtn').click();
   }
 })();
+
+// ── ページ読み込み後1秒で自動開始 ────────────────────────────────
+(function autoStart() {
+  if (new URLSearchParams(location.search).get('obs') === '1') return;
+  if (!localStorage.getItem('apikey')) return;
+  setTimeout(() => document.getElementById('startBtn').click(), 1000);
+})();
