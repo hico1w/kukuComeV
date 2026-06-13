@@ -2,6 +2,31 @@
 
 ---
 
+## v2.649.0 — 2026-06-13
+
+### ボスアゲル 超回復防御中の画像固定化
+
+- **`public/ageru-boss.html`**: 「防御中画像」フィールドを追加（HP別画像セクション直下）。画像選択モーダルに `defense` ターゲット対応を追加
+- **`public/ageru-boss.html`**: `applyConfigToDOM()` / `collectConfig()` に `defenseImage` を追加
+- **`public/app.js`**: `_agruUpdateBossImgByHp()` に `_agruDefenseActive` 中はスキップするガードを追加
+- **`public/app.js`**: `_agruActivateDefense()` で防御開始時に `defenseImage` を設定（空欄時は現在の画像を維持）
+- **`public/app.js`**: 防御タイムアウト終了・`_agruBreakDefense()` 両方で `_agruLastHpBucket = null` してから `_agruUpdateBossImgByHp()` を呼び出し、HP別画像に復帰
+
+---
+
+## v2.648.0 — 2026-06-13
+
+### ボスアゲルバトル: HPゲージ表示改善・早押し非表示
+
+- **`public/style.css`**: `#agruBattleHpCanvas` に `filter: drop-shadow()` を追加。HPゲージ円弧が自然にグロー発光するように変更（タイマーと同様の演出）
+- **`public/style.css`**: `#agruBattleHpNum` の `text-shadow` を削除し、`filter: drop-shadow()` に変更（タイマー `#bossTimerDigits` と同等の多層グロー）。HP低下時の `.boss-hp-low` も同様に更新
+- **`public/app.js`**: `updateAgruBattleHpDisplay()` から `numEl.style.textShadow` の設定を削除（CSS filter に統一）
+- **`public/app.js`**: `startAgruBattle()` でボスバトル開始時に早押し自動タイマーを停止し、既存の早押し要素を削除
+- **`public/app.js`**: `endAgruBattle()` でバトル終了後に早押しタイマーを再開（配信中かつコンパクトモードでない場合）
+- **`public/app.js`**: `startHayaoshi()` / `startHayaoshiAutoWhite()` / `startHayaoshiAutoRed()` に `agruBattleActive` 中はスキップするガードを追加
+
+---
+
 ## v2.647.0 — 2026-06-13
 
 ### admin.html → index.html 通信の全ボタン・スライダー修正

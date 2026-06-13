@@ -5991,12 +5991,10 @@ function updateAgruBattleHpDisplay() {
   if (numEl) {
     _updateHpNumReels(numEl, agruBattleHP.toLocaleString());
     if (pct > 0.25) {
-      numEl.style.color      = '#ffffff';
-      numEl.style.textShadow = '0 0 14px #800020';
+      numEl.style.color = '#ffffff';
       numEl.classList.remove('boss-hp-low');
     } else {
-      numEl.style.color      = '';
-      numEl.style.textShadow = '';
+      numEl.style.color = '';
       numEl.classList.add('boss-hp-low');
     }
   }
@@ -6210,6 +6208,12 @@ function startAgruBattle(maxHP) {
     agruIdle   = true;
     _agruStartShake?.();
   }
+
+  // 早押しを非表示（バトル中は邪魔にならないよう停止）
+  clearTimeout(hayaoshiAutoTimerWhite); hayaoshiAutoTimerWhite = null;
+  clearTimeout(hayaoshiAutoTimerRed);   hayaoshiAutoTimerRed   = null;
+  hayaoshiItems.forEach(it => { clearTimeout(it.timeoutId); if (it.el?.parentNode) it.el.remove(); });
+  hayaoshiItems = [];
 
   // UI 切替（パネル非表示・装備/ステータス/名前 強制表示）
   _agruBattleEnterUI();
@@ -6572,6 +6576,7 @@ function _agruSyncBattleCharImg() {
 
 function _agruUpdateBossImgByHp() {
   if (!agruBattleActive) return;
+  if (_agruDefenseActive) return; // 防御中はHP別画像に切り替えない
   const hpImages = agruBattleConfig?.hpImages;
   if (!hpImages || !Object.values(hpImages).some(Boolean)) return;
   const pct    = agruBattleMaxHP > 0 ? agruBattleHP / agruBattleMaxHP * 100 : 0;
@@ -7401,6 +7406,28 @@ function endAgruBattle(result) {
   const _bubble = document.getElementById('agruBattleSpeechBubble');
   if (_bubble) { _bubble.style.display = 'none'; _bubble.textContent = ''; }
 
+  // 早押しタイマーを再開（ゲーム配信中のみ）
+  if (pollTimer && !compactMode) {
+    if (!hayaoshiAutoTimerWhite) {
+      (function scheduleHayaoshiWhite() {
+        hayaoshiAutoTimerWhite = setTimeout(() => {
+          if (!pollTimer || agruBattleActive) return;
+          startHayaoshiAutoWhite();
+          scheduleHayaoshiWhite();
+        }, hayaoshiFreq);
+      })();
+    }
+    if (!hayaoshiAutoTimerRed) {
+      (function scheduleHayaoshiRed() {
+        hayaoshiAutoTimerRed = setTimeout(() => {
+          if (!pollTimer || agruBattleActive) return;
+          startHayaoshiAutoRed();
+          scheduleHayaoshiRed();
+        }, hayaoshiFreq * 3);
+      })();
+    }
+  }
+
   updateAgruBattleHpDisplay();
   if (result === 'players') {
     // リスナー勝利
@@ -7818,13 +7845,20 @@ function _agruActivateDefense() {
   _agruDefenseActive    = true;
   _agruDefenseDmgAccum  = 0;
   _agruAddSystemMsg('🛡️ 超回復！防御状態に入った…30秒間ほぼ無敵！攻撃をまとめると防御を崩せる！');
-  document.getElementById('agruBattleCharImg')?.classList.add('agru-defense');
+  const battleImg = document.getElementById('agruBattleCharImg');
+  battleImg?.classList.add('agru-defense');
+  // 防御中専用画像に切り替え
+  const defImg = agruBattleConfig?.defenseImage;
+  if (defImg && battleImg) battleImg.src = `/boss/${encodeURIComponent(defImg)}`;
   if (_agruDefenseTimer) clearTimeout(_agruDefenseTimer);
   _agruDefenseTimer = setTimeout(() => {
     if (!_agruDefenseActive) return;
     _agruDefenseActive = false;
     _agruDefenseTimer  = null;
     document.getElementById('agruBattleCharImg')?.classList.remove('agru-defense');
+    // HP別画像に戻す
+    _agruLastHpBucket = null;
+    _agruUpdateBossImgByHp();
     const heal = Math.floor(agruBattleMaxHP * 0.5);
     agruBattleHP = Math.min(agruBattleMaxHP, agruBattleHP + heal);
     updateAgruBattleHpDisplay();
@@ -7837,6 +7871,9 @@ function _agruBreakDefense() {
   _agruDefenseActive = false;
   if (_agruDefenseTimer) { clearTimeout(_agruDefenseTimer); _agruDefenseTimer = null; }
   document.getElementById('agruBattleCharImg')?.classList.remove('agru-defense');
+  // HP別画像に戻す
+  _agruLastHpBucket = null;
+  _agruUpdateBossImgByHp();
 
   _agruGlassShatterEffect();
   new Audio('/sound/boss/' + encodeURIComponent('nc211892_[SE]_盾・鎧が壊れる音・粉砕する音_[高音質].mp3')).play().catch(() => {});
@@ -11888,11 +11925,13 @@ let hayaoshiItems = []; // { type:'white'|'red', keyword, timeoutId } — 複数
 const HAYAOSHI_FALLBACK = ['スター','ライブ','ゲーム','アニメ','サクラ','ハート','カワイイ','スゴイ'];
 
 function startHayaoshi() {
+  if (agruBattleActive) return;
   // ボタン押下：手動で赤を1回流す
   startHayaoshiAutoRed();
 }
 
 function startHayaoshiAutoWhite() {
+  if (agruBattleActive) return;
   const pool = sinjakomeWords.length > 0 ? sinjakomeWords : HAYAOSHI_FALLBACK;
   const keyword = pool[Math.floor(Math.random() * pool.length)];
   const item = { type: 'white', keyword, timeoutId: null, el: null };
@@ -11905,6 +11944,7 @@ function startHayaoshiAutoWhite() {
 }
 
 function startHayaoshiAutoRed() {
+  if (agruBattleActive) return;
   const pool = yojijukugoWords.length > 0 ? yojijukugoWords : HAYAOSHI_FALLBACK;
   const keyword = pool[Math.floor(Math.random() * pool.length)];
   const item = { type: 'red', keyword, timeoutId: null, el: null };

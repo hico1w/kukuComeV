@@ -366,6 +366,16 @@ app.get('/api/boss-images', (req, res) => {
   } catch { res.json({ images: [] }); }
 });
 
+app.get('/api/chara-images', (req, res) => {
+  const dir = path.join(__dirname, 'public', 'chara');
+  try {
+    const files = fs.readdirSync(dir)
+      .filter(f => /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(f))
+      .sort();
+    res.json({ images: files });
+  } catch { res.json({ images: [] }); }
+});
+
 app.get('/api/boss-boshai-images', (req, res) => {
   const dir = path.join(__dirname, 'public', 'boss', 'boshai');
   try {

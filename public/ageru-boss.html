@@ -595,6 +595,19 @@
     <div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">HP別画像（空欄はデフォルト画像にフォールバック）</div>
     <div id="hpImagesWrap"></div>
   </div>
+  <!-- 超回復防御中専用画像 -->
+  <div style="margin-top:10px; border-top:1px solid #334155; padding-top:8px;">
+    <div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">超回復防御中の画像（防御中はHP別画像に切り替わらず、この画像を固定表示）</div>
+    <div class="field-row">
+      <span class="field-label">防御中画像</span>
+      <div class="ageru-img-row" style="flex:1;">
+        <input type="text" class="w-full" id="defenseImage" placeholder="空欄はデフォルト画像をそのまま維持"
+          oninput="_updateDefenseImgPreview(this.value)">
+        <button class="btn-secondary btn-sm" onclick="openBossImgModal('defense')">画像を選ぶ</button>
+        <img class="ageru-img-preview" id="defenseImagePreview" alt="">
+      </div>
+    </div>
+  </div>
   <div class="field-row" style="margin-top:10px;">
     <span class="field-label">バトル開始セリフ</span>
     <input type="text" class="w-full" id="battleStartSpeech" placeholder="バトル開始時のセリフ">
@@ -1687,6 +1700,8 @@ function applyConfigToDOM() {
   document.getElementById('counterInterval').value = config.counterInterval ?? 60;
   document.getElementById('bossDefaultImage').value = config.defaultImage || '';
   if (config.defaultImage) _updateDefaultImgPreview(config.defaultImage);
+  document.getElementById('defenseImage').value = config.defenseImage || '';
+  if (config.defenseImage) _updateDefenseImgPreview(config.defenseImage);
   _buildHpImageRows();
   const hpImgs = config.hpImages || {};
   _HP_IMG_KEYS.forEach(k => {
@@ -1861,7 +1876,8 @@ function collectConfig() {
     maxHP:            parseInt(document.getElementById('maxHP').value) || 1000,
     timeLimit:        parseInt(document.getElementById('timeLimit').value) || 300,
     counterInterval:  parseInt(document.getElementById('counterInterval').value) || 60,
-    defaultImage:      document.getElementById('bossDefaultImage').value.trim(),
+    defaultImage:  document.getElementById('bossDefaultImage').value.trim(),
+    defenseImage:  document.getElementById('defenseImage').value.trim(),
     hpImages: Object.fromEntries(_HP_IMG_KEYS.map(k => [String(k), (document.getElementById('hpImgInput' + k)?.value.trim() || '')])),
     battleStartSpeech: document.getElementById('battleStartSpeech').value.trim(),
     battleWinSpeech:   document.getElementById('battleWinSpeech').value.trim(),
@@ -2596,6 +2612,15 @@ function _updateDefaultImgPreview(val) {
   prev.onerror = () => { prev.style.display = 'none'; };
 }
 
+function _updateDefenseImgPreview(val) {
+  const prev = document.getElementById('defenseImagePreview');
+  if (!prev) return;
+  if (!val) { prev.style.display = 'none'; return; }
+  prev.src = '/boss/' + encodeURIComponent(val);
+  prev.style.display = 'block';
+  prev.onerror = () => { prev.style.display = 'none'; };
+}
+
 // HP別画像行の動的生成
 const _HP_IMG_KEYS = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10];
 const _HP_IMG_LABELS = {
@@ -2652,7 +2677,9 @@ async function openBossImgModal(targetId = null) {
     await loadBossHaiBgImages();
     return;
   }
-  if (targetId) {
+  if (targetId === 'defense') {
+    _bossImgSelectedFile = document.getElementById('defenseImage').value.trim() || null;
+  } else if (targetId) {
     _bossImgSelectedFile = document.getElementById(`image-${targetId}`)?.value.trim() || null;
   } else {
     _bossImgSelectedFile = document.getElementById('bossDefaultImage').value.trim() || null;
@@ -2752,6 +2779,9 @@ function confirmBossImgSelect() {
       document.getElementById('winImage').value = _bossImgSelectedFile;
       const prev = document.getElementById('winImagePreview');
       if (prev) { prev.src = '/boss/' + encodeURIComponent(_bossImgSelectedFile); prev.style.display = 'block'; prev.onerror = () => prev.style.display = 'none'; }
+    } else if (_bossImgTargetId === 'defense') {
+      document.getElementById('defenseImage').value = _bossImgSelectedFile;
+      _updateDefenseImgPreview(_bossImgSelectedFile);
     } else if (typeof _bossImgTargetId === 'string' && _bossImgTargetId.startsWith('hpImg')) {
       // HP別画像
       const key = _bossImgTargetId.slice(5);

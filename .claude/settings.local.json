@@ -27,7 +27,13 @@
       "PowerShell(Get-Process -Name \"tabservicepack\", \"tabmanager\" -ErrorAction SilentlyContinue)",
       "Bash(Get-ChildItem \"e:\\\\claude\\\\kukuCome\\\\public\\\\sound\")",
       "Bash(Select-Object -First 30 Name)",
-      "Bash(node --check e:/claude/kukuCome/public/app.js)"
+      "Bash(node --check e:/claude/kukuCome/public/app.js)",
+      "Bash(awk -F: '$1>140')",
+      "Bash(git checkout *)",
+      "Bash(grep -n \"^    </div>$\" public/index.html)",
+      "Bash(awk -F: '$1>582 && $1<1300')",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
