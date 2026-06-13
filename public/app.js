@@ -7943,13 +7943,15 @@ function _agruBattlePlayEffect(skillId, targets) {
   }
 
   // ボス画像切替（クロスフェード）
+  // 防御中は画像を上書きしない（defenseImage が優先）
+  if (_agruDefenseActive) return;
   const bossDefaultPath = agruBattleConfig?.defaultImage
     ? `/boss/${encodeURIComponent(agruBattleConfig.defaultImage)}`
     : null;
   if (cfg.image) {
     _bossCrossfadeImg(`/boss/${encodeURIComponent(cfg.image)}`, () => {
-      if (bossDefaultPath) {
-        setTimeout(() => { if (agruBattleActive) _bossCrossfadeImg(bossDefaultPath); }, 2000);
+      if (bossDefaultPath && !_agruDefenseActive) {
+        setTimeout(() => { if (agruBattleActive && !_agruDefenseActive) _bossCrossfadeImg(bossDefaultPath); }, 2000);
       }
     });
   } else if (bossDefaultPath) {
