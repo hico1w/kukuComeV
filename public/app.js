@@ -5533,7 +5533,7 @@ document.getElementById('moveAreaSelect')?.addEventListener('change', e => {
 (function initMoveArea() {
   const saved = localStorage.getItem('moveArea') || 'all';
   const sel = document.getElementById('moveAreaSelect');
-  sel.value = saved;
+  if (sel) sel.value = saved;
   moveArea = MOVE_AREA_MAP[saved] || MOVE_AREA_MAP['all'];
 })();
 
@@ -5548,21 +5548,21 @@ document.getElementById('moveAreaSelect')?.addEventListener('change', e => {
   const savedBoss = parseFloat(localStorage.getItem('bossSizeScale') || '1');
   charSizeScale = savedChar;
   bossSizeScale = savedBoss;
-  charSlider.value = Math.round(savedChar * 100);
-  bossSlider.value = Math.round(savedBoss * 100);
-  charVal.textContent = Math.round(savedChar * 100) + '%';
-  bossVal.textContent = Math.round(savedBoss * 100) + '%';
+  if (charSlider) { charSlider.value = Math.round(savedChar * 100); }
+  if (bossSlider) { bossSlider.value = Math.round(savedBoss * 100); }
+  if (charVal) charVal.textContent = Math.round(savedChar * 100) + '%';
+  if (bossVal) bossVal.textContent = Math.round(savedBoss * 100) + '%';
 
-  charSlider.addEventListener('input', () => {
+  charSlider?.addEventListener('input', () => {
     charSizeScale = charSlider.value / 100;
-    charVal.textContent = charSlider.value + '%';
+    if (charVal) charVal.textContent = charSlider.value + '%';
     localStorage.setItem('charSizeScale', charSizeScale);
     saveSettingsToServer();
     Object.values(users).forEach(u => { if (u.el) { applyAvatarStyle(u); renderPetBadge(u); } });
   });
-  bossSlider.addEventListener('input', () => {
+  bossSlider?.addEventListener('input', () => {
     bossSizeScale = bossSlider.value / 100;
-    bossVal.textContent = bossSlider.value + '%';
+    if (bossVal) bossVal.textContent = bossSlider.value + '%';
     localStorage.setItem('bossSizeScale', bossSizeScale);
     saveSettingsToServer();
     if (bossState?.el) {
