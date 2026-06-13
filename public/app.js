@@ -12572,10 +12572,129 @@ _debugBC.onmessage = (e) => {
   }
 };
 
+// ── 管理ウィンドウ ボタン直接ディスパッチ（DOM要素が存在しない場合） ──
+function _adminBtnDispatch(id) {
+  if (id === 'clearStage') {
+    if (brState) { clearTimeout(brState.autoTimer); clearInterval(brState.escalateTimer); brState = null; }
+    Object.values(users).forEach(u => {
+      if (u.el) u.el.remove();
+      if (u.moveTimer)   clearTimeout(u.moveTimer);
+      if (u.walkTimer)   clearTimeout(u.walkTimer);
+      if (u.bubbleTimer) clearTimeout(u.bubbleTimer);
+      if (u.motionTimer) clearTimeout(u.motionTimer);
+    });
+    users = {}; lastCnum = null;
+    emptyHint.classList.remove('hidden');
+  } else if (id === 'toggleLog') {
+    document.getElementById('commentLog')?.classList.toggle('hidden');
+  } else if (id === 'gatherBtn')       { gatherCharacters(); }
+  else if (id === 'gatherBottomBtn')   { gatherCharactersBottom(); }
+  else if (id === 'compactBtn')        { setCompactMode(!compactMode); }
+  else if (id === 'fiveMinBtn')        { setFiveMinMode(!fiveMinMode); }
+  else if (id === 'hayaoshiBtn')       { startHayaoshi(); }
+  else if (id === 'wordleBtn') {
+    const panel = document.getElementById('wordlePanel');
+    if (panel) { panel.remove(); wordleState = null; localStorage.setItem('wordleVisible', '0'); }
+    else if (wordleWords.length > 0)   { localStorage.setItem('wordleVisible', '1'); startWordle(); }
+  } else if (id === 'quizBtn') {
+    if (quizState) stopQuiz(); else if (quizQuestions.length > 0) startQuiz();
+  } else if (id === 'moveLockBtn') {
+    moveLocked = !moveLocked;
+    if (moveLocked) Object.values(users).forEach(u => {
+      u.movement = '止まれ';
+      if (u.moveTimer) { clearTimeout(u.moveTimer); u.moveTimer = null; }
+      if (u.el) u.el.classList.remove('walking');
+    });
+  } else if (id === 'debugBtn') {
+    debugMode = !debugMode;
+    Object.values(users).forEach(u => updateStatsDisplay(u));
+  } else if (id === 'debugMpBtn') {
+    Object.values(users).forEach(u => { u.mp = (u.mp ?? 0) + 30; updateStatsDisplay(u); });
+  } else if (id === 'battleRoyaleBtn') { startBattleRoyale(); }
+  else if (id === 'spikiBossBtn')      { spawnSpikiBoss(); }
+  else if (id === 'dismissBossBtn') {
+    if (!bossState) return;
+    bossManuallyCleared = true;
+    if (bossState.el) {
+      const bx = parseInt(bossState.el.style.left) || 0, by = parseInt(bossState.el.style.top) || 0;
+      localStorage.setItem(panelKey('bossX'), bx); localStorage.setItem(panelKey('bossY'), by);
+      bossLastPos = { x: bx, y: by };
+      bossState.defeated = true;
+      bossState.el.style.transition = 'transform 0.4s ease-in, opacity 0.4s ease-in';
+      bossState.el.style.transform  = 'scale(0) rotate(15deg)';
+      bossState.el.style.opacity    = '0';
+      setTimeout(() => { bossState?.el?.remove(); bossState = null; }, 450);
+    } else { bossState.defeated = true; bossState = null; }
+    document.getElementById('bossSpeech')?.remove();
+  } else if (id === 'stopAllBtn') {
+    Object.values(users).forEach(u => {
+      u.movement = '止まれ';
+      if (u.moveTimer) { clearTimeout(u.moveTimer); u.moveTimer = null; }
+      if (u.el) u.el.style.transition = 'none';
+      stopWalk(u); applyMotion(u, null);
+    });
+  } else if (id === 'brTimerBtn') {
+    brTimerVisible = !brTimerVisible;
+    localStorage.setItem('brTimerVisible', brTimerVisible ? '1' : '0');
+    renderBRTimerPanel();
+  } else if (id === 'brAutoBtn') {
+    brAutoEnabled = !brAutoEnabled;
+  } else if (id === 'slotSoundBtn') {
+    slotSoundEnabled = !slotSoundEnabled;
+    localStorage.setItem('slotSoundEnabled', slotSoundEnabled ? '1' : '0');
+  } else if (id === 'slotAllStartBtn') {
+    Object.values(users).filter(u => u.el && !u.slotAutoMode && !u.slotSpinning).forEach(u => {
+      if ((u.mp ?? 0) < 1) return;
+      u.slotAutoMode = true; u.mp -= 1; updateStatsDisplay(u); playSlot(u);
+    });
+  } else if (id === 'slotAllStopBtn') {
+    Object.values(users).filter(u => u.el).forEach(u => { u.slotAutoMode = false; });
+  } else if (id === 'toggleBombBtn') {
+    bombHidden = !bombHidden;
+    document.getElementById('bombBtn').style.display = bombHidden ? 'none' : '';
+    localStorage.setItem('bombHidden', bombHidden); saveSettingsToServer();
+  } else if (id === 'toggleTrashBtn') {
+    trashHidden = !trashHidden;
+    document.getElementById('trashCan').style.display = trashHidden ? 'none' : '';
+    localStorage.setItem('trashHidden', trashHidden); saveSettingsToServer();
+  } else if (id === 'toggleStatsBtn') {
+    charStatsHidden = !charStatsHidden;
+    document.body.classList.toggle('stats-hidden', charStatsHidden);
+    localStorage.setItem('charStatsHidden', charStatsHidden); saveSettingsToServer();
+  } else if (id === 'toggleBreatheBtn') {
+    breatheDisabled = !breatheDisabled;
+    document.body.classList.toggle('no-breathe', breatheDisabled);
+    localStorage.setItem('breatheDisabled', breatheDisabled); saveSettingsToServer();
+  } else if (id === 'toggleBossFloatBtn') {
+    bossFloatDisabled = !bossFloatDisabled;
+    document.body.classList.toggle('no-boss-float', bossFloatDisabled);
+    localStorage.setItem('bossFloatDisabled', bossFloatDisabled); saveSettingsToServer();
+  } else if (id === 'toggleCharNameBtn') {
+    charNameHidden = !charNameHidden;
+    document.body.classList.toggle('char-name-hidden', charNameHidden);
+    localStorage.setItem('charNameHidden', charNameHidden); saveSettingsToServer();
+  } else if (id === 'toggleNewsTickerBtn') {
+    newsTickerEnabled = !newsTickerEnabled;
+    const ticker = document.getElementById('newsTicker');
+    if (ticker) {
+      if (newsTickerEnabled) { ticker.classList.remove('hidden'); applyNewsTickerSettings(); fetchNewsAndRender(); }
+      else ticker.classList.add('hidden');
+    }
+    localStorage.setItem('newsTickerEnabled', newsTickerEnabled); saveSettingsToServer();
+  } else if (id === 'hideEquipBtn') {
+    equipHidden = !equipHidden;
+    stage.classList.toggle('equip-hidden', equipHidden);
+  } else if (id === 'openImgModal') { openModal(); }
+  else if (id === 'copyObsUrl') {
+    navigator.clipboard.writeText(`${location.origin}/?obs=1`).catch(() => {});
+  }
+}
+
 // ── 管理ウィンドウ（BroadcastChannel + WebSocket） ────────────────────
 function handleAdminMessage(d, replyFn) {
   if (d.type === 'click' && d.id) {
-    document.getElementById(d.id)?.click();
+    const _clickEl = document.getElementById(d.id);
+    if (_clickEl) _clickEl.click(); else _adminBtnDispatch(d.id);
     if (d.id === 'fiveMinBtn') replyFn({ type: 'state', data: { fiveMinMode } });
     if (d.id === 'brAutoBtn')  replyFn({ type: 'state', data: { brAutoEnabled } });
   } else if (d.type === 'slider' && d.id) {
@@ -12625,6 +12744,90 @@ function handleAdminMessage(d, replyFn) {
           ba.style.fontSize = Math.round(dispPx * 0.87) + 'px';
         }
       }
+    } else if (d.id === 'hayaoshiFreqSlider') {
+      hayaoshiFreq = parseInt(d.value) * 1000; localStorage.setItem('hayaoshiFreq', d.value);
+    } else if (d.id === 'hayaoshiSpeedSlider') {
+      hayaoshiSpeed = parseInt(d.value) * 1000; localStorage.setItem('hayaoshiSpeed', d.value);
+    } else if (d.id === 'nikoSizeSlider') {
+      nikoFontSize = parseInt(d.value); localStorage.setItem('nikoFontSize', nikoFontSize);
+    } else if (d.id === 'nikoOpacitySlider') {
+      nikoOpacity = d.value / 100; localStorage.setItem('nikoOpacity', nikoOpacity);
+    } else if (d.id === 'bossHpScaleSlider') {
+      bossHpScale = parseFloat(d.value); localStorage.setItem('bossHpScale', bossHpScale); saveSettingsToServer();
+    } else if (d.id === 'bossAtkCoeffSlider') {
+      bossAtkCoeff = parseInt(d.value); localStorage.setItem('bossAtkCoeff', bossAtkCoeff);
+    } else if (d.id === 'counterRateSlider') {
+      bossCounterRate = d.value / 100; localStorage.setItem('bossCounterRate', bossCounterRate);
+    } else if (d.id === 'brHpMultSlider') {
+      brHpMult = parseInt(d.value); localStorage.setItem('brHpMult', brHpMult); saveSettingsToServer();
+    } else if (d.id === 'taimanHpMultSlider') {
+      taimanHpMult = parseInt(d.value); localStorage.setItem('taimanHpMult', taimanHpMult); saveSettingsToServer();
+    } else if (d.id === 'charSizeSlider') {
+      charSizeScale = d.value / 100; localStorage.setItem('charSizeScale', charSizeScale); saveSettingsToServer();
+      Object.values(users).forEach(u => { if (u.el) { applyAvatarStyle(u); renderPetBadge(u); } });
+    } else if (d.id === 'bossSizeSlider') {
+      bossSizeScale = d.value / 100; localStorage.setItem('bossSizeScale', bossSizeScale); saveSettingsToServer();
+      if (bossState?.el) {
+        const _ba = bossState.el.querySelector('#bossAvatar');
+        if (_ba) {
+          const _newPx = Math.round(200 * bossSizeScale);
+          bossState.origSize = _newPx;
+          const _dispPx = (contentMode && contentModeBossSaved) ? Math.round(_newPx * (contentModeBossSizePct / 100)) : _newPx;
+          if (contentMode && contentModeBossSaved) contentModeBossSaved.px = _newPx;
+          applyBossAvatarAspect(_dispPx);
+        }
+      }
+    } else if (d.id === 'dmgFontScaleSlider') {
+      dmgFontScale = parseInt(d.value); localStorage.setItem('dmgFontScale', dmgFontScale); saveSettingsToServer();
+    } else if (d.id === 'newsTickerWidthSlider') {
+      newsTickerWidth = parseInt(d.value); localStorage.setItem('newsTickerWidth', newsTickerWidth); saveSettingsToServer(); applyNewsTickerSettings();
+    } else if (d.id === 'newsTickerXSlider') {
+      newsTickerX = parseInt(d.value); localStorage.setItem('newsTickerX', newsTickerX); saveSettingsToServer(); applyNewsTickerSettings();
+    } else if (d.id === 'newsTickerYSlider') {
+      newsTickerY = parseInt(d.value); localStorage.setItem('newsTickerY', newsTickerY); saveSettingsToServer(); applyNewsTickerSettings();
+    } else if (d.id === 'newsTickerRowsSlider') {
+      newsTickerRows = parseInt(d.value); localStorage.setItem('newsTickerRows', newsTickerRows); saveSettingsToServer(); renderNewsTicker();
+    } else if (d.id === 'newsTickerFontSlider') {
+      newsTickerFontSize = parseInt(d.value); localStorage.setItem('newsTickerFontSize', newsTickerFontSize); saveSettingsToServer(); applyNewsTickerSettings();
+    } else if (d.id === 'newsTickerBgOpacitySlider') {
+      newsTickerBgOpacity = parseInt(d.value); localStorage.setItem('newsTickerBgOpacity', newsTickerBgOpacity); saveSettingsToServer(); applyNewsTickerSettings();
+    } else if (d.id === 'newsTickerSpeedSlider') {
+      newsTickerSpeed = parseInt(d.value); localStorage.setItem('newsTickerSpeed', newsTickerSpeed); saveSettingsToServer();
+      applyNewsTickerSettings(); if (newsTickerEnabled) renderNewsTicker();
+    } else if (d.id === 'newsTickerIntervalSlider') {
+      newsTickerInterval = parseInt(d.value); localStorage.setItem('newsTickerInterval', newsTickerInterval); saveSettingsToServer();
+      applyNewsTickerSettings(); if (newsTickerEnabled && newsTickerMode === 'slide') renderNewsTicker();
+    } else if (d.id === 'wordlePanelWidthSlider') {
+      wordlePanelWidth = parseInt(d.value); localStorage.setItem('wordlePanelWidth', wordlePanelWidth); saveSettingsToServer(); applyPanelSettings();
+    } else if (d.id === 'wordlePanelBgSlider') {
+      wordlePanelBgOpacity = parseInt(d.value); localStorage.setItem('wordlePanelBgOpacity', wordlePanelBgOpacity); saveSettingsToServer(); applyPanelSettings();
+    } else if (d.id === 'rankingPanelBgSlider') {
+      rankingPanelBgOpacity = parseInt(d.value); localStorage.setItem('rankingPanelBgOpacity', rankingPanelBgOpacity); saveSettingsToServer(); applyPanelSettings();
+    } else if (d.id === 'quizPanelBgSlider') {
+      quizPanelBgOpacity = parseInt(d.value); localStorage.setItem('quizPanelBgOpacity', quizPanelBgOpacity); saveSettingsToServer(); applyPanelSettings();
+    } else if (d.id === 'afkOpacitySlider') {
+      afkOpacity = parseInt(d.value); localStorage.setItem('afkOpacity', afkOpacity);
+      document.documentElement.style.setProperty('--afk-opacity', afkOpacity / 100);
+    } else if (d.id === 'afkGrayscaleSlider') {
+      afkGrayscale = parseInt(d.value); localStorage.setItem('afkGrayscale', afkGrayscale);
+      document.documentElement.style.setProperty('--afk-grayscale', afkGrayscale / 100);
+    } else if (d.id === 'afkBrightnessSlider') {
+      afkBrightness = parseInt(d.value); localStorage.setItem('afkBrightness', afkBrightness);
+      document.documentElement.style.setProperty('--afk-brightness', afkBrightness / 100);
+    } else if (d.id === 'kaiSpeedSlider') {
+      kaiSpeed = parseInt(d.value); localStorage.setItem('kaiSpeed', kaiSpeed);
+    } else if (d.id === 'kaiRestitutionSlider') {
+      kaiRestitution = d.value / 100; localStorage.setItem('kaiRestitution', d.value);
+    } else if (d.id === 'kaiGravitySlider') {
+      kaiGravity = d.value / 100; localStorage.setItem('kaiGravity', d.value);
+    } else if (d.id === 'kaiBulletSizeSlider') {
+      kaiBulletSize = parseInt(d.value); localStorage.setItem('kaiBulletSize', kaiBulletSize);
+    } else if (d.id === 'autoDeleteMinutesSlider') {
+      autoDeleteMinutes = parseInt(d.value) || 0; localStorage.setItem('autoDeleteMinutes', autoDeleteMinutes); saveSettingsToServer();
+    } else if (d.id === 'seVolumeSlider') {
+      seVolume = parseFloat(d.value); localStorage.setItem('seVolume', seVolume); saveSettingsToServer();
+    } else if (d.id === 'voiceVolumeSlider') {
+      voiceVolume = parseFloat(d.value); localStorage.setItem('voiceVolume', voiceVolume); saveSettingsToServer();
     }
   } else if (d.type === 'select' && d.id) {
     const el = document.getElementById(d.id);
@@ -12734,6 +12937,41 @@ function handleAdminMessage(d, replyFn) {
     state.autoReplyMessages = JSON.stringify(autoReplyMessages);
     state.fiveMinMode   = fiveMinMode;
     state.brAutoEnabled = brAutoEnabled;
+    // DOM要素がないスライダーの現在値をJS変数から設定
+    state.hayaoshiFreqSlider    = hayaoshiFreq / 1000;
+    state.hayaoshiSpeedSlider   = hayaoshiSpeed / 1000;
+    state.nikoSizeSlider        = nikoFontSize;
+    state.nikoOpacitySlider     = Math.round(nikoOpacity * 100);
+    state.bossHpScaleSlider     = bossHpScale;
+    state.bossAtkCoeffSlider    = bossAtkCoeff;
+    state.counterRateSlider     = Math.round(bossCounterRate * 100);
+    state.brHpMultSlider        = brHpMult;
+    state.taimanHpMultSlider    = taimanHpMult;
+    state.charSizeSlider        = Math.round(charSizeScale * 100);
+    state.bossSizeSlider        = Math.round(bossSizeScale * 100);
+    state.dmgFontScaleSlider    = dmgFontScale;
+    state.newsTickerWidthSlider    = newsTickerWidth;
+    state.newsTickerXSlider        = newsTickerX;
+    state.newsTickerYSlider        = newsTickerY;
+    state.newsTickerRowsSlider     = newsTickerRows;
+    state.newsTickerFontSlider     = newsTickerFontSize;
+    state.newsTickerBgOpacitySlider = newsTickerBgOpacity;
+    state.newsTickerSpeedSlider    = newsTickerSpeed;
+    state.newsTickerIntervalSlider = newsTickerInterval;
+    state.wordlePanelWidthSlider   = wordlePanelWidth;
+    state.wordlePanelBgSlider      = wordlePanelBgOpacity;
+    state.rankingPanelBgSlider     = rankingPanelBgOpacity;
+    state.quizPanelBgSlider        = quizPanelBgOpacity;
+    state.afkOpacitySlider         = afkOpacity;
+    state.afkGrayscaleSlider       = afkGrayscale;
+    state.afkBrightnessSlider      = afkBrightness;
+    state.kaiSpeedSlider           = kaiSpeed;
+    state.kaiRestitutionSlider     = Math.round(kaiRestitution * 100);
+    state.kaiGravitySlider         = Math.round(kaiGravity * 100);
+    state.kaiBulletSizeSlider      = kaiBulletSize;
+    state.autoDeleteMinutesSlider  = autoDeleteMinutes;
+    state.moveArea  = localStorage.getItem('moveArea') || 'all';
+    state.bgColor   = localStorage.getItem('bgColor')  || '#00FF00';
     replyFn({ type: d.type === 'ping' ? 'pong' : 'state', data: state });
   } else if (d.type === 'autoReplyConfig') {
     if (Array.isArray(d.words))    { autoReplyWords    = d.words;    localStorage.setItem('autoReplyWords',    JSON.stringify(d.words));    }

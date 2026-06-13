@@ -2,6 +2,18 @@
 
 ---
 
+## v2.647.0 — 2026-06-13
+
+### admin.html → index.html 通信の全ボタン・スライダー修正
+
+管理パネルを admin.html に分離したことで DOM 要素が index.html から消え、BroadcastChannel 経由の操作がすべて無効になっていた問題を修正。
+
+- **`public/app.js`**: `_adminBtnDispatch()` 関数を追加。`handleAdminMessage` の `type:'click'` で DOM 要素が見つからない場合に直接 JS 関数を呼ぶ（clearStage・gatherBtn・hayaoshiBtn・battleRoyaleBtn・toggle系など全 30 ボタン対応）
+- **`public/app.js`**: `type:'slider'` ハンドラに DOM 要素がない場合の直接変数更新を追加（hayaoshiFreq/Speed・nikoSize/Opacity・bossHpScale/AtkCoeff・counterRate・brHpMult・taimanHpMult・charSize・bossSize・dmgFontScale・newsTicker系・panel系・afk系・kai系・autoDeleteMinutes・seVolume・voiceVolume）
+- **`public/app.js`**: `getState` レスポンスにすべての欠落スライダー値を JS 変数から設定するよう追加（admin.html 初期値の正しい同期）
+
+---
+
 ## v2.646.0 — 2026-06-13
 
 ### app.js：管理モーダル削除後のnull参照クラッシュを修正
