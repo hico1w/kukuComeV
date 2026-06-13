@@ -9871,23 +9871,8 @@ document.getElementById('batchAssignAll').addEventListener('click', () => {
   refreshAllAvatars();
   renderCharSlots();
 });
-document.getElementById('openImgModal').addEventListener('click', () => { document.getElementById('adminModal').classList.add('hidden'); document.getElementById('adminBtn').classList.remove('active'); openModal(); });
+document.getElementById('openImgModal').addEventListener('click', () => openModal());
 document.getElementById('closeModal').addEventListener('click',  () => { document.getElementById('imageModal').classList.add('hidden'); });
-
-// 管理モーダル
-const adminModal = document.getElementById('adminModal');
-const adminBtn   = document.getElementById('adminBtn');
-adminBtn.addEventListener('click', () => {
-  const open = adminModal.classList.toggle('hidden');
-  adminBtn.classList.toggle('active', !adminModal.classList.contains('hidden'));
-});
-document.getElementById('closeAdminModal').addEventListener('click', () => {
-  adminModal.classList.add('hidden');
-  adminBtn.classList.remove('active');
-});
-adminModal.addEventListener('click', e => {
-  if (e.target === adminModal) { adminModal.classList.add('hidden'); adminBtn.classList.remove('active'); }
-});
 document.getElementById('reloadImages').addEventListener('click', async () => { await loadImageList(); renderImageGrid(); renderCharSlots(); });
 document.getElementById('imageModal').addEventListener('click', e => {
   if (e.target === document.getElementById('imageModal')) document.getElementById('imageModal').classList.add('hidden');

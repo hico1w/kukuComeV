@@ -2,6 +2,18 @@
 
 ---
 
+## v2.645.0 — 2026-06-13
+
+### メインページから管理パネルボタン・ヘルプセクションを削除
+
+- **`public/index.html`**: `#adminBtn`（⚙️ 管理）ボタンを設定バーから削除
+- **`public/index.html`**: `#adminModal`（管理パネルモーダル、全設定グループ含む）を削除
+- **`public/index.html`**: `#emptyHint` 内のヘルプコンテンツ（開始ボタン案内・コマンド生成・基本コマンド・ゲーム等タブ）を削除。`#emptyHint` div 自体は app.js の表示制御のため残存
+- **`public/index.html`**: `CmdGen` / `switchHintTab` インラインスクリプトを削除
+- **`public/app.js`**: `adminModal` / `adminBtn` / `closeAdminModal` 関連イベントリスナーを削除
+
+---
+
 ## v2.644.0 — 2026-06-13
 
 ### 歌詞：黒のみカラーモード追加・点滅廃止・黒カラー追加
