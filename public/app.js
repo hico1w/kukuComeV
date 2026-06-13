@@ -6368,7 +6368,7 @@ function _lyricsSpawnLine() {
   const outer = document.createElement('div');
   outer.className = 'lyr-outer';
   const outerBlur = lyricsFloatBlur > 0 ? `filter:blur(${lyricsFloatBlur}px);` : '';
-  outer.style.cssText = `left:${x}px;top:${y}px;transform:rotate(${angle}deg);${outerBlur}`;
+  outer.style.cssText = `left:${x}px;top:${y}px;transform:rotate(${angle}deg);opacity:${lyricsFloatOpacity / 100};${outerBlur}`;
   const inner = document.createElement('div');
   inner.className = 'lyr-inner ' + inA;
   inner.style.cssText = [
@@ -6378,7 +6378,6 @@ function _lyricsSpawnLine() {
     lyricsFloatFont ? `font-family:${lyricsFloatFont}` : '',
     `text-shadow:0 2px 12px rgba(0,0,0,.9),0 0 24px ${color}66`,
     `white-space:nowrap`,
-    `opacity:${lyricsFloatOpacity / 100}`,
     `line-height:1.15`,
     `letter-spacing:-0.01em`,
   ].filter(Boolean).join(';');
