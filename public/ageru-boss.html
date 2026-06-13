@@ -443,6 +443,18 @@
     .sound-item.selected { background: #1d3a5f; }
     .sound-item-path { flex: 1; font-size: 11px; color: #94a3b8; font-family: monospace; }
 
+    /* アゲル画像プレビュー */
+    .ageru-img-row { display: flex; align-items: center; gap: 8px; }
+    .ageru-img-preview {
+      width: 48px; height: 48px;
+      object-fit: contain;
+      border-radius: 6px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      flex-shrink: 0;
+      display: none;
+    }
+
     /* スクロールバー */
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -478,6 +490,47 @@
   </div>
 </div>
 
+<!-- アゲル画像選択モーダル -->
+<!-- ボス画像選択モーダル (public/boss) -->
+<div class="modal-bg" id="bossImgModal">
+  <div class="modal">
+    <h3>ボス画像を選択</h3>
+    <div class="modal-body">
+      <div class="image-grid" id="bossImgGrid">
+        <div style="color:#475569;font-size:12px;grid-column:1/-1;padding:20px 0;text-align:center;">
+          読み込み中...
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeBossImgModal()">キャンセル</button>
+      <button class="btn-primary" onclick="confirmBossImgSelect()">選択</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="agruImgModal">
+  <div class="modal">
+    <h3>アゲル画像を選択</h3>
+    <div class="modal-body">
+      <div class="field-row" style="gap:8px;">
+        <span class="field-label narrow">フォルダ</span>
+        <select class="sel w-full" id="agruImgFolderSel"></select>
+        <button class="btn-secondary btn-sm" onclick="loadAgruImages()">読み込み</button>
+      </div>
+      <div class="image-grid" id="agruImgGrid">
+        <div style="color:#475569;font-size:12px;grid-column:1/-1;padding:20px 0;text-align:center;">
+          フォルダを選んで「読み込み」を押してください
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeAgruImgModal()">キャンセル</button>
+      <button class="btn-primary" onclick="confirmAgruImgSelect()">選択</button>
+    </div>
+  </div>
+</div>
+
 <!-- サウンド選択モーダル -->
 <div class="modal-bg" id="soundModal">
   <div class="modal">
@@ -500,6 +553,16 @@
   <button class="btn-save-all" onclick="saveAll()">全体保存</button>
 </div>
 
+<!-- バトル操作 -->
+<div class="section">
+  <div class="section-title">バトル操作</div>
+  <div class="field-row" style="gap:10px">
+    <button class="btn-battle-start" onclick="bossBattleStart()" style="flex:1;padding:10px 0;font-size:14px;font-weight:800;background:#7f1d1d;color:#fca5a5;border:1px solid #b91c1c;border-radius:8px;cursor:pointer;transition:filter 0.12s">⚔️ バトル開始</button>
+    <button class="btn-battle-end" onclick="bossBattleEnd()" style="padding:10px 18px;font-size:13px;font-weight:700;background:#1e293b;color:#94a3b8;border:1px solid #475569;border-radius:8px;cursor:pointer;transition:filter 0.12s">強制終了</button>
+  </div>
+  <div id="battleOpStatus" style="font-size:11px;color:#475569;margin-top:6px;min-height:16px"></div>
+</div>
+
 <!-- 基本設定 -->
 <div class="section">
   <div class="section-title">バトル基本設定</div>
@@ -517,6 +580,383 @@
     <span class="field-label">カウンター間隔</span>
     <input type="number" class="w100" id="counterInterval" min="1" value="60">
     <span class="field-hint">秒（自動攻撃間隔）</span>
+  </div>
+  <div class="field-row" style="margin-top:10px;">
+    <span class="field-label">デフォルト画像</span>
+    <div class="ageru-img-row" style="flex:1;">
+      <input type="text" class="w-full" id="bossDefaultImage" placeholder="フォルダ名/ファイル名.png（省略時は会話モードの画像）"
+        oninput="_updateDefaultImgPreview(this.value)">
+      <button class="btn-secondary btn-sm" onclick="openBossImgModal()">画像を選ぶ</button>
+      <img class="ageru-img-preview" id="bossDefaultImagePreview" alt="">
+    </div>
+  </div>
+  <!-- HP別画像 (10%刻み) -->
+  <div style="margin-top:10px; border-top:1px solid #334155; padding-top:8px;">
+    <div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">HP別画像（空欄はデフォルト画像にフォールバック）</div>
+    <div id="hpImagesWrap"></div>
+  </div>
+  <div class="field-row" style="margin-top:10px;">
+    <span class="field-label">バトル開始セリフ</span>
+    <input type="text" class="w-full" id="battleStartSpeech" placeholder="バトル開始時のセリフ">
+  </div>
+  <div class="field-row">
+    <span class="field-label">リスナー勝利セリフ</span>
+    <input type="text" class="w-full" id="battleWinSpeech" placeholder="討伐された時のセリフ">
+  </div>
+  <div class="field-row">
+    <span class="field-label">アゲル勝利セリフ</span>
+    <input type="text" class="w-full" id="battleLoseSpeech" placeholder="全員倒した時のセリフ">
+  </div>
+</div>
+
+<!-- キャラ削除エフェクト -->
+<div class="section">
+  <div class="section-title">キャラ削除エフェクト</div>
+  <div style="font-size:12px;color:#94a3b8;margin-bottom:10px;">キャラが削除（セーブデータ消去）される際に再生されるスプライトエフェクト。</div>
+  <div class="sprite-picker">
+    <div class="sprite-picker-row">
+      <input type="text" style="flex:1;" id="deleteSpritePath" placeholder="フォルダ名/ファイル名.png">
+      <button class="btn-secondary btn-sm" onclick="openSpriteModal('__delete__', 'target')">Spriteを選ぶ</button>
+    </div>
+    <div class="sprite-grid">
+      <div class="sprite-cell"><label>cols</label><input type="number" id="deleteSpriteCols" min="1" value="5"></div>
+      <div class="sprite-cell"><label>rows</label><input type="number" id="deleteSpriteRows" min="1" value="4"></div>
+      <div class="sprite-cell"><label>frames</label><input type="number" id="deleteSpriteFrameCount" min="1" value="20"></div>
+      <div class="sprite-cell"><label>fps</label><input type="number" id="deleteSpriteFps" min="1" value="10"></div>
+      <div class="sprite-cell"><label>サイズ(px)</label><input type="number" id="deleteSpriteSizeVal" min="1" value="200"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn-secondary btn-sm" onclick="previewDeleteSprite()">▶ プレビュー</button>
+    </div>
+    <div id="deleteSpriteCanvasWrap" style="display:none;margin-top:8px;width:fit-content;border:1px solid #334155;border-radius:6px;overflow:hidden">
+      <canvas id="deleteSpriteCanvas"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- 終了演出設定 -->
+<div class="section">
+  <div class="section-title">終了演出設定</div>
+  <div style="font-size:12px;color:#94a3b8;margin-bottom:10px;">リスナー勝利時に全画面表示する画像と、消滅させるアゲル系キャラを設定します。</div>
+  <div class="field-row">
+    <span class="field-label">リスナー勝利画像</span>
+    <div style="display:flex;gap:6px;flex:1;align-items:center">
+      <input type="text" class="w-full" id="winImage" placeholder="boss/win.png">
+      <button class="btn-secondary btn-sm" onclick="openBossImgModal('winImg')">画像を選ぶ</button>
+      <img id="winImagePreview" alt="" style="height:36px;border-radius:4px;display:none;object-fit:contain;max-width:60px">
+    </div>
+  </div>
+  <div style="margin-top:14px">
+    <div class="skill-subsection-title">アゲル系キャラ（リスナー勝利時に消滅するキャラのファイル名リスト）</div>
+    <div style="font-size:11px;color:#64748b;margin-bottom:8px;">登録した画像ファイル名と一致するキャラが勝利時に消滅します。</div>
+    <div id="agruTypeImgList"></div>
+    <button class="btn-secondary btn-sm" style="margin-top:6px" onclick="_addAgruTypeImg()">＋ 追加</button>
+  </div>
+</div>
+
+<!-- BGM設定 -->
+<div class="section">
+  <div class="section-title">バトルBGM</div>
+  <div class="field-row">
+    <span class="field-label">BGMファイル</span>
+    <div style="display:flex;gap:6px;flex:1">
+      <input type="text" id="bgmPath" class="w-full" placeholder="battle/boss.mp3">
+      <button class="btn-secondary btn-sm" onclick="openSoundModal('__bgm__')">音を選ぶ</button>
+      <button class="btn-play btn-sm" onclick="playBgmPreview()">▶</button>
+    </div>
+  </div>
+  <div class="field-row">
+    <span class="field-label">音量</span>
+    <input type="range" id="bgmVolume" min="0" max="100" value="70" style="flex:1">
+    <span id="bgmVolumeLabel" style="min-width:36px;text-align:right">70</span>
+  </div>
+</div>
+
+<!-- タイマー設定 -->
+<div class="section">
+  <div class="section-title">タイマー表示設定</div>
+  <div class="field-row">
+    <span class="field-label">X位置 (px)</span>
+    <input type="number" class="w100" id="timerX" placeholder="中央">
+    <span style="color:#64748b;font-size:12px;margin-left:4px">空欄=中央</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">Y位置 (px)</span>
+    <input type="number" class="w100" id="timerY" value="12">
+  </div>
+  <div class="field-row">
+    <span class="field-label">文字サイズ (px)</span>
+    <input type="number" class="w100" id="timerSize" value="88">
+  </div>
+  <div class="field-row">
+    <span class="field-label">表示レイヤー</span>
+    <label class="toggle-wrap" style="gap:10px">
+      <label class="toggle">
+        <input type="checkbox" id="timerBehindBoss">
+        <span class="toggle-track"></span>
+      </label>
+      <span style="font-size:12px;color:#94a3b8">ボス画像の後ろに表示</span>
+    </label>
+  </div>
+</div>
+
+<!-- ボスキャラ表示設定 -->
+<div class="section">
+  <div class="section-title">ボスキャラ表示設定</div>
+  <div class="field-row">
+    <span class="field-label">X位置 (px)</span>
+    <input type="number" class="w100" id="bossCharX" placeholder="中央">
+    <span style="color:#64748b;font-size:12px;margin-left:4px">空欄=中央</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">Y位置 (px, 下から)</span>
+    <input type="number" class="w100" id="bossCharY" value="0">
+  </div>
+  <div class="field-row">
+    <span class="field-label">スケール (%)</span>
+    <input type="number" class="w100" id="bossCharScale" value="100" min="10" max="300">
+  </div>
+</div>
+
+<!-- HPゲージ表示設定 -->
+<div class="section">
+  <div class="section-title">HPゲージ表示設定</div>
+  <div class="field-row">
+    <span class="field-label">X位置 (px)</span>
+    <input type="number" class="w100" id="hpGaugeX" placeholder="中央">
+    <span style="color:#64748b;font-size:12px;margin-left:4px">空欄=中央</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">Y位置 (px, 下から)</span>
+    <input type="number" class="w100" id="hpGaugeY" value="16">
+  </div>
+  <div class="field-row">
+    <span class="field-label">サイズ (px)</span>
+    <input type="number" class="w100" id="hpGaugeWidth" value="200">
+    <span style="color:#64748b;font-size:12px;margin-left:4px">円の直径</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">太さ (%)</span>
+    <input type="number" class="w100" id="hpGaugeThick" value="11.5" min="1" max="50" step="0.5">
+    <span style="color:#64748b;font-size:12px;margin-left:4px">円サイズ比</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">ギャップ (°)</span>
+    <input type="number" class="w100" id="hpGaugeGap" value="90" min="5" max="270">
+    <span style="color:#64748b;font-size:12px;margin-left:4px">欠け角度</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">ギャップ方向</span>
+    <select id="hpGaugeGapDir" class="w100">
+      <option value="bottom">下</option>
+      <option value="right">右</option>
+      <option value="top">上</option>
+      <option value="left">左</option>
+    </select>
+  </div>
+  <div style="margin:8px 0 4px;font-size:11px;color:#64748b;font-weight:600;letter-spacing:.05em">HP数値</div>
+  <div class="field-row">
+    <span class="field-label">X位置 (px)</span>
+    <input type="number" class="w100" id="hpGaugeNumX" placeholder="中央">
+  </div>
+  <div class="field-row">
+    <span class="field-label">Y位置 (px, 下から)</span>
+    <input type="number" class="w100" id="hpGaugeNumY" placeholder="バー中心">
+  </div>
+  <div class="field-row">
+    <span class="field-label">文字サイズ (px)</span>
+    <input type="number" class="w100" id="hpGaugeNumSize" placeholder="自動">
+  </div>
+  <div class="field-row">
+    <span class="field-label">表示レイヤー</span>
+    <label class="toggle-wrap" style="gap:10px">
+      <label class="toggle">
+        <input type="checkbox" id="hpGaugeBehindBoss">
+        <span class="toggle-track"></span>
+      </label>
+      <span style="font-size:12px;color:#94a3b8">ボス画像の後ろに表示</span>
+    </label>
+  </div>
+</div>
+
+<!-- バトルログ表示設定 -->
+<div class="section">
+  <div class="section-title">バトルログ表示設定</div>
+  <div class="field-row">
+    <span class="field-label">X位置 (px, 右から)</span>
+    <input type="number" class="w100" id="battleLogX" value="16">
+  </div>
+  <div class="field-row">
+    <span class="field-label">Y位置 (px, 上から)</span>
+    <input type="number" class="w100" id="battleLogY" value="16">
+  </div>
+  <div class="field-row">
+    <span class="field-label">幅 (px)</span>
+    <input type="number" class="w100" id="battleLogWidth" value="260">
+  </div>
+</div>
+
+<!-- セリフ表示設定 -->
+<div class="section">
+  <div class="section-title">セリフ表示設定</div>
+  <div class="field-row">
+    <span class="field-label">X位置 (px)</span>
+    <input type="number" class="w100" id="speechX" placeholder="中央">
+    <span style="color:#64748b;font-size:12px;margin-left:4px">空欄=中央</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">Y位置 (px, 上から)</span>
+    <input type="number" class="w100" id="speechY" value="40">
+  </div>
+  <div class="field-row">
+    <span class="field-label">幅 (px)</span>
+    <input type="number" class="w100" id="speechWidth" value="500">
+  </div>
+</div>
+
+<!-- 幾何学エフェクト設定 -->
+<div class="section">
+  <div class="section-title">幾何学エフェクト設定（パーティクル・ポリゴン）</div>
+  <div class="field-row">
+    <span class="field-label">パーティクル形状</span>
+    <select id="geoShape">
+      <option value="triangle">三角形</option>
+      <option value="star">星形 ★</option>
+    </select>
+    <span class="field-hint">即時反映</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">パーティクル数 前景 (FG)</span>
+    <input type="number" class="w80" id="geoTriFG" value="41" min="0" max="200">
+    <span class="field-hint">バトル開始時に反映</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">パーティクル数 背景 (BG)</span>
+    <input type="number" class="w80" id="geoTriBG" value="16" min="0" max="200">
+    <span class="field-hint">バトル開始時に反映</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">全帯域 スムージング</span>
+    <input type="range" id="geoAudioSmooth" min="0" max="0.99" step="0.01" value="0.60" style="flex:1" oninput="document.getElementById('geoAudioSmoothV').textContent=parseFloat(this.value).toFixed(2)">
+    <span id="geoAudioSmoothV" style="min-width:36px;text-align:right">0.60</span>
+    <span class="field-hint">高いほど鈍感</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">低域 スムージング</span>
+    <input type="range" id="geoBassSmooth" min="0" max="0.99" step="0.01" value="0.50" style="flex:1" oninput="document.getElementById('geoBassSmSmoothV').textContent=parseFloat(this.value).toFixed(2)">
+    <span id="geoBassSmSmoothV" style="min-width:36px;text-align:right">0.50</span>
+    <span class="field-hint">高いほど鈍感</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">線幅 ポリゴン</span>
+    <input type="range" id="geoLineWidthPoly" min="0" max="10" step="0.5" value="2" style="flex:1" oninput="document.getElementById('geoLineWidthPolyV').textContent=parseFloat(this.value).toFixed(1)">
+    <span id="geoLineWidthPolyV" style="min-width:36px;text-align:right">2.0</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">線幅 ウェブ</span>
+    <input type="range" id="geoLineWidthWeb" min="0" max="10" step="0.5" value="1.2" style="flex:1" oninput="document.getElementById('geoLineWidthWebV').textContent=parseFloat(this.value).toFixed(1)">
+    <span id="geoLineWidthWebV" style="min-width:36px;text-align:right">1.2</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">線幅 リサジュー</span>
+    <input type="range" id="geoLineWidthLissajous" min="0" max="10" step="0.5" value="1.5" style="flex:1" oninput="document.getElementById('geoLineWidthLissajousV').textContent=parseFloat(this.value).toFixed(1)">
+    <span id="geoLineWidthLissajousV" style="min-width:36px;text-align:right">1.5</span>
+  </div>
+</div>
+
+<!-- ノイズエフェクト設定 -->
+<div class="section">
+  <div class="section-title">ノイズエフェクト設定（低域音反応）</div>
+  <div class="field-row">
+    <span class="field-label">発動閾値</span>
+    <input type="range" id="noiseThreshold" min="0" max="0.99" step="0.01" value="0.45" style="flex:1" oninput="document.getElementById('noiseThresholdV').textContent=parseFloat(this.value).toFixed(2)">
+    <span id="noiseThresholdV" style="min-width:36px;text-align:right">0.45</span>
+    <span class="field-hint">高いほど大音量のみ反応</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">色収差強度</span>
+    <input type="range" id="noiseCA" min="0" max="50" step="1" value="14" style="flex:1" oninput="document.getElementById('noiseCAV').textContent=this.value">
+    <span id="noiseCAV" style="min-width:36px;text-align:right">14</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">ジッター X 強度</span>
+    <input type="range" id="noiseJitterX" min="0" max="100" step="1" value="38" style="flex:1" oninput="document.getElementById('noiseJitterXV').textContent=this.value">
+    <span id="noiseJitterXV" style="min-width:36px;text-align:right">38</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">ジッター Y 強度</span>
+    <input type="range" id="noiseJitterY" min="0" max="50" step="1" value="4" style="flex:1" oninput="document.getElementById('noiseJitterYV').textContent=this.value">
+    <span id="noiseJitterYV" style="min-width:36px;text-align:right">4</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">明るさ係数</span>
+    <input type="range" id="noiseBrightness" min="0" max="2" step="0.05" value="0.55" style="flex:1" oninput="document.getElementById('noiseBrightnessV').textContent=parseFloat(this.value).toFixed(2)">
+    <span id="noiseBrightnessV" style="min-width:36px;text-align:right">0.55</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">コントラスト係数</span>
+    <input type="range" id="noiseContrast" min="0" max="2" step="0.05" value="0.35" style="flex:1" oninput="document.getElementById('noiseContrastV').textContent=parseFloat(this.value).toFixed(2)">
+    <span id="noiseContrastV" style="min-width:36px;text-align:right">0.35</span>
+  </div>
+</div>
+
+<!-- ぷるぷる設定 -->
+<div class="section">
+  <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">
+    <span>ぷるぷる設定（ボスアゲル画像）</span>
+    <button class="btn-secondary btn-sm" onclick="loadBossImagesForPuru()">🔄 更新</button>
+  </div>
+  <div id="bossPuruImgGrid" style="display:flex;flex-wrap:wrap;gap:5px;max-height:200px;overflow-y:auto;padding:4px;background:#0d1117;border:1px solid #334155;border-radius:4px;margin-bottom:8px">
+    <span style="color:#64748b;font-size:11px;padding:8px">「更新」を押すと画像が表示されます</span>
+  </div>
+  <div id="bossPuruPanel" style="display:none;gap:12px;align-items:flex-start;flex-wrap:wrap">
+    <div style="flex-shrink:0">
+      <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center">
+        <button class="btn-secondary btn-sm" id="bossPuruShowPtsBtn" onclick="toggleBossPuruShowPoints()">Pポイント 表示</button>
+        <span style="font-size:11px;color:#64748b">キャンバス上でPポイントをドラッグ移動</span>
+      </div>
+      <div style="position:relative;background:#0d1117;border:1px solid #334155;border-radius:6px;overflow:hidden;line-height:0">
+        <img id="bossPuruPreviewImg" src="" style="display:block;height:640px;width:auto;object-fit:contain">
+        <canvas id="bossPuruPreviewCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;display:block;cursor:crosshair"></canvas>
+      </div>
+    </div>
+    <div style="flex:1;min-width:300px;max-height:340px;overflow-y:auto">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="bossPuruEnabled" onchange="syncBossPuruConfig()">
+          <span style="font-size:13px">ぷるぷるを有効にする</span>
+        </label>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:11px;color:#94a3b8">グリッドサイズ</span>
+        <input type="range" id="bossPuruGrid" min="6" max="24" value="12" oninput="document.getElementById('bossPuruGridVal').textContent=this.value;syncBossPuruConfig()" style="width:120px">
+        <span id="bossPuruGridVal" style="font-size:12px;min-width:18px">12</span>
+      </div>
+      <div id="bossPuruPointsWrap" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- バトル背景設定 -->
+<div class="section">
+  <div class="section-title">バトル背景設定</div>
+  <div class="field-row">
+    <span class="field-label">背景画像</span>
+    <div class="ageru-img-row" style="flex:1;">
+      <input type="text" class="w-full" id="bgImage" placeholder="/boss/boshai/ファイル名.png（省略可）" oninput="_updateBgPreview(this.value)">
+      <button class="btn-secondary btn-sm" onclick="openBossImgModal('bg')">画像を選ぶ</button>
+      <img class="ageru-img-preview" id="bgImagePreview" alt="">
+    </div>
+  </div>
+  <div class="field-row">
+    <span class="field-label">ブラー強度</span>
+    <input type="number" class="w100" id="bgBlur" min="0" max="20" value="4">
+    <span class="field-hint">px（0=なし）</span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">背景色</span>
+    <input type="text" class="w100" id="bgColor" placeholder="#1e293b">
+    <span class="field-hint">画像がない場合に使用</span>
   </div>
 </div>
 
@@ -542,18 +982,21 @@
 // スキル定義
 // ────────────────────────────────────────────────────────────────────
 const SKILL_DEFS = [
-  { id: 'normal',       name: '通常攻撃',    defaultWeights: [60,50,40,30] },
-  { id: 'focus_fire',   name: '集中砲火',    defaultWeights: [10,15,20,20] },
-  { id: 'all_attack',   name: '全体乱打',    defaultWeights: [10,12,15,15] },
-  { id: 'instant_kill', name: '即死撃',      defaultWeights: [0, 0, 1, 3]  },
-  { id: 'mp_absorb',    name: 'MP吸収',      defaultWeights: [8, 8, 7, 5]  },
-  { id: 'all_mp_drain', name: '全体MP吸収',  defaultWeights: [5, 6, 7, 8]  },
-  { id: 'petrify',      name: '石化',        defaultWeights: [4, 4, 5, 5]  },
-  { id: 'sleep',        name: '眠り',        defaultWeights: [3, 3, 4, 4]  },
-  { id: 'charm',        name: '魅了',        defaultWeights: [2, 2, 3, 4]  },
-  { id: 'curse',        name: '呪い',        defaultWeights: [3, 3, 4, 4]  },
-  { id: 'self_heal',    name: '自己回復',    defaultWeights: [5, 6, 5, 3]  },
-  { id: 'berserk',      name: 'バーサーク',  defaultWeights: [0, 1, 3, 5]  },
+  { id: 'normal',       name: '通常攻撃',    defaultWeights: [60,50,40,30], desc: '生存キャラ全員に一定ダメージを与える。' },
+  { id: 'focus_fire',   name: '集中砲火',    defaultWeights: [10,15,20,20], desc: 'ランダムな1体に通常の5倍ダメージを集中攻撃する。' },
+  { id: 'all_attack',   name: '全体乱打',    defaultWeights: [10,12,15,15], desc: '全員に通常の2倍ダメージを与える。' },
+  { id: 'instant_kill', name: '即死撃',      defaultWeights: [0, 0, 1, 3],  desc: 'ランダムな1体を即座にKOする。セーブデータも削除される（HP25%以下で発動）。' },
+  { id: 'mp_absorb',    name: 'MP吸収',      defaultWeights: [8, 8, 7, 5],  desc: 'ランダムな1体のMPを全て奪い取る。' },
+  { id: 'all_mp_drain', name: '全体MP吸収',  defaultWeights: [5, 6, 7, 8],  desc: '全員のMPを10ずつ奪い取る。' },
+  { id: 'petrify',      name: '石化',        defaultWeights: [4, 4, 5, 5],  desc: 'ランダムな1体を60秒間石化させて攻撃不能にする。' },
+  { id: 'sleep',        name: '眠り',        defaultWeights: [3, 3, 4, 4],  desc: 'ランダムな1体を30秒間眠らせて攻撃不能にする。' },
+  { id: 'charm',        name: '魅了',        defaultWeights: [2, 2, 3, 4],  desc: 'ランダムな1体を30秒間魅了する。魅了中のキャラが攻撃するとボスのHPが回復してしまう。' },
+  { id: 'curse',        name: '呪い',        defaultWeights: [3, 3, 4, 4],  desc: 'ランダムな1体を60秒間呪縛する。呪い中のキャラの攻撃ダメージが半減する。' },
+  { id: 'self_heal',    name: '自己回復',    defaultWeights: [5, 6, 5, 3],  desc: 'ボス自身がHP+200回復する。' },
+  { id: 'berserk',      name: 'バーサーク',  defaultWeights: [0, 1, 3, 5],  desc: '30秒間、全てのダメージを無効化する（HP50%以下で発動）。' },
+  { id: 'shield_char',  name: '盾キャラ攻撃', defaultWeights: [0, 0, 2, 4], desc: 'ランダムな1体を盾にする。サイズ1.5倍で画面中央へ移動し仮想HP99999を得る。攻撃は盾キャラに当たり、HPが0になるとキャラ＆セーブデータ消滅。30秒経過で解放（HP25%以下で発動）。' },
+  { id: 'delete_char',  name: 'デリート攻撃', defaultWeights: [0, 0, 1, 3], desc: 'ランダムな1体を選んで浮遊させた後に削除する。キャラ＆セーブデータが永久消滅する（HP25%以下で発動）。' },
+  { id: 'super_heal',   name: '超回復',       defaultWeights: [0, 1, 3, 5], desc: '30秒間防御状態になり停止する。防御中は全攻撃が1ダメージに制限される。100ダメージ蓄積で防御崩壊（HP10%ペナルティ＋ガラス破砕エフェクト）。30秒経過で防御解除＋HP50%回復。' },
 ];
 const HP_TIER_LABELS = ['100-75%', '74-50%', '49-25%', '24-0%'];
 
@@ -566,11 +1009,17 @@ let allSoundsFull = [];
 
 // スプライトモーダル用
 let _spriteTargetSkillId = null;
+let _spriteTargetType = 'target'; // 'target' | 'boss'
 let _spriteSelectedPath = null;
 
 // サウンドモーダル用
 let _soundTargetSkillId = null;
 let _soundSelectedPath = null;
+
+// ぷるぷる設定用
+let _bossPuruCfg = null;
+const BOSS_PURU_MODE_LABELS = { circle:'⭕ 円回転', pendulum_x:'↔ 横揺れ', pendulum_y:'↕ 縦揺れ', sin_y:'〜 縦波', lissajous:'∞ リサジュー', breast:'💗 むね揺れ', bounce:'⬇ バウンス', spring:'🌀 バネ弾み', flutter:'✨ ふるふる', skirt:'🎀 スカート', neko:'🐱 猫耳', swing:'🎠 ブランコ', purun:'💫 ぷるん', heart:'💓 鼓動', punipuni:'🫧 ぷにぷに' };
+const BOSS_PURU_COLORS = ['#f472b6','#fb923c','#facc15','#4ade80','#38bdf8','#a78bfa','#f87171','#34d399','#22d3ee','#e879f9','#f59e0b','#10b981'];
 
 // ────────────────────────────────────────────────────────────────────
 // ステータス表示
@@ -579,6 +1028,407 @@ function setStatus(msg, type = '') {
   const el = document.getElementById('statusMsg');
   el.textContent = msg;
   el.className = type;
+}
+
+// ────────────────────────────────────────────────────────────────────
+// ぷるぷる設定（per-image）
+// ────────────────────────────────────────────────────────────────────
+function _bossPuruDefaultPoints() {
+  return [
+    { enabled:false, x:30, y:45, radius:30, amplitude:8,   speed:1.2, mode:'circle',     phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+    { enabled:false, x:70, y:45, radius:30, amplitude:8,   speed:1.2, mode:'circle',     phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 },
+    { enabled:false, x:50, y:20, radius:25, amplitude:5,   speed:0.8, mode:'pendulum_x', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+    { enabled:false, x:50, y:80, radius:25, amplitude:5,   speed:0.8, mode:'pendulum_y', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+    { enabled:false, x:20, y:60, radius:20, amplitude:6,   speed:1.5, mode:'pendulum_x', phase:90,  shape:'circle', width:60, height:30, rotation:0, direction:0 },
+    { enabled:false, x:80, y:60, radius:20, amplitude:6,   speed:1.5, mode:'pendulum_x', phase:270, shape:'circle', width:60, height:30, rotation:0, direction:0 },
+    { enabled:false, x:50, y:10, radius:20, amplitude:4,   speed:1.0, mode:'sin_y',      phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+    { enabled:false, x:50, y:90, radius:20, amplitude:4,   speed:1.0, mode:'sin_y',      phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 },
+    { enabled:false, x:35, y:27, radius:12, amplitude:2.5, speed:2.0, mode:'pendulum_y', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+    { enabled:false, x:65, y:27, radius:12, amplitude:2.5, speed:2.0, mode:'pendulum_y', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+    { enabled:false, x:25, y:75, radius:22, amplitude:7,   speed:1.1, mode:'skirt',      phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+    { enabled:false, x:75, y:75, radius:22, amplitude:7,   speed:1.1, mode:'skirt',      phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 },
+  ];
+}
+
+function loadBossPuruMapConfig(map) {
+  _bossPuruMap = map ? JSON.parse(JSON.stringify(map)) : {};
+  _bossPuruSelectedImg = '';
+  _bossPuruCfg = null;
+  document.getElementById('bossPuruPanel').style.display = 'none';
+  // グリッドのドット更新（既にグリッドが表示されている場合）
+  document.querySelectorAll('#bossPuruImgGrid [data-file]').forEach(el => {
+    const f = el.dataset.file;
+    const dot = el.querySelector('.bpuru-dot');
+    if (dot) dot.style.display = _bossPuruMap[f]?.enabled ? '' : 'none';
+    el.style.borderColor = 'transparent';
+    el.style.background = '';
+  });
+}
+
+async function loadBossImagesForPuru() {
+  const grid = document.getElementById('bossPuruImgGrid');
+  grid.innerHTML = '<span style="color:#64748b;font-size:11px;padding:8px">読み込み中...</span>';
+  try {
+    const r = await fetch('/api/boss-images');
+    const d = await r.json();
+    const images = d.images || [];
+    grid.innerHTML = '';
+    if (!images.length) {
+      grid.innerHTML = '<span style="color:#64748b;font-size:11px;padding:8px">画像が見つかりません</span>';
+      return;
+    }
+    images.forEach(f => {
+      const item = document.createElement('div');
+      item.dataset.file = f;
+      item.style.cssText = 'cursor:pointer;border:2px solid transparent;border-radius:6px;padding:3px;text-align:center;flex-shrink:0';
+      if (f === _bossPuruSelectedImg) { item.style.borderColor = '#38bdf8'; item.style.background = 'rgba(56,189,248,0.12)'; }
+      const hasEnabled = !!(_bossPuruMap[f]?.enabled);
+      item.innerHTML = `<img src="/boss/${encodeURIComponent(f)}" style="width:64px;height:64px;object-fit:contain;display:block;border-radius:3px" onerror="this.style.opacity=0.3">
+        <div style="font-size:8px;color:#94a3b8;width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px">
+          <span class="bpuru-dot" style="color:#4ade80;font-size:9px;${hasEnabled?'':'display:none'}">●</span> ${f}
+        </div>`;
+      item.addEventListener('click', () => selectBossPuruImg(f));
+      grid.appendChild(item);
+    });
+  } catch {
+    grid.innerHTML = '<span style="color:#ef4444;font-size:11px;padding:8px">読み込みエラー</span>';
+  }
+}
+
+function selectBossPuruImg(filename) {
+  _bossPuruSelectedImg = filename;
+  // グリッドの選択状態更新
+  document.querySelectorAll('#bossPuruImgGrid [data-file]').forEach(el => {
+    const sel = el.dataset.file === filename;
+    el.style.borderColor = sel ? '#38bdf8' : 'transparent';
+    el.style.background  = sel ? 'rgba(56,189,248,0.12)' : '';
+  });
+  // cfg をロード（デフォルト補完）
+  const defPts = _bossPuruDefaultPoints();
+  const saved = _bossPuruMap[filename];
+  _bossPuruCfg = saved ? JSON.parse(JSON.stringify(saved)) : { enabled: false, gridSize: 12, points: JSON.parse(JSON.stringify(defPts)) };
+  while (_bossPuruCfg.points.length < defPts.length) {
+    _bossPuruCfg.points.push(JSON.parse(JSON.stringify(defPts[_bossPuruCfg.points.length])));
+  }
+  // コントロール更新
+  document.getElementById('bossPuruEnabled').checked = !!_bossPuruCfg.enabled;
+  document.getElementById('bossPuruGrid').value = _bossPuruCfg.gridSize ?? 12;
+  document.getElementById('bossPuruGridVal').textContent = _bossPuruCfg.gridSize ?? 12;
+  buildBossPuruPointsUI();
+  // プレビュー画像
+  const pImg = document.getElementById('bossPuruPreviewImg');
+  pImg.src = `/boss/${encodeURIComponent(filename)}`;
+  pImg.style.display = 'block';
+  document.getElementById('bossPuruPanel').style.display = 'flex';
+  _bvInitCanvasEvents();
+  _bvStartPreviewLoop();
+}
+
+function buildBossPuruPointsUI() {
+  const wrap = document.getElementById('bossPuruPointsWrap');
+  if (!wrap || !_bossPuruCfg) return;
+  wrap.innerHTML = '';
+  const I = 'background:#161b22;border:1px solid #334155;color:#e2e8f0;border-radius:3px;padding:2px 3px;font-size:11px';
+  const L = 'font-size:10px;color:#64748b';
+  const modeOpts = Object.entries(BOSS_PURU_MODE_LABELS).map(([v,l]) => `<option value="${v}">${l}</option>`).join('');
+  _bossPuruCfg.points.forEach((pt, i) => {
+    const color = BOSS_PURU_COLORS[i % BOSS_PURU_COLORS.length];
+    const shape = pt.shape || 'circle';
+    const rVis = shape === 'rect'     ? 'display:none;' : '';
+    const wVis = shape === 'rect'     ? '' : 'display:none;';
+    const tVis = shape === 'triangle' ? '' : 'display:none;';
+    const row = document.createElement('div');
+    row.style.cssText = 'background:#0d1117;border:1px solid #1e293b;border-radius:6px;padding:6px 8px';
+    row.innerHTML = `
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;min-width:50px">
+          <input type="checkbox" class="bpuru-pt-en" data-idx="${i}" ${pt.enabled?'checked':''} onchange="syncBossPuruPoint(${i})">
+          <span style="font-size:12px;font-weight:700;color:${color}">P${i+1}</span>
+        </label>
+        <select class="bpuru-pt-shape" data-idx="${i}" onchange="syncBossPuruPoint(${i});_bpuruUpdateShapeUI(${i})" style="${I}">
+          <option value="circle"${shape==='circle'?' selected':''}>○ 円</option>
+          <option value="rect"${shape==='rect'?' selected':''}>□ 四角</option>
+          <option value="triangle"${shape==='triangle'?' selected':''}>△ 三角</option>
+        </select>
+        <span style="${L}">X</span>
+        <input type="number" id="bpX-${i}" class="bpuru-pt-x" data-idx="${i}" value="${pt.x}" min="0" max="100" step="1" style="${I};width:38px" oninput="syncBossPuruPoint(${i})">
+        <span style="${L}">Y</span>
+        <input type="number" id="bpY-${i}" class="bpuru-pt-y" data-idx="${i}" value="${pt.y}" min="0" max="100" step="1" style="${I};width:38px" oninput="syncBossPuruPoint(${i})">
+        <span style="${L};${rVis}" data-idx="${i}" data-shapes="circle,triangle">半径</span>
+        <input type="number" class="bpuru-pt-r" data-idx="${i}" data-shapes="circle,triangle" value="${pt.radius}" min="5" max="70" step="1" style="${I};width:34px;${rVis}" oninput="syncBossPuruPoint(${i})">
+        <span style="${L};${wVis}" data-idx="${i}" data-shapes="rect">横幅%</span>
+        <input type="number" class="bpuru-pt-w" data-idx="${i}" data-shapes="rect" value="${pt.width??60}" min="5" max="200" step="1" style="${I};width:38px;${wVis}" oninput="syncBossPuruPoint(${i})">
+        <span style="${L};${wVis}" data-idx="${i}" data-shapes="rect">縦幅%</span>
+        <input type="number" class="bpuru-pt-h" data-idx="${i}" data-shapes="rect" value="${pt.height??30}" min="5" max="200" step="1" style="${I};width:38px;${wVis}" oninput="syncBossPuruPoint(${i})">
+        <span style="${L};${tVis}" data-idx="${i}" data-shapes="triangle">回転°</span>
+        <input type="number" class="bpuru-pt-rot" data-idx="${i}" data-shapes="triangle" value="${pt.rotation??0}" min="-180" max="180" step="15" style="${I};width:42px;${tVis}" oninput="syncBossPuruPoint(${i})">
+        <span style="${L}">振幅</span>
+        <input type="number" class="bpuru-pt-amp" data-idx="${i}" value="${pt.amplitude}" min="0" max="40" step="0.5" style="${I};width:34px" oninput="syncBossPuruPoint(${i})">
+        <span style="${L}">速さ</span>
+        <input type="number" class="bpuru-pt-spd" data-idx="${i}" value="${pt.speed}" min="0.1" max="5" step="0.1" style="${I};width:34px" oninput="syncBossPuruPoint(${i})">
+        <select class="bpuru-pt-mode" data-idx="${i}" onchange="syncBossPuruPoint(${i})" style="${I}">${modeOpts.replace(`value="${pt.mode}"`, `value="${pt.mode}" selected`)}</select>
+        <span style="${L}">位相°</span>
+        <input type="number" class="bpuru-pt-phase" data-idx="${i}" value="${pt.phase}" min="0" max="360" step="15" style="${I};width:38px" oninput="syncBossPuruPoint(${i})">
+        <span style="${L}">方向°</span>
+        <input type="number" class="bpuru-pt-dir" data-idx="${i}" value="${pt.direction??0}" min="-180" max="180" step="15" style="${I};width:42px" oninput="syncBossPuruPoint(${i})">
+      </div>`;
+    wrap.appendChild(row);
+  });
+}
+
+function _bpuruUpdateShapeUI(i) {
+  const shape = document.querySelector(`#bossPuruPointsWrap [data-idx="${i}"].bpuru-pt-shape`)?.value || 'circle';
+  document.querySelectorAll(`#bossPuruPointsWrap [data-idx="${i}"][data-shapes]`).forEach(el => {
+    el.style.display = el.dataset.shapes.split(',').includes(shape) ? '' : 'none';
+  });
+}
+
+function syncBossPuruPoint(i) {
+  if (!_bossPuruCfg) return;
+  const pt = _bossPuruCfg.points[i];
+  const q = s => document.querySelector(`#bossPuruPointsWrap [data-idx="${i}"].bpuru-pt-${s}`);
+  pt.enabled   = q('en')?.checked ?? false;
+  pt.shape     = q('shape')?.value ?? 'circle';
+  pt.x         = parseFloat(q('x')?.value       ?? pt.x);
+  pt.y         = parseFloat(q('y')?.value       ?? pt.y);
+  pt.radius    = parseFloat(q('r')?.value       ?? pt.radius);
+  pt.width     = parseFloat(q('w')?.value       ?? pt.width  ?? 60);
+  pt.height    = parseFloat(q('h')?.value       ?? pt.height ?? 30);
+  pt.rotation  = parseFloat(q('rot')?.value     ?? pt.rotation ?? 0);
+  pt.amplitude = parseFloat(q('amp')?.value     ?? pt.amplitude);
+  pt.speed     = parseFloat(q('spd')?.value     ?? pt.speed);
+  pt.mode      = q('mode')?.value               ?? pt.mode;
+  pt.phase     = parseFloat(q('phase')?.value   ?? pt.phase);
+  pt.direction = parseFloat(q('dir')?.value     ?? pt.direction ?? 0);
+  syncBossPuruConfig();
+}
+
+function syncBossPuruConfig() {
+  if (!_bossPuruCfg || !_bossPuruSelectedImg) return;
+  _bossPuruCfg.enabled  = document.getElementById('bossPuruEnabled').checked;
+  _bossPuruCfg.gridSize = parseInt(document.getElementById('bossPuruGrid').value) || 12;
+  _bossPuruMap[_bossPuruSelectedImg] = JSON.parse(JSON.stringify(_bossPuruCfg));
+  // グリッドのドット更新
+  const item = document.querySelector(`#bossPuruImgGrid [data-file="${_bossPuruSelectedImg}"]`);
+  if (item) {
+    const dot = item.querySelector('.bpuru-dot');
+    if (dot) dot.style.display = _bossPuruCfg.enabled ? '' : 'none';
+  }
+}
+
+// ── プレビューアニメーションエンジン ───────────────────────────────
+function _bvDisplace(pt, t) {
+  const ph=(pt.phase||0)*Math.PI/180, om=(pt.speed||1)*Math.PI*2, a=pt.amplitude||0;
+  switch(pt.mode||'circle'){
+    case 'circle':     return{dx:Math.cos(t*om+ph)*a,       dy:Math.sin(t*om+ph)*a};
+    case 'pendulum_x': return{dx:Math.sin(t*om+ph)*a,       dy:0};
+    case 'pendulum_y': return{dx:0,                          dy:Math.sin(t*om+ph)*a};
+    case 'sin_y':      return{dx:Math.sin(t*om*2+ph)*a*0.3, dy:Math.sin(t*om+ph)*a};
+    case 'lissajous':  return{dx:Math.sin(t*om+ph)*a,       dy:Math.sin(t*om*2+ph+Math.PI/2)*a};
+    case 'breast':     return{dx:Math.sin(t*om*1.5+ph+Math.PI/4)*a*0.3, dy:Math.sin(t*om+ph)*a};
+    case 'bounce':     return{dx:0, dy:Math.abs(Math.sin(t*om*0.5+ph))*a};
+    case 'spring':     return{dx:0, dy:(Math.sin(t*om+ph)+0.3*Math.sin(t*om*3+ph))*a/1.3};
+    case 'flutter':    return{dx:Math.sin(t*om*2.7+ph)*a*0.7, dy:Math.cos(t*om*2.5+ph)*a};
+    case 'skirt':    {const c=t*om+ph; return{dx:Math.sin(c)*a*(1+0.4*Math.sin(c*0.53+1.2)+0.15*Math.sin(c*2.3)), dy:Math.sin(c*0.7+0.5)*a*0.15};}
+    case 'neko':     {const c=t*om+ph, base=Math.max(0,Math.sin(c)); return{dx:Math.sin(c*1.3+ph)*a*0.2, dy:-(base+base*0.3*Math.sin(c*4))*a};}
+    case 'swing':    {const p=Math.sin(t*om+ph); return{dx:p*a, dy:(0.4-0.6*p*p)*a};}
+    case 'purun':    {const c=(t*om+ph)%(Math.PI*2), jig=Math.exp(-c*0.8)*Math.cos(c*5)*a; return{dx:jig*0.25, dy:jig};}
+    case 'heart':    {const c=((t*om+ph)%(Math.PI*2))/(Math.PI*2), p1=Math.exp(-Math.pow((c-0.15)*14,2)), p2=Math.exp(-Math.pow((c-0.35)*11,2))*0.65; return{dx:p1*a*0.15, dy:-(p1+p2)*a};}
+    case 'punipuni': {const c=t*om+ph; return{dx:(Math.sin(c*1.0)*0.55+Math.sin(c*2.3+0.7)*0.45)*a, dy:(Math.cos(c*0.7)*0.55+Math.cos(c*1.9+1.1)*0.45)*a};}
+    default:           return{dx:0,dy:0};
+  }
+}
+function _bvWeight(pt, dx, dy, W, H) {
+  const mn=Math.min(W,H), shape=pt.shape||'circle';
+  if(shape==='rect'){
+    const hw=((pt.width??(pt.radius??30))/100)*W/2, hh=((pt.height??(pt.radius??30))/100)*H/2;
+    if(!hw||!hh||Math.abs(dx)>=hw||Math.abs(dy)>=hh) return 0;
+    return(1-Math.max(Math.abs(dx)/hw,Math.abs(dy)/hh))**2;
+  }
+  if(shape==='triangle'){
+    const R=(pt.radius??30)/100*mn; if(!R) return 0;
+    const rot=(pt.rotation??0)*Math.PI/180;
+    const lx=dx*Math.cos(rot)+dy*Math.sin(rot), ly=-dx*Math.sin(rot)+dy*Math.cos(rot);
+    const h=R*Math.sqrt(3)/2;
+    const cr=(ax,ay,bx,by,px,py)=>(bx-ax)*(py-ay)-(by-ay)*(px-ax);
+    const d0=cr(0,-R,h,R*.5,lx,ly),d1=cr(h,R*.5,-h,R*.5,lx,ly),d2=cr(-h,R*.5,0,-R,lx,ly);
+    if(!((d0>=0&&d1>=0&&d2>=0)||(d0<=0&&d1<=0&&d2<=0))) return 0;
+    return Math.max(0,1-Math.sqrt(lx*lx+ly*ly)/R)**2;
+  }
+  const rr=(pt.radius??30)/100*mn; if(!rr) return 0;
+  const d=Math.sqrt(dx*dx+dy*dy); return d>=rr?0:(1-d/rr)**2;
+}
+function _bvTri(ctx,img,x0,y0,u0,v0,x1,y1,u1,v1,x2,y2,u2,v2){
+  const iw=img.naturalWidth,ih=img.naturalHeight;
+  const p0u=u0*iw,p0v=v0*ih,p1u=u1*iw,p1v=v1*ih,p2u=u2*iw,p2v=v2*ih;
+  const det=p0u*(p1v-p2v)+p1u*(p2v-p0v)+p2u*(p0v-p1v);
+  if(Math.abs(det)<0.001) return;
+  const a_=(x0*(p1v-p2v)+x1*(p2v-p0v)+x2*(p0v-p1v))/det;
+  const b_=(y0*(p1v-p2v)+y1*(p2v-p0v)+y2*(p0v-p1v))/det;
+  const c_=(x0*(p2u-p1u)+x1*(p0u-p2u)+x2*(p1u-p0u))/det;
+  const d_=(y0*(p2u-p1u)+y1*(p0u-p2u)+y2*(p1u-p0u))/det;
+  const ecx=(x0+x1+x2)/3,ecy=(y0+y1+y2)/3;
+  function ep(px,py){const dx=px-ecx,dy=py-ecy,l=Math.sqrt(dx*dx+dy*dy);return l<.001?[px,py]:[px+dx/l*.6,py+dy/l*.6];}
+  const[ex0,ey0]=ep(x0,y0),[ex1,ey1]=ep(x1,y1),[ex2,ey2]=ep(x2,y2);
+  ctx.save();
+  ctx.beginPath();ctx.moveTo(ex0,ey0);ctx.lineTo(ex1,ey1);ctx.lineTo(ex2,ey2);ctx.closePath();ctx.clip();
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  ctx.transform(a_,b_,c_,d_,x0-a_*p0u-c_*p0v,y0-b_*p0u-d_*p0v);
+  ctx.drawImage(img,0,0);ctx.restore();
+}
+
+let _bvPvTime=0, _bvPvLastTs=null, _bvPvRAF=null;
+let _bvShowPoints=true;
+let _bvDragPtIdx=-1, _bvDragOffX=0, _bvDragOffY=0;
+
+function toggleBossPuruShowPoints() {
+  _bvShowPoints = !_bvShowPoints;
+  const btn = document.getElementById('bossPuruShowPtsBtn');
+  if (btn) btn.textContent = `Pポイント ${_bvShowPoints ? '表示' : '非表示'}`;
+}
+
+function _bvInitCanvasEvents() {
+  const canvas = document.getElementById('bossPuruPreviewCanvas');
+  if (!canvas || canvas._bvEventsAttached) return;
+  canvas._bvEventsAttached = true;
+
+  const getPtAt = (ex, ey) => {
+    if (!_bossPuruCfg) return -1;
+    const W = canvas._pvCssW || canvas.offsetWidth;
+    const H = canvas._pvCssH || canvas.offsetHeight;
+    const r = canvas.getBoundingClientRect();
+    const mx = (ex - r.left) / r.width * W;
+    const my = (ey - r.top)  / r.height * H;
+    let best = -1, bestD = 20;
+    (_bossPuruCfg.points || []).forEach((pt, i) => {
+      if (!pt.enabled) return;
+      const px = (pt.x/100)*W, py = (pt.y/100)*H;
+      const d = Math.hypot(mx - px, my - py);
+      if (d < bestD) { bestD = d; best = i; }
+    });
+    return best;
+  };
+
+  canvas.addEventListener('pointerdown', e => {
+    if (!_bossPuruCfg?.points) return;
+    _bvDragPtIdx = getPtAt(e.clientX, e.clientY);
+    if (_bvDragPtIdx >= 0) { canvas.setPointerCapture(e.pointerId); e.preventDefault(); }
+  });
+
+  canvas.addEventListener('pointermove', e => {
+    if (_bvDragPtIdx < 0 || !_bossPuruCfg?.points) return;
+    const W = canvas._pvCssW || canvas.offsetWidth;
+    const H = canvas._pvCssH || canvas.offsetHeight;
+    const r = canvas.getBoundingClientRect();
+    const mx = (e.clientX - r.left) / r.width * W;
+    const my = (e.clientY - r.top)  / r.height * H;
+    const pt = _bossPuruCfg.points[_bvDragPtIdx];
+    pt.x = Math.round(Math.max(0, Math.min(100, mx / W * 100)) * 10) / 10;
+    pt.y = Math.round(Math.max(0, Math.min(100, my / H * 100)) * 10) / 10;
+    // UI更新
+    const xi = document.getElementById(`bpX-${_bvDragPtIdx}`);
+    const yi = document.getElementById(`bpY-${_bvDragPtIdx}`);
+    if (xi) xi.value = pt.x;
+    if (yi) yi.value = pt.y;
+    syncBossPuruConfig();
+  });
+
+  canvas.addEventListener('pointerup', () => { _bvDragPtIdx = -1; });
+  canvas.addEventListener('pointercancel', () => { _bvDragPtIdx = -1; });
+}
+
+function _bvStartPreviewLoop() {
+  if(_bvPvRAF) cancelAnimationFrame(_bvPvRAF);
+  _bvPvLastTs=null;
+  const loop=ts=>{
+    _bvPvRAF=requestAnimationFrame(loop);
+    if(_bvPvLastTs===null) _bvPvLastTs=ts;
+    _bvPvTime+=Math.min((ts-_bvPvLastTs)/1000,0.05);
+    _bvPvLastTs=ts;
+    _bvRenderPreview();
+  };
+  _bvPvRAF=requestAnimationFrame(loop);
+}
+
+function _bvRenderPreview() {
+  const canvas=document.getElementById('bossPuruPreviewCanvas');
+  const img=document.getElementById('bossPuruPreviewImg');
+  if(!canvas||!_bossPuruCfg) return;
+  const dpr=window.devicePixelRatio||1;
+  if(img&&img.style.display!=='none'&&img.complete&&img.naturalWidth){
+    const cw=img.offsetWidth||200, ch=img.offsetHeight||320;
+    if(canvas._pvCssW!==cw||canvas._pvCssH!==ch||canvas._pvDpr!==dpr){
+      canvas.width=Math.round(cw*dpr); canvas.height=Math.round(ch*dpr);
+      canvas.style.width=cw+'px'; canvas.style.height=ch+'px';
+      canvas._pvCssW=cw; canvas._pvCssH=ch; canvas._pvDpr=dpr;
+    }
+  }
+  const W=canvas._pvCssW||Math.round(canvas.width/dpr);
+  const H=canvas._pvCssH||Math.round(canvas.height/dpr);
+  if(!W||!H) return;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.save(); ctx.scale(dpr,dpr);
+  const enabledPts=(_bossPuruCfg.points||[]).filter(p=>p.enabled);
+  if(img&&img.complete&&img.naturalWidth){
+    const gs=Math.max(6,_bossPuruCfg.gridSize||12);
+    const cols=gs+1, rows=gs+1;
+    const verts=new Float32Array(cols*rows*2);
+    for(let j=0;j<rows;j++){
+      for(let i=0;i<cols;i++){
+        const bx=(i/gs)*W, by=(j/gs)*H;
+        let tdx=0, tdy=0;
+        for(const pt of enabledPts){
+          const px=(pt.x/100)*W, py=(pt.y/100)*H;
+          const w=_bvWeight(pt,bx-px,by-py,W,H);
+          if(w<=0) continue;
+          const disp=_bvDisplace(pt,_bvPvTime);
+          const dirRad=(pt.direction??0)*Math.PI/180;
+          tdx+=(disp.dx*Math.cos(dirRad)-disp.dy*Math.sin(dirRad))*w;
+          tdy+=(disp.dx*Math.sin(dirRad)+disp.dy*Math.cos(dirRad))*w;
+        }
+        const idx=(j*cols+i)*2;
+        verts[idx]=bx+tdx; verts[idx+1]=by+tdy;
+      }
+    }
+    for(let j=0;j<gs;j++){
+      for(let i=0;i<gs;i++){
+        const i00=(j*cols+i)*2,i10=(j*cols+i+1)*2;
+        const i01=((j+1)*cols+i)*2,i11=((j+1)*cols+i+1)*2;
+        _bvTri(ctx,img,verts[i00],verts[i00+1],i/gs,j/gs,verts[i10],verts[i10+1],(i+1)/gs,j/gs,verts[i01],verts[i01+1],i/gs,(j+1)/gs);
+        _bvTri(ctx,img,verts[i10],verts[i10+1],(i+1)/gs,j/gs,verts[i11],verts[i11+1],(i+1)/gs,(j+1)/gs,verts[i01],verts[i01+1],i/gs,(j+1)/gs);
+      }
+    }
+  }
+  // ポイントオーバーレイ（表示フラグが false の場合はスキップ）
+  if(!_bvShowPoints) { ctx.restore(); return; }
+  (_bossPuruCfg.points||[]).forEach((pt,i)=>{
+    if(!pt.enabled) return;
+    const color=BOSS_PURU_COLORS[i%BOSS_PURU_COLORS.length];
+    const cx=(pt.x/100)*W, cy=(pt.y/100)*H;
+    const mn=Math.min(W,H), shape=pt.shape||'circle';
+    ctx.strokeStyle=color+'88'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    if(shape==='rect'){
+      const hw=((pt.width??pt.radius??30)/100)*W/2, hh=((pt.height??pt.radius??30)/100)*H/2;
+      ctx.strokeRect(cx-hw,cy-hh,hw*2,hh*2);
+    } else if(shape==='triangle'){
+      const R=(pt.radius??30)/100*mn, rot=(pt.rotation??0)*Math.PI/180;
+      ctx.beginPath();
+      [0,1,2].forEach(k=>{const a=rot+k*Math.PI*2/3-Math.PI/2; ctx[k?'lineTo':'moveTo'](cx+R*Math.cos(a),cy+R*Math.sin(a));});
+      ctx.closePath(); ctx.stroke();
+    } else {
+      const rr=(pt.radius??30)/100*mn;
+      ctx.beginPath(); ctx.arc(cx,cy,rr,0,Math.PI*2); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.arc(cx,cy,7,0,Math.PI*2);
+    ctx.fillStyle=color; ctx.fill();
+    ctx.strokeStyle='#0f172a'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle='#e2e8f0'; ctx.font='bold 9px sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(`P${i+1}`,cx,cy);
+  });
+  ctx.restore();
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -594,9 +1444,14 @@ function buildSkillCards() {
     card.innerHTML = `
       <div class="skill-header" onclick="toggleCard('${def.id}')">
         <span class="skill-chevron">▶</span>
-        <span class="skill-name">${def.name}</span>
-        <span class="skill-id-badge">${def.id}</span>
-        <label class="toggle" onclick="event.stopPropagation()" title="有効/無効">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="skill-name">${def.name}</span>
+            <span class="skill-id-badge">${def.id}</span>
+          </div>
+          ${def.desc ? `<div style="font-size:11px;color:#64748b;margin-top:3px;line-height:1.5">${def.desc}</div>` : ''}
+        </div>
+        <label class="toggle" onclick="event.stopPropagation()" title="有効/無効" style="flex-shrink:0;margin-left:8px">
           <input type="checkbox" id="enabled-${def.id}" checked>
           <span class="toggle-track"></span>
         </label>
@@ -616,23 +1471,34 @@ function buildSkillCards() {
           </div>
         </div>
 
-        <!-- アゲル画像 -->
+        <!-- セリフ -->
         <div>
-          <div class="skill-subsection-title">アゲル画像</div>
+          <div class="skill-subsection-title">セリフ</div>
           <div class="field-row">
-            <input type="text" class="w-full" id="image-${def.id}"
-              placeholder="/ageru/怒り/xxx.png">
+            <input type="text" class="w-full" id="speech-${def.id}" placeholder="発動時に表示するセリフ（空欄=非表示）">
           </div>
         </div>
 
-        <!-- スプライトエフェクト -->
+        <!-- アゲル画像 -->
         <div>
-          <div class="skill-subsection-title">スプライトエフェクト</div>
+          <div class="skill-subsection-title">アゲル画像</div>
+          <div class="ageru-img-row">
+            <input type="text" class="w-full" id="image-${def.id}"
+              placeholder="フォルダ名/ファイル名.png"
+              oninput="_updateAgruImgPreview('${def.id}', this.value)">
+            <button class="btn-secondary btn-sm" onclick="openBossImgModal('${def.id}')">画像を選ぶ</button>
+            <img class="ageru-img-preview" id="imgPreview-${def.id}" alt="">
+          </div>
+        </div>
+
+        <!-- スプライトエフェクト（ターゲット側） -->
+        <div>
+          <div class="skill-subsection-title">スプライトエフェクト（ターゲット側）</div>
           <div class="sprite-picker">
             <div class="sprite-picker-row">
               <input type="text" style="flex:1;" id="spritePath-${def.id}"
                 placeholder="フォルダ名/ファイル名.png">
-              <button class="btn-secondary btn-sm" onclick="openSpriteModal('${def.id}')">Spriteを選ぶ</button>
+              <button class="btn-secondary btn-sm" onclick="openSpriteModal('${def.id}', 'target')">Spriteを選ぶ</button>
             </div>
             <div class="sprite-grid">
               <div class="sprite-cell">
@@ -660,6 +1526,46 @@ function buildSkillCards() {
               <button class="btn-preview btn-sm" onclick="previewSprite('${def.id}')">プレビュー</button>
               <div class="sprite-canvas-wrap" id="spriteCanvasWrap-${def.id}" style="display:none;">
                 <canvas class="sprite-prev" id="spriteCanvas-${def.id}" width="200" height="200"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- スプライトエフェクト（ボス側） -->
+        <div>
+          <div class="skill-subsection-title">スプライトエフェクト（ボス側）</div>
+          <div class="sprite-picker">
+            <div class="sprite-picker-row">
+              <input type="text" style="flex:1;" id="bossSpritePath-${def.id}"
+                placeholder="フォルダ名/ファイル名.png">
+              <button class="btn-secondary btn-sm" onclick="openSpriteModal('${def.id}', 'boss')">Spriteを選ぶ</button>
+            </div>
+            <div class="sprite-grid">
+              <div class="sprite-cell">
+                <label>cols（列数）</label>
+                <input type="number" id="bossSpriteCols-${def.id}" min="1" value="5">
+              </div>
+              <div class="sprite-cell">
+                <label>rows（行数）</label>
+                <input type="number" id="bossSpriteRows-${def.id}" min="1" value="4">
+              </div>
+              <div class="sprite-cell">
+                <label>frameCount</label>
+                <input type="number" id="bossSpriteFrameCount-${def.id}" min="1" value="20">
+              </div>
+              <div class="sprite-cell">
+                <label>fps</label>
+                <input type="number" id="bossSpriteFps-${def.id}" min="1" value="10">
+              </div>
+              <div class="sprite-cell">
+                <label>size（px）</label>
+                <input type="number" id="bossSpriteSize-${def.id}" min="1" value="200">
+              </div>
+            </div>
+            <div class="sprite-preview-wrap">
+              <button class="btn-preview btn-sm" onclick="previewBossSprite('${def.id}')">プレビュー</button>
+              <div class="sprite-canvas-wrap" id="bossSpriteCanvasWrap-${def.id}" style="display:none;">
+                <canvas class="sprite-prev" id="bossSpriteCanvas-${def.id}" width="200" height="200"></canvas>
               </div>
             </div>
           </div>
@@ -694,6 +1600,96 @@ function applyConfigToDOM() {
   document.getElementById('maxHP').value = config.maxHP ?? 1000;
   document.getElementById('timeLimit').value = config.timeLimit ?? 300;
   document.getElementById('counterInterval').value = config.counterInterval ?? 60;
+  document.getElementById('bossDefaultImage').value = config.defaultImage || '';
+  if (config.defaultImage) _updateDefaultImgPreview(config.defaultImage);
+  _buildHpImageRows();
+  const hpImgs = config.hpImages || {};
+  _HP_IMG_KEYS.forEach(k => {
+    const v = hpImgs[String(k)] || '';
+    const inp = document.getElementById('hpImgInput' + k);
+    if (inp) inp.value = v;
+    if (v) _updateHpImgPreview(k, v);
+  });
+  document.getElementById('battleStartSpeech').value = config.battleStartSpeech || '';
+  document.getElementById('battleWinSpeech').value   = config.battleWinSpeech   || '';
+  document.getElementById('battleLoseSpeech').value  = config.battleLoseSpeech  || '';
+  loadBossPuruMapConfig(config.purupuruMap || {});
+
+  const bgm = config.bgm || {};
+  document.getElementById('bgmPath').value = bgm.path || '';
+  const bvol = bgm.volume ?? 70;
+  document.getElementById('bgmVolume').value = bvol;
+  document.getElementById('bgmVolumeLabel').textContent = bvol;
+
+  const timer = config.timer || {};
+  document.getElementById('timerX').value = timer.x !== undefined && timer.x !== '' ? timer.x : '';
+  document.getElementById('timerY').value = timer.y ?? 12;
+  document.getElementById('timerSize').value = timer.size ?? 88;
+  document.getElementById('timerBehindBoss').checked = !!timer.behindBoss;
+
+  const bossChar = config.bossChar || {};
+  document.getElementById('bossCharX').value = bossChar.x !== undefined && bossChar.x !== '' ? bossChar.x : '';
+  document.getElementById('bossCharY').value = bossChar.y ?? 0;
+  document.getElementById('bossCharScale').value = bossChar.scale ?? 100;
+
+  const hpGauge = config.hpGauge || {};
+  document.getElementById('hpGaugeX').value = hpGauge.x !== undefined && hpGauge.x !== '' ? hpGauge.x : '';
+  document.getElementById('hpGaugeY').value = hpGauge.y ?? 16;
+  document.getElementById('hpGaugeWidth').value = hpGauge.width ?? 200;
+  document.getElementById('hpGaugeThick').value = hpGauge.thick ?? 11.5;
+  document.getElementById('hpGaugeGap').value = hpGauge.gap ?? 90;
+  document.getElementById('hpGaugeGapDir').value = hpGauge.gapDir ?? 'bottom';
+  document.getElementById('hpGaugeNumX').value = hpGauge.numX !== undefined && hpGauge.numX !== '' ? hpGauge.numX : '';
+  document.getElementById('hpGaugeNumY').value = hpGauge.numY !== undefined && hpGauge.numY !== '' ? hpGauge.numY : '';
+  document.getElementById('hpGaugeNumSize').value = hpGauge.numSize !== undefined && hpGauge.numSize !== '' ? hpGauge.numSize : '';
+  document.getElementById('hpGaugeBehindBoss').checked = !!hpGauge.behindBoss;
+
+  const battleLog = config.battleLog || {};
+  document.getElementById('battleLogX').value = battleLog.x ?? 16;
+  document.getElementById('battleLogY').value = battleLog.y ?? 16;
+  document.getElementById('battleLogWidth').value = battleLog.width ?? 260;
+
+  const speech = config.speech || {};
+  document.getElementById('speechX').value = speech.x !== undefined && speech.x !== '' ? speech.x : '';
+  document.getElementById('speechY').value = speech.y ?? 40;
+  document.getElementById('speechWidth').value = speech.width ?? 500;
+
+  const geo = config.geoEffect || {};
+  document.getElementById('geoShape').value  = geo.shape      ?? 'triangle';
+  document.getElementById('geoTriFG').value  = geo.triCountFG ?? 41;
+  document.getElementById('geoTriBG').value  = geo.triCountBG ?? 16;
+  const as = geo.audioSmooth ?? 0.60;
+  const bs = geo.bassSmooth  ?? 0.50;
+  document.getElementById('geoAudioSmooth').value = as;
+  document.getElementById('geoAudioSmoothV').textContent = as.toFixed(2);
+  document.getElementById('geoBassSmooth').value = bs;
+  document.getElementById('geoBassSmSmoothV').textContent = bs.toFixed(2);
+  const lwp = geo.lineWidthPoly      ?? 2;
+  const lww = geo.lineWidthWeb       ?? 1.2;
+  const lwl = geo.lineWidthLissajous ?? 1.5;
+  document.getElementById('geoLineWidthPoly').value = lwp;      document.getElementById('geoLineWidthPolyV').textContent = lwp.toFixed(1);
+  document.getElementById('geoLineWidthWeb').value = lww;       document.getElementById('geoLineWidthWebV').textContent = lww.toFixed(1);
+  document.getElementById('geoLineWidthLissajous').value = lwl; document.getElementById('geoLineWidthLissajousV').textContent = lwl.toFixed(1);
+
+  const noise = config.noiseEffect || {};
+  const nTh = noise.threshold  ?? 0.45;
+  const nCA = noise.ca         ?? 14;
+  const nJX = noise.jitterX    ?? 38;
+  const nJY = noise.jitterY    ?? 4;
+  const nBr = noise.brightness ?? 0.55;
+  const nCo = noise.contrast   ?? 0.35;
+  document.getElementById('noiseThreshold').value = nTh; document.getElementById('noiseThresholdV').textContent = nTh.toFixed(2);
+  document.getElementById('noiseCA').value = nCA;        document.getElementById('noiseCAV').textContent = nCA;
+  document.getElementById('noiseJitterX').value = nJX;   document.getElementById('noiseJitterXV').textContent = nJX;
+  document.getElementById('noiseJitterY').value = nJY;   document.getElementById('noiseJitterYV').textContent = nJY;
+  document.getElementById('noiseBrightness').value = nBr; document.getElementById('noiseBrightnessV').textContent = nBr.toFixed(2);
+  document.getElementById('noiseContrast').value = nCo;  document.getElementById('noiseContrastV').textContent = nCo.toFixed(2);
+
+  const bg = config.background || {};
+  document.getElementById('bgImage').value = bg.image || '';
+  document.getElementById('bgColor').value = bg.color || '';
+  document.getElementById('bgBlur').value  = bg.blur ?? 4;
+  if (bg.image) _updateBgPreview(bg.image);
 
   const skills = config.skills || {};
   for (const def of SKILL_DEFS) {
@@ -707,25 +1703,131 @@ function applyConfigToDOM() {
       document.getElementById(`w${i}-${def.id}`).value = weights[i] ?? 0;
     }
 
+    document.getElementById(`speech-${def.id}`).value = sk.speech || '';
     document.getElementById(`image-${def.id}`).value = sk.image || '';
+    if (sk.image) {
+      const prev = document.getElementById(`imgPreview-${def.id}`);
+      if (prev) { prev.src = '/boss/' + encodeURIComponent(sk.image); prev.style.display = 'block'; prev.onerror = () => { prev.style.display = 'none'; }; }
+    }
     document.getElementById(`spritePath-${def.id}`).value = sprite.path || '';
     document.getElementById(`spriteCols-${def.id}`).value = sprite.cols ?? 5;
     document.getElementById(`spriteRows-${def.id}`).value = sprite.rows ?? 4;
     document.getElementById(`spriteFrameCount-${def.id}`).value = sprite.frameCount ?? 20;
     document.getElementById(`spriteFps-${def.id}`).value = sprite.fps ?? 10;
     document.getElementById(`spriteSize-${def.id}`).value = sprite.size ?? 200;
+    const bossSprite = sk.bossSprite || {};
+    document.getElementById(`bossSpritePath-${def.id}`).value = bossSprite.path || '';
+    document.getElementById(`bossSpriteCols-${def.id}`).value = bossSprite.cols ?? 5;
+    document.getElementById(`bossSpriteRows-${def.id}`).value = bossSprite.rows ?? 4;
+    document.getElementById(`bossSpriteFrameCount-${def.id}`).value = bossSprite.frameCount ?? 20;
+    document.getElementById(`bossSpriteFps-${def.id}`).value = bossSprite.fps ?? 10;
+    document.getElementById(`bossSpriteSize-${def.id}`).value = bossSprite.size ?? 200;
     document.getElementById(`sound-${def.id}`).value = sk.sound || '';
   }
+
+  // キャラ削除エフェクト
+  const delEff = config.deleteEffect || {};
+  document.getElementById('deleteSpritePath').value = delEff.path || '';
+  document.getElementById('deleteSpriteCols').value = delEff.cols ?? 5;
+  document.getElementById('deleteSpriteRows').value = delEff.rows ?? 4;
+  document.getElementById('deleteSpriteFrameCount').value = delEff.frameCount ?? 20;
+  document.getElementById('deleteSpriteFps').value = delEff.fps ?? 10;
+  document.getElementById('deleteSpriteSizeVal').value = delEff.size ?? 200;
+
+  // 終了演出設定
+  const wi = config.winImage || '';
+  document.getElementById('winImage').value = wi;
+  const winPrev = document.getElementById('winImagePreview');
+  if (wi) { winPrev.src = '/boss/' + encodeURIComponent(wi); winPrev.style.display = 'block'; winPrev.onerror = () => winPrev.style.display = 'none'; }
+  else winPrev.style.display = 'none';
+
+  _agruTypeImgs = Array.isArray(config.agruTypeImages) ? [...config.agruTypeImages] : [];
+  _renderAgruTypeImgList();
 }
 
 // ────────────────────────────────────────────────────────────────────
 // DOM から config を収集
 // ────────────────────────────────────────────────────────────────────
 function collectConfig() {
+  const bgImage = document.getElementById('bgImage').value.trim();
+  const bgColor = document.getElementById('bgColor').value.trim();
+  const bgBlur  = parseInt(document.getElementById('bgBlur').value) || 4;
   const cfg = {
-    maxHP:           parseInt(document.getElementById('maxHP').value) || 1000,
-    timeLimit:       parseInt(document.getElementById('timeLimit').value) || 300,
-    counterInterval: parseInt(document.getElementById('counterInterval').value) || 60,
+    maxHP:            parseInt(document.getElementById('maxHP').value) || 1000,
+    timeLimit:        parseInt(document.getElementById('timeLimit').value) || 300,
+    counterInterval:  parseInt(document.getElementById('counterInterval').value) || 60,
+    defaultImage:      document.getElementById('bossDefaultImage').value.trim(),
+    hpImages: Object.fromEntries(_HP_IMG_KEYS.map(k => [String(k), (document.getElementById('hpImgInput' + k)?.value.trim() || '')])),
+    battleStartSpeech: document.getElementById('battleStartSpeech').value.trim(),
+    battleWinSpeech:   document.getElementById('battleWinSpeech').value.trim(),
+    battleLoseSpeech:  document.getElementById('battleLoseSpeech').value.trim(),
+    deleteEffect: {
+      path:       document.getElementById('deleteSpritePath').value.trim(),
+      cols:       parseInt(document.getElementById('deleteSpriteCols').value) || 5,
+      rows:       parseInt(document.getElementById('deleteSpriteRows').value) || 4,
+      frameCount: parseInt(document.getElementById('deleteSpriteFrameCount').value) || 20,
+      fps:        parseInt(document.getElementById('deleteSpriteFps').value) || 10,
+      size:       parseInt(document.getElementById('deleteSpriteSizeVal').value) || 200,
+    },
+    winImage: document.getElementById('winImage').value.trim(),
+    agruTypeImages: _agruTypeImgs.map(s => s.trim()).filter(Boolean),
+    background: { image: bgImage, color: bgColor, blur: bgBlur },
+    purupuruMap: JSON.parse(JSON.stringify(_bossPuruMap)),
+    bgm: {
+      path:   document.getElementById('bgmPath').value.trim(),
+      volume: parseInt(document.getElementById('bgmVolume').value) || 70,
+    },
+    timer: {
+      x:          document.getElementById('timerX').value.trim() !== '' ? parseInt(document.getElementById('timerX').value) : '',
+      y:          parseInt(document.getElementById('timerY').value) || 12,
+      size:       parseInt(document.getElementById('timerSize').value) || 88,
+      behindBoss: document.getElementById('timerBehindBoss').checked,
+    },
+    bossChar: {
+      x:     document.getElementById('bossCharX').value.trim() !== '' ? parseInt(document.getElementById('bossCharX').value) : '',
+      y:     parseInt(document.getElementById('bossCharY').value) || 0,
+      scale: parseInt(document.getElementById('bossCharScale').value) || 100,
+    },
+    hpGauge: {
+      x:          document.getElementById('hpGaugeX').value.trim() !== '' ? parseInt(document.getElementById('hpGaugeX').value) : '',
+      y:          parseInt(document.getElementById('hpGaugeY').value) || 16,
+      width:      parseInt(document.getElementById('hpGaugeWidth').value) || 200,
+      thick:      parseFloat(document.getElementById('hpGaugeThick').value) || 11.5,
+      gap:        parseInt(document.getElementById('hpGaugeGap').value) || 90,
+      gapDir:     document.getElementById('hpGaugeGapDir').value || 'bottom',
+      numX:       document.getElementById('hpGaugeNumX').value.trim() !== '' ? parseInt(document.getElementById('hpGaugeNumX').value) : '',
+      numY:       document.getElementById('hpGaugeNumY').value.trim() !== '' ? parseInt(document.getElementById('hpGaugeNumY').value) : '',
+      numSize:    document.getElementById('hpGaugeNumSize').value.trim() !== '' ? parseInt(document.getElementById('hpGaugeNumSize').value) : '',
+      behindBoss: document.getElementById('hpGaugeBehindBoss').checked,
+    },
+    battleLog: {
+      x:     parseInt(document.getElementById('battleLogX').value) || 16,
+      y:     parseInt(document.getElementById('battleLogY').value) || 16,
+      width: parseInt(document.getElementById('battleLogWidth').value) || 260,
+    },
+    speech: {
+      x:     document.getElementById('speechX').value.trim() !== '' ? parseInt(document.getElementById('speechX').value) : '',
+      y:     parseInt(document.getElementById('speechY').value) || 40,
+      width: parseInt(document.getElementById('speechWidth').value) || 500,
+    },
+    geoEffect: {
+      shape:            document.getElementById('geoShape').value                      || 'triangle',
+      triCountFG:       parseInt(document.getElementById('geoTriFG').value)            || 41,
+      triCountBG:       parseInt(document.getElementById('geoTriBG').value)            || 16,
+      audioSmooth:      parseFloat(document.getElementById('geoAudioSmooth').value)    ?? 0.60,
+      bassSmooth:       parseFloat(document.getElementById('geoBassSmooth').value)     ?? 0.50,
+      lineWidthPoly:    parseFloat(document.getElementById('geoLineWidthPoly').value)  ?? 2,
+      lineWidthWeb:     parseFloat(document.getElementById('geoLineWidthWeb').value)   ?? 1.2,
+      lineWidthLissajous: parseFloat(document.getElementById('geoLineWidthLissajous').value) ?? 1.5,
+    },
+    noiseEffect: {
+      threshold:  parseFloat(document.getElementById('noiseThreshold').value) ?? 0.45,
+      ca:         parseInt(document.getElementById('noiseCA').value)           || 14,
+      jitterX:    parseInt(document.getElementById('noiseJitterX').value)      || 38,
+      jitterY:    parseInt(document.getElementById('noiseJitterY').value)      || 4,
+      brightness: parseFloat(document.getElementById('noiseBrightness').value) ?? 0.55,
+      contrast:   parseFloat(document.getElementById('noiseContrast').value)   ?? 0.35,
+    },
     skills: {},
   };
 
@@ -737,6 +1839,7 @@ function collectConfig() {
     cfg.skills[def.id] = {
       enabled: document.getElementById(`enabled-${def.id}`).checked,
       weights,
+      speech: document.getElementById(`speech-${def.id}`).value.trim(),
       image: document.getElementById(`image-${def.id}`).value.trim(),
       sprite: {
         path:       document.getElementById(`spritePath-${def.id}`).value.trim(),
@@ -745,6 +1848,14 @@ function collectConfig() {
         frameCount: parseInt(document.getElementById(`spriteFrameCount-${def.id}`).value) || 20,
         fps:        parseInt(document.getElementById(`spriteFps-${def.id}`).value) || 10,
         size:       parseInt(document.getElementById(`spriteSize-${def.id}`).value) || 200,
+      },
+      bossSprite: {
+        path:       document.getElementById(`bossSpritePath-${def.id}`).value.trim(),
+        cols:       parseInt(document.getElementById(`bossSpriteCols-${def.id}`).value) || 5,
+        rows:       parseInt(document.getElementById(`bossSpriteRows-${def.id}`).value) || 4,
+        frameCount: parseInt(document.getElementById(`bossSpriteFrameCount-${def.id}`).value) || 20,
+        fps:        parseInt(document.getElementById(`bossSpriteFps-${def.id}`).value) || 10,
+        size:       parseInt(document.getElementById(`bossSpriteSize-${def.id}`).value) || 200,
       },
       sound: document.getElementById(`sound-${def.id}`).value.trim(),
     };
@@ -781,6 +1892,17 @@ async function saveAll() {
     const d = await r.json();
     if (d.error) throw new Error(d.error);
     config = cfg;
+    // 保存後、ライブページにもレイアウト設定を即時反映
+    _bossSend({
+      type:        'bossLayoutUpdate',
+      bossChar:    cfg.bossChar,
+      hpGauge:     cfg.hpGauge,
+      battleLog:   cfg.battleLog,
+      timer:       cfg.timer,
+      speech:      cfg.speech,
+      geoEffect:   cfg.geoEffect,
+      noiseEffect: cfg.noiseEffect,
+    });
     setStatus('保存しました', 'ok');
     setTimeout(() => setStatus(''), 3000);
   } catch (e) {
@@ -791,12 +1913,16 @@ async function saveAll() {
 // ────────────────────────────────────────────────────────────────────
 // スプライトプレビュー
 // ────────────────────────────────────────────────────────────────────
+const _spritePreviewTimers = {};
+
 function previewSprite(skillId) {
   const path = document.getElementById(`spritePath-${skillId}`).value.trim();
   if (!path) { alert('スプライトパスが入力されていません'); return; }
-  const cols = parseInt(document.getElementById(`spriteCols-${skillId}`).value) || 5;
-  const rows = parseInt(document.getElementById(`spriteRows-${skillId}`).value) || 4;
-  const size = parseInt(document.getElementById(`spriteSize-${skillId}`).value) || 200;
+  const cols       = parseInt(document.getElementById(`spriteCols-${skillId}`).value) || 5;
+  const rows       = parseInt(document.getElementById(`spriteRows-${skillId}`).value) || 4;
+  const frameCount = parseInt(document.getElementById(`spriteFrameCount-${skillId}`).value) || (cols * rows);
+  const fps        = parseInt(document.getElementById(`spriteFps-${skillId}`).value) || 10;
+  const size       = parseInt(document.getElementById(`spriteSize-${skillId}`).value) || 200;
 
   const canvas = document.getElementById(`spriteCanvas-${skillId}`);
   const wrap = document.getElementById(`spriteCanvasWrap-${skillId}`);
@@ -804,22 +1930,71 @@ function previewSprite(skillId) {
   canvas.height = size;
   wrap.style.display = 'block';
 
+  // 既存タイマーを停止
+  clearInterval(_spritePreviewTimers[skillId]);
+
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, size, size);
 
   const img = new Image();
+  img.crossOrigin = 'anonymous';
   img.onload = () => {
     const fw = img.naturalWidth / cols;
     const fh = img.naturalHeight / rows;
-    ctx.drawImage(img, 0, 0, fw, fh, 0, 0, size, size);
+    let frame = 0;
+    _spritePreviewTimers[skillId] = setInterval(() => {
+      const col = frame % cols;
+      const row = Math.floor(frame / cols);
+      ctx.clearRect(0, 0, size, size);
+      ctx.drawImage(img, col * fw, row * fh, fw, fh, 0, 0, size, size);
+      if (++frame >= frameCount) frame = 0;
+    }, 1000 / fps);
   };
   img.onerror = () => {
     ctx.fillStyle = '#ef4444';
     ctx.font = '12px sans-serif';
     ctx.fillText('画像の読み込みに失敗', 4, size / 2);
   };
-  // スプライト画像は /sprites/ 経由で配信されていると想定
-  img.src = '/sprites/' + encodeURIComponent(path).replace(/%2F/g, '/');
+  img.src = '/sprite/' + path.split('/').map(encodeURIComponent).join('/');
+}
+
+function previewBossSprite(skillId) {
+  const path = document.getElementById(`bossSpritePath-${skillId}`).value.trim();
+  if (!path) { alert('スプライトパスが入力されていません'); return; }
+  const cols       = parseInt(document.getElementById(`bossSpriteCols-${skillId}`).value) || 5;
+  const rows       = parseInt(document.getElementById(`bossSpriteRows-${skillId}`).value) || 4;
+  const frameCount = parseInt(document.getElementById(`bossSpriteFrameCount-${skillId}`).value) || (cols * rows);
+  const fps        = parseInt(document.getElementById(`bossSpriteFps-${skillId}`).value) || 10;
+  const size       = parseInt(document.getElementById(`bossSpriteSize-${skillId}`).value) || 200;
+
+  const canvas = document.getElementById(`bossSpriteCanvas-${skillId}`);
+  const wrap   = document.getElementById(`bossSpriteCanvasWrap-${skillId}`);
+  canvas.width = size; canvas.height = size;
+  wrap.style.display = 'block';
+
+  clearInterval(_spritePreviewTimers[`boss_${skillId}`]);
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, size, size);
+
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    const fw = img.naturalWidth / cols, fh = img.naturalHeight / rows;
+    let frame = 0;
+    _spritePreviewTimers[`boss_${skillId}`] = setInterval(() => {
+      const col = frame % cols, row = Math.floor(frame / cols);
+      ctx.clearRect(0, 0, size, size);
+      ctx.drawImage(img, col * fw, row * fh, fw, fh, 0, 0, size, size);
+      if (++frame >= frameCount) frame = 0;
+    }, 1000 / fps);
+  };
+  img.onerror = () => {
+    ctx.fillStyle = '#ef4444';
+    ctx.font = '12px sans-serif';
+    ctx.fillText('画像の読み込みに失敗', 4, size / 2);
+  };
+  img.src = '/sprite/' + path.split('/').map(encodeURIComponent).join('/');
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -830,18 +2005,92 @@ function playSound(skillId) {
   const path = document.getElementById(`sound-${skillId}`).value.trim();
   if (!path) { alert('効果音パスが入力されていません'); return; }
   if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
-  const a = new Audio('/sounds/' + path);
+  const a = new Audio('/sound/' + path);
   _currentAudio = a;
   a.play().catch(e => alert('再生に失敗しました: ' + e.message));
   a.onended = () => { if (_currentAudio === a) _currentAudio = null; };
 }
 
 // ────────────────────────────────────────────────────────────────────
+// キャラ削除スプライトプレビュー
+// ────────────────────────────────────────────────────────────────────
+let _deleteSpritePreviewTimer = null;
+function previewDeleteSprite() {
+  const path = document.getElementById('deleteSpritePath').value.trim();
+  if (!path) { alert('スプライトパスが入力されていません'); return; }
+  const cols       = parseInt(document.getElementById('deleteSpriteCols').value) || 5;
+  const rows       = parseInt(document.getElementById('deleteSpriteRows').value) || 4;
+  const frameCount = parseInt(document.getElementById('deleteSpriteFrameCount').value) || (cols * rows);
+  const fps        = parseInt(document.getElementById('deleteSpriteFps').value) || 10;
+  const size       = parseInt(document.getElementById('deleteSpriteSizeVal').value) || 200;
+  const canvas = document.getElementById('deleteSpriteCanvas');
+  const wrap   = document.getElementById('deleteSpriteCanvasWrap');
+  canvas.width = size; canvas.height = size;
+  wrap.style.display = 'block';
+  clearInterval(_deleteSpritePreviewTimer);
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, size, size);
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    const fw = img.naturalWidth / cols, fh = img.naturalHeight / rows;
+    let frame = 0;
+    _deleteSpritePreviewTimer = setInterval(() => {
+      const col = frame % cols, row = Math.floor(frame / cols);
+      ctx.clearRect(0, 0, size, size);
+      ctx.drawImage(img, col * fw, row * fh, fw, fh, 0, 0, size, size);
+      if (++frame >= frameCount) frame = 0;
+    }, 1000 / fps);
+  };
+  img.onerror = () => { ctx.fillStyle = '#ef4444'; ctx.font = '12px sans-serif'; ctx.fillText('読み込みに失敗', 4, size / 2); };
+  img.src = '/sprite/' + path.split('/').map(encodeURIComponent).join('/');
+}
+
+// ────────────────────────────────────────────────────────────────────
+// アゲル系キャラ設定リスト
+// ────────────────────────────────────────────────────────────────────
+let _agruTypeImgs = [];
+
+function _renderAgruTypeImgList() {
+  const wrap = document.getElementById('agruTypeImgList');
+  wrap.innerHTML = '';
+  _agruTypeImgs.forEach((img, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:6px';
+    row.innerHTML = `
+      <input type="text" class="w-full" value="${escapeHtmlAttr(img)}" placeholder="キャラ画像ファイル名.png" oninput="_agruTypeImgs[${i}]=this.value">
+      <img src="/chara-s/${encodeURIComponent(img)}" alt="" style="height:32px;border-radius:4px;object-fit:contain;max-width:48px" onerror="this.style.display='none'" onload="this.style.display=''">
+      <button class="btn-secondary btn-sm" onclick="_removeAgruTypeImg(${i})">✕</button>
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+function _addAgruTypeImg() {
+  _agruTypeImgs.push('');
+  _renderAgruTypeImgList();
+}
+
+function _removeAgruTypeImg(i) {
+  _agruTypeImgs.splice(i, 1);
+  _renderAgruTypeImgList();
+}
+
+function escapeHtmlAttr(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+// ────────────────────────────────────────────────────────────────────
 // スプライト選択モーダル
 // ────────────────────────────────────────────────────────────────────
-async function openSpriteModal(skillId) {
+async function openSpriteModal(skillId, type = 'target') {
   _spriteTargetSkillId = skillId;
-  _spriteSelectedPath = document.getElementById(`spritePath-${skillId}`).value.trim() || null;
+  _spriteTargetType = type;
+  const prefix = type === 'boss' ? 'bossSpritePath' : 'spritePath';
+  const pathEl = skillId === '__delete__'
+    ? document.getElementById('deleteSpritePath')
+    : document.getElementById(`${prefix}-${skillId}`);
+  _spriteSelectedPath = pathEl?.value.trim() || null;
 
   document.getElementById('spriteModal').classList.add('open');
 
@@ -901,7 +2150,7 @@ async function loadSpriteImages() {
       thumb.dataset.path = fullPath;
 
       const img = document.createElement('img');
-      img.src = '/sprites/' + encodeURIComponent(folder).replace(/%2F/g, '/') + '/' + encodeURIComponent(imgPath);
+      img.src = '/sprite/' + (folder + '/' + imgPath).split('/').map(encodeURIComponent).join('/');
       img.alt = imgPath;
       img.loading = 'lazy';
 
@@ -925,8 +2174,11 @@ async function loadSpriteImages() {
 
 function confirmSpriteSelect() {
   if (!_spriteSelectedPath) { closeSpriteModal(); return; }
-  if (_spriteTargetSkillId) {
-    document.getElementById(`spritePath-${_spriteTargetSkillId}`).value = _spriteSelectedPath;
+  if (_spriteTargetSkillId === '__delete__') {
+    document.getElementById('deleteSpritePath').value = _spriteSelectedPath;
+  } else if (_spriteTargetSkillId) {
+    const prefix = _spriteTargetType === 'boss' ? 'bossSpritePath' : 'spritePath';
+    document.getElementById(`${prefix}-${_spriteTargetSkillId}`).value = _spriteSelectedPath;
   }
   closeSpriteModal();
 }
@@ -935,14 +2187,29 @@ function closeSpriteModal() {
   document.getElementById('spriteModal').classList.remove('open');
   _spriteTargetSkillId = null;
   _spriteSelectedPath = null;
+  _spriteTargetType = 'target';
 }
 
 // ────────────────────────────────────────────────────────────────────
 // サウンド選択モーダル
 // ────────────────────────────────────────────────────────────────────
+let _bgmPreviewAudio = null;
+function playBgmPreview() {
+  if (_bgmPreviewAudio) { _bgmPreviewAudio.pause(); _bgmPreviewAudio = null; }
+  const path = document.getElementById('bgmPath').value.trim();
+  if (!path) return;
+  _bgmPreviewAudio = new Audio('/sound/' + path);
+  _bgmPreviewAudio.volume = (parseInt(document.getElementById('bgmVolume').value) || 70) / 100;
+  _bgmPreviewAudio.play().catch(() => {});
+}
+
 async function openSoundModal(skillId) {
   _soundTargetSkillId = skillId;
-  _soundSelectedPath = document.getElementById(`sound-${skillId}`).value.trim() || null;
+  if (skillId === '__bgm__') {
+    _soundSelectedPath = document.getElementById('bgmPath').value.trim() || null;
+  } else {
+    _soundSelectedPath = document.getElementById(`sound-${skillId}`)?.value.trim() || null;
+  }
 
   document.getElementById('soundSearch').value = '';
   document.getElementById('soundModal').classList.add('open');
@@ -985,7 +2252,7 @@ function renderSoundList(sounds) {
     playBtn.onclick = (e) => {
       e.stopPropagation();
       if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
-      const a = new Audio('/sounds/' + s);
+      const a = new Audio('/sound/' + s);
       _currentAudio = a;
       a.play().catch(() => {});
       a.onended = () => { if (_currentAudio === a) _currentAudio = null; };
@@ -1012,7 +2279,11 @@ function filterSounds(query) {
 function confirmSoundSelect() {
   if (!_soundSelectedPath) { closeSoundModal(); return; }
   if (_soundTargetSkillId) {
-    document.getElementById(`sound-${_soundTargetSkillId}`).value = _soundSelectedPath;
+    if (_soundTargetSkillId === '__bgm__') {
+      document.getElementById('bgmPath').value = _soundSelectedPath;
+    } else {
+      document.getElementById(`sound-${_soundTargetSkillId}`).value = _soundSelectedPath;
+    }
   }
   closeSoundModal();
 }
@@ -1023,6 +2294,338 @@ function closeSoundModal() {
   _soundSelectedPath = null;
 }
 
+// ────────────────────────────────────────────────────────────────────
+// アゲル画像選択モーダル
+// ────────────────────────────────────────────────────────────────────
+let _agruImgTargetId    = null;  // skillId or 'bg'
+let _agruImgSelectedPath = null;
+
+async function openAgruImgModal(targetId) {
+  _agruImgTargetId    = targetId;
+  let existing;
+  if (targetId === 'bg') {
+    existing = document.getElementById('bgImage').value.trim();
+  } else if (targetId === 'bossDefault') {
+    existing = document.getElementById('bossDefaultImage').value.trim();
+  } else {
+    existing = document.getElementById(`image-${targetId}`).value.trim();
+  }
+  _agruImgSelectedPath = existing || null;
+
+  document.getElementById('agruImgModal').classList.add('open');
+
+  const folderSel = document.getElementById('agruImgFolderSel');
+  if (folderSel.options.length === 0) {
+    folderSel.innerHTML = '<option value="">-- 読み込み中 --</option>';
+    try {
+      const r = await fetch('/api/ageru-folders');
+      const d = await r.json();
+      const folders = d.folders || [];
+      folderSel.innerHTML = '<option value="">-- フォルダを選択 --</option>';
+      for (const f of folders) {
+        const opt = document.createElement('option');
+        opt.value = f;
+        opt.textContent = f;
+        folderSel.appendChild(opt);
+      }
+    } catch {
+      folderSel.innerHTML = '<option value="">読み込み失敗</option>';
+    }
+  }
+
+  if (_agruImgSelectedPath) {
+    const parts = _agruImgSelectedPath.split('/');
+    const guessFolder = parts.length >= 2 ? parts[0] : '';
+    for (const opt of folderSel.options) {
+      if (opt.value === guessFolder) { opt.selected = true; break; }
+    }
+    if (folderSel.value) loadAgruImages();
+  } else {
+    document.getElementById('agruImgGrid').innerHTML =
+      '<div style="color:#475569;font-size:12px;grid-column:1/-1;padding:20px 0;text-align:center;">フォルダを選んで「読み込み」を押してください</div>';
+  }
+}
+
+async function loadAgruImages() {
+  const folder = document.getElementById('agruImgFolderSel').value;
+  if (!folder) return;
+  const grid = document.getElementById('agruImgGrid');
+  grid.innerHTML = '<div style="color:#475569;font-size:12px;grid-column:1/-1;padding:20px 0;text-align:center;">読み込み中...</div>';
+  try {
+    const r = await fetch('/api/ageru-images/' + encodeURIComponent(folder));
+    const d = await r.json();
+    const images = d.images || [];
+    if (!images.length) {
+      grid.innerHTML = '<div style="color:#475569;font-size:12px;grid-column:1/-1;padding:20px 0;text-align:center;">画像が見つかりません</div>';
+      return;
+    }
+    grid.innerHTML = '';
+    for (const imgFile of images) {
+      const fullPath = folder + '/' + imgFile;
+      const thumb = document.createElement('div');
+      thumb.className = 'image-thumb';
+      if (_agruImgSelectedPath === fullPath) thumb.classList.add('selected');
+      thumb.dataset.path = fullPath;
+
+      const img = document.createElement('img');
+      img.src = '/ageru/' + [folder, imgFile].map(encodeURIComponent).join('/');
+      img.alt = imgFile;
+      img.loading = 'lazy';
+
+      const label = document.createElement('div');
+      label.className = 'image-thumb-label';
+      label.textContent = imgFile;
+
+      thumb.appendChild(img);
+      thumb.appendChild(label);
+      thumb.addEventListener('click', () => {
+        grid.querySelectorAll('.image-thumb').forEach(t => t.classList.remove('selected'));
+        thumb.classList.add('selected');
+        _agruImgSelectedPath = fullPath;
+      });
+      grid.appendChild(thumb);
+    }
+  } catch {
+    grid.innerHTML = '<div style="color:#ef4444;font-size:12px;grid-column:1/-1;padding:20px 0;text-align:center;">読み込みエラー</div>';
+  }
+}
+
+function confirmAgruImgSelect() {
+  if (!_agruImgSelectedPath) { closeAgruImgModal(); return; }
+  if (_agruImgTargetId === 'bg') {
+    document.getElementById('bgImage').value = _agruImgSelectedPath;
+    _updateBgPreview(_agruImgSelectedPath);
+  } else if (_agruImgTargetId === 'bossDefault') {
+    document.getElementById('bossDefaultImage').value = _agruImgSelectedPath;
+    _updateDefaultImgPreview(_agruImgSelectedPath);
+  } else if (_agruImgTargetId) {
+    document.getElementById(`image-${_agruImgTargetId}`).value = _agruImgSelectedPath;
+    _updateAgruImgPreview(_agruImgTargetId, _agruImgSelectedPath);
+  }
+  closeAgruImgModal();
+}
+
+function closeAgruImgModal() {
+  document.getElementById('agruImgModal').classList.remove('open');
+  _agruImgTargetId    = null;
+  _agruImgSelectedPath = null;
+}
+
+function _updateAgruImgPreview(skillId, val) {
+  const prev = document.getElementById(`imgPreview-${skillId}`);
+  if (!prev) return;
+  if (!val) { prev.style.display = 'none'; return; }
+  const parts = val.split('/').map(encodeURIComponent);
+  prev.src = '/ageru/' + parts.join('/');
+  prev.style.display = 'block';
+  prev.onerror = () => { prev.style.display = 'none'; };
+}
+
+function _updateBgPreview(val) {
+  const prev = document.getElementById('bgImagePreview');
+  if (!prev) return;
+  if (!val) { prev.style.display = 'none'; return; }
+  prev.src = val.startsWith('/') ? val : '/ageru/' + val.split('/').map(encodeURIComponent).join('/');
+  prev.style.display = 'block';
+  prev.onerror = () => { prev.style.display = 'none'; };
+}
+
+function _updateDefaultImgPreview(val) {
+  const prev = document.getElementById('bossDefaultImagePreview');
+  if (!prev) return;
+  if (!val) { prev.style.display = 'none'; return; }
+  prev.src = '/boss/' + encodeURIComponent(val);
+  prev.style.display = 'block';
+  prev.onerror = () => { prev.style.display = 'none'; };
+}
+
+// HP別画像行の動的生成
+const _HP_IMG_KEYS = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10];
+const _HP_IMG_LABELS = {
+  100: '残HP 91〜100%',
+  90:  '残HP 81〜90%',
+  80:  '残HP 71〜80%',
+  70:  '残HP 61〜70%',
+  60:  '残HP 51〜60%',
+  50:  '残HP 41〜50%',
+  40:  '残HP 31〜40%',
+  30:  '残HP 21〜30%',
+  20:  '残HP 11〜20%',
+  10:  '残HP 0〜10%',
+};
+function _buildHpImageRows() {
+  const wrap = document.getElementById('hpImagesWrap');
+  if (!wrap || wrap.children.length > 0) return;
+  _HP_IMG_KEYS.forEach(k => {
+    const row = document.createElement('div');
+    row.className = 'field-row';
+    row.style.cssText = 'align-items:center;gap:6px;margin-bottom:4px;';
+    row.innerHTML = `
+      <span class="field-label" style="min-width:120px;font-size:11px;">${_HP_IMG_LABELS[k]}</span>
+      <div class="ageru-img-row" style="flex:1;">
+        <input type="text" class="w-full" id="hpImgInput${k}" placeholder="ファイル名.png"
+          oninput="_updateHpImgPreview(${k}, this.value)">
+        <button class="btn-secondary btn-sm" onclick="openBossImgModal('hpImg${k}')">選ぶ</button>
+        <img class="ageru-img-preview" id="hpImgPreview${k}" alt="" style="display:none;">
+      </div>`;
+    wrap.appendChild(row);
+  });
+}
+function _updateHpImgPreview(key, val) {
+  const prev = document.getElementById('hpImgPreview' + key);
+  if (!prev) return;
+  if (!val) { prev.style.display = 'none'; return; }
+  prev.src = '/boss/' + encodeURIComponent(val);
+  prev.style.display = 'block';
+  prev.onerror = () => { prev.style.display = 'none'; };
+}
+
+// ────────────────────────────────────────────────────────────────────
+// ボス画像選択モーダル (public/boss)
+// ────────────────────────────────────────────────────────────────────
+let _bossImgSelectedFile = null;
+let _bossImgTargetId = null; // null = bossDefault, skillId = skill image
+let _bossImagesLoaded = false;
+
+async function openBossImgModal(targetId = null) {
+  _bossImgTargetId = targetId;
+  if (targetId === 'bg') {
+    _bossImgSelectedFile = null;
+    document.getElementById('bossImgModal').classList.add('open');
+    await loadBossHaiBgImages();
+    return;
+  }
+  if (targetId) {
+    _bossImgSelectedFile = document.getElementById(`image-${targetId}`)?.value.trim() || null;
+  } else {
+    _bossImgSelectedFile = document.getElementById('bossDefaultImage').value.trim() || null;
+  }
+  document.getElementById('bossImgModal').classList.add('open');
+  if (!_bossImagesLoaded) await loadBossImages();
+  // 現在の選択を反映
+  document.querySelectorAll('#bossImgGrid .image-thumb').forEach(t => {
+    t.classList.toggle('selected', t.dataset.file === _bossImgSelectedFile);
+  });
+}
+
+async function loadBossHaiBgImages() {
+  const grid = document.getElementById('bossImgGrid');
+  grid.innerHTML = '<div style="color:#475569;font-size:12px;grid-column:1/-1;padding:20px 0;text-align:center;">読み込み中...</div>';
+  try {
+    const r = await fetch('/api/boss-boshai-images');
+    const d = await r.json();
+    const images = d.images || [];
+    if (!images.length) {
+      grid.innerHTML = '<div style="color:#475569;font-size:12px;grid-column:1/-1;padding:20px 0;text-align:center;">画像が見つかりません (public/boss/boshai/)</div>';
+      return;
+    }
+    grid.innerHTML = '';
+    for (const imgFile of images) {
+      const thumb = document.createElement('div');
+      thumb.className = 'image-thumb';
+      thumb.dataset.file = imgFile;
+      const img = document.createElement('img');
+      img.src = `/boss/boshai/${encodeURIComponent(imgFile)}`;
+      img.alt = imgFile;
+      img.loading = 'lazy';
+      const label = document.createElement('div');
+      label.className = 'image-thumb-label';
+      label.textContent = imgFile;
+      thumb.appendChild(img);
+      thumb.appendChild(label);
+      thumb.addEventListener('click', () => {
+        grid.querySelectorAll('.image-thumb').forEach(t => t.classList.remove('selected'));
+        thumb.classList.add('selected');
+        _bossImgSelectedFile = imgFile;
+      });
+      grid.appendChild(thumb);
+    }
+  } catch {
+    grid.innerHTML = '<div style="color:#ef4444;font-size:12px;grid-column:1/-1;padding:20px 0;text-align:center;">読み込みエラー</div>';
+  }
+}
+
+async function loadBossImages() {
+  const grid = document.getElementById('bossImgGrid');
+  grid.innerHTML = '<div style="color:#475569;font-size:12px;grid-column:1/-1;padding:20px 0;text-align:center;">読み込み中...</div>';
+  try {
+    const r = await fetch('/api/boss-images');
+    const d = await r.json();
+    const images = d.images || [];
+    if (!images.length) {
+      grid.innerHTML = '<div style="color:#475569;font-size:12px;grid-column:1/-1;padding:20px 0;text-align:center;">画像が見つかりません</div>';
+      return;
+    }
+    grid.innerHTML = '';
+    for (const imgFile of images) {
+      const thumb = document.createElement('div');
+      thumb.className = 'image-thumb';
+      thumb.dataset.file = imgFile;
+      const img = document.createElement('img');
+      img.src = '/boss/' + encodeURIComponent(imgFile);
+      img.alt = imgFile;
+      img.loading = 'lazy';
+      const label = document.createElement('div');
+      label.className = 'image-thumb-label';
+      label.textContent = imgFile;
+      thumb.appendChild(img);
+      thumb.appendChild(label);
+      thumb.addEventListener('click', () => {
+        grid.querySelectorAll('.image-thumb').forEach(t => t.classList.remove('selected'));
+        thumb.classList.add('selected');
+        _bossImgSelectedFile = imgFile;
+      });
+      grid.appendChild(thumb);
+    }
+    _bossImagesLoaded = true;
+  } catch {
+    grid.innerHTML = '<div style="color:#ef4444;font-size:12px;grid-column:1/-1;padding:20px 0;text-align:center;">読み込みエラー</div>';
+  }
+}
+
+function confirmBossImgSelect() {
+  if (_bossImgSelectedFile) {
+    if (_bossImgTargetId === 'bg') {
+      // 背景画像（public/boss/boshai/）
+      const val = `/boss/boshai/${_bossImgSelectedFile}`;
+      document.getElementById('bgImage').value = val;
+      _updateBgPreview(val);
+    } else if (_bossImgTargetId === 'winImg') {
+      // リスナー勝利画像
+      document.getElementById('winImage').value = _bossImgSelectedFile;
+      const prev = document.getElementById('winImagePreview');
+      if (prev) { prev.src = '/boss/' + encodeURIComponent(_bossImgSelectedFile); prev.style.display = 'block'; prev.onerror = () => prev.style.display = 'none'; }
+    } else if (typeof _bossImgTargetId === 'string' && _bossImgTargetId.startsWith('hpImg')) {
+      // HP別画像
+      const key = _bossImgTargetId.slice(5);
+      const input = document.getElementById('hpImgInput' + key);
+      if (input) input.value = _bossImgSelectedFile;
+      _updateHpImgPreview(Number(key), _bossImgSelectedFile);
+    } else if (_bossImgTargetId) {
+      // スキル画像
+      const input = document.getElementById(`image-${_bossImgTargetId}`);
+      if (input) input.value = _bossImgSelectedFile;
+      const prev = document.getElementById(`imgPreview-${_bossImgTargetId}`);
+      if (prev) {
+        prev.src = '/boss/' + encodeURIComponent(_bossImgSelectedFile);
+        prev.style.display = 'block';
+        prev.onerror = () => { prev.style.display = 'none'; };
+      }
+    } else {
+      // ボスデフォルト画像
+      document.getElementById('bossDefaultImage').value = _bossImgSelectedFile;
+      _updateDefaultImgPreview(_bossImgSelectedFile);
+    }
+  }
+  closeBossImgModal();
+}
+
+function closeBossImgModal() {
+  document.getElementById('bossImgModal').classList.remove('open');
+  _bossImgSelectedFile = null;
+  _bossImgTargetId = null;
+}
+
 // モーダル外クリックで閉じる
 document.getElementById('spriteModal').addEventListener('click', e => {
   if (e.target === document.getElementById('spriteModal')) closeSpriteModal();
@@ -1030,13 +2633,141 @@ document.getElementById('spriteModal').addEventListener('click', e => {
 document.getElementById('soundModal').addEventListener('click', e => {
   if (e.target === document.getElementById('soundModal')) closeSoundModal();
 });
+document.getElementById('agruImgModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('agruImgModal')) closeAgruImgModal();
+});
+document.getElementById('bossImgModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('bossImgModal')) closeBossImgModal();
+});
 
 // ────────────────────────────────────────────────────────────────────
 // 初期化
 // ────────────────────────────────────────────────────────────────────
+// BroadcastChannel（同一ブラウザ内）+ WebSocket（OBS等）の両方で送信
+// ────────────────────────────────────────────────────────────────────
+const _adminChannel = (() => { try { return new BroadcastChannel('kukucome-admin'); } catch { return null; } })();
+let _bossWs = null;
+
+(function _initBossWS() {
+  function connect() {
+    try {
+      _bossWs = new WebSocket(`ws://${location.host}/ws`);
+      _bossWs.onopen  = () => _bossWs.send(JSON.stringify({ type: 'identify', role: 'admin' }));
+      _bossWs.onclose = () => { _bossWs = null; setTimeout(connect, 3000); };
+      _bossWs.onerror = () => {};
+    } catch {}
+  }
+  connect();
+})();
+
+function _bossSend(msg) {
+  _adminChannel?.postMessage(msg);
+  if (_bossWs?.readyState === WebSocket.OPEN) _bossWs.send(JSON.stringify(msg));
+}
+
+function _bossBattleOpStatus(msg, color) {
+  const el = document.getElementById('battleOpStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = color || '#475569';
+  clearTimeout(el._t);
+  if (msg) el._t = setTimeout(() => { el.textContent = ''; }, 3000);
+}
+
+function bossBattleStart() {
+  _bossSend({ type: 'agruBattleStart' });
+  _bossBattleOpStatus('バトル開始を送信しました', '#4ade80');
+}
+
+function bossBattleEnd() {
+  _bossSend({ type: 'agruBattleEnd', result: 'players' });
+  _bossBattleOpStatus('強制終了を送信しました', '#94a3b8');
+}
+
+// リアルタイムレイアウト反映
+// ────────────────────────────────────────────────────────────────────
+function _sendLayoutUpdate() {
+  const _iv = id => document.getElementById(id)?.value ?? '';
+  _bossSend({
+    type: 'bossLayoutUpdate',
+    bossChar: {
+      x:     _iv('bossCharX').trim() !== '' ? parseInt(_iv('bossCharX')) : '',
+      y:     parseInt(_iv('bossCharY')) || 0,
+      scale: parseInt(_iv('bossCharScale')) || 100,
+    },
+    hpGauge: {
+      x:          _iv('hpGaugeX').trim() !== '' ? parseInt(_iv('hpGaugeX')) : '',
+      y:          parseInt(_iv('hpGaugeY')) || 16,
+      width:      parseInt(_iv('hpGaugeWidth')) || 200,
+      thick:      parseFloat(_iv('hpGaugeThick')) || 11.5,
+      gap:        parseInt(_iv('hpGaugeGap')) || 90,
+      gapDir:     document.getElementById('hpGaugeGapDir').value || 'bottom',
+      numX:       _iv('hpGaugeNumX').trim() !== '' ? parseInt(_iv('hpGaugeNumX')) : '',
+      numY:       _iv('hpGaugeNumY').trim() !== '' ? parseInt(_iv('hpGaugeNumY')) : '',
+      numSize:    _iv('hpGaugeNumSize').trim() !== '' ? parseInt(_iv('hpGaugeNumSize')) : '',
+      behindBoss: document.getElementById('hpGaugeBehindBoss').checked,
+    },
+    battleLog: {
+      x:     parseInt(_iv('battleLogX')) || 16,
+      y:     parseInt(_iv('battleLogY')) || 16,
+      width: parseInt(_iv('battleLogWidth')) || 260,
+    },
+    timer: {
+      x:          _iv('timerX').trim() !== '' ? parseInt(_iv('timerX')) : '',
+      y:          parseInt(_iv('timerY')) || 12,
+      size:       parseInt(_iv('timerSize')) || 88,
+      behindBoss: document.getElementById('timerBehindBoss').checked,
+    },
+    speech: {
+      x:     _iv('speechX').trim() !== '' ? parseInt(_iv('speechX')) : '',
+      y:     parseInt(_iv('speechY')) || 40,
+      width: parseInt(_iv('speechWidth')) || 500,
+    },
+    geoEffect: {
+      shape:            _iv('geoShape')                          || 'triangle',
+      triCountFG:       parseInt(_iv('geoTriFG'))                || 41,
+      triCountBG:       parseInt(_iv('geoTriBG'))                || 16,
+      audioSmooth:      parseFloat(_iv('geoAudioSmooth'))        ?? 0.60,
+      bassSmooth:       parseFloat(_iv('geoBassSmooth'))         ?? 0.50,
+      lineWidthPoly:    parseFloat(_iv('geoLineWidthPoly'))      ?? 2,
+      lineWidthWeb:     parseFloat(_iv('geoLineWidthWeb'))       ?? 1.2,
+      lineWidthLissajous: parseFloat(_iv('geoLineWidthLissajous')) ?? 1.5,
+    },
+    noiseEffect: {
+      threshold:  parseFloat(_iv('noiseThreshold'))  ?? 0.45,
+      ca:         parseInt(_iv('noiseCA'))            || 14,
+      jitterX:    parseInt(_iv('noiseJitterX'))       || 38,
+      jitterY:    parseInt(_iv('noiseJitterY'))       || 4,
+      brightness: parseFloat(_iv('noiseBrightness')) ?? 0.55,
+      contrast:   parseFloat(_iv('noiseContrast'))   ?? 0.35,
+    },
+    hpImages: Object.fromEntries(_HP_IMG_KEYS.map(k => [String(k), (_iv('hpImgInput' + k).trim() || '')])),
+  });
+}
+
 (async function init() {
   buildSkillCards();
+  _buildHpImageRows();
+  document.getElementById('bgmVolume')?.addEventListener('input', e => {
+    document.getElementById('bgmVolumeLabel').textContent = e.target.value;
+  });
   await loadConfig();
+
+  // レイアウト設定の入力変更時にリアルタイム送信
+  [
+    'bossCharX','bossCharY','bossCharScale',
+    'hpGaugeX','hpGaugeY','hpGaugeWidth','hpGaugeThick','hpGaugeGap','hpGaugeNumX','hpGaugeNumY','hpGaugeNumSize',
+    'battleLogX','battleLogY','battleLogWidth',
+    'timerX','timerY','timerSize',
+    'speechX','speechY','speechWidth',
+    'geoAudioSmooth','geoBassSmooth','geoLineWidthPoly','geoLineWidthWeb','geoLineWidthLissajous',
+    'noiseThreshold','noiseCA','noiseJitterX','noiseJitterY','noiseBrightness','noiseContrast',
+  ].forEach(id => document.getElementById(id)?.addEventListener('input', _sendLayoutUpdate));
+
+  // チェックボックス・セレクトは change イベントで送信
+  ['hpGaugeBehindBoss', 'timerBehindBoss', 'hpGaugeGapDir', 'geoShape'].forEach(id =>
+    document.getElementById(id)?.addEventListener('change', _sendLayoutUpdate)
+  );
 })();
 </script>
 </body>

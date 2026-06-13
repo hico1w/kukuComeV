@@ -523,8 +523,57 @@
     </div>
   </div>
 
+  <!-- ボスアゲルバトル HUD（fixed / ステージキャラより前） -->
+  <!-- ボスアゲルバトル 登場演出オーバーレイ -->
+  <div id="bossEntranceOverlay" class="hidden">
+    <canvas id="bossEntranceRings" style="position:absolute;inset:0;pointer-events:none;width:100%;height:100%"></canvas>
+    <div id="bossEntranceScanlines"></div>
+    <div id="bossEntranceEdge"></div>
+    <div id="bossEntranceContent">
+      <div id="bossEntranceWarning">⚠ BOSS BATTLE ⚠</div>
+      <div id="bossEntranceName">アゲルちゃん</div>
+      <div id="bossEntranceSub">— BATTLE START —</div>
+    </div>
+    <div id="bossEntranceImgWrap">
+      <img id="bossEntranceImg" src="" alt="">
+    </div>
+  </div>
+
+  <div id="agruBattleCharWrap" class="hidden">
+    <div id="agruBattleSpeechBubble"></div>
+    <div id="agruBattleLog"></div>
+  </div>
+
   <!-- ステージ -->
   <div id="stage">
+    <!-- ボスアゲルバトル背景（stage内：ステージキャラより後ろ） -->
+    <div id="agruBattleOverlay" class="hidden">
+      <div id="agruBattleOverlayBg"></div>
+      <!-- タイマー残時間連動・背景赤黒化オーバーレイ（背景画像のみに適用） -->
+      <div id="bossTimerBgDark" style="position:absolute; inset:0; z-index:1; pointer-events:none; background:rgba(80,0,0,0); transition:background 1.5s ease-out;"></div>
+    </div>
+    <!-- ボスアゲルバトル エフェクトキャンバス（背景レイヤー：ボスより後ろ） -->
+    <canvas id="bossEfxBg" class="hidden" style="position:absolute;inset:0;z-index:25;pointer-events:none;width:100%;height:100%"></canvas>
+    <!-- ボスキャラ画像（stage内：ステージキャラより後ろ） -->
+    <div id="agruBossFigureWrap" class="hidden">
+      <div id="agruBattleCharFigure">
+        <img id="agruBattleCharImg" src="" alt="アゲルちゃん">
+      </div>
+    </div>
+    <!-- HPゲージ（stage内：z-index で前後切り替え） -->
+    <div id="agruBattleHpWrap">
+      <canvas id="agruBattleHpCanvas"></canvas>
+      <div id="agruBattleTimerText"></div>
+    </div>
+    <!-- HP数値（バーと独立して位置・サイズ調整可能） -->
+    <div id="agruBattleHpNum"></div>
+    <!-- ボスアゲルバトル エフェクトキャンバス（前景レイヤー：ボスより前、キャラより後ろ） -->
+    <canvas id="bossEfxFg" class="hidden" style="position:absolute;inset:0;z-index:55;pointer-events:none;width:100%;height:100%"></canvas>
+    <!-- ドラマチックタイマー（stage内：z-index で前後切り替え） -->
+    <div id="bossTimerWrap" class="hidden">
+      <div id="bossTimerDigits">0:00</div>
+      <div id="bossTimerLabel">TIME REMAINING</div>
+    </div>
     <div id="brToastContainer"></div>
     <div id="trashCan" title="ここにドラッグするとキャラが消えます">
       <img src="/img/gomi.png" alt="ゴミ箱">
@@ -541,6 +590,7 @@
         <button class="hint-tab"         onclick="switchHintTab(3)">🤖 AI・生成</button>
         <button class="hint-tab"         onclick="switchHintTab(4)">📋 仕様</button>
         <button class="hint-tab"         onclick="switchHintTab(5)">🐱 キャラ一覧</button>
+        <button class="hint-tab"         onclick="switchHintTab(6)">👹 ボスバトル</button>
       </div>
 
       <!-- ── Tab 0: コマンド生成 ── -->
@@ -1064,6 +1114,141 @@
         </div>
       </div><!-- /tab 4 -->
 
+      <!-- ── Tab 6: ボスアゲルバトル ── -->
+      <div class="hint-tab-content">
+      <div class="hint-grid">
+
+        <!-- 概要 -->
+        <div class="hint-card" style="grid-column:1/-1">
+          <div class="hint-card-title">👹 ボスアゲルバトル とは</div>
+          <div style="font-size:11px;color:#475569;line-height:1.7">
+            アゲルちゃんがボスとして出現し、<strong>リスナー全員で協力して倒すイベント</strong>です。制限時間内にHPを0にすれば<span style="color:#16a34a;font-weight:700">リスナー勝利</span>、タイマーが0になるとアゲルちゃんの逆襲で<span style="color:#dc2626;font-weight:700">アゲル勝利</span>。戦闘中は一部のスキルにより<strong>キャラのセーブデータが永久削除</strong>されることがあります。コメントを送るだけで自動的に攻撃参加できます。
+          </div>
+        </div>
+
+        <!-- 攻撃の仕組み -->
+        <div class="hint-card">
+          <div class="hint-card-title">⚔️ 攻撃の仕組み</div>
+          <dl class="hint-dl">
+            <dt>攻撃方法</dt><dd>コメントを送るだけで自動攻撃</dd>
+            <dt>ヒット数</dt><dd>文字数 ÷ 4（多いほど多段ヒット）</dd>
+            <dt>ダメージ</dt><dd>自キャラのATKに依存</dd>
+            <dt>クリティカル</dt><dd>確率で2〜5倍ダメージ</dd>
+            <dt>早押しバフ</dt><dd>早押し正解でダメージ×1.5</dd>
+            <dt>ペット効果</dt><dd>スカウト・クリット・各種ペット能力が有効</dd>
+          </dl>
+          <div class="hint-note">コンボや称号によるダメージ倍率補正も反映されます。</div>
+        </div>
+
+        <!-- 状態異常（リスナー側） -->
+        <div class="hint-card">
+          <div class="hint-card-title">🩸 状態異常（リスナー側）</div>
+          <dl class="hint-dl">
+            <dt>🗿 石化</dt><dd>60秒間攻撃不能</dd>
+            <dt>💤 眠り</dt><dd>30秒間攻撃不能</dd>
+            <dt>💕 魅了</dt><dd>30秒間：攻撃するとボスHP回復（逆効果）</dd>
+            <dt>🩸 呪い</dt><dd>60秒間：与ダメージが半減</dd>
+          </dl>
+          <div class="hint-note">石化・眠り中は吹き出しで「攻撃できない！」と表示されます。</div>
+        </div>
+
+        <!-- 勝利条件 -->
+        <div class="hint-card">
+          <div class="hint-card-title">🏁 勝利条件と結果</div>
+          <dl class="hint-dl">
+            <dt>リスナー勝利</dt><dd>ボスHP→0</dd>
+            <dt>アゲル勝利</dt><dd>タイマー→0</dd>
+            <dt>リスナー勝利時</dt><dd>全員MP+50 / 勝利画像表示 / アゲル系キャラ消滅</dd>
+            <dt>アゲル勝利時</dt><dd>全員MP→0 / アゲル会話モード再開</dd>
+          </dl>
+          <div class="hint-note">KOされたキャラは「即死撃」「盾崩壊」「デリート攻撃」で永久削除されます。</div>
+        </div>
+
+        <!-- HP・タイマー演出 -->
+        <div class="hint-card">
+          <div class="hint-card-title">🎨 バトルUI演出</div>
+          <dl class="hint-dl">
+            <dt>HPグレーアウト</dt><dd>キャラのHPに応じて上部がグレー化</dd>
+            <dt>タイマー赤黒化</dt><dd>残り時間が減るほど背景が暗赤色に</dd>
+            <dt>HPリール</dt><dd>ボスHPはスロット式リールアニメで変動</dd>
+            <dt>ボスHP画像</dt><dd>HP10%刻みで画像が差し替わる</dd>
+            <dt>UI飛び込み</dt><dd>バトル開始時にHP・タイマーが画面外からスライドイン</dd>
+          </dl>
+        </div>
+
+        <!-- スキル一覧 -->
+        <div class="hint-card" style="grid-column:1/-1">
+          <div class="hint-card-title">🎲 ボスのスキル一覧（全15種）</div>
+          <div style="font-size:10px;color:#64748b;margin-bottom:6px">スキルはHPが減るほど強力なものが出やすくなります。</div>
+          <table class="hint-table" style="font-size:11px">
+            <thead>
+              <tr>
+                <th style="text-align:left;padding:3px 6px">スキル</th>
+                <th style="text-align:left;padding:3px 6px">効果</th>
+                <th style="text-align:left;padding:3px 6px;white-space:nowrap">発動条件</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>😡 通常攻撃</td><td>全員に一定ダメージ</td><td>常時</td></tr>
+              <tr><td>🎯 集中砲火</td><td>ランダム1体に通常の5倍ダメージ</td><td>常時</td></tr>
+              <tr><td>💥 全体乱打</td><td>全員に通常の2倍ダメージ</td><td>常時</td></tr>
+              <tr><td>🌀 MP吸収</td><td>ランダム1体のMP全奪取</td><td>常時</td></tr>
+              <tr><td>💸 全体MP吸収</td><td>全員のMP -10</td><td>常時</td></tr>
+              <tr><td>🗿 石化</td><td>ランダム1体を60秒攻撃不能</td><td>常時</td></tr>
+              <tr><td>💤 眠り</td><td>ランダム1体を30秒攻撃不能</td><td>常時</td></tr>
+              <tr><td>💕 魅了</td><td>ランダム1体を30秒魅了（攻撃が逆効果）</td><td>常時</td></tr>
+              <tr><td>🩸 呪い</td><td>ランダム1体を60秒呪縛（ダメージ半減）</td><td>常時</td></tr>
+              <tr><td>💚 自己回復</td><td>ボスHP +200</td><td>常時</td></tr>
+              <tr><td>🔥 バーサーク</td><td>30秒間全ダメージ無効（GUARD）</td><td style="color:#d97706;font-weight:600">HP50%以下</td></tr>
+              <tr><td>☠️ 即死撃</td><td>ランダム1体を即KO・セーブ削除</td><td style="color:#dc2626;font-weight:600">HP25%以下</td></tr>
+              <tr><td>🛡️ 盾キャラ攻撃</td><td>1体を盾化（画面中央に移動、仮想HP99999。攻撃が盾に当たり、HP0で削除。30秒で解放）</td><td style="color:#dc2626;font-weight:600">HP25%以下</td></tr>
+              <tr><td>🗑️ デリート攻撃</td><td>ランダム1体を選び浮遊後に削除・セーブ削除</td><td style="color:#dc2626;font-weight:600">HP25%以下</td></tr>
+              <tr><td>🛡️ 超回復</td><td>30秒防御状態（全攻撃1ダメ）→解除後HP+50%。累積100ダメ受けると防御崩壊・HP-10%</td><td>常時</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 盾キャラ詳細 -->
+        <div class="hint-card">
+          <div class="hint-card-title">🛡️ 盾キャラ攻撃の詳細</div>
+          <dl class="hint-dl">
+            <dt>選出</dt><dd>生存キャラからランダム1体</dd>
+            <dt>状態変化</dt><dd>サイズ×1.5で画面中央へ移動（青グロー）</dd>
+            <dt>仮想HP</dt><dd>99999 — ボスでなく盾キャラへ攻撃が当たる</dd>
+            <dt>HP0</dt><dd>盾崩壊 → キャラ＆セーブデータ永久削除</dd>
+            <dt>30秒経過</dt><dd>仮想HPが残っていれば盾を解除・元に戻る</dd>
+          </dl>
+          <div class="hint-note">盾発動中は攻撃が全て盾キャラに向かいます。ボスを直接攻撃できません。</div>
+        </div>
+
+        <!-- 超回復詳細 -->
+        <div class="hint-card">
+          <div class="hint-card-title">💊 超回復の詳細</div>
+          <dl class="hint-dl">
+            <dt>防御中</dt><dd>全攻撃が1ダメージに制限（青白いグロー）</dd>
+            <dt>防御崩壊</dt><dd>累積100ダメージ → 防御解除 + HP -10%</dd>
+            <dt>崩壊演出</dt><dd>ガラス破砕エフェクト + 鎧破砕音</dd>
+            <dt>30秒経過</dt><dd>防御解除 + HP +50% 回復</dd>
+          </dl>
+          <div class="hint-note">防御崩壊を狙うには全員が集中して攻撃し続けることが重要です。</div>
+        </div>
+
+        <!-- 管理者向け -->
+        <div class="hint-card">
+          <div class="hint-card-title">⚙️ 管理者：設定・操作</div>
+          <dl class="hint-dl">
+            <dt>設定画面</dt><dd>ageru-boss.html でスキル・演出を詳細設定</dd>
+            <dt>バトル開始</dt><dd>ageru-boss.html の「バトル開始」ボタン</dd>
+            <dt>強制終了</dt><dd>ageru-boss.html の「強制終了」ボタン</dd>
+            <dt>スキル制御</dt><dd>各スキルの有効/無効・HP帯別発動率を設定可能</dd>
+            <dt>勝利画像</dt><dd>リスナー勝利時に全画面表示する画像を設定可能</dd>
+            <dt>削除エフェクト</dt><dd>キャラ削除時のスプライトアニメを設定可能</dd>
+          </dl>
+        </div>
+
+      </div>
+      </div><!-- /tab 6 -->
+
       <div class="hint-footer">
         <a href="/help.html" target="_blank" style="color:#334155;text-decoration:underline;pointer-events:auto">❓ コマンド詳細・フォント一覧はこちら</a>
       </div>
@@ -1104,14 +1289,6 @@
             </div>
           </div>
           <div id="agruEmotionLabel" class="agru-emotion-label"></div>
-          <!-- ボスアゲルバトルHPバー -->
-          <div id="agruBattleHpWrap" style="display:none;padding:4px 10px 2px;width:100%">
-            <div id="agruBattleHpText" style="font-size:11px;color:#f87171;font-weight:700;text-align:center;margin-bottom:3px;text-shadow:0 0 6px #f87171">HP ???/???</div>
-            <div style="height:9px;background:#1e293b;border-radius:5px;overflow:hidden;border:1px solid #334155">
-              <div id="agruBattleHpBar" style="height:100%;width:100%;background:linear-gradient(90deg,#ef4444,#f97316);transition:width 0.4s,background 0.4s;border-radius:5px"></div>
-            </div>
-            <div id="agruBattleTimerText" style="font-size:10px;color:#94a3b8;text-align:center;margin-top:2px"></div>
-          </div>
           <div class="agru-params-overlay">
             <div id="agruAffinityDisplay" class="agru-param-row"></div>
             <div id="agruHungerDisplay" class="agru-param-row"></div>

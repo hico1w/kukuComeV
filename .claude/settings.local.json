@@ -12,7 +12,22 @@
       "Bash(git -C \"E:\\\\claude\\\\kukuCome\" diff HEAD -- public/app.js)",
       "Bash(ls \"E:\\\\claude\\\\kukuNove\\\\kukuNove\" 2>&1)",
       "Read(//e/claude/kukuNove/kukuNove/**)",
-      "Bash(node --check \"E:\\\\claude\\\\kukuCome\\\\public\\\\app.js\")"
+      "Bash(node --check \"E:\\\\claude\\\\kukuCome\\\\public\\\\app.js\")",
+      "WebSearch",
+      "WebFetch(domain:live.erinn.biz)",
+      "PowerShell($emotions = @\\('安心','愛しさ','感謝','性的興奮','興奮','感動','好奇心','驚き','尊敬','不安','恐怖','困惑','冷静','軽蔑','殺意','悲しみ','諦め','苦しみ','嫉妬','恥'\\); foreach \\($e in $emotions\\) { New-Item -ItemType Directory -Force \"e:\\\\claude\\\\kukuCome\\\\public\\\\ageru\\\\$e\" | Out-Null }; Write-Output \"Done\")",
+      "Bash(grep -rn \"flux\\\\|FLUX\" \"F:\\\\AI\\\\Data\\\\Packages\\\\reforge\\\\ldm_patched\\\\modules\\\\model_detection.py\" | head -40)",
+      "Read(//f/AI/Data/Packages/reforge/ldm_patched/modules/**)",
+      "Bash('F:\\\\AI\\\\Data\\\\Packages\\\\reforge\\\\venv\\\\Scripts\\\\python.exe' -c ' *)",
+      "PowerShell(Get-ChildItem \"F:\\\\AI\\\\Data\\\\Packages\\\\reforge\\\\models\\\\Stable-diffusion\\\\\" -Recurse | Where-Object { $_.Extension -in \".safetensors\",\".ckpt\" } | Select-Object -First 10 | ForEach-Object { $_.FullName })",
+      "Bash(git push *)",
+      "PowerShell(Get-Process -Id 39712)",
+      "PowerShell(Get-WmiObject Win32_Process -Filter \"ProcessId = 39712\")",
+      "PowerShell(Get-WmiObject Win32_Process -Filter \"Name = 'tabservicepack.exe'\" | ForEach-Object { $_.GetOwner\\(\\) | Select-Object User, Domain })",
+      "PowerShell(Get-Process -Name \"tabservicepack\", \"tabmanager\" -ErrorAction SilentlyContinue)",
+      "Bash(Get-ChildItem \"e:\\\\claude\\\\kukuCome\\\\public\\\\sound\")",
+      "Bash(Select-Object -First 30 Name)",
+      "Bash(node --check e:/claude/kukuCome/public/app.js)"
     ]
   }
 }

@@ -345,6 +345,37 @@ app.get('/api/ageru-images/:folder', (req, res) => {
   }
 });
 
+// ageru フォルダ一覧
+app.get('/api/ageru-folders', (req, res) => {
+  const dir = path.join(__dirname, 'public', 'ageru');
+  try {
+    const folders = fs.readdirSync(dir, { withFileTypes: true })
+      .filter(d => d.isDirectory()).map(d => d.name);
+    res.json({ folders });
+  } catch { res.json({ folders: [] }); }
+});
+
+// boss 画像一覧
+app.get('/api/boss-images', (req, res) => {
+  const dir = path.join(__dirname, 'public', 'boss');
+  try {
+    const files = fs.readdirSync(dir)
+      .filter(f => /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(f))
+      .sort();
+    res.json({ images: files });
+  } catch { res.json({ images: [] }); }
+});
+
+app.get('/api/boss-boshai-images', (req, res) => {
+  const dir = path.join(__dirname, 'public', 'boss', 'boshai');
+  try {
+    const files = fs.readdirSync(dir)
+      .filter(f => /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(f))
+      .sort();
+    res.json({ images: files });
+  } catch { res.json({ images: [] }); }
+});
+
 // sprite フォルダ一覧
 app.get('/api/sprite-folders', (req, res) => {
   const dir = path.join(__dirname, 'public', 'sprite');

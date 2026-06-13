@@ -1,7 +1,281 @@
 {
-  "maxHP": 99999999,
+  "maxHP": 9999999,
   "timeLimit": 300,
-  "counterInterval": 60,
+  "counterInterval": 10,
+  "defaultImage": "00332-3171073214.png",
+  "hpImages": {
+    "10": "",
+    "20": "",
+    "30": "",
+    "40": "",
+    "50": "",
+    "60": "",
+    "70": "",
+    "80": "",
+    "90": "",
+    "100": ""
+  },
+  "battleStartSpeech": "お前を殺す。",
+  "battleWinSpeech": "",
+  "battleLoseSpeech": "",
+  "deleteEffect": {
+    "path": "",
+    "cols": 5,
+    "rows": 4,
+    "frameCount": 20,
+    "fps": 10,
+    "size": 200
+  },
+  "winImage": "",
+  "agruTypeImages": [],
+  "background": {
+    "image": "/boss/boshai/okumono_kikagakus28_.png",
+    "color": "#AAAAAA",
+    "blur": 4
+  },
+  "purupuruMap": {
+    "00332-3171073214.png": {
+      "enabled": true,
+      "gridSize": 18,
+      "points": [
+        {
+          "enabled": true,
+          "x": 48.9,
+          "y": 32.9,
+          "radius": 12,
+          "amplitude": 5,
+          "speed": 0.8,
+          "mode": "pendulum_y",
+          "phase": 0,
+          "shape": "circle",
+          "width": 60,
+          "height": 30,
+          "rotation": 0,
+          "direction": 0
+        },
+        {
+          "enabled": true,
+          "x": 63.4,
+          "y": 32.3,
+          "radius": 12,
+          "amplitude": 5,
+          "speed": 0.8,
+          "mode": "pendulum_y",
+          "phase": 15,
+          "shape": "circle",
+          "width": 60,
+          "height": 30,
+          "rotation": 0,
+          "direction": 0
+        },
+        {
+          "enabled": true,
+          "x": 57.2,
+          "y": 65.7,
+          "radius": 25,
+          "amplitude": 5,
+          "speed": 2.7,
+          "mode": "skirt",
+          "phase": 0,
+          "shape": "rect",
+          "width": 16,
+          "height": 10,
+          "rotation": 0,
+          "direction": 0
+        },
+        {
+          "enabled": true,
+          "x": 36.5,
+          "y": 61.4,
+          "radius": 25,
+          "amplitude": 5,
+          "speed": 2.3,
+          "mode": "skirt",
+          "phase": 0,
+          "shape": "rect",
+          "width": 18,
+          "height": 13,
+          "rotation": 0,
+          "direction": 0
+        },
+        {
+          "enabled": true,
+          "x": 15.5,
+          "y": 15.4,
+          "radius": 16,
+          "amplitude": 10.5,
+          "speed": 1.6,
+          "mode": "pendulum_y",
+          "phase": 90,
+          "shape": "circle",
+          "width": 60,
+          "height": 30,
+          "rotation": 0,
+          "direction": 0
+        },
+        {
+          "enabled": true,
+          "x": 9.4,
+          "y": 31.3,
+          "radius": 20,
+          "amplitude": 6,
+          "speed": 2.3,
+          "mode": "pendulum_y",
+          "phase": 270,
+          "shape": "circle",
+          "width": 60,
+          "height": 30,
+          "rotation": 0,
+          "direction": 0
+        },
+        {
+          "enabled": true,
+          "x": 13.9,
+          "y": 46,
+          "radius": 12,
+          "amplitude": 6,
+          "speed": 2.1,
+          "mode": "pendulum_y",
+          "phase": 15,
+          "shape": "circle",
+          "width": 60,
+          "height": 30,
+          "rotation": 0,
+          "direction": 0
+        },
+        {
+          "enabled": true,
+          "x": 59.7,
+          "y": 4.7,
+          "radius": 5,
+          "amplitude": 11,
+          "speed": 1,
+          "mode": "neko",
+          "phase": 180,
+          "shape": "circle",
+          "width": 60,
+          "height": 30,
+          "rotation": 0,
+          "direction": 0
+        },
+        {
+          "enabled": true,
+          "x": 41.1,
+          "y": 2.7,
+          "radius": 6,
+          "amplitude": 11.5,
+          "speed": 1,
+          "mode": "neko",
+          "phase": 165,
+          "shape": "circle",
+          "width": 60,
+          "height": 30,
+          "rotation": 0,
+          "direction": 0
+        },
+        {
+          "enabled": true,
+          "x": 54.5,
+          "y": 52.5,
+          "radius": 12,
+          "amplitude": 7.5,
+          "speed": 0.4,
+          "mode": "pendulum_y",
+          "phase": 0,
+          "shape": "rect",
+          "width": 107,
+          "height": 70,
+          "rotation": 0,
+          "direction": 0
+        },
+        {
+          "enabled": true,
+          "x": 80.7,
+          "y": 16,
+          "radius": 6,
+          "amplitude": 5,
+          "speed": 0.9,
+          "mode": "circle",
+          "phase": 0,
+          "shape": "circle",
+          "width": 60,
+          "height": 30,
+          "rotation": 0,
+          "direction": 0
+        },
+        {
+          "enabled": false,
+          "x": 89.1,
+          "y": 79.5,
+          "radius": 14,
+          "amplitude": 7,
+          "speed": 1.1,
+          "mode": "breast",
+          "phase": 0,
+          "shape": "circle",
+          "width": 60,
+          "height": 30,
+          "rotation": 0,
+          "direction": 0
+        }
+      ]
+    }
+  },
+  "bgm": {
+    "path": "boss/bgm.mp3",
+    "volume": 100
+  },
+  "timer": {
+    "x": 93,
+    "y": 328,
+    "size": 67,
+    "behindBoss": false
+  },
+  "bossChar": {
+    "x": "",
+    "y": 0,
+    "scale": 71
+  },
+  "hpGauge": {
+    "x": "",
+    "y": -80,
+    "width": 844,
+    "thick": 2,
+    "gap": 28,
+    "gapDir": "right",
+    "numX": 864,
+    "numY": 370,
+    "numSize": 67,
+    "behindBoss": true
+  },
+  "battleLog": {
+    "x": 11,
+    "y": 56,
+    "width": 300
+  },
+  "speech": {
+    "x": "",
+    "y": 55,
+    "width": 500
+  },
+  "geoEffect": {
+    "shape": "star",
+    "triCountFG": 41,
+    "triCountBG": 16,
+    "audioSmooth": 0.99,
+    "bassSmooth": 0.88,
+    "lineWidthPoly": 2,
+    "lineWidthWeb": 2.5,
+    "lineWidthLissajous": 6
+  },
+  "noiseEffect": {
+    "threshold": 0.74,
+    "ca": 34,
+    "jitterX": 59,
+    "jitterY": 4,
+    "brightness": 0.6,
+    "contrast": 1
+  },
   "skills": {
     "normal": {
       "enabled": true,
@@ -11,7 +285,36 @@
         40,
         30
       ],
-      "image": "\\boss\\00332-3171073214.png",
+      "speech": "・・・",
+      "image": "00344-130897992.png",
+      "sprite": {
+        "path": "薔薇エフェクトアニメ/png/480x480/pipo-roseeffect01_480.png",
+        "cols": 5,
+        "rows": 3,
+        "frameCount": 5,
+        "fps": 7,
+        "size": 238
+      },
+      "bossSprite": {
+        "path": "",
+        "cols": 5,
+        "rows": 4,
+        "frameCount": 20,
+        "fps": 10,
+        "size": 1300
+      },
+      "sound": "sentou/重いパンチ1.mp3"
+    },
+    "focus_fire": {
+      "enabled": false,
+      "weights": [
+        10,
+        15,
+        20,
+        20
+      ],
+      "speech": "",
+      "image": "",
       "sprite": {
         "path": "",
         "cols": 5,
@@ -20,18 +323,7 @@
         "fps": 10,
         "size": 200
       },
-      "sound": "sentou/重いパンチ1.mp3"
-    },
-    "focus_fire": {
-      "enabled": true,
-      "weights": [
-        10,
-        15,
-        20,
-        20
-      ],
-      "image": "",
-      "sprite": {
+      "bossSprite": {
         "path": "",
         "cols": 5,
         "rows": 4,
@@ -42,15 +334,24 @@
       "sound": ""
     },
     "all_attack": {
-      "enabled": true,
+      "enabled": false,
       "weights": [
         10,
         12,
         15,
         15
       ],
+      "speech": "",
       "image": "",
       "sprite": {
+        "path": "",
+        "cols": 5,
+        "rows": 4,
+        "frameCount": 20,
+        "fps": 10,
+        "size": 200
+      },
+      "bossSprite": {
         "path": "",
         "cols": 5,
         "rows": 4,
@@ -61,15 +362,24 @@
       "sound": ""
     },
     "instant_kill": {
-      "enabled": true,
+      "enabled": false,
       "weights": [
         0,
         0,
         1,
         3
       ],
+      "speech": "",
       "image": "",
       "sprite": {
+        "path": "",
+        "cols": 5,
+        "rows": 4,
+        "frameCount": 20,
+        "fps": 10,
+        "size": 200
+      },
+      "bossSprite": {
         "path": "",
         "cols": 5,
         "rows": 4,
@@ -80,15 +390,24 @@
       "sound": ""
     },
     "mp_absorb": {
-      "enabled": true,
+      "enabled": false,
       "weights": [
         8,
         8,
         7,
         5
       ],
+      "speech": "",
       "image": "",
       "sprite": {
+        "path": "",
+        "cols": 5,
+        "rows": 4,
+        "frameCount": 20,
+        "fps": 10,
+        "size": 200
+      },
+      "bossSprite": {
         "path": "",
         "cols": 5,
         "rows": 4,
@@ -99,15 +418,24 @@
       "sound": ""
     },
     "all_mp_drain": {
-      "enabled": true,
+      "enabled": false,
       "weights": [
         5,
         6,
         7,
         8
       ],
+      "speech": "",
       "image": "",
       "sprite": {
+        "path": "",
+        "cols": 5,
+        "rows": 4,
+        "frameCount": 20,
+        "fps": 10,
+        "size": 200
+      },
+      "bossSprite": {
         "path": "",
         "cols": 5,
         "rows": 4,
@@ -118,15 +446,24 @@
       "sound": ""
     },
     "petrify": {
-      "enabled": true,
+      "enabled": false,
       "weights": [
         4,
         4,
         5,
         5
       ],
+      "speech": "",
       "image": "",
       "sprite": {
+        "path": "",
+        "cols": 5,
+        "rows": 4,
+        "frameCount": 20,
+        "fps": 10,
+        "size": 200
+      },
+      "bossSprite": {
         "path": "",
         "cols": 5,
         "rows": 4,
@@ -137,15 +474,24 @@
       "sound": ""
     },
     "sleep": {
-      "enabled": true,
+      "enabled": false,
       "weights": [
         3,
         3,
         4,
         4
       ],
+      "speech": "",
       "image": "",
       "sprite": {
+        "path": "",
+        "cols": 5,
+        "rows": 4,
+        "frameCount": 20,
+        "fps": 10,
+        "size": 200
+      },
+      "bossSprite": {
         "path": "",
         "cols": 5,
         "rows": 4,
@@ -156,15 +502,24 @@
       "sound": ""
     },
     "charm": {
-      "enabled": true,
+      "enabled": false,
       "weights": [
         2,
         2,
         3,
         4
       ],
+      "speech": "",
       "image": "",
       "sprite": {
+        "path": "",
+        "cols": 5,
+        "rows": 4,
+        "frameCount": 20,
+        "fps": 10,
+        "size": 200
+      },
+      "bossSprite": {
         "path": "",
         "cols": 5,
         "rows": 4,
@@ -175,15 +530,24 @@
       "sound": ""
     },
     "curse": {
-      "enabled": true,
+      "enabled": false,
       "weights": [
         3,
         3,
         4,
         4
       ],
+      "speech": "",
       "image": "",
       "sprite": {
+        "path": "",
+        "cols": 5,
+        "rows": 4,
+        "frameCount": 20,
+        "fps": 10,
+        "size": 200
+      },
+      "bossSprite": {
         "path": "",
         "cols": 5,
         "rows": 4,
@@ -201,8 +565,17 @@
         5,
         3
       ],
-      "image": "",
+      "speech": "kaihuku",
+      "image": "00364-1253014399.png",
       "sprite": {
+        "path": "",
+        "cols": 5,
+        "rows": 4,
+        "frameCount": 20,
+        "fps": 10,
+        "size": 200
+      },
+      "bossSprite": {
         "path": "",
         "cols": 5,
         "rows": 4,
@@ -213,15 +586,80 @@
       "sound": ""
     },
     "berserk": {
-      "enabled": true,
+      "enabled": false,
       "weights": [
         0,
         1,
         3,
         5
       ],
+      "speech": "",
       "image": "",
       "sprite": {
+        "path": "",
+        "cols": 5,
+        "rows": 4,
+        "frameCount": 20,
+        "fps": 10,
+        "size": 200
+      },
+      "bossSprite": {
+        "path": "",
+        "cols": 5,
+        "rows": 4,
+        "frameCount": 20,
+        "fps": 10,
+        "size": 200
+      },
+      "sound": ""
+    },
+    "shield_char": {
+      "enabled": true,
+      "weights": [
+        0,
+        0,
+        2,
+        4
+      ],
+      "speech": "",
+      "image": "",
+      "sprite": {
+        "path": "",
+        "cols": 5,
+        "rows": 4,
+        "frameCount": 20,
+        "fps": 10,
+        "size": 200
+      },
+      "bossSprite": {
+        "path": "",
+        "cols": 5,
+        "rows": 4,
+        "frameCount": 20,
+        "fps": 10,
+        "size": 200
+      },
+      "sound": ""
+    },
+    "delete_char": {
+      "enabled": true,
+      "weights": [
+        0,
+        0,
+        1,
+        3
+      ],
+      "speech": "",
+      "image": "",
+      "sprite": {
+        "path": "",
+        "cols": 5,
+        "rows": 4,
+        "frameCount": 20,
+        "fps": 10,
+        "size": 200
+      },
+      "bossSprite": {
         "path": "",
         "cols": 5,
         "rows": 4,

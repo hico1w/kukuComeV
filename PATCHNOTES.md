@@ -2,6 +2,938 @@
 
 ---
 
+## v2.631.0 — 2026-06-13
+
+### ボスアゲルバトル解説セクションをルートの index.html に追加
+
+- **`index.html`**: サイドバーに「👹 ボスアゲルバトル」リンク（`#sec-ageru-boss`）を追加
+- **`index.html`**: `#sec-ageru-boss` セクションを新規追加（`#sec-boss` の直後）
+  - バトル概要・攻撃の仕組み・セーブ削除リスク・バトル結果の4枚カード
+  - 全15スキルを網羅したスキル一覧テーブル（効果・発動条件）
+  - 盾キャラ（shield_char）・超回復（super_heal）の詳細カード
+  - タイマー演出・HP段階別画像・飛び込み演出の説明
+  - 管理者向け設定ガイド（8項目のボタン説明）
+
+---
+
+## v2.630.0 — 2026-06-13
+
+### ボスアゲルバトル解説セクションを index.html に追加
+
+- **`public/index.html`**: ヒントパネルに新タブ「👹 ボスバトル」（`switchHintTab(6)`）を追加
+- 概要カード（バトルの流れ・セーブ削除リスクの説明）
+- 攻撃の仕組み（コメント攻撃・文字数ヒット数・クリティカル・早押しバフ）
+- 状態異常一覧（石化/眠り/魅了/呪い の効果と持続時間）
+- 勝利条件と結果（リスナー勝利・アゲル勝利それぞれの効果）
+- バトルUI演出（HPグレーアウト・タイマー赤黒化・HPリール・HP別画像・飛び込み演出）
+- スキル一覧テーブル（全15種：効果・発動条件を網羅）
+- 盾キャラ攻撃の詳細解説
+- 超回復の詳細解説（防御崩壊条件・演出）
+- 管理者向け操作ガイド（設定画面・各種設定項目）
+
+---
+
+## v2.629.0 — 2026-06-13
+
+### ボスアゲル：新スキル「超回復」追加
+
+- **`public/app.js`**: `AGRU_BATTLE_SKILLS` に `super_heal`（weights: [0,1,3,5]）を追加
+- **`public/app.js`**: 状態変数 `_agruDefenseActive`・`_agruDefenseDmgAccum`・`_agruDefenseTimer` を追加
+- **`public/app.js`**: `_agruActivateDefense()` — 防御状態開始；30秒タイマーで自動回復（HP+50%）
+- **`public/app.js`**: `_agruBreakDefense()` — 累積100ダメージで防御崩壊；ガラス破砕エフェクト再生・鎧破砕音再生・HP-10%ペナルティ
+- **`public/app.js`**: `_agruGlassShatterEffect()` — canvas ベースのガラス破片パーティクルアニメーション（28個の三角/四角形ポリゴン、重力・フェードアウト付き）
+- **`public/app.js`**: `attackAgruBoss()` に防御インターセプト — 防御中は `actualDmg=1` に制限し累積カウント、100達成で `_agruBreakDefense()` 呼び出し
+- **`public/app.js`**: `_agruBattleDealDamage()` にも防御インターセプトを追加
+- **`public/app.js`**: `_agruBattleDoCounter()` に `super_heal` ケース追加
+- **`public/app.js`**: `endAgruBattle()` で防御状態・タイマーをリセット
+- **`public/ageru-boss.html`**: `SKILL_DEFS` に `super_heal` エントリ追加（説明文付き）
+- **`public/style.css`**: `#agruBattleCharImg.agru-defense` — 青白いグロー点滅アニメ
+
+---
+
+## v2.628.0 — 2026-06-13
+
+### ボスアゲル：HP数値をリール式アニメーションに変更
+- **`public/app.js`**: `_buildHpNumReels(el, str)` / `_updateHpNumReels(el, str)` 関数追加 — タイマーと同じリールDOM構造をHP数値に適用
+- **`public/app.js`**: `updateAgruBattleHpDisplay()` でHP数値更新を `textContent` から `_updateHpNumReels()` に変更
+- **`public/app.js`**: HP数値要素の `display: block` を `display: flex` に変更（リール横並び用）
+- **`public/style.css`**: `#agruBattleHpNum` に `align-items/justify-content: center` 追加
+- **`public/style.css`**: `.hp-reel-sep` スタイル追加（桁区切りカンマ用、`.timer-reel-colon` 相当）
+
+---
+
+## v2.627.0 — 2026-06-13
+
+### ボスアゲル：スキル説明文・削除エフェクト・新スキル2種・終了演出追加
+
+#### A. スキル設定画面に説明文を追加
+- **`public/ageru-boss.html`**: `SKILL_DEFS` に `desc` フィールドを追加（全スキルに効果説明文）
+- **`public/ageru-boss.html`**: `buildSkillCards()` のスキルヘッダーに説明文を表示（グレー小テキスト、折り畳み状態でも常時表示）
+
+#### B. キャラ削除エフェクト設定を追加
+- **`public/ageru-boss.html`**: 「キャラ削除エフェクト」セクション追加 — スプライトアニメ設定（path / cols / rows / frameCount / fps / size）
+- **`public/app.js`**: `_agruBattleKillUser()` でキャラ削除時に `agruBattleConfig.deleteEffect` スプライトを再生（キャラ中央に canvas を配置）
+
+#### C. 新スキル：盾キャラ攻撃 (`shield_char`)
+- **`public/app.js`**: `AGRU_BATTLE_SKILLS` に `shield_char`（weights: [0,0,2,4], minHpPct:25）を追加
+- **`public/app.js`**: `_agruActivateShield(user)` — ランダムキャラをサイズ×1.5で画面中央へ移動、仮想HP99999付与、30秒タイマーで自動解放
+- **`public/app.js`**: `_agruReleaseShield()` — 盾解除、元位置・サイズ・スタイル復元
+- **`public/app.js`**: `attackAgruBoss()` に盾インターセプト処理 — 盾キャラ存在中はダメージが盾HPへ。HP0で盾キャラ削除
+- **`public/ageru-boss.html`**: `SKILL_DEFS` に `shield_char` エントリ追加（説明文付き）
+- **`public/style.css`**: `.agru-shield-char` — 青いグロー点滅アニメ
+
+#### D. 新スキル：デリート攻撃 (`delete_char`)
+- **`public/app.js`**: `AGRU_BATTLE_SKILLS` に `delete_char`（weights: [0,0,1,3], minHpPct:25）を追加
+- **`public/app.js`**: `_agruBattleDoCounter()` に `delete_char` ケース — ランダムキャラへ `agru-float-delete` クラス付与後 2000ms で `_agruBattleKillUser()`
+- **`public/ageru-boss.html`**: `SKILL_DEFS` に `delete_char` エントリ追加（説明文付き）
+- **`public/style.css`**: `.agru-float-delete` — 上昇フェードアウトアニメ
+
+#### E. 終了演出：アゲル勝利（ボス勝利）
+- **`public/app.js`**: `endAgruBattle()` の else ブランチ修正 — 勝利後に会話モーダルを再表示して何事もなかったように会話再開（agruActive/agruIdle は維持）
+
+#### F. 終了演出：リスナー勝利（プレイヤー勝利）
+- **`public/ageru-boss.html`**: 「終了演出設定」セクション追加 — リスナー勝利画像・アゲル系キャラリスト（ファイル名＋プレビュー）
+- **`public/app.js`**: `endAgruBattle()` の players ブランチ — 勝利画像を全画面表示（クリックで閉じる）
+- **`public/app.js`**: `endAgruBattle()` の players ブランチ — `agruBattleConfig.agruTypeImages` 一致キャラをフェードアウト消滅
+
+#### クリーンアップ
+- **`public/app.js`**: バトル終了時に盾状態・`agru-float-delete` クラスをリセット
+- **`public/app.js`**: `_agruBattleRestoreChars()` の後に `agru-float-delete` クラスを除去
+
+---
+
+## v2.626.0 — 2026-06-13
+
+### ボスアゲル：残HP 10%刻みでボス画像を切り替え可能に
+- **`public/app.js`**: `_agruUpdateBossImgByHp()` 関数追加 — 現在HPをバケット化（ceil(pct/10)*10、最小10）し、設定された画像に切り替え；下位バケットへのフォールバックあり
+- **`public/app.js`**: `let _agruLastHpBucket` を追加し、バケット変化時のみ画像更新（毎フレームの負荷を回避）
+- **`public/app.js`**: `updateAgruBattleHpDisplay()` 末尾で `_agruUpdateBossImgByHp()` を呼び出し
+- **`public/app.js`**: `startAgruBattle()` 開始時にバケットリセット＆初期HP画像を適用
+- **`public/app.js`**: WebSocket `bossLayoutUpdate` 受信時に `hpImages` を `agruBattleConfig` に反映
+- **`public/ageru-boss.html`**: HP別画像セクションを追加（`_buildHpImageRows()` で動的生成）
+- **`public/ageru-boss.html`**: `confirmBossImgSelect()` に `hpImg*` ターゲット対応を追加
+- **`public/ageru-boss.html`**: `collectConfig`・`_sendLayoutUpdate`・`applyConfigToDOM` に `hpImages` を追加
+
+## v2.624.0 — 2026-06-13
+
+### ボスアゲル：暗転終了後にUIをスライドイン演出
+- **`public/app.js`**: `_bossUIFlyIn()` 関数追加 — タイマー(delay:0)・HPゲージ(delay:160ms)・HP数値(delay:260ms) を `translateY(-280px)` → 指定位置へ stagger アニメート
+- **`public/app.js`**: タイマーの `translateX(-50%)` など既存 transform を保持しつつ translateY を合成して開始位置を設定
+- **`public/app.js`**: 入場演出完了コールバック内で `_applyTimerConfig()` 直後に `_bossUIFlyIn()` を呼び出し
+
+## v2.623.0 — 2026-06-13
+
+### ボスアゲル：パーティクルを三角形／星形で切り替え可能に
+- **`public/app.js`**: `_drawTri()` を廃止し `_shapePath(ctx, tr)` + `_drawShape(ctx, tr)` に分割 — `agruBattleConfig.geoEffect.shape` を毎フレーム参照して即時切り替え
+- **`public/app.js`**: BG層インライン描画も `_shapePath()` を使用（アルファスケールは維持）
+- **`public/app.js`**: FG層の `_drawTri` 呼び出しを `_drawShape` に置換
+- **`public/ageru-boss.html`**: 「パーティクル形状」セレクト (`geoShape`) を追加（三角形 / 星形 ★）
+- **`public/ageru-boss.html`**: `applyConfigToDOM`・`collectConfig`・`_sendLayoutUpdate` collectConfig・`change` リスナーリストに `geoShape` を追加
+- セクションタイトルを「幾何学エフェクト設定（パーティクル・ポリゴン）」に更新
+
+## v2.622.0 — 2026-06-13
+
+### ボスアゲル：グレーアウトオーバーレイを水平反転に同期
+- **`public/app.js`**: `applyFacingFlip()` で `.hp-gray-overlay` に `scaleX(-1)` を適用（基本画像と同期）
+- **`public/app.js`**: `updateBattleGrayscale()` でオーバーレイ作成・更新時に `isUserFlipped()` で反転状態を設定
+
+## v2.621.0 — 2026-06-13
+
+### ボスアゲル：タイマー残時間に応じてバトル背景画像を赤黒化
+- **`public/index.html`**: `#agruBattleOverlay` 内に `#bossTimerBgDark` div を追加（`z-index:1`、背景画像の上・ボスキャラより下）
+- **`public/app.js`**: `_bossEfx.updateTimer()` 内でタイマー進行率に応じ `rgba(80,0,0,opacity)` を設定（`Math.pow(progress, 1.5) * 0.55` でゆるやかに増加）
+- **`public/app.js`**: `_bossEfx.stop()` で `#bossTimerBgDark` の背景色をリセット（親要素の表示制御に委任）
+
+### ボスアゲル：キャラHPに連動したグレーアウト演出
+- **`public/style.css`**: `.hp-gray-overlay` スタイル追加（`position:absolute; filter:grayscale(1); clip-path` で切り抜き）
+- **`public/app.js`**: `updateBattleGrayscale(user)` 関数追加 — HP率に応じ `clip-path: inset(0 0 hpPct% 0)` を設定（上からグレー、HP低いほど広がる）
+- **`public/app.js`**: `updateStatsDisplay()` と `applyAvatarStyle()` の末尾でバトル中は `updateBattleGrayscale()` を呼び出し
+- **`public/app.js`**: `startAgruBattle()` 開始時に全キャラのグレーオーバーレイを初期化
+- **`public/app.js`**: `endAgruBattle()` でグレーオーバーレイを全キャラから除去
+
+## v2.619.0 — 2026-06-13
+
+### ボスアゲル：左ゾーン配置キャラを右向きに反転
+- **`public/app.js`**: `_agruBattleGatherChars()` で左グループに `facingRight = true` を設定し `applyFacingFlip()` を呼び出し（ペット・ぷるぷる・ジグルオーバーレイも含めて一括反転）
+- **`public/app.js`**: `_preBattleFacing` に元の向きを保存し、`_agruBattleRestoreChars()` でバトル終了後に向きを復元
+
+## v2.618.0 — 2026-06-13
+
+### ボスアゲル：バトル開始時キャラ配置を改善
+- **`public/app.js`**: `_agruBattleGatherChars()` を書き直し
+  - 左ゾーン（画面幅0〜35%）・右ゾーン（65〜100%）に分け、中央30%にキャラを配置しない
+  - 各ゾーン内でキャラ数に応じて均等分割配置（重なりOK）
+  - 全キャラ下端を画面下ぴったりに固定（下半分に収まる）
+  - 行分けロジックを廃止してシンプルな1行均等配置に変更
+
+## v2.617.0 — 2026-06-13
+
+### ボスアゲル：バトル中は射・回復 以外のコマンドを無効化
+- **`public/app.js`**: `handleComment()` のアゲル会話ブロック直後に `agruBattleActive` ガードを追加
+  - `射` を含むメッセージ → `launchBullets()` のみ実行して return
+  - `回復` を含むメッセージ → 回復ロジック（MP-2・全キャラHP+2・ハートシャワー）を実行して return
+  - それ以外 → 即 return（早押し・クイズ・タイマン・キャラコマンド等すべてスキップ）
+  - ボスへの攻撃（`attackAgruBoss`）はガードより前で処理されるため引き続き動作
+
+## v2.616.0 — 2026-06-13
+
+### ボスアゲル：バトル開始時キャラ集合・タイマーリール修正
+
+#### バトル開始時に全キャラが左下・右下に集合
+- **`public/app.js`**: `_agruBattleGatherChars()` を追加 — キャラを前半/後半に分けて左下・右下に5体×N行で配置（`_preBattleX/Y` に元座標を保存）
+- **`public/app.js`**: `_agruBattleRestoreChars()` を追加 — バトル終了後に元位置へアニメーション復元
+- **`public/app.js`**: `scheduleMove()` のタイムアウト内で `agruBattleActive` チェックを追加 — バトル中は自動移動をスキップして集合位置を維持
+- **`public/app.js`**: `startAgruBattle()` で `_agruBattleGatherChars()` 呼び出し（登場演出前）
+- **`public/app.js`**: `endAgruBattle()` で `_agruBattleRestoreChars()` 呼び出し（レイアウトリセット後）
+
+#### タイマーリール方向を上→下に修正
+- **`public/app.js`**: `_buildTimerReels()` のセル生成を 0→9 順に変更、`translateY(-${d*10}%)` に更新
+- **`public/app.js`**: `_updateTimerReels()` も同フォーミュラに更新
+
+#### タイマーのグロー効果が四角になる問題を修正
+- **`public/style.css`**: `#bossTimerDigits` の `text-shadow` を `filter: drop-shadow(...)` に変更（`overflow:hidden` によるクリップを回避）、transition を `filter 0.5s` に更新
+- **`public/style.css`**: `.timer-digit-reel-cell` / `.timer-reel-colon` から `text-shadow: inherit` を削除
+- **`public/app.js`**: `updateTimer()` の各フェーズで `el.style.textShadow` → `el.style.filter` (drop-shadow 構文) に変更
+
+## v2.613.0 — 2026-06-13
+
+### ボスアゲル：タイマーをリール式カウントダウンに変更
+- **`public/style.css`**: `#bossTimerDigits` に `display:flex` を追加、リール用クラス（`.timer-digit-reel-wrap` / `.timer-digit-reel` / `.timer-digit-reel-cell` / `.timer-reel-colon`）を追加
+  - リールは `overflow:hidden` + `height:1em` のウィンドウで各桁を切り抜き
+  - `.timer-digit-reel-cell` に `text-shadow:inherit` を指定しグロー効果を継承
+- **`public/app.js`**: `_timerReelStr(left)` / `_buildTimerReels(el, str)` / `_updateTimerReels(el, str)` を追加
+  - リールは上から 9→0 の順に並べ、`translateY(-(9-d)*10%)` でスクロール位置を制御
+  - 桁数が変わった場合（例：分が2桁になる）は自動再構築
+  - 常に `M:SS` 形式で表示（秒のみのときも `0:30` 形式）
+- **`public/app.js`**: 登場演出完了時・`_bossEfx.updateTimer()` での `textContent` 代入を `_buildTimerReels` / `_updateTimerReels` 呼び出しに置き換え
+
+## v2.612.0 — 2026-06-13
+
+### ボスアゲル：HP数値を独立要素化・バー太さ設定追加
+
+#### HP数値をバーと独立して位置・サイズ調整可能に
+- **`public/index.html`**: `#agruBattleHpNum`（div）を `#stage` 内に追加
+- **`public/style.css`**: `#agruBattleHpNum` を `position:absolute` で配置、低HP時の `.boss-hp-low` 点滅アニメーション（`bossHpLowPulse`）を CSS で定義
+- **`public/app.js`**: `updateAgruBattleHpDisplay()` から canvas への HP 数値描画を削除し、`#agruBattleHpNum` のテキスト・色・クラスを更新する処理に変更
+- **`public/app.js`**: `_applyBossLayoutConfig()` に `#agruBattleHpNum` の位置（`hp.numX`, `hp.numY`）・フォントサイズ（`hp.numSize`）・z-index 適用を追加
+- **`public/app.js`**: `_resetBossLayoutConfig()` に `#agruBattleHpNum` のスタイルリセットを追加
+- **`public/ageru-boss.html`**: HP数値セクションに X位置・Y位置・文字サイズ入力欄（id=`hpGaugeNumX/Y/Size`）を追加、各 JS 関数・イベントリスナーに反映
+
+#### HPバーの太さを設定から変更可能に
+- **`public/app.js`**: `updateAgruBattleHpDisplay()` の `TW` 計算を `S * (hp.thick ?? 11.5) / 100` に変更（円サイズに対する%）
+- **`public/ageru-boss.html`**: 「太さ (%)」入力欄（id=`hpGaugeThick`、デフォルト11.5、範囲1〜50）を追加、各 JS 関数・イベントリスナーに反映
+
+## v2.610.0 — 2026-06-13
+
+### ボスアゲル：HPゲージ・タイマーのサイズ上限を撤廃
+- **`public/app.js`**: `updateAgruBattleHpDisplay()` の canvas サイズ計算から上限 `Math.min(400, ...)` を除去（下限120pxのみ維持）
+- タイマーサイズ（`timerCfg.size`）は元々クランプなし。設定画面の input 要素にも `max` 属性はないため追加変更なし
+
+## v2.609.0 — 2026-06-13
+
+### ボスアゲル：HPバーギャップ方向を設定から選択可能に
+- **`public/ageru-boss.html`**: 「ギャップ方向」セレクト（id=`hpGaugeGapDir`）を追加（下・右・上・左、デフォルト下）
+- **`public/ageru-boss.html`**: `collectConfig()` / `applyConfigToDOM()` / `_sendLayoutUpdate()` に `gapDir` フィールドを追加、`hpGaugeGapDir` を change イベントリスナーに登録
+- **`public/app.js`**: `updateAgruBattleHpDisplay()` で `hp.gapDir` を角度にマップ（right:0°, bottom:90°, left:180°, top:-90°）し、`START = gapCenter + gapRad/2` で方向を反映
+
+## v2.608.0 — 2026-06-13
+
+### ボスアゲル：HPバーギャップ設定・背景暗化除去・ボス画像レイヤー修正
+
+#### HPバーのギャップ角度を設定から変更可能に
+- **`public/ageru-boss.html`**: 「ギャップ (°)」入力欄（id=`hpGaugeGap`、デフォルト90°、範囲5〜270°）を追加
+- **`public/ageru-boss.html`**: `collectConfig()` / `applyConfigToDOM()` / `_sendLayoutUpdate()` に `gap` フィールドを追加、`hpGaugeGap` を input イベントリスナーに登録
+- **`public/app.js`**: `updateAgruBattleHpDisplay()` で `hp.gap`（デフォルト90）を読み取り、下部中央を欠けの基点として `START = π/2 + gapRad/2`、`SWEEP = 2π - gapRad` で計算
+
+#### HPバーの背景暗化グラデーションを除去
+- **`public/app.js`**: `updateAgruBattleHpDisplay()` の `ctx.createRadialGradient` による背景描画ブロックを削除
+
+#### 「ボス画像の後ろに表示」修正
+- **`public/index.html`**: `#agruBattleHpWrap` と `#bossTimerWrap` を `#stage` の外（`position:fixed`）から内部（`position:absolute`）へ移動
+  - `position:fixed` の `#stage` は常に独立したスタッキングコンテキストを作るため、外部の fixed 要素は z-index に関わらず常に前面に出ていた
+- **`public/style.css`**: 両要素を `position: absolute` に変更、z-index を stage 内の階層（HP:60/タイマー:65 前面、28 後ろ）に合わせて更新
+- **`public/app.js`**: `_applyBossLayoutConfig()` / `_applyTimerConfig()` の z-index を stage 内階層に対応（前:60/65、後:28）
+
+## v2.607.0 — 2026-06-13
+
+### ボスアゲル：バトル背景に手振れエフェクト追加
+- **`public/style.css`**: `#agruBattleOverlayBg` に `inset: -6px`（縁を広げて揺れてもギャップを出さない）
+- **`public/style.css`**: `@keyframes bossBgHandShake`（14ステップ、translate + rotate でランダム感を演出）と `.boss-bg-shake` クラスを追加（2.4秒ループ）
+- **`public/app.js`**: 登場演出完了時に `boss-bg-shake` クラス付与、`endAgruBattle()` で除去
+
+## v2.606.0 — 2026-06-13
+
+### ボスアゲル：HPバー刷新・暗転中非表示・設定永続化
+
+#### HPバー 馬蹄形アーク＋ブロック分け＆エフェクト
+- **`public/app.js`**: `updateAgruBattleHpDisplay()` を馬蹄形（270°）アーク＋セグメント式 canvas に全面書き換え
+  - 20分割セグメント（充填=バーガンディグラデーション＋グロー、空=暗色）、lineCap:'butt' でブロック間に隙間
+  - スキャンシマー（充填アーク上を流れる光）
+  - 充填先端スパーク（パルス光点）
+  - 低HP（25%以下）時に全ブロック点滅（pulse）
+  - ダメージ検知フラッシュ（赤オーバーレイが 350ms でフェード）
+  - 中央に HP 数値のみ表示（ラベル・maxHP 表示なし）
+  - サイズ `hp.width`（120〜400px、デフォルト200）で canvas を自動リサイズ
+
+#### 暗転終了まで何も映さない
+- **`public/app.js`**: `_agruBattleEntranceDone` フラグを追加
+  - entrance 中（`_agruBattleEntranceDone = false`）は HP バーを非表示
+  - `onDone()` コールバック内で `true` にしてから HP バー・タイマーを表示
+- **`public/app.js`**: `_bossEfx.start()` からタイマー表示コードを除去（`onDone` に移動）
+- **`public/app.js`**: `endAgruBattle()` で `_agruBattleEntranceDone = false` リセット
+
+#### 設定永続化・即時反映
+- **`public/ageru-boss.html`**: `saveAll()` で保存後に `_bossSend({ type: 'bossLayoutUpdate', ... })` を送信 → ライブページに即時反映
+- **`public/app.js`**: 起動時 config 読み込み IIFE で `_applyBossLayoutConfig()` / `_applyTimerConfig()` を呼び出してレイアウト設定を即時適用
+- **`public/app.js`**: `_applyBossLayoutConfig()` の不要な `canvas._hpS = null` を削除（新実装では canvas 寸法比較で自動リサイズ）
+
+#### HP ゲージ設定変更
+- **`public/ageru-boss.html`**: HP ゲージ幅のデフォルトを 200 → 500 に変更、ラベルを「バーの横幅」に更新
+
+## v2.602.0 — 2026-06-13
+
+### ボスアゲル：HPゲージ・タイマーの表示レイヤー設定を追加
+- **`public/index.html`**: `#agruBattleHpWrap` を `#agruBattleCharWrap` の外（兄弟要素）に移動し独立した重なり順を制御可能に
+- **`public/style.css`**: `#agruBattleHpWrap` を `position:fixed; z-index:300` に変更
+- **`public/app.js`**: `_applyBossLayoutConfig()` で `hpGauge.behindBoss` に応じて `zIndex` を `20`（後ろ）or `300`（前）に切り替え
+- **`public/app.js`**: `_applyTimerConfig()` で `timer.behindBoss` に応じて `zIndex` を `20`（後ろ）or `320`（前）に切り替え
+- **`public/ageru-boss.html`**: HPゲージ設定・タイマー設定それぞれに「ボス画像より後ろに表示」トグル（`hpGaugeBehindBoss` / `timerBehindBoss`）を追加
+- **`public/ageru-boss.html`**: `collectConfig()` / `applyConfigToDOM()` / `_sendLayoutUpdate()` に `behindBoss` フィールドを追加
+- **`public/ageru-boss.html`**: チェックボックスの `change` イベントでリアルタイム反映（`hpGaugeBehindBoss`・`timerBehindBoss`）
+
+## v2.601.0 — 2026-06-13
+
+### ボスアゲル：HPゲージを円形アークデザインに刷新
+- **`public/index.html`**: `#agruBattleHpBarBg` / `#agruBattleHpBar` / `#agruBattleHpText` を削除し `<canvas id="agruBattleHpCanvas">` に置換
+- **`public/style.css`**: `#agruBattleHpWrap` を flex 縦並び配置に変更、旧バー関連 CSS を削除
+- **`public/app.js`**: `updateAgruBattleHpDisplay()` を canvas 描画に全面書き換え
+  - 270° ホースシューアーク（135° 〜 45°）
+  - バーガンディ グラデーション塗りアーク（`#3d0010→#c04068`）
+  - グロー・光沢ハイライト・先端光点・始点キャップ装飾
+  - 外側装飾リング・内側リング・10% 刻み目盛り
+  - 中央に "BOSS HP" ラベル・HP 数値（大）・区切り線・最大 HP サブテキスト
+  - 低 HP（25%以下）時に `Date.now()` ベースのパルスアニメーション
+  - 設定値 `hpGauge.width` をリング径として使用
+- **`public/app.js`**: `_bossEfx.tick()` 内で毎フレーム `updateAgruBattleHpDisplay()` を呼び出してアニメーションを滑らかに
+
+## v2.600.0 — 2026-06-13
+
+### ボスアゲル：タイマーサイズ設定が反映されない問題を修正
+- **原因**: `updateTimer()` が毎秒 `fontSize` を固定値（88/96/100/110px）で上書きしていた
+- **`public/app.js`**: `updateTimer()` 内で `agruBattleConfig.timer.size` をベースサイズとして読み込み
+  - 通常: `baseSize` px
+  - 残60秒以下: `baseSize × 1.09` px
+  - 残30秒以下: `baseSize × 1.14` px
+  - 残10秒以下: `baseSize × 1.25` px
+
+## v2.599.0 — 2026-06-13
+
+### ボスアゲル：幾何学エフェクト設定に線の太さを追加
+- **`public/ageru-boss.html`**: 「幾何学エフェクト設定」に線幅スライダーを3つ追加
+  - 線幅 ポリゴン（デフォルト2.0）
+  - 線幅 ウェブ（デフォルト1.2）
+  - 線幅 リサジュー（デフォルト1.5）
+- **`public/app.js`**: `renderBg()` 先頭で `agruBattleConfig.geoEffect` を読み込むよう修正
+- **`public/app.js`**: 各 `lineWidth` を `geoEffect.lineWidthPoly/Web/Lissajous` から取得するよう変更
+
+## v2.598.0 — 2026-06-13
+
+### ボスアゲル：HPゲージ・赤色三角をバーガンディ色に変更
+- **`public/style.css`**: `#agruBattleHpBar` グラデーションを `#800020→#a83248` に変更
+- **`public/style.css`**: `#agruBattleHpText` テキスト色・グロー色をバーガンディに変更
+- **`public/style.css`**: `#agruBattleSpeechBubble` ボーダー・シャドウをバーガンディに変更
+- **`public/app.js`**: HPバー動的色（>50% / 25-50% / <25%）をバーガンディグラデーションに変更
+- **`public/app.js`**: `TRI_COLORS` の赤を `#800020` に変更
+- **`public/app.js`**: 背景ポリゴンの stroke/fill 色配列をバーガンディ系に変更
+- **`public/app.js`**: 回転ウェブ・リサジュー曲線の赤色を `#800020` に変更
+- **`public/app.js`**: ラジアルバーストグラデーションを `rgba(128,0,32,...)` に変更
+
+## v2.597.0 — 2026-06-13
+
+### ボスアゲル：幾何学・ノイズエフェクトの各種パラメータを設定画面から変更可能に
+- **`public/ageru-boss.html`**: 「幾何学エフェクト設定」セクションを追加
+  - 三角形数 FG/BG（バトル開始時に反映）
+  - 全帯域スムージング / 低域スムージング（リアルタイム反映・高いほど鈍感）
+- **`public/ageru-boss.html`**: 「ノイズエフェクト設定」セクションを追加
+  - 発動閾値 / 色収差強度 / ジッターX・Y / 明るさ係数 / コントラスト係数（リアルタイム反映）
+- **`public/app.js`**: `_bossEfx.init()` で `agruBattleConfig.geoEffect` から `TRI_COUNT_FG/BG` を適用
+- **`public/app.js`**: `_bossEfx.tick()` で `agruBattleConfig.geoEffect.audioSmooth/bassSmooth` を使用
+- **`public/app.js`**: `_bossApplyAudioFx()` で `agruBattleConfig.noiseEffect` の全パラメータを使用
+- **`public/app.js`**: `handleAdminMessage` の `bossLayoutUpdate` に `geoEffect`/`noiseEffect` を追加
+
+## v2.596.0 — 2026-06-13
+
+### ボスアゲル：セリフ表示位置を設定画面から変更可能に
+- **`public/ageru-boss.html`**: 「セリフ表示設定」セクションを追加
+  - X位置 (px、空欄=中央)、Y位置 (px、上から)、幅 (px) の3項目
+  - `collectConfig()` / `applyConfigToDOM()` に `speech` フィールドを追加
+  - `_sendLayoutUpdate()` の送信データに `speech` を追加
+  - input イベントリスナーに `speechX/Y/Width` を追加
+- **`public/app.js`**: `_applyBossLayoutConfig()` に `#agruBattleSpeechBubble` のスタイル反映を追加
+  - X/Y/幅を `agruBattleConfig.speech` から適用
+- **`public/app.js`**: `handleAdminMessage` の `bossLayoutUpdate` ハンドラに `speech` を追加
+
+## v2.595.0 — 2026-06-13
+
+### ボスアゲル設定画面：WebSocket送信を追加（OBS対応）
+- **`public/ageru-boss.html`**: BroadcastChannel のみの送信では OBS ブラウザソースに届かない問題を修正
+  - `_initBossWS()` を追加：`ws://{host}/ws` に接続し `role: admin` で識別、自動再接続付き
+  - `_bossSend(msg)` を追加：BroadcastChannel と WebSocket の両方に送信（admin.html と同じ方式）
+  - `bossBattleStart()` / `bossBattleEnd()` / `_sendLayoutUpdate()` を `_bossSend()` 経由に統一
+
+## v2.594.0 — 2026-06-13
+
+### ボスアゲル：レイアウトリアルタイム反映の方式を変更
+- **`public/ageru-boss.html`**: `_sendLayoutUpdate()` を独自チャンネル `kukuCome_bossLayout` から既存の `kukucome-admin` チャンネルに統合
+  - 送信メッセージに `type: 'bossLayoutUpdate'` を追加
+  - 独自チャンネル `_bossLayoutChannel` の宣言を削除
+- **`public/app.js`**: `handleAdminMessage()` に `bossLayoutUpdate` タイプのハンドラを追加
+  - `agruBattleConfig` を更新後 `_applyBossLayoutConfig()` / `_applyTimerConfig()` を呼び出し
+  - 独自チャンネル `window._bossLayoutChannel` は残置（後方互換）
+
+## v2.593.0 — 2026-06-13
+
+### ボスアゲル設定画面：バトル開始・強制終了ボタンを追加
+- **`public/ageru-boss.html`**: ページ上部に「バトル操作」セクションを追加
+  - ⚔️ バトル開始ボタン（`agruBattleStart` を送信）
+  - 強制終了ボタン（`agruBattleEnd` を送信）
+  - `BroadcastChannel('kukucome-admin')` 経由で index.html に送信（admin.html と同じ仕組み）
+  - 送信後は操作ステータスを3秒表示
+
+## v2.592.0 — 2026-06-12
+
+### ボスアゲル：BroadcastChannel GC バグ修正（リアルタイム反映が動作しない問題）
+- **`public/app.js`**: `new BroadcastChannel(...)` を変数なしで生成していたためGCに回収されリスナーが消える不具合を修正
+  - `window._bossLayoutChannel` に保持するよう変更し、参照が失われないようにした
+
+## v2.591.0 — 2026-06-12
+
+### ボスアゲル：レイアウト設定をリアルタイムに反映
+- **`public/ageru-boss.html`**: `BroadcastChannel('kukuCome_bossLayout')` を生成
+  - `bossCharX/Y/Scale`, `hpGaugeX/Y/Width`, `battleLogX/Y/Width`, `timerX/Y/Size` の各 input に `input` イベントリスナーを追加
+  - 変更のたびに `_sendLayoutUpdate()` で最新値を BroadcastChannel に送信
+- **`public/app.js`**: `BroadcastChannel('kukuCome_bossLayout')` を受信
+  - `agruBattleConfig` の `bossChar`/`hpGauge`/`battleLog`/`timer` を更新し、即座に `_applyBossLayoutConfig()` + `_applyTimerConfig()` を呼び出し
+- **`public/app.js`**: `_applyTimerConfig()` を独立関数として抽出（`_bossEfx.start()` と BroadcastChannel ハンドラで共用）
+
+## v2.590.0 — 2026-06-12
+
+### ボスアゲル登場演出：効果音を追加
+- **`public/app.js`**: `_bossEntranceAlarmAudio` / `_bossEntranceGlassAudio` をモジュール変数で管理
+- **`public/app.js`**: `_stopEntranceSounds()` を新規追加（両音声を停止してnull化）
+- **`public/app.js`**: Phase 0（暗転開始）で `/sound/boss/エマージェンシーコール・警報音５.wav` をループ再生開始（volume 0.75）
+- **`public/app.js`**: Phase 4（2300ms）で `/sound/boss/ガラスが割れる1（旧バージョン）.mp3` を再生（volume 0.9）
+- **`public/app.js`**: Phase 5 で `_stopEntranceSounds()` を呼び出し両音声を停止
+- **`public/app.js`**: Phase 5 タイミングを 3200ms → 3800ms に変更（フェード完了 3580ms に合わせる）
+- **`public/app.js`**: `endAgruBattle()` の登場演出中断時にも `_stopEntranceSounds()` を呼び出し
+
+## v2.589.0 — 2026-06-12
+
+### ボスアゲル登場演出：暗転終了時にガラス割れエフェクトを追加
+- **`public/app.js`**: `_bossEntranceGlassBreak(overlay)` を新規追加
+  - 亀裂をフラクタル分割（再帰深度4）で事前生成（毎フレーム乱数なし→フレーム間でブレない静止画）
+  - メイン亀裂9〜11本を画面中心から放射状に生成、各亀裂から1〜3本の枝亀裂を分岐
+  - 衝撃点中央に2重リングを描画
+  - 6フレームのホワイトフラッシュ後に静止、オーバーレイのフェード（1.1s）で自然に消える
+  - キャンバスをオーバーレイ内に動的生成（z-index:18）、Phase 5 タイミング（3200ms後）で削除
+- **`public/app.js`**: Phase 4 を修正
+  - `_bossEntranceGlassBreak()` を呼び出し後、180ms 遅延してからオーバーレイフェードを開始（ガラス割れが見えてからフェードするよう調整）
+  - オーバーレイフェード時間を 0.85s → 1.1s に延長（ガラス割れをゆっくり見せる）
+
+## v2.588.0 — 2026-06-12
+
+### ボスアゲル：ボス・HPゲージ・ログの表示位置/サイズを設定画面から変更可能に
+- **`public/ageru-boss.html`**: 設定セクションを3つ追加
+  - **ボスキャラ表示設定**: `bossCharX`（X位置、空欄=中央）、`bossCharY`（下からの距離）、`bossCharScale`（スケール%）
+  - **HPゲージ表示設定**: `hpGaugeX`（X位置、空欄=中央）、`hpGaugeY`（下からの距離）、`hpGaugeWidth`（幅px）
+  - **バトルログ表示設定**: `battleLogX`（右からの距離）、`battleLogY`（上からの距離）、`battleLogWidth`（幅px）
+  - `collectConfig()` / `applyConfigToDOM()` に各項目を追加
+- **`public/app.js`**: `_applyBossLayoutConfig()` を新規追加
+  - `startAgruBattle()` でバトル開始時に適用
+  - `#agruBattleCharFigure`・`#agruBattleHpWrap`・`#agruBattleLog` に inline style で反映
+  - X位置空欄時は `left:50%; translateX(-50%)` で中央揃え維持
+  - `transformOrigin: bottom center` で scale がキャラの足元を基準に拡縮
+- **`public/app.js`**: `_resetBossLayoutConfig()` を新規追加
+  - `endAgruBattle()` でバトル終了時にインラインスタイルを全削除（CSS側の初期値に戻す）
+
+## v2.587.0 — 2026-06-12
+
+### ボスアゲル：ノイズエフェクトを大音量時のみ発動に変更
+- **`public/app.js`**: `_bossApplyAudioFx()` に `NOISE_THRESHOLD = 0.45` を導入
+  - `bassALv` が閾値以下は完全にエフェクトなし（fxImg を非表示）
+  - 閾値超過分を `intensity = (aLv - 0.45) / 0.55` で正規化し全パラメータに適用
+  - これにより静音〜中音では反応せず、大音量のみ色収差・ジッターが発動
+
+## v2.586.0 — 2026-06-12
+
+### ボスアゲル BGM 再生されない問題を根本修正
+- **`public/app.js`**: `_bossStartBgm()` を async → 通常関数に変更し、再生と WebAudio 接続を完全分離
+  - **根本原因**: `createMediaElementSource` で audio を AudioContext 経由にルーティングした後、AudioContext が suspended のままだと `audio.play()` が成功しても無音になっていた
+  - 修正: まず WebAudio 接続なしで `audio.play()` → 成功後に `_bossConnectAnalyser(audio)` で解析器を接続
+- **`public/app.js`**: `_bossConnectAnalyser(audio)` を新規追加
+  - `play()` 成功後（ユーザー操作済み前提）に AudioContext を resume → `ctx.state === 'running'` を確認してから `createMediaElementSource` 接続
+  - 接続失敗・context が suspended のままでも BGM 再生には影響しない（解析なしで続行）
+- **`public/app.js`**: `_bossStopBgm()` — `_bossBattleBgm._removeBgmRetry?.()` を呼び出してリトライリスナーをクリーンアップ
+
+## v2.585.0 — 2026-06-12
+
+### ボスアゲル：ノイズエフェクトを低音連動・横方向強化
+- **`public/app.js`**: `_bossGetBassLevel()` を新規追加
+  - `_bossGetAudioLevel()` 呼び出し後にバッファを再利用（`getByteFrequencyData` 二重呼び出し不要）
+  - bin 1〜10（≈172〜1720 Hz）のみを平均して低域レベルを算出
+- **`public/app.js`**: `_bossEfx.tick()` で低域レベルを別途計算
+  - `bassLv` / `_bassSmooth`（lerp 係数 0.5：やや速め）を追加
+  - `_bossApplyAudioFx()` の引数を全帯域 `aLv` から低域 `bassALv` に変更（三角・幾何学は従来通り全帯域）
+- **`public/app.js`**: `_bossApplyAudioFx()` — 横ジッター幅を `aLv*14` → `bassALv*36` に拡大、縦は `aLv*5` → `bassALv*4` に抑制。発動閾値を 0.2 → 0.15 に下げ低域に敏感化
+
+## v2.584.0 — 2026-06-12
+
+### ボスアゲル：バトル終了時エフェクト残留・タイマー0残留バグ修正
+- **`public/app.js`**: `_bossEfx.stop()` — `#bossEfxBg` / `#bossEfxFg` canvas は CSS に `.hidden` ルールが未定義だったため `classList.add('hidden')` が無効だった。`style.display = 'none'` + `clearRect()` に変更し確実に消去
+- **`public/app.js`**: `_bossEfx.start()` — canvas を `style.display = ''` で復元。タイマー値を RAF 初回フレーム前に即時セット（0 が一瞬表示される問題を修正）。タイマー文字色・shadow をリセット
+- **`public/app.js`**: `endAgruBattle()` — `#bossAudioFxImg` を DOM から削除、`#agruBattleCharImg` の position/z-index および `#agruBattleCharFigure` の isolation インラインスタイルをリセット。次バトルで確実にクリーンな状態から再生成されるよう保証
+
+## v2.583.0 — 2026-06-12
+
+### ボスアゲル：エフェクト層 + クリーン層の二重表示
+- **`public/app.js`**: `_bossApplyAudioFx()` を全面改修
+  - `#bossAudioFxImg`（背面エフェクト専用 img）を動的に生成・再利用
+  - エフェクト（色収差・ジッター）は `#bossAudioFxImg`（z-index:1）にのみ適用
+  - `#agruBattleCharImg`（クリーン版、z-index:2）が常に最前面に表示
+  - `#agruBattleCharFigure` に `isolation:isolate` を付与してスタッキングコンテキストを独立化
+  - `src` は毎フレーム `#agruBattleCharImg` から同期（画像切替後も追従）
+  - ジッターを `transform: translate()` に変更（絶対配置要素のためレイアウト影響なし）
+  - 色収差・輝度・コントラスト強度をわずかに上げ（視覚的にエフェクト層が目立つよう調整）
+- **`public/app.js`**: `_bossClearAudioFx()` を改修
+  - `#bossAudioFxImg` を非表示にし filter/transform をリセット
+  - `#agruBattleCharImg` の position/z-index インラインスタイルを削除
+
+## v2.582.0 — 2026-06-12
+
+### ボスアゲル：音連動ノイズエフェクト
+- **`public/app.js`**: `_bossApplyAudioFx(aLv)` / `_bossClearAudioFx()` を新規追加
+  - 音量 < 0.04: エフェクトなし
+  - 色収差 (chromatic aberration): `drop-shadow` で R を右、B を左にずらす（最大±10px）
+  - 輝度・コントラストパルス: `brightness(〜1.45)` `contrast(〜1.25)`
+  - hue-rotate ノイズ: 音量0.55超でランダムに±20°色相ずれ（確率18%/frame）
+  - ランダムジッター: 音量0.2超で最大±6px の位置揺れ（`margin-left/bottom`）
+- **`public/app.js`**: `_bossEfx.tick()` から毎フレーム呼び出し
+- **`public/app.js`**: `_bossEfx.stop()` と `endAgruBattle()` で `_bossClearAudioFx()` を呼びリセット
+
+---
+
+## v2.581.0 — 2026-06-12
+
+### 三角形：飛散後の出現をすぐに・なめらかに
+- **`public/app.js`**: 画面外リセット時の Y を `H + rand*H*2.2`（深いバッファ）→ `H + rand*80 + 5`（画面直下）に変更
+- **`public/app.js`**: リセット時の vy を `-rand*2.2 - 0.5` とばらけさせ、速度差で自然な出現タイミングのずれを生成（約0.3〜2秒で画面内に入る）
+
+---
+
+## v2.580.0 — 2026-06-12
+
+### 三角形の出現分布を外側寄りに変更
+- **`public/app.js`**: `mkTri()` の X 座標に `sqrt(random)` 分布を適用
+  - 中心（x=W/2）付近: 出現確率低、端（x=0, x=W）付近: 出現確率高
+  - `x = W/2 ± W/2 * sqrt(random)` — 確率密度が中心0→端2の線形グラデーション
+  - scattered（初期配置）時は従来通り一様分布
+
+---
+
+## v2.579.0 — 2026-06-12
+
+### 三角形エフェクト調整
+- **`public/app.js`**: FG三角数 55→41、BG三角数 22→16（約75%に削減）
+- **`public/app.js`**: FG層の三角形サイズを小さく（5〜23px）。BG層は10〜45pxを維持
+- **`public/app.js`**: 画面外リセット時の再出現Y座標を `H + random*H*2.2` に広げ、攻撃後にまとめて出現しないよう分散
+- **`public/app.js`**: FG層の三角形に `ctx.filter = 'blur(2px)'` を適用（BG層の6pxより控えめ）
+
+---
+
+## v2.577.0 — 2026-06-12
+
+### 幾何学模様の音連動を抑制
+- **`public/app.js`**: `renderBg()` / `renderFg()` の `aLv` 係数を全体的に約1/3以下に削減
+  - speed: `aLv*2` → `aLv*0.6`、ポリゴン半径: `aLv*0.12` → `aLv*0.04`
+  - ウェブ半径: `aLv*0.18` → `aLv*0.06`、各alpha値の係数も同様に削減
+  - ラジアルバースト: `aLv*0.7` → `aLv*0.25`
+
+---
+
+## v2.576.0 — 2026-06-12
+
+### 三角形エフェクト挙動変更
+- **`public/app.js`**: `tick()` — 通常時は常に上方向へのドリフト強制（`vy`を BG:-0.35 / FG:-0.55 以下にクランプ）
+- **`public/app.js`**: `tick()` — 画面下方向の脱出リセット条件を追加（攻撃後に下に吹き飛んだ三角が底から再生成）
+- **`public/app.js`**: `tick()` — 攻撃時の摩擦を 0.985→0.97 に上げて減速を早めた
+- **`public/app.js`**: `onAttack()` — 三角形を「画面中心から外側へ放射状に」吹き飛ばすよう変更
+  - 各三角に `(位置-中心)/距離 * force` の外向きベクトルを付与
+  - スポーン30個も中心から外側へ放射
+- **`public/app.js`**: `renderBg()` — BG層三角形に `ctx.filter = 'blur(6px)'` を適用（ボスより奥にいる感を演出）
+
+---
+
+## v2.573.0 — 2026-06-12
+
+### 三角形エフェクトを元の挙動に戻す
+- **`public/app.js`**: `_bossEfx.tick()` から音量連動の三角形揺れ処理を削除
+  - 通常時: ゆっくり漂う挙動を復元
+  - 攻撃時: `onAttack()` による飛散・振動・スポーンのみ
+  - 幾何学模様・ラジアルバーストの音連動は継続
+
+---
+
+## v2.572.0 — 2026-06-12
+
+### ボスアゲル：登場前チラ見え修正・画像クロスフェード・エフェクトクリーンアップ・音連動・幾何学拡大
+
+#### 登場前ボスキャラ表示修正
+- **`public/app.js`**: `startAgruBattle()` から `agruBossFigureWrap.classList.remove('hidden')` を削除
+- **`public/app.js`**: `_agruBattleEntrance()` のPhase4（2300ms）でボスキャラを表示
+  - 暗転演出中はボスキャラが完全に隠れるよう変更
+
+#### ボス画像クロスフェード
+- **`public/app.js`**: `_bossCrossfadeImg(newSrc, onDone)` 関数を新規追加
+  - `#agruBattleCharFigure`全体をopacityで0→1クロスフェード（ぷるぷるcanvasも含む）
+  - 約220ms フェードアウト → 画像切替 → フェードイン
+- **`public/app.js`**: `_agruBattlePlayEffect()` がクロスフェードを使用するよう変更
+
+#### 音楽連動エフェクト
+- **`public/app.js`**: Web Audio API (`AudioContext`, `AnalyserNode`) 解析器を追加
+  - `_bossGetAudioCtx()`, `_bossGetAudioLevel()` 関数追加
+  - `_bossStartBgm()` でBGMをアナライザーに接続
+- **`public/app.js`**: `_bossEfx.tick()` でオーディオレベルを計算・スムージング
+  - `aLv` (smoothed audio level) を `renderBg()`・`renderFg()` に渡す
+  - 音量に応じて三角形を揺らす処理を追加
+- **`public/app.js`**: `renderBg()` がaLvを使用：ポリゴンサイズ・アルファ・線幅が音に反応
+- **`public/app.js`**: `renderFg()` がaLvを使用：ラジアルバーストが音に反応
+
+#### 幾何学模様の大型化
+- **`public/app.js`**: `renderBg()` の各要素を大幅拡大
+  - ポリゴン: 固定px → `M * 0.18〜0.46` (画面サイズ比例)
+  - ウェブネット: 80px → `M * 0.38〜0.62`、ノード9個(7→9)
+  - リサジュー: `W*0.28` → `W*0.40〜0.48`、第2曲線追加
+  - ポリゴン数: 4→5個
+
+#### BGM再生信頼性改善
+- **`public/app.js`**: `_bossStartBgm()` を async 関数に変更
+  - `ctx.resume()` で AudioContext の suspend 状態を解除
+  - 再生失敗時は `click`/`keydown` イベントで自動再試行
+  - `loop = true` で確実なループ設定
+
+#### バトル終了時エフェクト残留修正
+- **`public/app.js`**: `endAgruBattle()` 冒頭で登場演出オーバーレイを徹底クリーンアップ
+  - `style.cssText = ''`, `className = 'hidden'`, 全 `bev-active` クラス除去
+  - `_bossEntranceAborted = true` で演出コールバックをキャンセル
+
+---
+
+## v2.560.0 — 2026-06-12
+
+### ボスアゲル：登場演出・BGM・タイマー設定・攻撃回転修正・ぷるぷるバグ修正
+
+#### 登場演出（新規）
+- **`public/index.html`**: `#bossEntranceOverlay` 追加（登場演出オーバーレイ、z-index:500）
+- **`public/style.css`**: 登場演出スタイル・アニメーション追加（暗転・テキスト展開・ボス画像スケールイン・赤エッジグロー・スキャンライン）
+- **`public/app.js`**: `_agruBattleEntrance(onDone)` 追加
+  - Phase 0(0ms): フェードイン暗転
+  - Phase 1(550ms): 「⚠ BOSS BATTLE ⚠」警告テキスト展開・フラッシュ・赤エッジグロー
+  - Phase 2(950ms): ボス名・BATTLE STARTテキスト表示
+  - Phase 3(1500ms): ボス画像スケールイン・拡大リングcanvasアニメーション
+  - Phase 4(2300ms): `_bossEfx.start()`・BGM開始・オーバーレイフェードアウト
+  - Phase 5(3200ms): オーバーレイ除去・タイマー/カウンター開始コールバック
+- **`public/app.js`**: `startAgruBattle()` を登場演出対応に変更（タイマー・カウンター開始を演出完了後に遅延）
+- **`public/app.js`**: `_bossEntranceAborted` フラグで`endAgruBattle`時に演出コールバックをキャンセル
+
+#### バトルBGM（新規）
+- **`public/ageru-boss.html`**: BGM設定セクション追加（ファイルパス・音量スライダー・試聴ボタン）
+- **`public/ageru-boss.html`**: `openSoundModal('__bgm__')` 対応、`confirmSoundSelect` を `__bgm__` ターゲットに対応
+- **`public/app.js`**: `_bossBattleBgm`、`_bossStartBgm()`、`_bossStopBgm()` 追加
+- BGM設定は `bossAgruConfig.bgm.path` / `bgm.volume` に保存
+
+#### タイマー位置・サイズ設定（新規）
+- **`public/ageru-boss.html`**: タイマー表示設定セクション追加（X/Y位置・文字サイズ）
+- **`public/app.js`**: `_bossEfx.start()` で `agruBattleConfig.timer` 設定を適用
+- タイマー設定は `bossAgruConfig.timer.x` / `timer.y` / `timer.size` に保存
+
+#### 攻撃時三角形回転速度修正
+- **`public/app.js`**: `_bossEfx.onAttack()` の `rotV` 加算を `* 0.5` → `* 0.08` に変更（約6分の1に低速化）
+
+#### ぷるぷる全画面バグ修正
+- **`public/index.html`**: `#agruBattleCharImg` を `#agruBattleCharFigure` ラッパーで囲んだ
+- **`public/style.css`**: `#agruBattleCharFigure` に `position:absolute;bottom:0;left:50%;transform:translateX(-50%);display:inline-block` を設定
+- **`public/app.js`**: `updateBossAgruPurupuru()` の parent を `#agruBattleCharFigure` に変更（ぷるぷるcanvasが全画面に広がるバグを修正）
+
+#### スキル使用後の画像切替バグ修正
+- **`public/app.js`**: `_agruBattlePlayEffect()` の画像切替ロジックを変更
+  - スキル固有画像を表示後、2秒でデフォルト画像へ自動復帰
+  - スキル固有画像なし時は即座にデフォルト画像へ復帰
+  - `_agruSlideImage` の代わりに `#agruBattleCharImg` を直接更新（通常チャット画像に影響しない）
+
+#### ぷるぷる設定UI改善（ageru-boss.html）
+- プレビューサイズを2倍（320px → 640px）
+- 「Pポイント表示/非表示」トグルボタン追加
+- Pポイントのドラッグ移動対応（canvas上でP点をドラッグ、X/Y入力フィールドに同期）
+- P点X/Y入力に `id="bpX-{i}"` / `id="bpY-{i}"` 追加（ドラッグ同期用）
+- `_bvInitCanvasEvents()` でpointerイベント初期化（`selectBossPuruImg` 時に呼び出し）
+
+---
+
+## v2.546.0 — 2026-06-11
+
+### ボスアゲル：バトルエフェクト・ドラマチックタイマー・ぷるぷる画像別設定・背景画像boshai対応
+
+#### バトルエフェクトシステム（新規）
+- **`public/index.html`**: `#bossEfxBg`（z-index:25）、`#bossEfxFg`（z-index:55）の2枚のcanvasを追加
+- **`public/index.html`**: `#bossTimerWrap` ドラマチックタイマーDOMを追加
+- **`public/style.css`**: タイマー用スタイル・アニメーション追加（`boss-timer-warning`, `boss-timer-critical`）
+- **`public/app.js`**: `window._bossEfx` エフェクトシステムを追加
+  - 赤・白・黒の三角形パーティクル（FG: 55個、BG: 22個、透明度80%）
+  - 背景レイヤー: 変形ポリゴン、回転ウェブ、リサジュー曲線の幾何学模様
+  - 攻撃時バースト: `onAttack()` で三角形が散乱・振動・高速回転、30個スポーン
+  - タイマー: 残り時間に応じて色・サイズ・グロー・アニメーション段階変化（白→橙→赤→点滅）
+  - `_agruBattleDoCounter()` に `_bossEfx.onAttack()` フックを追加
+  - `startAgruBattle()` / `endAgruBattle()` でエフェクトの開始/停止を制御
+
+#### ぷるぷる：画像別設定（前回からの続き完成）
+- **`ageru-boss.html`**: `collectConfig()` を `purupuruMap`（画像ファイル名キー辞書）形式に変更
+- **`ageru-boss.html`**: `applyConfigToDOM()` を `loadBossPuruMapConfig()` 呼び出しに変更
+- **`app.js`**: `updateBossAgruPurupuru()` を現在の画像ファイル名で `purupuruMap` を参照する方式に変更
+- **`app.js`**: `_agruSlideImage()` に `updateBossAgruPurupuru()` フックを追加
+
+#### 背景画像 public/boss/boshai/ 対応
+- **`server.js`**: `/api/boss-boshai-images` エンドポイント追加（`public/boss/boshai/` の画像一覧）
+- **`ageru-boss.html`**: 背景画像ピッカーボタンを `openBossImgModal('bg')` に変更
+- **`ageru-boss.html`**: `loadBossHaiBgImages()` 追加（boshai サブディレクトリ専用ローダー）
+- **`ageru-boss.html`**: `confirmBossImgSelect()` に `'bg'` ターゲット対応（値は `/boss/boshai/filename.png` 形式）
+- **`ageru-boss.html`**: `_updateBgPreview()` を `/boss/` パスに対応
+
+---
+
+## v2.541.0 — 2026-06-11
+
+### ボスアゲル：ぷるぷる設定追加・ダメージ表示位置修正
+
+- **`ageru-boss.html`**
+  - バトル基本設定に「ぷるぷる設定（ボスアゲル画像）」セクションを追加
+  - 有効/無効チェックボックス、グリッドサイズスライダー、12ポイント詳細設定UI
+  - `_bossPuruDefaultPoints()` / `loadBossPuruConfig()` / `buildBossPuruPointsUI()` / `syncBossPuruPoint()` 追加
+  - `collectConfig()`: `purupuru` フィールドを含めるよう更新
+  - `applyConfigToDOM()`: `loadBossPuruConfig(config.purupuru)` を呼び出すよう更新
+- **`app.js`**
+  - `updateBossAgruPurupuru()` 追加: `agruBattleConfig.purupuru` を `#agruBattleCharImg` に適用
+  - `_puruApplyAll()`: `updateBossAgruPurupuru()` を追加
+  - `startAgruBattle()`: `updateBossAgruPurupuru()` を呼び出すよう更新
+  - `endAgruBattle()`: バトル終了時にぷるぷるcanvasを除去するよう更新
+  - `attackAgruBoss()`: ダメージ数値をキャラ位置ではなくボスアゲル画像の位置に表示するよう修正
+
+---
+
+## v2.539.0 — 2026-06-11
+
+### ボスアゲル：スキル画像も public/boss に変更
+
+- **`ageru-boss.html`**
+  - スキルカードの「画像を選ぶ」ボタンを `openBossImgModal(skillId)` に変更
+  - `openBossImgModal(targetId)`: 引数なしはデフォルト画像、skillId 指定はスキル画像として動作
+  - `confirmBossImgSelect()`: ターゲットに応じて `bossDefaultImage` または `image-${skillId}` に書き込み
+  - `applyConfigToDOM()`: スキル画像プレビューを `/boss/` パスで表示
+- **`app.js`**
+  - `_agruBattlePlayEffect()`: スキル画像を `/boss/ファイル名` として `_agruSlideImage` に渡すよう変更
+
+---
+
+## v2.538.0 — 2026-06-11
+
+### ボスアゲル：デフォルト画像を public/boss から選択
+
+- **`server.js`**: `/api/boss-images` エンドポイントを追加（`public/boss` 内の画像一覧を返す）
+- **`ageru-boss.html`**:
+  - `#bossImgModal`: `public/boss` の画像を表示する専用モーダルを追加
+  - `openBossImgModal()` / `loadBossImages()` / `confirmBossImgSelect()` / `closeBossImgModal()`: ボス画像選択ロジック
+  - `_updateDefaultImgPreview()`: プレビューパスを `/ageru/` → `/boss/` に修正
+  - デフォルト画像「画像を選ぶ」ボタンを `openBossImgModal()` に変更
+- **`app.js`**: `_agruSyncBattleCharImg()` でデフォルト画像のURLを `/boss/` パスに変更
+
+---
+
+## v2.537.0 — 2026-06-11
+
+### ボスアゲルバトル：ダメージログ表示・デフォルト画像モーダルバグ修正
+
+- **`app.js`**
+  - `attackAgruBoss()`: バトルログに `⚔️ {名前} → {CRIT? }N dmg` を表示（コメント攻撃ごとに記録）
+
+- **`ageru-boss.html`**
+  - `openAgruImgModal('bossDefault')` が `image-bossDefault` という存在しない要素を参照してエラーになっていたバグを修正。`bossDefault` ターゲット時は `bossDefaultImage` 要素を正しく参照するよう分岐を追加
+
+---
+
+## v2.536.0 — 2026-06-11
+
+### ボスアゲルバトル：キル判定修正・バトル中UI切替
+
+- **`app.js`**
+  - `_agruBattleDoCounter()`: `if (u.hp <= 0)` でのキル判定を `if (!wasKo && u.ko)` に修正。`damageUser` → `charDeath` が HP をリセットするためキルが発動していなかったバグを修正
+  - `_agruBattleKillUser()`: 即座と1.5秒後の両方で `user.koTimer` をキャンセル（復活タイマーを防止）
+  - `_agruBattleEnterUI()`: バトル開始時にもじあて・ダメージランキング・クイズ・ニュースを非表示、装備・ステータス・名前を強制表示
+  - `_agruBattleLeaveUI()`: バトル終了時に各要素をバトル前の状態に復元
+  - `startAgruBattle()`: `_agruBattleEnterUI()` を呼び出し
+  - `endAgruBattle()`: `_agruBattleLeaveUI()` を呼び出し
+
+---
+
+## v2.535.0 — 2026-06-11
+
+### ボスアゲルバトル：バトルログ5件上限・ボスキャラをステージキャラより後ろに表示
+
+- **`app.js`**
+  - `_agruBattleLog()`: エントリ上限を 20 → 5 件に変更
+  - `startAgruBattle()` / `endAgruBattle()`: `#agruBossFigureWrap` の show/hide を追加
+
+- **`index.html`**
+  - `#agruBattleCharImg` を `#agruBattleCharWrap` から分離し、`#stage` 内の `#agruBossFigureWrap` に移動
+  - `#agruBattleCharWrap` は HUD（吹き出し・HP バー・ログ）のみに
+
+- **`style.css`**
+  - `#agruBossFigureWrap`: `position:absolute; inset:0; z-index:30`（`#stage` 内、`.character` の z-index:70 より後ろ）
+  - `#agruBattleCharWrap`: 変わらず `position:fixed; z-index:300`（HUD はステージキャラより前）
+
+---
+
+## v2.534.0 — 2026-06-11
+
+### ボスアゲルバトル：ボスデフォルト画像設定・バトルログスクロール廃止
+
+- **`ageru-boss.html`**
+  - バトル基本設定に「デフォルト画像」ピッカーを追加（`bossDefaultImage` フィールド）
+  - `collectConfig()` / `applyConfigToDOM()`: `defaultImage` フィールドを追加
+  - `confirmAgruImgSelect()`: `'bossDefault'` ターゲットの処理を追加
+  - `_updateDefaultImgPreview(val)`: デフォルト画像プレビュー更新関数を追加
+
+- **`app.js`**
+  - `_agruSyncBattleCharImg()`: バトル設定の `defaultImage` を最優先で使用（未設定時は会話モードの画像 → `agruDefaultImage` の順でフォールバック）
+
+- **`style.css`**
+  - `#agruBattleLog`: `overflow-y: auto` を削除、スクロールバー非表示に変更
+
+---
+
+## v2.533.0 — 2026-06-11
+
+### ボスアゲルバトル：スプライトエフェクト対象キャラ追従・ボス側エフェクト追加
+
+- **`app.js`**
+  - `_agruCharCenter(user)`: ステージ相対座標でキャラの中央を返すヘルパーを追加
+  - `_agruAnimateSprite(canvas, sp, onDone)`: スプライトシート再生の共通関数を追加
+  - `_agruBattlePlayEffect(skillId, targets)`: シグネチャを `(cx,cy)` → `targets[]` に変更
+    - `cfg.sprite`: 対象ユーザーのキャラ上に `position:absolute` で表示（複数対象は全員に）
+    - `cfg.bossSprite`: アゲルちゃんの上に `position:fixed; z-index:9999` で表示
+    - targets が null / 空の場合はステージ中央に表示（self_heal, berserk 等）
+  - `_agruBattleDoCounter()`: 各スキルケース内で `_agruBattlePlayEffect` を呼ぶよう変更し、スキルごとに正しいターゲットを渡す
+
+- **`ageru-boss.html`**
+  - 各スキルカードに「スプライトエフェクト（ボス側）」セクションを追加（`bossSpritePath`, `bossSpriteCols`, `bossSpriteRows`, `bossSpriteFrameCount`, `bossSpriteFps`, `bossSpriteSize`）
+  - `openSpriteModal(skillId, type)`: type パラメータ追加（`'target'` | `'boss'`）で書き込み先フィールドを切り替え
+  - `confirmSpriteSelect()`: `_spriteTargetType` に応じて `spritePath` か `bossSpritePath` に書き込む
+  - `previewBossSprite(skillId)`: ボス側エフェクトのプレビュー関数を追加
+  - `applyConfigToDOM()` / `collectConfig()`: `bossSprite` フィールドを追加
+
+---
+
+## v2.532.0 — 2026-06-11
+
+### ボスアゲルバトル完全分離・ollama不要・ダメージログ分離
+
+- **`app.js`**
+  - `startAgruBattle()`: 古いモーダル表示コードを完全削除。ollama/会話モード不要で単独起動可能に
+  - `startAgruBattle()`: `_agruSyncBattleCharImg()` の呼び出し順序修正（`agruActive` セット後に実行）
+  - `_agruSyncBattleCharImg()`: `getAttribute('src')` で空srcを正しく検出し、`agruDefaultImage` をフォールバックに使用
+  - `_agruBattleLog(text)`: バトルログ専用関数を追加（`#agruBattleLog` に `.agru-battle-log-entry` として追記）
+  - `_agruAddSystemMsg(text)`: バトル中（`agruBattleActive=true`）は `_agruBattleLog` に委譲、会話ログに混入しない
+  - ダメージ・スキル発動ログがすべて `#agruBattleLog`（バトルHUD内）に表示されるように
+
+---
+
+## v2.531.0 — 2026-06-11
+
+### ボスアゲルバトル表示構造修正
+
+- **`index.html`**
+  - `#agruBattleOverlay`（背景専用, z-index 280）と `#agruBattleCharWrap`（キャラ・HUD, z-index 285）を別要素に分離
+  - 背景オーバーレイはキャラより後ろに表示される構造に
+
+- **`style.css`**
+  - `#agruBattleOverlay`: z-index 280（背景レイヤー）
+  - `#agruBattleCharWrap`: z-index 285（キャラ・吹き出し・HP バー、背景より前）
+
+- **`app.js`**
+  - `startAgruBattle()` / `endAgruBattle()`: `#agruBattleCharWrap` の show/hide も追加
+  - `_agruSlideImage()`: バトル中に `#agruBattleCharImg` の src を即座に同期（キャッシュ済み画像も対応）
+
+---
+
+## v2.530.0 — 2026-06-11
+
+### ボスアゲルバトル UI 全面改修・AI セリフ廃止・設定画面拡張
+
+- **`app.js`**
+  - `startAgruBattle()`: `#agruModal` 全体を非表示、`#agruBattleOverlay`（全画面）を表示
+  - `endAgruBattle()`: オーバーレイを非表示、モーダルを復元
+  - `_agruApplyBattleBg(bg)`: `#agruBattleOverlayBg` に直接 backgroundImage/backgroundColor を設定（全画面適用）
+  - `_agruSyncBattleCharImg()`: `#agruCharImg` の src を `#agruBattleCharImg` に同期
+  - `_agruSlideImage()`: 画像変更時にバトル中なら `#agruBattleCharImg` も更新
+  - `_kaiAgruBossTarget()`: バトル中は `#agruBattleCharImg` を優先して当たり判定を取得
+  - `_agruBattleGetSpeech(skillId)`: AI 呼び出しを廃止 → 設定ファイルの `skills[id].speech` または `battleStartSpeech` 等の固定テキストを吹き出し表示
+
+- **`index.html`**
+  - `#agruBattleOverlay`（全画面バトルオーバーレイ）を `#stage` 外側に追加
+    - `#agruBattleOverlayBg`: 背景レイヤー
+    - `#agruBattleOverlayCharWrap` → `#agruBattleCharImg`: キャラクター画像
+    - `#agruBattleSpeechBubble`: バトルセリフ吹き出し
+    - `#agruBattleHpWrap` / `#agruBattleHpBar` / `#agruBattleTimerText`: HP バー・タイマー
+  - モーダル内の HP バー・吹き出し要素を削除（オーバーレイに移動）
+
+- **`style.css`**
+  - `#agruBattleOverlay` 一式のスタイルを追加（全画面・z-index 290）
+  - HP バー・タイマー・吹き出し・背景レイヤーのスタイルを追加
+
+- **`public/ageru-boss.html`**
+  - バトル開始/リスナー勝利/アゲル勝利の固定セリフ入力欄を追加（`battleStartSpeech`, `battleWinSpeech`, `battleLoseSpeech`）
+  - 各スキルカードに「セリフ」入力欄を追加（`skills[id].speech`）
+  - スプライトプレビューをアニメーション再生に修正（`setInterval` でフレームループ、ループ再生）
+
+---
+
+## v2.529.0 — 2026-06-11
+
+### ボスアゲルバトル UI 改善・設定画面拡張
+
+- **`app.js`**
+  - `startAgruBattle()`: バトル中は `.agru-chat-area`（会話チャット欄）を非表示
+  - `endAgruBattle()`: バトル終了時にチャット欄を復元・吹き出しをクリア
+  - `_agruBattleGetSpeech()`: アゲルちゃんのバトルセリフを `#agruBattleSpeechBubble` に吹き出し表示（6秒後に自動フェードアウト）
+  - `_agruBattleShowSpeechBubble(text)`: 吹き出し表示関数（pop アニメーション付き）
+  - `_agruApplyBattleBg(bg)`: バトル中の背景画像・色を `.agru-char-bg::before` に動的適用（動的 `<style>` 注入）
+  - `_agruBattlePlayEffect()`: スプライトパスのエンコードをセグメント単位に修正（日本語フォルダ対応）
+
+- **`index.html`**
+  - `#agruBattleSpeechBubble` 要素を `.agru-char-area` 内に追加
+
+- **`style.css`**
+  - `#agruBattleSpeechBubble` スタイル追加（pop アニメーション・フェードアウト対応）
+
+- **`server.js`**
+  - `/api/ageru-folders` エンドポイント追加（`public/ageru` のサブフォルダ一覧）
+
+- **`public/ageru-boss.html`**
+  - バトル背景設定セクション追加（背景画像・ブラー強度・背景色）
+  - アゲル画像ピッカーモーダル追加（フォルダ一覧 → 画像グリッド選択・サムネイル表示）
+  - スキルカードの「アゲル画像」欄に「画像を選ぶ」ボタンとサムネイルプレビューを追加
+  - 効果音再生パス `/sounds/` → `/sound/` 修正
+
+---
+
 ## v2.528.0 — 2026-06-11
 
 ### アゲルちゃんボスバトルシステム実装

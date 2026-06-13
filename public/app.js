@@ -806,6 +806,7 @@ function applyAvatarStyle(user) {
     else img.addEventListener('load', adjustSize, { once: true });
   }
   applyFacingFlip(user);
+  if (agruBattleActive) updateBattleGrayscale(user);
 }
 
 function updateJiggleOverlay(user) {
@@ -1243,10 +1244,28 @@ function updateAgruPurupuru() {
   else _puruAttach(parent, imgEl, imgKey);
 }
 
+function updateBossAgruPurupuru() {
+  const imgEl  = document.getElementById('agruBattleCharImg');
+  const parent = document.getElementById('agruBattleCharFigure') || document.getElementById('agruBossFigureWrap');
+  if (!imgEl || !parent) return;
+  parent.querySelectorAll('.puru-canvas').forEach(c => { if (c._puruImg) c._puruImg.style.opacity = ''; c.remove(); });
+  const src = imgEl.getAttribute('src') || '';
+  const m = src.match(/^\/boss\/(.+)$/);
+  if (!m) return;
+  const filename = decodeURIComponent(m[1]);
+  const cfg = agruBattleConfig?.purupuruMap?.[filename];
+  if (!cfg?.enabled) return;
+  const key = '__boss__/' + filename;
+  purupuruConfig[key] = cfg;
+  if (!imgEl.complete || !imgEl.naturalWidth) imgEl.addEventListener('load', () => _puruAttach(parent, imgEl, key), { once: true });
+  else _puruAttach(parent, imgEl, key);
+}
+
 function _puruApplyAll() {
   Object.values(users).filter(u => u.el).forEach(u => updatePurupuruOverlay(u));
   updateBossPurupuru();
   updateAgruPurupuru();
+  updateBossAgruPurupuru();
 }
 
 function isUserFlipped(user) {
@@ -1261,6 +1280,9 @@ function applyFacingFlip(user) {
   if (!img) return;
   const flip = isUserFlipped(user);
   img.style.transform = flip ? 'scaleX(-1)' : '';
+  // グレーアウトオーバーレイも反転
+  const grayOv = a.querySelector('.hp-gray-overlay');
+  if (grayOv) grayOv.style.transform = flip ? 'scaleX(-1)' : '';
   // 揺れオーバーレイも反転
   const jOverlay = a.querySelector('.jiggle-overlay');
   if (jOverlay) jOverlay.style.transform = flip ? 'scaleX(-1)' : '';
@@ -1363,6 +1385,7 @@ function scheduleMove(user) {
 
   user.moveTimer = setTimeout(() => {
     if (!users[user.ipid] || user.movement === '止まれ') return;
+    if (agruBattleActive) { scheduleMove(user); return; } // バトル中は集合位置を維持
     const oldX = user.x;
     user.x = randX(user);
     user.y = randY(user);
@@ -1573,6 +1596,63 @@ function gatherCharactersBottom() {
     u.el.style.transition = 'left 600ms cubic-bezier(0.34,1.56,0.64,1), top 600ms cubic-bezier(0.34,1.56,0.64,1)';
     u.el.style.left = u.x + 'px';
     u.el.style.top  = u.y + 'px';
+  });
+}
+
+// ボスバトル開始時: 左下・右下にキャラ集合（中央30%は空ける・下半分に収める・重なりOK）
+function _agruBattleGatherChars() {
+  const onStage = Object.values(users).filter(u => u.el);
+  if (!onStage.length) return;
+  const stageW = stage.clientWidth;
+  const stageH = stage.clientHeight;
+  const cw = u => u.el.offsetWidth  || Math.round(u.size * 1.5 * charSizeScale);
+  const ch = u => u.el.offsetHeight || Math.round(u.size * 1.5 * charSizeScale) + 48;
+  // 元位置・向きを保存
+  onStage.forEach(u => { u._preBattleX = u.x; u._preBattleY = u.y; u._preBattleFacing = u.facingRight; });
+  // 半分ずつ左右に分ける
+  const half       = Math.ceil(onStage.length / 2);
+  const leftGroup  = onStage.slice(0, half);
+  const rightGroup = onStage.slice(half);
+  // 中央30%を空ける: 左ゾーン=0〜35%、右ゾーン=65%〜100%
+  const ZONE_L_R = stageW * 0.35;
+  const ZONE_R_L = stageW * 0.65;
+  const EASE = 'left 700ms cubic-bezier(0.34,1.56,0.64,1), top 700ms cubic-bezier(0.34,1.56,0.64,1)';
+  function placeGroup(group, zoneL, zoneR, forceFacingRight) {
+    if (!group.length) return;
+    const zoneW = zoneR - zoneL;
+    const n = group.length;
+    const step = n > 1 ? zoneW / n : zoneW / 2;
+    group.forEach((u, i) => {
+      const cx = zoneL + step * i + step / 2;
+      u.x = Math.round(cx - cw(u) / 2);
+      u.y = stageH - ch(u);
+      u.el.style.transition = EASE;
+      u.el.style.left = u.x + 'px';
+      u.el.style.top  = u.y + 'px';
+      // 向きを強制セット
+      if (forceFacingRight !== undefined) {
+        u.facingRight = forceFacingRight;
+        applyFacingFlip(u);
+      }
+    });
+  }
+  placeGroup(leftGroup,  0,        ZONE_L_R, true);   // 左グループは右向き（水平反転）
+  placeGroup(rightGroup, ZONE_R_L, stageW,   false);  // 右グループはデフォルト向き
+}
+
+// ボスバトル終了時: 元位置に復元
+function _agruBattleRestoreChars() {
+  const EASE = 'left 700ms cubic-bezier(0.34,1.56,0.64,1), top 700ms cubic-bezier(0.34,1.56,0.64,1)';
+  Object.values(users).forEach(u => {
+    if (!u.el || u._preBattleX === undefined) return;
+    u.x = u._preBattleX; u.y = u._preBattleY;
+    u.el.style.transition = EASE;
+    u.el.style.left = u.x + 'px'; u.el.style.top = u.y + 'px';
+    if (u._preBattleFacing !== undefined) {
+      u.facingRight = u._preBattleFacing;
+      applyFacingFlip(u);
+    }
+    delete u._preBattleX; delete u._preBattleY; delete u._preBattleFacing;
   });
 }
 
@@ -2181,6 +2261,28 @@ function updateStatsDisplay(user) {
     `<span class="cs-row">💎${mp}</span>` +
     `<span class="cs-row">⚔️${atk}</span>` +
     `<span class="cs-row">⭐${expToNext}</span>`;
+  if (agruBattleActive) updateBattleGrayscale(user);
+}
+
+function updateBattleGrayscale(user) {
+  const a = document.getElementById('a-' + user.ipid);
+  if (!a) return;
+  if (!agruBattleActive) { a.querySelector('.hp-gray-overlay')?.remove(); return; }
+  const baseImg = a.querySelector('img:not(.hp-gray-overlay)');
+  if (!baseImg) return;
+  const maxHp = user.maxHp ?? calcMaxHp(user);
+  const hp    = Math.max(0, user.hp ?? maxHp);
+  const hpPct = maxHp > 0 ? Math.min(1, hp / maxHp) : 0;
+  let ov = a.querySelector('.hp-gray-overlay');
+  if (!ov) {
+    ov = document.createElement('img');
+    ov.className = 'hp-gray-overlay';
+    ov.alt = '';
+    a.appendChild(ov);
+  }
+  if (ov.src !== baseImg.src) ov.src = baseImg.src;
+  ov.style.clipPath  = `inset(0 0 ${(hpPct * 100).toFixed(1)}% 0)`;
+  ov.style.transform = isUserFlipped(user) ? 'scaleX(-1)' : '';
 }
 
 function randomizeCharAppearance(user) {
@@ -4193,6 +4295,37 @@ function handleComment(comment) {
     _agruSend(message, user.name);
   }
 
+  // ── ボスアゲルバトル中：射・回復 以外のコマンドを全て無効化 ──
+  if (agruBattleActive) {
+    if (message.includes('射')) {
+      ensureCharOnStage(user);
+      showBubble(user, message, {});
+      launchBullets(user, message);
+    } else if (message.includes('回復')) {
+      ensureCharOnStage(user);
+      const _mp = user.mp ?? 10;
+      if (_mp >= 2) {
+        user.mp = _mp - 2;
+        if (!user.tc) user.tc = {};
+        user.tc.healCount = (user.tc.healCount || 0) + 1;
+        Object.values(users).forEach(u => {
+          if (!u.el) return;
+          u.hp = Math.min(calcMaxHp(u), (u.hp ?? 30) + 2);
+          const { x, y } = getCharCenter(u);
+          showDamageNumber(x, y - 30, '♥+2', false, 20, '#7dd3fc');
+          updateStatsDisplay(u);
+        });
+        updateStatsDisplay(user);
+        spawnHeartShower(stage.clientWidth / 2, stage.clientHeight / 2);
+        showBubble(user, message, {});
+      } else {
+        showBubble(user, message + '（MPが足りない…）', {});
+      }
+      addToLog(user, message, '#7dd3fc');
+    }
+    return;
+  }
+
   // ── 早押しチェック（他の処理より前に判定）──────
   {
     const trimmedMsg = message.trim();
@@ -5562,7 +5695,7 @@ function _kaiBossTarget() {
 // ボスアゲル当たり判定
 function _kaiAgruBossTarget() {
   if (!agruBattleActive) return null;
-  const imgEl = document.getElementById('agruCharImg');
+  const imgEl = document.getElementById('agruBattleCharImg') || document.getElementById('agruCharImg');
   if (!imgEl || !imgEl.isConnected) return null;
   const br = imgEl.getBoundingClientRect();
   const sr = stage.getBoundingClientRect();
@@ -5723,19 +5856,242 @@ setInterval(() => {
 
 function updateAgruBattleHpDisplay() {
   const wrap = document.getElementById('agruBattleHpWrap');
-  const bar  = document.getElementById('agruBattleHpBar');
-  const txt  = document.getElementById('agruBattleHpText');
+  const numEl = document.getElementById('agruBattleHpNum');
   if (!wrap) return;
-  if (!agruBattleActive) { wrap.style.display = 'none'; return; }
-  wrap.style.display = 'block';
-  const pct = Math.max(0, agruBattleHP / agruBattleMaxHP * 100);
-  if (bar) {
-    bar.style.width = pct + '%';
-    bar.style.background = pct > 50 ? 'linear-gradient(90deg,#ef4444,#f97316)'
-                         : pct > 25 ? 'linear-gradient(90deg,#f97316,#fbbf24)'
-                         :            'linear-gradient(90deg,#dc2626,#ef4444)';
+  if (!agruBattleActive || !_agruBattleEntranceDone) {
+    wrap.style.display = 'none';
+    if (numEl) numEl.style.display = 'none';
+    return;
   }
-  if (txt) txt.textContent = `HP ${agruBattleHP} / ${agruBattleMaxHP}`;
+  wrap.style.display = 'flex';
+  if (numEl) numEl.style.display = 'flex';
+
+  const canvas = document.getElementById('agruBattleHpCanvas');
+  if (!canvas) return;
+
+  const hp  = agruBattleConfig?.hpGauge || {};
+  const S   = hp.width ? Math.max(120, hp.width) : 200;
+  const dpr = window.devicePixelRatio || 1;
+  if (canvas.width !== Math.round(S * dpr) || canvas.height !== Math.round(S * dpr)) {
+    canvas.width        = Math.round(S * dpr);
+    canvas.height       = Math.round(S * dpr);
+    canvas.style.width  = S + 'px';
+    canvas.style.height = S + 'px';
+  }
+
+  // ダメージ検知
+  if (canvas._hpPrev === undefined) canvas._hpPrev = agruBattleHP;
+  if (canvas._hpPrev !== agruBattleHP) {
+    if (agruBattleHP < canvas._hpPrev) canvas._dmgT = Date.now();
+    canvas._hpPrev = agruBattleHP;
+  }
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.scale(dpr, dpr);
+
+  const pct   = Math.max(0, Math.min(1, agruBattleHP / agruBattleMaxHP));
+  const t     = Date.now();
+  const pulse = pct < 0.25 ? 0.55 + Math.abs(Math.sin(t / 160)) * 0.45 : 1;
+
+  const cx = S / 2, cy = S / 2;
+  const R  = S * 0.36;    // アーク中心半径
+  const TW = S * Math.max(1, Math.min(50, hp.thick ?? 11.5)) / 100;
+
+  // ギャップ角度・方向を設定から読む
+  const gapDeg = Math.max(5, Math.min(270, hp.gap ?? 90));
+  const gapRad = gapDeg * Math.PI / 180;
+  const _gapCenterMap = { bottom: Math.PI / 2, right: 0, top: -Math.PI / 2, left: Math.PI };
+  const gapCenter = _gapCenterMap[hp.gapDir] ?? Math.PI / 2;
+  const START  = gapCenter + gapRad / 2;
+  const SWEEP  = Math.PI * 2 - gapRad;
+
+  // ── セグメント描画 ─────────────────────────────────────────
+  const N        = 20;
+  const segAngle = SWEEP / N;
+  const gapAngle = segAngle * 0.09;
+  const filled   = Math.round(pct * N);
+
+  // 空ブロック（下地）
+  for (let i = 0; i < N; i++) {
+    const a0 = START + segAngle * i       + gapAngle / 2;
+    const a1 = START + segAngle * (i + 1) - gapAngle / 2;
+    ctx.beginPath(); ctx.arc(cx, cy, R, a0, a1);
+    ctx.strokeStyle = 'rgba(28,3,8,0.70)';
+    ctx.lineWidth = TW; ctx.lineCap = 'butt'; ctx.stroke();
+  }
+
+  // 充填ブロック（バーガンディ、グラデーション）
+  for (let i = 0; i < filled; i++) {
+    const a0    = START + segAngle * i       + gapAngle / 2;
+    const a1    = START + segAngle * (i + 1) - gapAngle / 2;
+    const ratio = filled > 1 ? i / (filled - 1) : 0;
+    ctx.save();
+    ctx.shadowColor = '#cc0020';
+    ctx.shadowBlur  = TW * 1.8 * pulse;
+    const r_ = Math.round((50  + (190 - 50)  * ratio) * pulse);
+    const g_ = Math.round((0   +  20          * ratio) * pulse);
+    const b_ = Math.round((14  + (60  - 14)   * ratio) * pulse);
+    ctx.strokeStyle = `rgb(${r_},${g_},${b_})`;
+    ctx.lineWidth = TW; ctx.lineCap = 'butt';
+    ctx.beginPath(); ctx.arc(cx, cy, R, a0, a1);
+    ctx.stroke();
+    ctx.restore();
+    // 内側ハイライト
+    ctx.save();
+    ctx.strokeStyle = `rgba(255,150,175,${0.18 * pulse})`;
+    ctx.lineWidth = TW * 0.28; ctx.lineCap = 'butt';
+    ctx.beginPath(); ctx.arc(cx, cy, R - TW * 0.3, a0, a1);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── スキャンシマー（充填セグメント上を流れる光）─────────
+  if (filled > 0) {
+    const fillEnd     = START + SWEEP * (filled / N);
+    const shimProgress = (t / 1800) % 1;
+    const shimAngle   = START + (fillEnd - START) * shimProgress;
+    const shimSpan    = segAngle * 1.8;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,180,210,0.38)';
+    ctx.lineWidth   = TW * 0.45; ctx.lineCap = 'butt';
+    ctx.shadowColor = '#ffccee'; ctx.shadowBlur = TW * 0.7;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, Math.max(START, shimAngle - shimSpan/2), Math.min(fillEnd, shimAngle + shimSpan/2));
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── 充填先端スパーク ─────────────────────────────────────
+  if (filled > 0 && filled < N) {
+    const tipA = START + segAngle * filled - gapAngle / 2;
+    const tx = cx + Math.cos(tipA) * R, ty = cy + Math.sin(tipA) * R;
+    const sA = 0.60 + Math.abs(Math.sin(t / 120)) * 0.40;
+    ctx.save();
+    ctx.shadowColor = '#ffbbdd'; ctx.shadowBlur = TW * 0.8;
+    ctx.beginPath(); ctx.arc(tx, ty, TW * 0.22, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,210,230,${sA})`; ctx.fill();
+    ctx.restore();
+  }
+
+  // ── HP数値DOM更新（リール式） ─────────────────────────────
+  if (numEl) {
+    _updateHpNumReels(numEl, agruBattleHP.toLocaleString());
+    if (pct > 0.25) {
+      numEl.style.color      = '#ffffff';
+      numEl.style.textShadow = '0 0 14px #800020';
+      numEl.classList.remove('boss-hp-low');
+    } else {
+      numEl.style.color      = '';
+      numEl.style.textShadow = '';
+      numEl.classList.add('boss-hp-low');
+    }
+  }
+
+  // ── ダメージフラッシュ ────────────────────────────────────
+  if (canvas._dmgT) {
+    const age = (t - canvas._dmgT) / 350;
+    if (age < 1) {
+      ctx.save();
+      ctx.globalAlpha = (1 - age) * 0.38;
+      ctx.fillStyle = '#ff1432';
+      ctx.beginPath(); ctx.arc(cx, cy, R + TW * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  ctx.restore();
+  _agruUpdateBossImgByHp();
+}
+
+// ── リール式HP数値 ────────────────────────────────────────────────
+function _buildHpNumReels(el, str) {
+  el.innerHTML = '';
+  el._hpReelFmt = str.replace(/\d/g, 'D');
+  for (const ch of str) {
+    if (ch === ',' || ch === '.') {
+      const sep = document.createElement('span');
+      sep.className = 'hp-reel-sep';
+      sep.textContent = ch;
+      el.appendChild(sep);
+    } else {
+      const d = parseInt(ch);
+      const wrap = document.createElement('span');
+      wrap.className = 'timer-digit-reel-wrap';
+      const reel = document.createElement('span');
+      reel.className = 'timer-digit-reel';
+      for (let i = 0; i <= 9; i++) {
+        const cell = document.createElement('span');
+        cell.className = 'timer-digit-reel-cell';
+        cell.textContent = i;
+        reel.appendChild(cell);
+      }
+      reel.style.transition = 'none';
+      reel.style.transform = `translateY(-${d * 10}%)`;
+      wrap.appendChild(reel);
+      el.appendChild(wrap);
+      requestAnimationFrame(() => { reel.style.transition = ''; });
+    }
+  }
+}
+function _updateHpNumReels(el, str) {
+  const fmt = str.replace(/\d/g, 'D');
+  if (!el._hpReelFmt || el._hpReelFmt !== fmt) {
+    _buildHpNumReels(el, str);
+    return;
+  }
+  const digits = [...str].filter(c => c !== ',' && c !== '.');
+  el.querySelectorAll('.timer-digit-reel').forEach((reel, i) => {
+    if (i < digits.length) reel.style.transform = `translateY(-${parseInt(digits[i]) * 10}%)`;
+  });
+}
+
+// ── リール式タイマー ──────────────────────────────────────────────
+function _timerReelStr(left) {
+  const m = Math.floor(left / 60), s = left % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+function _buildTimerReels(el, str) {
+  el.innerHTML = '';
+  el._reelFmt = str.replace(/\d/g, 'D');
+  for (const ch of str) {
+    if (ch === ':') {
+      const sep = document.createElement('span');
+      sep.className = 'timer-reel-colon';
+      sep.textContent = ':';
+      el.appendChild(sep);
+    } else {
+      const d = parseInt(ch);
+      const wrap = document.createElement('span');
+      wrap.className = 'timer-digit-reel-wrap';
+      const reel = document.createElement('span');
+      reel.className = 'timer-digit-reel';
+      for (let i = 0; i <= 9; i++) {
+        const cell = document.createElement('span');
+        cell.className = 'timer-digit-reel-cell';
+        cell.textContent = i;
+        reel.appendChild(cell);
+      }
+      reel.style.transition = 'none';
+      reel.style.transform = `translateY(-${d * 10}%)`;
+      wrap.appendChild(reel);
+      el.appendChild(wrap);
+      requestAnimationFrame(() => { reel.style.transition = ''; });
+    }
+  }
+}
+function _updateTimerReels(el, str) {
+  const fmt = str.replace(/\d/g, 'D');
+  if (!el._reelFmt || el._reelFmt !== fmt) {
+    _buildTimerReels(el, str);
+    return;
+  }
+  const digits = [...str].filter(c => c !== ':');
+  el.querySelectorAll('.timer-digit-reel').forEach((reel, i) => {
+    if (i < digits.length) reel.style.transform = `translateY(-${parseInt(digits[i]) * 10}%)`;
+  });
 }
 
 function _agruBattleUpdateTimer() {
@@ -5745,6 +6101,83 @@ function _agruBattleUpdateTimer() {
   const m = Math.floor(left / 60), s = left % 60;
   el.textContent = `残り ${m}:${s.toString().padStart(2,'0')}`;
   if (left <= 0) endAgruBattle('ageru');
+}
+
+let _agruBattleUiSave = null;
+
+function _agruBattleEnterUI() {
+  // 現在の状態を保存
+  const panelIds = ['wordlePanel', 'rankingPanel', 'quizPanel'];
+  const panelDisplays = {};
+  panelIds.forEach(id => {
+    const el = document.getElementById(id);
+    panelDisplays[id] = el ? el.style.display : null;
+  });
+  _agruBattleUiSave = {
+    panelDisplays,
+    newsTickerEnabled,
+    equipHidden,
+    charStatsHidden,
+    charNameHidden,
+  };
+
+  // もじあて・ダメージランキング・クイズ を非表示
+  panelIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  // ニュース を非表示
+  if (newsTickerEnabled) {
+    newsTickerEnabled = false;
+    document.getElementById('newsTicker')?.classList.add('hidden');
+  }
+  // 装備・ステータス・名前 を強制表示
+  if (equipHidden) {
+    equipHidden = false;
+    stage.classList.remove('equip-hidden');
+  }
+  if (charStatsHidden) {
+    charStatsHidden = false;
+    document.body.classList.remove('stats-hidden');
+  }
+  if (charNameHidden) {
+    charNameHidden = false;
+    document.body.classList.remove('char-name-hidden');
+  }
+}
+
+function _agruBattleLeaveUI() {
+  if (!_agruBattleUiSave) return;
+  const s = _agruBattleUiSave;
+  _agruBattleUiSave = null;
+
+  // パネルを元の display に戻す
+  Object.entries(s.panelDisplays).forEach(([id, disp]) => {
+    const el = document.getElementById(id);
+    if (el && disp !== null) el.style.display = disp;
+  });
+  // ニュースを元の状態に戻す
+  if (s.newsTickerEnabled && !newsTickerEnabled) {
+    newsTickerEnabled = true;
+    const ticker = document.getElementById('newsTicker');
+    if (ticker) {
+      ticker.classList.remove('hidden');
+      applyNewsTickerSettings?.();
+    }
+  }
+  // 装備・ステータス・名前を元の状態に戻す
+  if (s.equipHidden !== equipHidden) {
+    equipHidden = s.equipHidden;
+    stage.classList.toggle('equip-hidden', equipHidden);
+  }
+  if (s.charStatsHidden !== charStatsHidden) {
+    charStatsHidden = s.charStatsHidden;
+    document.body.classList.toggle('stats-hidden', charStatsHidden);
+  }
+  if (s.charNameHidden !== charNameHidden) {
+    charNameHidden = s.charNameHidden;
+    document.body.classList.toggle('char-name-hidden', charNameHidden);
+  }
 }
 
 function startAgruBattle(maxHP) {
@@ -5759,48 +6192,1061 @@ function startAgruBattle(maxHP) {
   _agruBattleKilledIds.clear();
   agruBattleBerserkUntil = 0;
 
-  // モーダルを直接表示（openAgruModal は副作用が多いので使わない）
-  const _modalEl = document.getElementById('agruModal');
-  if (_modalEl?.classList.contains('hidden')) {
-    _modalEl.classList.remove('hidden');
-    _modalEl.style.zIndex = agruModalZ || 300;
-    const _cm = _modalEl.querySelector('.agru-modal');
-    if (_cm) {
-      _cm.style.width  = (agruModalWidth  || 420) + 'px';
-      _cm.style.height = (agruModalHeight || 600) + 'px';
-    }
-  }
-  // 会話モードが起動していなければ最低限の状態だけ立ち上げる
+  // 会話モードが起動していなければ最低限の状態だけ立ち上げる（AI不要）
   if (!agruActive) {
     agruActive = true;
     agruIdle   = true;
-    const img = document.getElementById('agruCharImg');
-    if (img && agruDefaultImage && !img.src.includes('/ageru/')) {
-      img.src = `/ageru/${encodeURIComponent(agruDefaultImage)}`;
-    }
     _agruStartShake?.();
   }
 
-  updateAgruBattleHpDisplay();
-  _agruAddSystemMsg('⚔️ バトル開始！アゲルちゃんを倒せ！');
-  _agruBattleGetSpeech('バトルが始まった。リスナーたちとの戦闘を宣言して。戦闘態勢で短く力強く。');
-  agruBattleTimerInterval = setInterval(_agruBattleUpdateTimer, 1000);
-  agruBattleCounterTimer  = setInterval(_agruBattleDoCounter, agruBattleCounterInterval * 1000);
+  // UI 切替（パネル非表示・装備/ステータス/名前 強制表示）
+  _agruBattleEnterUI();
+
+  // 会話モーダルを非表示にしてバトルUIを表示（ボスキャラは登場演出のPhase4で表示）
+  document.getElementById('agruModal')?.classList.add('hidden');
+  document.getElementById('agruBattleOverlay')?.classList.remove('hidden');
+  document.getElementById('agruBattleCharWrap')?.classList.remove('hidden');
+
+  // キャラ画像を設定（#agruCharImg の状態に依存せずデフォルト画像から直接ロード）
+  _agruLastHpBucket = null;
+  _agruSyncBattleCharImg();
+  _agruUpdateBossImgByHp();
+  updateBossAgruPurupuru();
+
+  // バトル背景・レイアウトを適用（HPバーは暗転終了まで非表示）
+  _agruApplyBattleBg(cfg.background);
+  _applyBossLayoutConfig();
+  _agruBattleEntranceDone = false;
+  _agruBattleGatherChars();
+  Object.values(users).forEach(u => { if (u.el) updateBattleGrayscale(u); });
+
+  // 登場演出 → 完了後にHPバー・タイマー表示・カウンター開始
+  _agruBattleEntrance(() => {
+    if (!agruBattleActive) return;
+    _agruBattleEntranceDone = true;
+    updateAgruBattleHpDisplay();
+    document.getElementById('agruBattleOverlayBg')?.classList.add('boss-bg-shake');
+    // タイマー表示（暗転終了後）
+    document.getElementById('bossTimerWrap')?.classList.remove('hidden');
+    _applyTimerConfig();
+    _bossUIFlyIn();
+    const _timerCfg = agruBattleConfig?.timer;
+    const _td = document.getElementById('bossTimerDigits');
+    if (_td) {
+      const _left0 = Math.max(0, Math.ceil((agruBattleEndTime - Date.now()) / 1000));
+      _td.style.color = ''; _td.style.filter = '';
+      if (_timerCfg?.size) _td.style.fontSize = _timerCfg.size + 'px';
+      _buildTimerReels(_td, _timerReelStr(_left0));
+    }
+    _agruBattleLog('⚔️ バトル開始！アゲルちゃんを倒せ！');
+    _agruBattleGetSpeech('battleStart');
+    agruBattleTimerInterval = setInterval(_agruBattleUpdateTimer, 1000);
+    agruBattleCounterTimer  = setInterval(_agruBattleDoCounter, agruBattleCounterInterval * 1000);
+  });
+}
+
+// ボスキャラ・HPゲージ・バトルログの位置/サイズをコンフィグから適用
+function _applyBossLayoutConfig() {
+  const cfg = agruBattleConfig;
+
+  // ボスキャラ
+  const bc = cfg?.bossChar || {};
+  const fig = document.getElementById('agruBattleCharFigure');
+  if (fig) {
+    if (bc.x !== undefined && bc.x !== '') {
+      fig.style.left      = bc.x + 'px';
+      fig.style.transform = `translateX(0) scale(${(bc.scale ?? 100) / 100})`;
+    } else {
+      fig.style.left      = '50%';
+      fig.style.transform = `translateX(-50%) scale(${(bc.scale ?? 100) / 100})`;
+    }
+    fig.style.bottom         = (bc.y ?? 0) + 'px';
+    fig.style.transformOrigin = 'bottom center';
+  }
+
+  // HPゲージ
+  const hp = cfg?.hpGauge || {};
+  const hpWrap = document.getElementById('agruBattleHpWrap');
+  if (hpWrap) {
+    if (hp.x !== undefined && hp.x !== '') {
+      hpWrap.style.left      = hp.x + 'px';
+      hpWrap.style.transform = 'none';
+    } else {
+      hpWrap.style.left      = '50%';
+      hpWrap.style.transform = 'translateX(-50%)';
+    }
+    hpWrap.style.bottom = (hp.y ?? 16) + 'px';
+    // stage内: ボス(z30)より前=60、後ろ=28（エフェクトbg(25)とボス(30)の間）
+    hpWrap.style.zIndex = hp.behindBoss ? '28' : '60';
+  }
+
+  // HP数値（バーと独立して位置・サイズ設定）
+  const numEl2 = document.getElementById('agruBattleHpNum');
+  if (numEl2) {
+    const S2   = Math.max(120, hp.width || 200);
+    const numX = hp.numX !== undefined && hp.numX !== '' ? hp.numX : null;
+    const numY = hp.numY !== undefined && hp.numY !== '' ? hp.numY : null;
+    if (numX !== null) {
+      numEl2.style.left      = numX + 'px';
+      numEl2.style.transform = 'translateY(50%)';
+    } else {
+      numEl2.style.left      = '50%';
+      numEl2.style.transform = 'translate(-50%, 50%)';
+    }
+    numEl2.style.bottom   = (numY !== null ? numY : (hp.y ?? 16) + S2 / 2) + 'px';
+    numEl2.style.fontSize = (hp.numSize || Math.round(S2 * 0.18)) + 'px';
+    numEl2.style.zIndex   = hp.behindBoss ? '29' : '61';
+  }
+
+  // バトルログ
+  const bl = cfg?.battleLog || {};
+  const log = document.getElementById('agruBattleLog');
+  if (log) {
+    log.style.right = (bl.x ?? 16) + 'px';
+    log.style.top   = (bl.y ?? 16) + 'px';
+    log.style.width = (bl.width ?? 260) + 'px';
+  }
+
+  // セリフバブル
+  const sp = cfg?.speech || {};
+  const bubble = document.getElementById('agruBattleSpeechBubble');
+  if (bubble) {
+    if (sp.x !== undefined && sp.x !== '') {
+      bubble.style.left      = sp.x + 'px';
+      bubble.style.transform = 'none';
+    } else {
+      bubble.style.left      = '50%';
+      bubble.style.transform = 'translateX(-50%)';
+    }
+    bubble.style.top   = (sp.y ?? 40) + 'px';
+    bubble.style.width = (sp.width ?? 500) + 'px';
+    bubble.style.maxWidth = 'none';
+  }
+}
+
+function _resetBossLayoutConfig() {
+  const fig = document.getElementById('agruBattleCharFigure');
+  if (fig) {
+    fig.style.left = ''; fig.style.bottom = '';
+    fig.style.transform = ''; fig.style.transformOrigin = '';
+  }
+  const hpWrap = document.getElementById('agruBattleHpWrap');
+  if (hpWrap) { hpWrap.style.left = ''; hpWrap.style.bottom = ''; hpWrap.style.transform = ''; hpWrap.style.width = ''; }
+  const numEl = document.getElementById('agruBattleHpNum');
+  if (numEl) { numEl.style.left = ''; numEl.style.bottom = ''; numEl.style.transform = ''; numEl.style.fontSize = ''; }
+  const log = document.getElementById('agruBattleLog');
+  if (log) { log.style.right = ''; log.style.top = ''; log.style.width = ''; }
+}
+
+function _agruApplyBattleBg(bg) {
+  const bgEl = document.getElementById('agruBattleOverlayBg');
+  if (!bgEl) return;
+  if (!bg) {
+    bgEl.style.backgroundImage = '';
+    bgEl.style.backgroundColor = '#0f172a';
+    bgEl.style.filter = '';
+    return;
+  }
+  if (bg.image) {
+    const url = bg.image.startsWith('/')
+      ? bg.image
+      : '/ageru/' + bg.image.split('/').map(encodeURIComponent).join('/');
+    bgEl.style.backgroundImage = `url('${url}')`;
+    bgEl.style.backgroundColor = '';
+    bgEl.style.filter = bg.blur ? `blur(${bg.blur}px)` : '';
+  } else if (bg.color) {
+    bgEl.style.backgroundImage = '';
+    bgEl.style.backgroundColor = bg.color;
+    bgEl.style.filter = '';
+  } else {
+    bgEl.style.backgroundImage = '';
+    bgEl.style.backgroundColor = '#0f172a';
+    bgEl.style.filter = '';
+  }
+}
+
+function _agruSyncBattleCharImg() {
+  const battleImg = document.getElementById('agruBattleCharImg');
+  if (!battleImg) return;
+  // バトル設定のデフォルト画像を最優先（public/boss から）
+  const battleDefault = agruBattleConfig?.defaultImage;
+  if (battleDefault) {
+    battleImg.src = `/boss/${encodeURIComponent(battleDefault)}`;
+    return;
+  }
+  // 次に会話モードの現在の画像
+  const charImg = document.getElementById('agruCharImg');
+  const attrSrc = charImg?.getAttribute('src') || '';
+  if (attrSrc) {
+    battleImg.src = attrSrc;
+  } else if (agruDefaultImage) {
+    battleImg.src = `/ageru/${agruDefaultImage.split('/').map(encodeURIComponent).join('/')}`;
+  }
+}
+
+function _agruUpdateBossImgByHp() {
+  if (!agruBattleActive) return;
+  const hpImages = agruBattleConfig?.hpImages;
+  if (!hpImages || !Object.values(hpImages).some(Boolean)) return;
+  const pct    = agruBattleMaxHP > 0 ? agruBattleHP / agruBattleMaxHP * 100 : 0;
+  const bucket = Math.max(10, Math.ceil(pct / 10) * 10);
+  if (bucket === _agruLastHpBucket) return;
+  _agruLastHpBucket = bucket;
+  let imgFile = null;
+  for (let t = bucket; t >= 10; t -= 10) {
+    if (hpImages[String(t)]) { imgFile = hpImages[String(t)]; break; }
+  }
+  if (!imgFile) return;
+  const battleImg = document.getElementById('agruBattleCharImg');
+  if (battleImg) battleImg.src = `/boss/${encodeURIComponent(imgFile)}`;
+}
+
+// ── ボスアゲルバトル エフェクトシステム ─────────────────────────────
+(function() {
+  const E = window._bossEfx = {
+    raf: null, t: 0, lastTs: null,
+    attackT: -99,   // 最後の攻撃の _t 時刻
+    tris: [],       // { x,y,vx,vy,size,rot,rotV,color,alpha,layer,vib }
+    W: 1, H: 1,
+
+    TRI_COLORS: ['#800020', '#ffffff', '#111111'],
+    TRI_COUNT_FG: 41,
+    TRI_COUNT_BG: 16,
+
+    mkTri(W, H, scattered) {
+      const layer = Math.random() < (scattered ? 0.5 : 0.4) ? 'bg' : 'fg';
+      // FG層は小さめ
+      const baseSize = layer === 'fg' ? Math.random() * 18 + 5 : Math.random() * 35 + 10;
+      // X分布：中心ほど少なく、外側ほど多い（sqrt分布で端に寄せる）
+      const side = Math.random() < 0.5 ? -1 : 1;
+      const x = W * 0.5 + side * W * 0.5 * Math.sqrt(Math.random());
+      return {
+        x: scattered ? Math.random() * W : x,
+        y: scattered ? Math.random() * H : H + Math.random() * H * 0.5,
+        vx: (Math.random() - 0.5) * 1.2,
+        vy: -(Math.random() * 1.8 + 0.6),
+        size: baseSize,
+        rot: Math.random() * Math.PI * 2,
+        rotV: (Math.random() - 0.5) * 0.03,
+        color: E.TRI_COLORS[Math.floor(Math.random() * 3)],
+        alpha: 0.75 + Math.random() * 0.1,
+        layer,
+        vib: 0,
+      };
+    },
+
+    init() {
+      const geo = agruBattleConfig?.geoEffect || {};
+      if (geo.triCountFG !== undefined) this.TRI_COUNT_FG = geo.triCountFG;
+      if (geo.triCountBG !== undefined) this.TRI_COUNT_BG = geo.triCountBG;
+      const c = document.getElementById('bossEfxBg');
+      this.W = c ? (c.parentElement?.clientWidth || window.innerWidth) : window.innerWidth;
+      this.H = c ? (c.parentElement?.clientHeight || window.innerHeight) : window.innerHeight;
+      this.tris = [];
+      for (let i = 0; i < this.TRI_COUNT_BG + this.TRI_COUNT_FG; i++) {
+        this.tris.push(this.mkTri(this.W, this.H, true));
+      }
+    },
+
+    start() {
+      this.init();
+      // canvas は style.display で直接制御（.hidden CSS ルールが canvas に定義されていないため）
+      const bgC = document.getElementById('bossEfxBg');
+      const fgC = document.getElementById('bossEfxFg');
+      if (bgC) bgC.style.display = '';
+      if (fgC) fgC.style.display = '';
+      // bossTimerWrap の表示は entrance 完了後（startAgruBattle の onDone）で行う
+
+      this.t = 0; this.lastTs = null;
+      if (this.raf) cancelAnimationFrame(this.raf);
+      const loop = ts => {
+        this.raf = requestAnimationFrame(loop);
+        if (!this.lastTs) this.lastTs = ts;
+        const dt = Math.min((ts - this.lastTs) / 1000, 0.05);
+        this.t += dt; this.lastTs = ts;
+        this.tick(dt);
+      };
+      this.raf = requestAnimationFrame(loop);
+    },
+
+    stop() {
+      if (this.raf) { cancelAnimationFrame(this.raf); this.raf = null; }
+      // canvas を直接 display:none で隠す（.hidden CSS ルールが canvas に未定義なため）
+      const bgC = document.getElementById('bossEfxBg');
+      const fgC = document.getElementById('bossEfxFg');
+      if (bgC) {
+        bgC.style.display = 'none';
+        bgC.getContext('2d')?.clearRect(0, 0, bgC.width, bgC.height);
+      }
+      if (fgC) {
+        fgC.style.display = 'none';
+        fgC.getContext('2d')?.clearRect(0, 0, fgC.width, fgC.height);
+      }
+      const tw = document.getElementById('bossTimerWrap');
+      if (tw) tw.className = 'hidden';
+      const darkEl = document.getElementById('bossTimerBgDark');
+      if (darkEl) darkEl.style.background = 'rgba(80,0,0,0)';
+      _bossClearAudioFx();
+    },
+
+    onAttack() {
+      this.attackT = this.t;
+      const stage_ = document.getElementById('stage');
+      const W = stage_?.clientWidth || this.W;
+      const H = stage_?.clientHeight || this.H;
+      const cx = W * 0.5, cy = H * 0.5;
+
+      // 全三角形を中心から外側へ吹き飛ばす
+      this.tris.forEach(tr => {
+        const dx = tr.x - cx, dy = tr.y - cy;
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        const force = 9 + Math.random() * 12;
+        tr.vx += (dx / dist) * force + (Math.random() - 0.5) * 5;
+        tr.vy += (dy / dist) * force + (Math.random() - 0.5) * 5;
+        tr.rotV += (Math.random() - 0.5) * 0.08;
+        tr.vib = 1.5;
+      });
+      // 中心付近から追加スポーン（外に向かって飛散）
+      for (let i = 0; i < 30; i++) {
+        const t = this.mkTri(W, H, false);
+        t.x = cx + (Math.random() - 0.5) * W * 0.4;
+        t.y = cy + (Math.random() - 0.5) * H * 0.4;
+        const dx = t.x - cx, dy = t.y - cy;
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        const force = 12 + Math.random() * 16;
+        t.vx = (dx / dist) * force + (Math.random() - 0.5) * 6;
+        t.vy = (dy / dist) * force + (Math.random() - 0.5) * 6;
+        this.tris.push(t);
+      }
+      // 余分な三角形を削除
+      setTimeout(() => {
+        const max = this.TRI_COUNT_BG + this.TRI_COUNT_FG;
+        if (this.tris.length > max) this.tris.splice(max);
+      }, 2000);
+    },
+
+    tick(dt) {
+      const stage_ = document.getElementById('stage');
+      const W = stage_?.clientWidth || window.innerWidth;
+      const H = stage_?.clientHeight || window.innerHeight;
+      this.W = W; this.H = H;
+      const sinceAtk = this.t - this.attackT;
+      const atkFactor = Math.max(0, 1 - sinceAtk / 2.5);
+      const audioLv = _bossGetAudioLevel();  // 全帯域（三角・幾何学エフェクト用）
+      const bassLv  = _bossGetBassLevel();   // 低域のみ（ノイズエフェクト用）
+      const geo = agruBattleConfig?.geoEffect || {};
+      const audioK = Math.max(0, Math.min(0.99, geo.audioSmooth ?? 0.6));
+      const bassK  = Math.max(0, Math.min(0.99, geo.bassSmooth  ?? 0.5));
+      // 全帯域スムージング
+      this._audioSmooth = (this._audioSmooth || 0) * audioK + audioLv * (1 - audioK);
+      // 低域スムージング（ベースは鋭いのでやや速め）
+      this._bassSmooth  = (this._bassSmooth  || 0) * bassK  + bassLv  * (1 - bassK);
+      const aLv    = Math.max(this._audioSmooth, atkFactor * 0.5);
+      const bassALv = Math.max(this._bassSmooth, atkFactor * 0.5);
+
+      // 三角形の更新：通常は下から上へゆっくり漂い、攻撃時は外側に吹き飛ぶ
+      this.tris.forEach(tr => {
+        // 攻撃後の振動
+        if (tr.vib > 0) {
+          tr.vib = Math.max(0, tr.vib - dt * 1.5);
+          tr.x += Math.sin(this.t * 50) * tr.vib * 3;
+          tr.y += Math.cos(this.t * 47) * tr.vib * 2;
+        }
+        // 摩擦（攻撃時は少し強め→徐々に減速）
+        const friction = atkFactor > 0 ? 0.97 : 0.98;
+        tr.vx *= friction;
+        tr.vy *= friction;
+        // 通常時は常に上へのドリフト（攻撃後の速度が落ちても浮き上がる）
+        if (atkFactor === 0) {
+          const drift = tr.layer === 'bg' ? -0.35 : -0.55;
+          tr.vy = Math.min(tr.vy, drift);
+        }
+        tr.x += tr.vx;
+        tr.y += tr.vy;
+        tr.rot += tr.rotV;
+        // 画面外リセット（上・左右・下すべて）
+        const margin = tr.size * 2 + 50;
+        if (tr.y < -margin || tr.x < -margin || tr.x > W + margin || tr.y > H + margin) {
+          const fresh = this.mkTri(W, H, false);
+          // 画面直下に配置し、速度のばらつきで自然な出現ずれを作る
+          fresh.y = H + Math.random() * 80 + 5;
+          fresh.vy = -(Math.random() * 2.2 + 0.5);
+          Object.assign(tr, fresh);
+        }
+      });
+
+      // 描画
+      this.renderBg(W, H, aLv);
+      this.renderFg(W, H, atkFactor, aLv);
+      this.updateTimer();
+      updateAgruBattleHpDisplay();
+      _bossApplyAudioFx(bassALv);
+    },
+
+    _resizeCanvas(canvas, W, H) {
+      const dpr = window.devicePixelRatio || 1;
+      if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) {
+        canvas.width  = Math.round(W * dpr);
+        canvas.height = Math.round(H * dpr);
+        canvas.style.width  = W + 'px';
+        canvas.style.height = H + 'px';
+      }
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return ctx;
+    },
+
+    _shapePath(ctx, tr) {
+      const shape = agruBattleConfig?.geoEffect?.shape ?? 'triangle';
+      ctx.beginPath();
+      if (shape === 'star') {
+        const n = 5, outerR = tr.size, innerR = tr.size * 0.42;
+        for (let i = 0; i < n * 2; i++) {
+          const angle = (i * Math.PI / n) - Math.PI / 2;
+          const r = i % 2 === 0 ? outerR : innerR;
+          i === 0 ? ctx.moveTo(Math.cos(angle) * r, Math.sin(angle) * r)
+                  : ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+        }
+      } else {
+        ctx.moveTo(0, -tr.size);
+        ctx.lineTo(tr.size * 0.866, tr.size * 0.5);
+        ctx.lineTo(-tr.size * 0.866, tr.size * 0.5);
+      }
+      ctx.closePath();
+    },
+
+    _drawShape(ctx, tr) {
+      ctx.save();
+      ctx.globalAlpha = tr.alpha;
+      ctx.translate(tr.x, tr.y);
+      ctx.rotate(tr.rot);
+      ctx.fillStyle = tr.color;
+      this._shapePath(ctx, tr);
+      ctx.fill();
+      ctx.restore();
+    },
+
+    renderBg(W, H, aLv) {
+      const canvas = document.getElementById('bossEfxBg');
+      if (!canvas) return;
+      const ctx = this._resizeCanvas(canvas, W, H);
+      ctx.clearRect(0, 0, W, H);
+      const geo = agruBattleConfig?.geoEffect || {};
+
+      // ── 幾何学模様（大型化・音連動） ───────────────────────────
+      const t = this.t;
+      const sinceAtk = t - this.attackT;
+      const atkF = Math.max(0, 1 - sinceAtk / 3);
+      const speed = 1 + atkF * 4 + aLv * 0.6;
+      const M = Math.min(W, H);
+
+      // 変形ポリゴン（大型、画面を横切る）
+      for (let g = 0; g < 5; g++) {
+        const phase = g * Math.PI * 2 / 5;
+        const cx = (((t * 0.05 * speed + g * 0.28) % 1.7) - 0.35) * W;
+        const cy = H * (0.1 + Math.sin(t * 0.09 + phase) * 0.4 + g * 0.17);
+        const sides = 3 + (g % 4);
+        const baseR = M * (0.18 + g * 0.07);
+        const r = baseR + Math.sin(t * 0.25 + phase) * M * 0.07 + aLv * M * 0.04;
+        const rot = t * (0.15 + g * 0.04) * speed;
+        const alpha = 0.08 + Math.sin(t * 0.4 + phase) * 0.04 + atkF * 0.10 + aLv * 0.04;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, Math.min(0.45, alpha));
+        ctx.translate(cx, cy);
+        ctx.rotate(rot);
+        ctx.strokeStyle = ['#800020', '#ffffff', '#a83248', '#5c0011', '#c0607a'][g];
+        ctx.lineWidth = (geo.lineWidthPoly ?? 2) + aLv * 1;
+        ctx.beginPath();
+        for (let i = 0; i <= sides; i++) {
+          const a = (i / sides) * Math.PI * 2;
+          i === 0 ? ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r)
+                  : ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        ctx.stroke();
+        ctx.globalAlpha = Math.max(0, alpha * 0.15 + aLv * 0.05);
+        ctx.fillStyle = ['#800020','#ffffff','#a83248','#500015','#c0607a'][g];
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // 回転するウェブ（大型）
+      const netCx = W * (0.5 + Math.sin(t * 0.07) * 0.18);
+      const netCy = H * (0.5 + Math.cos(t * 0.05) * 0.14);
+      const netN  = 9;
+      const netR  = M * (0.38 + Math.sin(t * 0.18) * 0.06 + aLv * 0.06);
+      const netRot = t * 0.035 * speed;
+      const netPts = Array.from({ length: netN }, (_, i) => {
+        const a = (i / netN) * Math.PI * 2 + netRot;
+        return { x: netCx + Math.cos(a) * netR, y: netCy + Math.sin(a) * netR };
+      });
+      ctx.save();
+      ctx.globalAlpha = 0.10 + atkF * 0.15 + aLv * 0.06;
+      ctx.strokeStyle = '#800020';
+      ctx.lineWidth = geo.lineWidthWeb ?? 1.2;
+      netPts.forEach((p, i) => {
+        netPts.forEach((q, j) => {
+          if (j <= i) return;
+          ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+        });
+      });
+      ctx.fillStyle = '#800020';
+      ctx.globalAlpha = 0.35 + aLv * 0.12;
+      netPts.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2); ctx.fill(); });
+      ctx.restore();
+
+      // リサジュー曲線（大型）
+      ctx.save();
+      ctx.globalAlpha = 0.07 + atkF * 0.12 + aLv * 0.05;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = geo.lineWidthLissajous ?? 1.5;
+      ctx.beginPath();
+      const lCx = W * 0.5, lCy = H * 0.5;
+      const lRx = W * (0.40 + aLv * 0.025), lRy = H * (0.32 + aLv * 0.02);
+      for (let i = 0; i <= 400; i++) {
+        const tt = (i / 400) * Math.PI * 2;
+        const lx = lCx + Math.sin(3 * tt + t * 0.08 * speed) * lRx;
+        const ly = lCy + Math.sin(2 * tt + t * 0.06 * speed) * lRy;
+        i === 0 ? ctx.moveTo(lx, ly) : ctx.lineTo(lx, ly);
+      }
+      ctx.stroke();
+      // 第2リサジュー（補助）
+      ctx.globalAlpha = 0.04 + aLv * 0.03;
+      ctx.strokeStyle = '#800020';
+      ctx.beginPath();
+      for (let i = 0; i <= 400; i++) {
+        const tt = (i / 400) * Math.PI * 2;
+        const lx = lCx + Math.sin(5 * tt + t * 0.05 * speed) * lRx * 0.7;
+        const ly = lCy + Math.sin(4 * tt + t * 0.04 * speed + 1.2) * lRy * 0.7;
+        i === 0 ? ctx.moveTo(lx, ly) : ctx.lineTo(lx, ly);
+      }
+      ctx.stroke();
+      ctx.restore();
+
+      // BG層の三角形（ぼかし）
+      ctx.save();
+      ctx.filter = 'blur(6px)';
+      this.tris.filter(tr => tr.layer === 'bg').forEach(tr => {
+        ctx.save();
+        ctx.globalAlpha = tr.alpha * (0.5 + aLv * 0.1);
+        ctx.translate(tr.x, tr.y);
+        ctx.rotate(tr.rot);
+        ctx.fillStyle = tr.color;
+        this._shapePath(ctx, tr);
+        ctx.fill();
+        ctx.restore();
+      });
+      ctx.filter = 'none';
+      ctx.restore();
+    },
+
+    renderFg(W, H, atkFactor, aLv) {
+      const canvas = document.getElementById('bossEfxFg');
+      if (!canvas) return;
+      const ctx = this._resizeCanvas(canvas, W, H);
+      ctx.clearRect(0, 0, W, H);
+
+      // 攻撃 or 音量によるラジアルバースト
+      const burstF = Math.max(atkFactor, aLv * 0.25);
+      if (burstF > 0) {
+        const cx = W * 0.5, cy = H * 0.55;
+        const radius = (0.3 + (1 - burstF) * 0.5) * W;
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+        grad.addColorStop(0, `rgba(128,0,32,${burstF * 0.15})`);
+        grad.addColorStop(0.5, `rgba(90,0,22,${burstF * 0.08})`);
+        grad.addColorStop(1, 'rgba(128,0,32,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      // FG層の三角形（控えめなぼかし）
+      ctx.save();
+      ctx.filter = 'blur(2px)';
+      this.tris.filter(tr => tr.layer === 'fg').forEach(tr => this._drawShape(ctx, tr));
+      ctx.filter = 'none';
+      ctx.restore();
+    },
+
+    updateTimer() {
+      if (!agruBattleActive) return;
+      const left = Math.max(0, Math.ceil((agruBattleEndTime - Date.now()) / 1000));
+      const el = document.getElementById('bossTimerDigits');
+      if (!el) return;
+      _updateTimerReels(el, _timerReelStr(left));
+
+      // 文字サイズ・色・グロー
+      const tw = document.getElementById('bossTimerWrap');
+      if (!tw) return;
+      const baseSize = agruBattleConfig?.timer?.size ?? 88;
+      tw.classList.remove('boss-timer-warning', 'boss-timer-critical');
+      if (left <= 10) {
+        el.style.color = '#ff2222';
+        el.style.filter = 'drop-shadow(0 0 15px #fff) drop-shadow(0 0 40px #ff0000) drop-shadow(0 0 80px #ff0000) drop-shadow(0 4px 8px rgba(0,0,0,0.9))';
+        el.style.fontSize = Math.round(baseSize * 1.25) + 'px';
+        tw.classList.add('boss-timer-critical');
+      } else if (left <= 30) {
+        el.style.color = '#ff4444';
+        el.style.filter = 'drop-shadow(0 0 12px #fff) drop-shadow(0 0 30px #ff3300) drop-shadow(0 0 60px #ff3300) drop-shadow(0 4px 8px rgba(0,0,0,0.9))';
+        el.style.fontSize = Math.round(baseSize * 1.14) + 'px';
+        tw.classList.add('boss-timer-critical');
+      } else if (left <= 60) {
+        el.style.color = '#f97316';
+        el.style.filter = 'drop-shadow(0 0 10px rgba(255,200,0,0.7)) drop-shadow(0 0 25px rgba(249,115,22,0.6)) drop-shadow(0 4px 8px rgba(0,0,0,0.8))';
+        el.style.fontSize = Math.round(baseSize * 1.09) + 'px';
+        tw.classList.add('boss-timer-warning');
+      } else {
+        el.style.color = '#ffffff';
+        el.style.filter = 'drop-shadow(0 0 10px rgba(255,255,255,0.9)) drop-shadow(0 0 30px rgba(239,68,68,0.7)) drop-shadow(0 0 60px rgba(239,68,68,0.4)) drop-shadow(0 4px 8px rgba(0,0,0,0.8))';
+        el.style.fontSize = baseSize + 'px';
+      }
+
+      // タイマー残時間に応じた背景赤黒化
+      const totalSec = agruBattleConfig?.timeLimit || 300;
+      const progress = 1 - (left / totalSec);
+      const darkOp   = Math.pow(Math.max(0, progress), 1.5) * 0.55;
+      const darkEl = document.getElementById('bossTimerBgDark');
+      if (darkEl) darkEl.style.background = `rgba(80, 0, 0, ${darkOp.toFixed(3)})`;
+    },
+  };
+})();
+
+// ===== ボスアゲル BGM + Web Audio 解析 =====
+let _bossBattleBgm = null;
+let _bossAudioCtx = null;
+let _bossAnalyserNode = null;
+let _bossAnalyserData = null;
+
+function _bossGetAudioCtx() {
+  try {
+    if (!_bossAudioCtx || _bossAudioCtx.state === 'closed') {
+      _bossAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+  } catch {}
+  return _bossAudioCtx;
+}
+
+function _bossStartBgm() {
+  _bossStopBgm();
+  const bgm = agruBattleConfig?.bgm;
+  if (!bgm?.path) return;
+
+  const audio = new Audio('/sound/' + bgm.path);
+  audio.volume = Math.max(0, Math.min(1, (bgm.volume ?? 70) / 100));
+  audio.loop = true;
+  audio.preload = 'auto';
+  _bossBattleBgm = audio;
+
+  // リトライ管理
+  let _bgmRetryFn = null;
+  const removeBgmRetry = () => {
+    if (!_bgmRetryFn) return;
+    document.removeEventListener('click',      _bgmRetryFn);
+    document.removeEventListener('keydown',    _bgmRetryFn);
+    document.removeEventListener('touchstart', _bgmRetryFn);
+    _bgmRetryFn = null;
+  };
+  audio._removeBgmRetry = removeBgmRetry;
+
+  // ① まず WebAudio 接続なしで再生する。
+  //    createMediaElementSource を先に呼ぶと AudioContext が suspended の場合に
+  //    play() が成功しても無音になるためここでは接続しない。
+  const tryPlay = () => {
+    if (_bossBattleBgm !== audio) { removeBgmRetry(); return; }
+    audio.play().then(() => {
+      removeBgmRetry();
+      // ② 再生が確認できてから WebAudio 解析器を接続（失敗しても再生は継続）
+      _bossConnectAnalyser(audio);
+    }).catch(() => {
+      if (!_bgmRetryFn) {
+        _bgmRetryFn = () => tryPlay();
+        document.addEventListener('click',      _bgmRetryFn);
+        document.addEventListener('keydown',    _bgmRetryFn);
+        document.addEventListener('touchstart', _bgmRetryFn);
+      }
+    });
+  };
+  tryPlay();
+}
+
+async function _bossConnectAnalyser(audio) {
+  if (audio._audioConnected) return;
+  try {
+    const ctx = _bossGetAudioCtx();
+    if (!ctx) return;
+    // AudioContext が suspended なら resume を試みる（ユーザー操作済みなので通常成功）
+    if (ctx.state === 'suspended') await ctx.resume().catch(() => {});
+    if (_bossBattleBgm !== audio || audio._audioConnected) return;
+    // running 状態を確認してから接続（suspended のまま接続すると無音になる）
+    if (ctx.state !== 'running') return;
+    const src = ctx.createMediaElementSource(audio);
+    _bossAnalyserNode = ctx.createAnalyser();
+    _bossAnalyserNode.fftSize = 256;
+    _bossAnalyserNode.smoothingTimeConstant = 0.75;
+    _bossAnalyserData = new Uint8Array(_bossAnalyserNode.frequencyBinCount);
+    src.connect(_bossAnalyserNode);
+    _bossAnalyserNode.connect(ctx.destination);
+    audio._audioConnected = true;
+  } catch {}
+}
+
+function _bossStopBgm() {
+  if (_bossBattleBgm) {
+    _bossBattleBgm._removeBgmRetry?.();  // 再試行リスナーを確実に削除
+    _bossBattleBgm.pause();
+    _bossBattleBgm.currentTime = 0;
+    _bossBattleBgm = null;
+  }
+  _bossAnalyserNode = null;
+  _bossAnalyserData = null;
+}
+
+function _bossGetAudioLevel() {
+  if (!_bossAnalyserNode || !_bossAnalyserData) return 0;
+  _bossAnalyserNode.getByteFrequencyData(_bossAnalyserData);
+  let sum = 0;
+  for (let i = 0; i < _bossAnalyserData.length; i++) sum += _bossAnalyserData[i];
+  return sum / _bossAnalyserData.length / 255;
+}
+
+// 低周波数帯域のみ取得（bin 1〜10 ≈ 172〜1720 Hz）
+// _bossGetAudioLevel() の後に呼ぶこと（getByteFrequencyData はそちらで更新済み）
+function _bossGetBassLevel() {
+  if (!_bossAnalyserData) return 0;
+  let sum = 0;
+  for (let i = 1; i <= 10; i++) sum += _bossAnalyserData[i];
+  return sum / 10 / 255;
+}
+
+// ===== ボスアゲル 登場演出 =====
+
+// 登場演出中の効果音（endAgruBattle / Phase5 からも停止できるようモジュール変数で管理）
+let _bossEntranceAlarmAudio = null;
+let _bossEntranceGlassAudio = null;
+function _stopEntranceSounds() {
+  if (_bossEntranceAlarmAudio) { _bossEntranceAlarmAudio.pause(); _bossEntranceAlarmAudio.currentTime = 0; _bossEntranceAlarmAudio = null; }
+  if (_bossEntranceGlassAudio) { _bossEntranceGlassAudio.pause(); _bossEntranceGlassAudio.currentTime = 0; _bossEntranceGlassAudio = null; }
+}
+
+// ガラス割れエフェクト：亀裂を事前生成→フラッシュ→静止、オーバーレイのフェードで消える
+function _bossEntranceGlassBreak(overlay) {
+  const W = window.innerWidth, H = window.innerHeight;
+  const gc = document.createElement('canvas');
+  gc.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:18';
+  gc.width = W; gc.height = H;
+  overlay.appendChild(gc);
+  const ctx = gc.getContext('2d');
+
+  const cx = W * 0.5, cy = H * 0.47;
+
+  // 亀裂をフラクタル分割で事前生成（毎フレーム乱数を使わないので静止画になる）
+  const genSeg = (x1, y1, x2, y2, d) => {
+    if (d <= 0 || Math.hypot(x2 - x1, y2 - y1) < 8) return [[x1, y1], [x2, y2]];
+    const spread = Math.hypot(x2 - x1, y2 - y1) * 0.28;
+    const mx = (x1 + x2) / 2 + (Math.random() - 0.5) * spread;
+    const my = (y1 + y2) / 2 + (Math.random() - 0.5) * spread;
+    return genSeg(x1, y1, mx, my, d - 1).concat(genSeg(mx, my, x2, y2, d - 1).slice(1));
+  };
+
+  // メイン亀裂（中心から放射状）
+  const numMain = 9 + Math.floor(Math.random() * 3);
+  const mainCracks = [];
+  for (let i = 0; i < numMain; i++) {
+    const baseAngle = (i / numMain) * Math.PI * 2;
+    const angle = baseAngle + (Math.random() - 0.5) * (Math.PI * 2 / numMain) * 0.55;
+    const len = Math.min(W, H) * (0.38 + Math.random() * 0.44);
+    const pts = genSeg(cx, cy, cx + Math.cos(angle) * len, cy + Math.sin(angle) * len, 4);
+    mainCracks.push({ pts, angle, len, alpha: 0.88 + Math.random() * 0.12, lw: 1.4 + Math.random() * 0.6 });
+  }
+
+  // 枝亀裂（メイン亀裂の途中から分岐）
+  const branches = [];
+  mainCracks.forEach(mc => {
+    const numB = 1 + Math.floor(Math.random() * 3);
+    for (let b = 0; b < numB; b++) {
+      const ti = Math.floor(mc.pts.length * (0.28 + Math.random() * 0.45));
+      const [bx, by] = mc.pts[Math.min(ti, mc.pts.length - 1)];
+      const bAngle = mc.angle + (Math.random() - 0.5) * Math.PI * 0.65;
+      const bLen = mc.len * (0.18 + Math.random() * 0.28);
+      const pts = genSeg(bx, by, bx + Math.cos(bAngle) * bLen, by + Math.sin(bAngle) * bLen, 3);
+      branches.push({ pts, alpha: 0.55 + Math.random() * 0.25, lw: 0.7 + Math.random() * 0.5 });
+    }
+  });
+
+  // 衝撃点（中心の小さな多角形クラック）
+  const impactRings = [{ r: 8 + Math.random() * 6, lw: 1.8 }, { r: 18 + Math.random() * 8, lw: 1.1 }];
+
+  // 描画関数
+  const drawCrack = (pts, alpha, lw, glowSize) => {
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
+    ctx.strokeStyle = `rgba(230,245,255,${alpha})`;
+    ctx.lineWidth = lw;
+    ctx.shadowBlur = glowSize;
+    ctx.shadowColor = `rgba(180,220,255,${alpha * 0.6})`;
+    ctx.stroke();
+  };
+
+  const drawFrame = (flashAlpha) => {
+    ctx.clearRect(0, 0, W, H);
+    ctx.shadowBlur = 0;
+
+    // フラッシュ（白）
+    if (flashAlpha > 0) {
+      ctx.fillStyle = `rgba(255,255,255,${flashAlpha})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // メイン亀裂
+    mainCracks.forEach(mc => drawCrack(mc.pts, mc.alpha, mc.lw, 10));
+    // 枝亀裂
+    branches.forEach(b => drawCrack(b.pts, b.alpha, b.lw, 4));
+
+    // 衝撃リング
+    impactRings.forEach(({ r, lw }) => {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+      ctx.lineWidth = lw;
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = 'rgba(200,230,255,0.7)';
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    });
+  };
+
+  // フラッシュフェードアニメーション（5フレームのみ、以降は静止）
+  let frame = 0;
+  const FLASH_FRAMES = 6;
+  let raf;
+  const loop = () => {
+    const flashAlpha = frame < FLASH_FRAMES ? (1 - frame / FLASH_FRAMES) * 0.88 : 0;
+    drawFrame(flashAlpha);
+    frame++;
+    if (frame <= FLASH_FRAMES) raf = requestAnimationFrame(loop);
+    // FLASH_FRAMES 後は静止（オーバーレイのフェードで自然に消える）
+  };
+  raf = requestAnimationFrame(loop);
+
+  // オーバーレイ除去と同時にクリーンアップ
+  setTimeout(() => { cancelAnimationFrame(raf); gc.remove(); }, 3200);
+}
+
+let _bossEntranceAborted = false;
+function _agruBattleEntrance(onDone) {
+  _bossEntranceAborted = false;
+  const overlay = document.getElementById('bossEntranceOverlay');
+  if (!overlay) { window._bossEfx?.start(); _bossStartBgm(); onDone(); return; }
+
+  // ボス画像をオーバーレイにコピー
+  const eImg = document.getElementById('bossEntranceImg');
+  const bImg = document.getElementById('agruBattleCharImg');
+  if (eImg && bImg?.src) eImg.src = bImg.src;
+
+  // Phase 0: フェードイン（暗転）+ 警報音開始
+  overlay.className = ''; // hidden等解除
+  overlay.style.cssText = 'opacity:0;transition:opacity 0.5s';
+  requestAnimationFrame(() => requestAnimationFrame(() => { overlay.style.opacity = '1'; }));
+  _stopEntranceSounds();
+  _bossEntranceAlarmAudio = new Audio('/sound/boss/' + encodeURIComponent('エマージェンシーコール・警報音５.wav'));
+  _bossEntranceAlarmAudio.loop = true;
+  _bossEntranceAlarmAudio.volume = 0.75;
+  _bossEntranceAlarmAudio.play().catch(() => {});
+
+  // Phase 1: 警告テキスト + フラッシュ + エッジグロー
+  setTimeout(() => {
+    if (_bossEntranceAborted) return;
+    document.getElementById('bossEntranceWarning')?.classList.add('bev-active');
+    overlay.classList.add('bev-flash', 'bev-lit');
+    setTimeout(() => overlay.classList.remove('bev-flash'), 1100);
+  }, 550);
+
+  // Phase 2: ボス名表示
+  setTimeout(() => {
+    if (_bossEntranceAborted) return;
+    document.getElementById('bossEntranceName')?.classList.add('bev-active');
+    document.getElementById('bossEntranceSub')?.classList.add('bev-active');
+  }, 950);
+
+  // Phase 3: ボス画像スケールイン + 拡大リング
+  setTimeout(() => {
+    if (_bossEntranceAborted) return;
+    if (eImg) eImg.classList.add('bev-img-active');
+    // 拡大リングをcanvasに描画
+    const rCanvas = document.getElementById('bossEntranceRings');
+    if (rCanvas) {
+      rCanvas.width = window.innerWidth; rCanvas.height = window.innerHeight;
+      const rCtx = rCanvas.getContext('2d');
+      const cx = window.innerWidth / 2, cy = window.innerHeight * 0.68;
+      let rings = [{ r: 30, a: 0.9 }]; let rRAF;
+      const rLoop = () => {
+        rCtx.clearRect(0, 0, rCanvas.width, rCanvas.height);
+        if (Math.random() < 0.08) rings.push({ r: 10, a: 0.85 });
+        rings = rings.filter(r => r.a > 0.02);
+        rings.forEach(ring => {
+          ring.r += 7; ring.a -= 0.014;
+          rCtx.beginPath(); rCtx.arc(cx, cy, ring.r, 0, Math.PI * 2);
+          rCtx.strokeStyle = `rgba(239,68,68,${ring.a})`; rCtx.lineWidth = 3; rCtx.stroke();
+        });
+        rRAF = requestAnimationFrame(rLoop);
+      };
+      rRAF = requestAnimationFrame(rLoop);
+      setTimeout(() => { cancelAnimationFrame(rRAF); rCtx.clearRect(0, 0, rCanvas.width, rCanvas.height); }, 1800);
+    }
+  }, 1500);
+
+  // Phase 4: ガラス割れ + ボスキャラ表示 + エフェクト開始 + BGM開始 + オーバーレイフェードアウト
+  setTimeout(() => {
+    if (_bossEntranceAborted) return;
+    _bossEntranceGlassBreak(overlay);
+    // ガラス音
+    _bossEntranceGlassAudio = new Audio('/sound/boss/' + encodeURIComponent('ガラスが割れる1（旧バージョン）.mp3'));
+    _bossEntranceGlassAudio.volume = 0.9;
+    _bossEntranceGlassAudio.play().catch(() => {});
+    document.getElementById('agruBossFigureWrap')?.classList.remove('hidden');
+    window._bossEfx?.start();
+    _bossStartBgm();
+    // ガラス割れが少し見えてからフェード開始
+    setTimeout(() => {
+      if (_bossEntranceAborted) return;
+      overlay.style.transition = 'opacity 1.1s';
+      overlay.style.opacity = '0';
+    }, 180);
+  }, 2300);
+
+  // Phase 5: オーバーレイ除去 + 効果音停止 + コールバック
+  // フェード開始2480ms + 1100ms = 3580ms なので 3800ms に設定
+  const _cleanEntrance = () => {
+    _stopEntranceSounds();
+    overlay.style.cssText = '';
+    overlay.className = 'hidden';
+    ['bossEntranceWarning','bossEntranceName','bossEntranceSub'].forEach(id =>
+      document.getElementById(id)?.classList.remove('bev-active')
+    );
+    if (eImg) eImg.classList.remove('bev-img-active');
+  };
+  setTimeout(() => {
+    if (_bossEntranceAborted) { _cleanEntrance(); return; }
+    _cleanEntrance();
+    onDone();
+  }, 3800);
 }
 
 function endAgruBattle(result) {
   if (!agruBattleActive) return;
-  agruBattleActive = false;
+
+  // 登場演出を即座に中断・クリーンアップ（効果音も停止）
+  _bossEntranceAborted = true;
+  _stopEntranceSounds();
+  const _eo = document.getElementById('bossEntranceOverlay');
+  if (_eo) {
+    _eo.style.cssText = '';
+    _eo.className = 'hidden';
+    ['bossEntranceWarning','bossEntranceName','bossEntranceSub'].forEach(id =>
+      document.getElementById(id)?.classList.remove('bev-active')
+    );
+    const _eoi = document.getElementById('bossEntranceImg');
+    if (_eoi) _eoi.classList.remove('bev-img-active');
+  }
+
+  agruBattleActive        = false;
+  _agruBattleEntranceDone = false;
+  _agruLastHpBucket       = null;
+  document.getElementById('agruBattleOverlayBg')?.classList.remove('boss-bg-shake');
   clearInterval(agruBattleTimerInterval);
   clearInterval(agruBattleCounterTimer);
   agruBattleTimerInterval = null;
   agruBattleCounterTimer  = null;
+
+  // 超回復防御状態をリセット
+  if (_agruDefenseTimer) { clearTimeout(_agruDefenseTimer); _agruDefenseTimer = null; }
+  _agruDefenseActive    = false;
+  _agruDefenseDmgAccum  = 0;
+  document.getElementById('agruBattleCharImg')?.classList.remove('agru-defense');
+
+  // 盾・シールドをリセット
+  if (_agruShieldTimer) { clearTimeout(_agruShieldTimer); _agruShieldTimer = null; }
+  if (_agruShieldChar) {
+    const sc = _agruShieldChar;
+    sc.el?.classList.remove('agru-shield-char');
+    if (sc._shieldSavedStyle) {
+      if (sc.el) { sc.el.style.width = sc._shieldSavedStyle.width; sc.el.style.height = sc._shieldSavedStyle.height; }
+      delete sc._shieldSavedStyle;
+    }
+    _agruShieldChar = null;
+  }
+  _agruShieldHp = 0;
+
+  // エフェクト・BGM 停止
+  window._bossEfx?.stop();
+  _bossStopBgm();
+  _bossClearAudioFx();
+
+  // #bossAudioFxImg を DOM から除去（次バトル開始時に再生成、z-index/isolation もリセット）
+  document.getElementById('bossAudioFxImg')?.remove();
+  const _cleanImg = document.getElementById('agruBattleCharImg');
+  if (_cleanImg) { _cleanImg.style.position = ''; _cleanImg.style.zIndex = ''; }
+  const _charFig = document.getElementById('agruBattleCharFigure');
+  if (_charFig) _charFig.style.isolation = '';
+
+  // UI を元に戻す
+  _agruBattleLeaveUI();
+
+  // バトル背景・キャラを非表示
+  document.getElementById('agruBattleOverlay')?.classList.add('hidden');
+  const _bfWrap = document.getElementById('agruBossFigureWrap');
+  if (_bfWrap) {
+    _bfWrap.querySelectorAll('.puru-canvas').forEach(c => { if (c._puruImg) c._puruImg.style.opacity = ''; c.remove(); });
+    _bfWrap.classList.add('hidden');
+  }
+  document.getElementById('agruBattleCharWrap')?.classList.add('hidden');
+
+  // バトル背景・レイアウトをリセット
+  _agruApplyBattleBg(null);
+  _resetBossLayoutConfig();
+  _agruBattleRestoreChars();
+  Object.values(users).forEach(u => {
+    document.getElementById('a-' + u.ipid)?.querySelector('.hp-gray-overlay')?.remove();
+    u.el?.classList.remove('agru-float-delete');
+  });
+
+  // 吹き出しを非表示
+  const _bubble = document.getElementById('agruBattleSpeechBubble');
+  if (_bubble) { _bubble.style.display = 'none'; _bubble.textContent = ''; }
+
   updateAgruBattleHpDisplay();
   if (result === 'players') {
     // リスナー勝利
     _agruAddSystemMsg('🏆 アゲルちゃん討伐！リスナーの勝利！');
-    _agruBattleGetSpeech('リスナーたちに敗北した。悔しがりながら負けを認めて。');
+    _agruBattleGetSpeech('battleWin');
     Object.values(users).forEach(u => { if (u.el && !u.ko) { u.mp = (u.mp || 0) + 50; updateStatsDisplay(u); } });
+
+    // 勝利画像を全画面表示
+    const winImg = agruBattleConfig?.winImage;
+    if (winImg) {
+      const overlay = document.createElement('div');
+      overlay.id = '_agruWinOverlay';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);cursor:pointer';
+      const img = document.createElement('img');
+      img.src = '/boss/' + encodeURIComponent(winImg);
+      img.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain';
+      overlay.appendChild(img);
+      overlay.addEventListener('click', () => overlay.remove());
+      document.body.appendChild(overlay);
+    }
+
+    // アゲル系キャラを消滅
+    const agruTypeSet = new Set((agruBattleConfig?.agruTypeImages || []).map(s => s.trim()).filter(Boolean));
+    if (agruTypeSet.size > 0) {
+      Object.values(users).forEach(u => {
+        const img = u.charImage || charImages[u.charDef?.id] || '';
+        if (agruTypeSet.has(img) && u.el) {
+          u.el.style.transition = 'opacity 1s ease';
+          u.el.style.opacity = '0';
+          setTimeout(() => u.el?.remove(), 1000);
+        }
+      });
+    }
+
+    // 会話モーダルを閉じる
     if (agruActive) {
       agruActive = false;
       agruIdle   = false;
@@ -5808,10 +7254,23 @@ function endAgruBattle(result) {
       _agruAddSystemMsg('会話モードを終了しました。');
     }
   } else {
-    // アゲルちゃん勝利
+    // アゲルちゃん勝利 — 会話モーダルを再起動して何事もなかったように再開
     _agruAddSystemMsg('😈 アゲルちゃんの勝利！全員のMPを奪われた…');
-    _agruBattleGetSpeech('リスナーたちに完全勝利した。勝ち誇って高らかに宣言して。');
+    _agruBattleGetSpeech('battleLose');
     Object.values(users).forEach(u => { u.mp = 0; updateStatsDisplay(u); });
+
+    // agruActive が立っていれば会話モーダルを再表示（何事もなかったように再開）
+    if (agruActive && agruIdle) {
+      const _modal = document.getElementById('agruModal');
+      if (_modal) _modal.classList.remove('hidden');
+    } else if (!agruActive) {
+      // バトル前に会話が起動していなかった場合は最低限の状態で再開
+      agruActive = true;
+      agruIdle   = true;
+      const _modal = document.getElementById('agruModal');
+      if (_modal) _modal.classList.remove('hidden');
+      _agruAddSystemMsg('会話モードを再開しました。');
+    }
   }
 }
 
@@ -5828,6 +7287,14 @@ function _agruBattleDealDamage(dmg, user) {
       return;
     }
     if (eff.curseUntil > now) dmg = Math.floor(dmg / 2); // 呪い中は半減
+  }
+  // 超回復防御状態: 1ダメージに制限
+  if (_agruDefenseActive) {
+    agruBattleHP = Math.max(0, agruBattleHP - 1);
+    _agruDefenseDmgAccum++;
+    updateAgruBattleHpDisplay();
+    if (_agruDefenseDmgAccum >= 100) _agruBreakDefense();
+    return;
   }
   agruBattleHP = Math.max(0, agruBattleHP - dmg);
   updateAgruBattleHpDisplay();
@@ -5858,6 +7325,9 @@ function attackAgruBoss(user, msgLen) {
   user.mp = (user.mp ?? 0) + 1 + mpExtra;
   updateStatsDisplay(user);
 
+  // バトルログに記録
+  _agruBattleLog(`⚔️ ${user.name || '名無し'} → ${isCrit ? '💥CRIT ' : ''}${totalDmg} dmg`);
+
   const baseDmg = Math.floor(totalDmg / hits);
   for (let i = 0; i < hits; i++) {
     setTimeout(() => {
@@ -5869,7 +7339,26 @@ function attackAgruBoss(user, msgLen) {
         updateAgruBattleHpDisplay();
         return;
       }
-      agruBattleHP = Math.max(0, agruBattleHP - d);
+
+      // 盾キャラが存在する場合はボスでなく盾キャラにダメージ
+      if (_agruShieldChar && !_agruBattleKilledIds.has(_agruShieldChar.ipid)) {
+        _agruShieldHp = Math.max(0, _agruShieldHp - d);
+        const sc = _agruShieldChar;
+        const scCenter = _agruCharCenter(sc);
+        showDamageNumber?.(scCenter?.cx ?? stage.clientWidth / 2, (scCenter?.cy ?? stage.clientHeight / 2) - 20, d, isCrit);
+        if (_agruShieldHp <= 0) {
+          _agruAddSystemMsg(`💥 盾が砕けた！${sc.name || '名無し'} のセーブデータ消去…`);
+          _agruReleaseShield();
+          _agruBattleKillUser(sc);
+        }
+        return;
+      }
+
+      // 超回復防御状態: 1ダメージに制限し累積カウント
+      const actualDmg = _agruDefenseActive ? 1 : d;
+      if (_agruDefenseActive) _agruDefenseDmgAccum++;
+
+      agruBattleHP = Math.max(0, agruBattleHP - actualDmg);
       updateAgruBattleHpDisplay();
       playSentouSound();
       const imgEl = document.getElementById('agruCharImg');
@@ -5879,8 +7368,20 @@ function attackAgruBoss(user, msgLen) {
         imgEl.classList.add('boss-hit-flash');
         imgEl.addEventListener('animationend', () => imgEl.classList.remove('boss-hit-flash'), { once: true });
       }
-      const { x: ux, y: uy } = getCharCenter(user);
-      showDamageNumber?.(ux + (Math.random() - 0.5) * 60, uy - 40, d, isCrit);
+      const bossImgEl = document.getElementById('agruBattleCharImg');
+      let dmgX, dmgY;
+      if (bossImgEl) {
+        const sr = stage.getBoundingClientRect();
+        const br = bossImgEl.getBoundingClientRect();
+        dmgX = br.left - sr.left + br.width / 2;
+        dmgY = br.top  - sr.top  + br.height * 0.3;
+      } else {
+        const { x: ux, y: uy } = getCharCenter(user);
+        dmgX = ux + (Math.random() - 0.5) * 60;
+        dmgY = uy - 40;
+      }
+      showDamageNumber?.(dmgX, dmgY, actualDmg, _agruDefenseActive ? false : isCrit);
+      if (_agruDefenseActive && _agruDefenseDmgAccum >= 100) { _agruBreakDefense(); return; }
       if (agruBattleHP <= 0 && agruBattleActive) setTimeout(() => endAgruBattle('players'), 300);
     }, i * 200);
   }
@@ -5901,6 +7402,9 @@ const AGRU_BATTLE_SKILLS = [
   { id: 'self_heal',    name: '自己回復',     weights: [5,  6,  5,  3] },
   { id: 'berserk',      name: 'バーサーク',   weights: [0,  1,  3,  5], minHpPct: 50 },
   { id: 'instant_kill', name: '即死撃',       weights: [0,  0,  1,  3], minHpPct: 25 },
+  { id: 'shield_char',  name: '盾キャラ攻撃', weights: [0,  0,  2,  4], minHpPct: 25 },
+  { id: 'delete_char',  name: 'デリート攻撃', weights: [0,  0,  1,  3], minHpPct: 25 },
+  { id: 'super_heal',   name: '超回復',       weights: [0,  1,  3,  5] },
 ];
 
 function _agruBattlePickSkill() {
@@ -5932,12 +7436,27 @@ function _agruBattleKillUser(user) {
   if (!user || _agruBattleKilledIds.has(user.ipid)) return;
   _agruBattleKilledIds.add(user.ipid);
   _agruAddSystemMsg(`💀 ${user.name || '名無し'} が討伐された！セーブデータ消去…`);
+  if (user.koTimer) { clearTimeout(user.koTimer); user.koTimer = null; }
+
+  // キャラ削除エフェクト
+  const delEff = agruBattleConfig?.deleteEffect;
+  if (delEff?.path && user.el) {
+    const r = user.el.getBoundingClientRect();
+    const size = delEff.size || 200;
+    const canvas = document.createElement('canvas');
+    canvas.width = size; canvas.height = size;
+    canvas.style.cssText = `position:fixed;left:${r.left + r.width/2 - size/2}px;top:${r.top + r.height/2 - size/2}px;pointer-events:none;z-index:9999`;
+    document.body.appendChild(canvas);
+    _agruAnimateSprite(canvas, delEff, () => canvas.remove());
+  }
+
   const ipid = user.ipid;
   setTimeout(() => {
     if (user.bubbleTimer) clearTimeout(user.bubbleTimer);
     if (user.motionTimer) clearTimeout(user.motionTimer);
     if (user.moveTimer)   clearTimeout(user.moveTimer);
     if (user.walkTimer)   clearTimeout(user.walkTimer);
+    if (user.koTimer)     { clearTimeout(user.koTimer); user.koTimer = null; }
     user.el?.remove();
     delete users[ipid];
     const _sk = user.saveKey || ipid;
@@ -5946,55 +7465,375 @@ function _agruBattleKillUser(user) {
   }, 1500);
 }
 
-function _agruBattlePlayEffect(skillId, cx, cy) {
+function _agruCharCenter(user) {
+  if (!user?.el) return null;
+  const stageRect = stage.getBoundingClientRect();
+  const charRect  = user.el.getBoundingClientRect();
+  return {
+    cx: charRect.left - stageRect.left + charRect.width  / 2,
+    cy: charRect.top  - stageRect.top  + charRect.height / 2,
+  };
+}
+
+function _agruActivateShield(user) {
+  if (!user?.el) return;
+  _agruShieldChar = user;
+  _agruShieldHp   = 99999;
+
+  // 元のスタイルを保存
+  user._shieldSavedStyle = {
+    left:      user.el.style.left,
+    top:       user.el.style.top,
+    bottom:    user.el.style.bottom,
+    transform: user.el.style.transform,
+    zIndex:    user.el.style.zIndex,
+    transition: user.el.style.transition,
+    width:     user.el.style.width,
+    height:    user.el.style.height,
+  };
+
+  // 画面中央へ移動・サイズ1.5倍
+  const stageW = stage.clientWidth, stageH = stage.clientHeight;
+  const cw = parseInt(user.el.style.width) || user.el.offsetWidth;
+  const ch = parseInt(user.el.style.height) || user.el.offsetHeight;
+  const newW = Math.round(cw * 1.5), newH = Math.round(ch * 1.5);
+  user.el.style.transition = 'left 0.5s ease, top 0.5s ease, width 0.5s ease, height 0.5s ease';
+  user.el.style.left   = `${Math.round(stageW / 2 - newW / 2)}px`;
+  user.el.style.top    = `${Math.round(stageH / 2 - newH / 2)}px`;
+  user.el.style.bottom = 'auto';
+  user.el.style.width  = newW + 'px';
+  user.el.style.height = newH + 'px';
+  user.el.style.zIndex = '75';
+  user.el.classList.add('agru-shield-char');
+
+  _agruAddSystemMsg(`🛡️ ${user.name || '名無し'} が盾になった！（仮想HP: 99999）攻撃は盾キャラに当たる！`);
+
+  if (_agruShieldTimer) clearTimeout(_agruShieldTimer);
+  _agruShieldTimer = setTimeout(() => {
+    if (_agruShieldChar === user) _agruReleaseShield();
+  }, 30000);
+}
+
+function _agruReleaseShield() {
+  const user = _agruShieldChar;
+  if (!user) return;
+  _agruShieldChar = null;
+  _agruShieldHp   = 0;
+  if (_agruShieldTimer) { clearTimeout(_agruShieldTimer); _agruShieldTimer = null; }
+
+  if (user.el && user._shieldSavedStyle) {
+    const s = user._shieldSavedStyle;
+    user.el.style.transition = 'left 0.4s ease, top 0.4s ease, width 0.4s ease, height 0.4s ease';
+    user.el.style.left      = s.left;
+    user.el.style.top       = s.top;
+    user.el.style.bottom    = s.bottom;
+    user.el.style.transform = s.transform;
+    user.el.style.zIndex    = s.zIndex;
+    user.el.style.width     = s.width;
+    user.el.style.height    = s.height;
+    user.el.classList.remove('agru-shield-char');
+    setTimeout(() => { if (user.el) user.el.style.transition = s.transition; }, 500);
+    delete user._shieldSavedStyle;
+    _agruAddSystemMsg(`🔓 ${user.name || '名無し'} が盾から解放された！`);
+  }
+}
+
+function _agruGlassShatterEffect() {
+  const bossEl = document.getElementById('agruBattleCharImg');
+  if (!bossEl) return;
+  const r = bossEl.getBoundingClientRect();
+  const cx = r.left + r.width / 2;
+  const cy = r.top  + r.height / 2;
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  canvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9998;width:100vw;height:100vh';
+  document.body.appendChild(canvas);
+
+  const ctx = canvas.getContext('2d');
+  const COUNT = 28;
+  const shards = [];
+  for (let i = 0; i < COUNT; i++) {
+    const angle = (Math.PI * 2 * i / COUNT) + (Math.random() - 0.5) * 0.7;
+    const speed = 5 + Math.random() * 10;
+    const size  = 10 + Math.random() * 26;
+    const nPts  = Math.random() < 0.35 ? 4 : 3;
+    const verts = [];
+    for (let j = 0; j < nPts; j++) {
+      const a = (Math.PI * 2 * j / nPts) + (Math.random() - 0.5) * 0.9;
+      const s = size * (0.5 + Math.random() * 0.7);
+      verts.push([Math.cos(a) * s, Math.sin(a) * s]);
+    }
+    shards.push({
+      x:   cx + (Math.random() - 0.5) * r.width  * 0.5,
+      y:   cy + (Math.random() - 0.5) * r.height * 0.5,
+      vx:  Math.cos(angle) * speed,
+      vy:  Math.sin(angle) * speed - 3,
+      rot: Math.random() * Math.PI * 2,
+      rotV: (Math.random() - 0.5) * 0.25,
+      alpha: 0.65 + Math.random() * 0.35,
+      verts,
+    });
+  }
+
+  const start = performance.now();
+  const DURATION = 1400;
+  (function frame(now) {
+    const t = (now - start) / DURATION;
+    if (t >= 1) { canvas.remove(); return; }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const fade = t < 0.3 ? 1 : 1 - (t - 0.3) / 0.7;
+    for (const s of shards) {
+      s.x  += s.vx; s.y += s.vy; s.vy += 0.35; s.rot += s.rotV;
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.rotate(s.rot);
+      ctx.globalAlpha = s.alpha * fade;
+      ctx.beginPath();
+      ctx.moveTo(s.verts[0][0], s.verts[0][1]);
+      for (let j = 1; j < s.verts.length; j++) ctx.lineTo(s.verts[j][0], s.verts[j][1]);
+      ctx.closePath();
+      ctx.fillStyle   = 'rgba(190,225,255,0.22)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.92)';
+      ctx.lineWidth   = 1.3;
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+    requestAnimationFrame(frame);
+  })(performance.now());
+}
+
+function _agruActivateDefense() {
+  if (_agruDefenseActive) return;
+  _agruDefenseActive    = true;
+  _agruDefenseDmgAccum  = 0;
+  _agruAddSystemMsg('🛡️ 超回復！防御状態に入った…30秒間ほぼ無敵！攻撃をまとめると防御を崩せる！');
+  document.getElementById('agruBattleCharImg')?.classList.add('agru-defense');
+  if (_agruDefenseTimer) clearTimeout(_agruDefenseTimer);
+  _agruDefenseTimer = setTimeout(() => {
+    if (!_agruDefenseActive) return;
+    _agruDefenseActive = false;
+    _agruDefenseTimer  = null;
+    document.getElementById('agruBattleCharImg')?.classList.remove('agru-defense');
+    const heal = Math.floor(agruBattleMaxHP * 0.5);
+    agruBattleHP = Math.min(agruBattleMaxHP, agruBattleHP + heal);
+    updateAgruBattleHpDisplay();
+    _agruAddSystemMsg(`💚 防御解除！HP +${heal} 回復した！`);
+  }, 30000);
+}
+
+function _agruBreakDefense() {
+  if (!_agruDefenseActive) return;
+  _agruDefenseActive = false;
+  if (_agruDefenseTimer) { clearTimeout(_agruDefenseTimer); _agruDefenseTimer = null; }
+  document.getElementById('agruBattleCharImg')?.classList.remove('agru-defense');
+
+  _agruGlassShatterEffect();
+  new Audio('/sound/boss/' + encodeURIComponent('nc211892_[SE]_盾・鎧が壊れる音・粉砕する音_[高音質].mp3')).play().catch(() => {});
+
+  const penaltyDmg = Math.floor(agruBattleMaxHP * 0.1);
+  agruBattleHP = Math.max(0, agruBattleHP - penaltyDmg);
+  updateAgruBattleHpDisplay();
+  _agruAddSystemMsg(`💥 防御崩壊！HP -${penaltyDmg} ペナルティ！`);
+  if (agruBattleHP <= 0 && agruBattleActive) setTimeout(() => endAgruBattle('players'), 400);
+}
+
+function _agruAnimateSprite(canvas, sp, onDone) {
+  const img = new Image();
+  img.src = '/sprite/' + sp.path.split('/').map(encodeURIComponent).join('/');
+  const ctx = canvas.getContext('2d');
+  const cols = sp.cols || 5, rows = sp.rows || 4;
+  const frameCount = sp.frameCount || (cols * rows);
+  const fps = sp.fps || 10;
+  let frame = 0;
+  img.onload = () => {
+    const fw = img.width / cols, fh = img.height / rows;
+    const iv = setInterval(() => {
+      const col = frame % cols, row = Math.floor(frame / cols);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, col * fw, row * fh, fw, fh, 0, 0, canvas.width, canvas.height);
+      if (++frame >= frameCount) { clearInterval(iv); onDone(); }
+    }, 1000 / fps);
+  };
+  img.onerror = () => onDone();
+}
+
+function _agruBattlePlayEffect(skillId, targets) {
   const cfg = agruBattleConfig?.skills?.[skillId];
-  if (cfg?.sound) {
-    const a = new Audio('/sound/' + cfg.sound);
-    a.play().catch(() => {});
+  if (!cfg) return;
+
+  if (cfg.sound) new Audio('/sound/' + cfg.sound).play().catch(() => {});
+
+  // ボス側エフェクト（アゲルちゃんの上に固定座標で重ねる）
+  if (cfg.bossSprite?.path) {
+    const bossImg = document.getElementById('agruBattleCharImg');
+    if (bossImg) {
+      const r = bossImg.getBoundingClientRect();
+      const sp = cfg.bossSprite;
+      const size = sp.size || 200;
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      canvas.style.cssText = `position:fixed;left:${r.left + r.width/2 - size/2}px;top:${r.top + r.height/2 - size/2}px;pointer-events:none;z-index:9999`;
+      document.body.appendChild(canvas);
+      _agruAnimateSprite(canvas, sp, () => canvas.remove());
+    }
   }
-  if (cfg?.sprite?.path) {
+
+  // ターゲット側エフェクト（対象キャラの上に stage 相対座標で重ねる）
+  if (cfg.sprite?.path) {
+    const pts = (Array.isArray(targets) && targets.length > 0)
+      ? targets.map(u => _agruCharCenter(u)).filter(Boolean)
+      : [{ cx: stage.clientWidth / 2, cy: stage.clientHeight / 2 }];
     const sp = cfg.sprite;
-    const canvas = document.createElement('canvas');
     const size = sp.size || 200;
-    canvas.width  = size;
-    canvas.height = size;
-    canvas.style.cssText = `position:absolute;left:${(cx ?? stage.clientWidth/2) - size/2}px;top:${(cy ?? stage.clientHeight/2) - size/2}px;pointer-events:none;z-index:998`;
-    stage.appendChild(canvas);
-    const img = new Image();
-    img.src = '/sprite/' + encodeURIComponent(sp.path).replace(/%2F/g, '/');
-    const ctx = canvas.getContext('2d');
-    const cols = sp.cols || 5, rows = sp.rows || 4;
-    const frameCount = sp.frameCount || (cols * rows);
-    const fps = sp.fps || 10;
-    let frame = 0;
-    img.onload = () => {
-      const fw = img.width / cols, fh = img.height / rows;
-      const iv = setInterval(() => {
-        const col = frame % cols, row = Math.floor(frame / cols);
-        ctx.clearRect(0, 0, size, size);
-        ctx.drawImage(img, col * fw, row * fh, fw, fh, 0, 0, size, size);
-        if (++frame >= frameCount) { clearInterval(iv); canvas.remove(); }
-      }, 1000 / fps);
-    };
-    img.onerror = () => canvas.remove();
+    pts.forEach(({ cx, cy }) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      canvas.style.cssText = `position:absolute;left:${cx - size/2}px;top:${cy - size/2}px;pointer-events:none;z-index:998`;
+      stage.appendChild(canvas);
+      _agruAnimateSprite(canvas, sp, () => canvas.remove());
+    });
   }
-  if (cfg?.image) _agruSlideImage(cfg.image);
+
+  // ボス画像切替（クロスフェード）
+  const bossDefaultPath = agruBattleConfig?.defaultImage
+    ? `/boss/${encodeURIComponent(agruBattleConfig.defaultImage)}`
+    : null;
+  if (cfg.image) {
+    _bossCrossfadeImg(`/boss/${encodeURIComponent(cfg.image)}`, () => {
+      if (bossDefaultPath) {
+        setTimeout(() => { if (agruBattleActive) _bossCrossfadeImg(bossDefaultPath); }, 2000);
+      }
+    });
+  } else if (bossDefaultPath) {
+    _bossCrossfadeImg(bossDefaultPath);
+  }
+}
+
+function _bossApplyAudioFx(aLv) {
+  const fig = document.getElementById('agruBattleCharFigure');
+  const cur = document.getElementById('agruBattleCharImg');
+  if (!fig || !cur) return;
+
+  // エフェクト用背面レイヤーを取得または初回作成
+  let fxImg = document.getElementById('bossAudioFxImg');
+  if (!fxImg) {
+    fxImg = document.createElement('img');
+    fxImg.id  = 'bossAudioFxImg';
+    fxImg.alt = '';
+    fxImg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;pointer-events:none;z-index:1;display:none';
+    fig.insertBefore(fxImg, fig.firstChild);
+    // figureに独立したスタッキングコンテキストを与える
+    fig.style.isolation = 'isolate';
+    // クリーン画像（元）を最前面に（ぷるぷるcanvasはz-index:3で既に上）
+    cur.style.position = 'relative';
+    cur.style.zIndex   = '2';
+  }
+
+  // srcを毎フレーム同期（画像切替後も追従）
+  const curSrc = cur.getAttribute('src') || '';
+  if (fxImg.getAttribute('src') !== curSrc) fxImg.src = curSrc;
+
+  // 設定値を読む（デフォルト値はハードコードされた元の値）
+  const nCfg = agruBattleConfig?.noiseEffect || {};
+  const NOISE_THRESHOLD = nCfg.threshold  ?? 0.45;
+  const N_CA            = nCfg.ca         ?? 14;
+  const N_JX            = nCfg.jitterX    ?? 38;
+  const N_JY            = nCfg.jitterY    ?? 4;
+  const N_BRIGHTNESS    = nCfg.brightness ?? 0.55;
+  const N_CONTRAST      = nCfg.contrast   ?? 0.35;
+
+  const intensity = Math.max(0, (aLv - NOISE_THRESHOLD) / (1 - NOISE_THRESHOLD));
+
+  if (!agruBattleActive || intensity <= 0) {
+    fxImg.style.display    = 'none';
+    fxImg.style.filter     = '';
+    fxImg.style.transform  = '';
+    return;
+  }
+
+  fxImg.style.display = '';
+
+  // 色収差：エフェクト層のみに適用（intensity 基準なので閾値以下はゼロ）
+  const ca     = intensity * N_CA;
+  const caBlur = intensity * 5;
+  const caA    = Math.min(0.75, intensity * 1.6);
+
+  const brightness = 1 + intensity * N_BRIGHTNESS;
+  const contrast   = 1 + intensity * N_CONTRAST;
+
+  const hue = intensity > 0.4 && Math.random() < 0.18
+    ? (Math.random() - 0.5) * 40 : 0;
+
+  const filters = [
+    `drop-shadow(${ca.toFixed(1)}px 0 ${caBlur.toFixed(1)}px rgba(255,30,30,${caA.toFixed(2)}))`,
+    `drop-shadow(${(-ca).toFixed(1)}px 0 ${caBlur.toFixed(1)}px rgba(40,110,255,${caA.toFixed(2)}))`,
+    `brightness(${brightness.toFixed(2)})`,
+    `contrast(${contrast.toFixed(2)})`,
+  ];
+  if (hue) filters.push(`hue-rotate(${hue.toFixed(0)}deg)`);
+  fxImg.style.filter = filters.join(' ');
+
+  // ジッターはエフェクト層のみ（クリーン層は静止したまま）・横方向を強調
+  const jx = (Math.random() - 0.5) * intensity * N_JX;
+  const jy = (Math.random() - 0.5) * intensity * N_JY;
+  fxImg.style.transform = `translate(${jx.toFixed(1)}px,${jy.toFixed(1)}px)`;
+}
+
+function _bossClearAudioFx() {
+  const fxImg = document.getElementById('bossAudioFxImg');
+  if (fxImg) {
+    fxImg.style.display   = 'none';
+    fxImg.style.filter    = '';
+    fxImg.style.transform = '';
+  }
+  const fig = document.getElementById('agruBattleCharFigure');
+  if (fig) fig.style.isolation = '';
+  const cur = document.getElementById('agruBattleCharImg');
+  if (cur) { cur.style.position = ''; cur.style.zIndex = ''; }
+}
+
+function _bossCrossfadeImg(newSrc, onDone) {
+  const fig = document.getElementById('agruBattleCharFigure');
+  const cur = document.getElementById('agruBattleCharImg');
+  if (!fig || !cur || !newSrc) { if (onDone) onDone(); return; }
+  const curSrc = cur.getAttribute('src') || '';
+  if (curSrc === newSrc || curSrc.endsWith(newSrc)) { if (onDone) onDone(); return; }
+
+  fig.style.transition = 'opacity 0.22s ease';
+  fig.style.opacity = '0';
+
+  setTimeout(() => {
+    cur.src = newSrc;
+    updateBossAgruPurupuru();
+    const show = () => {
+      fig.style.opacity = '1';
+      fig.addEventListener('transitionend', () => {
+        fig.style.transition = '';
+        fig.style.opacity = '';
+        if (onDone) onDone();
+      }, { once: true });
+    };
+    if (cur.complete && cur.naturalWidth) show();
+    else { cur.onload = show; cur.onerror = show; }
+  }, 230);
 }
 
 function _agruBattleDoCounter() {
   if (!agruBattleActive) return;
-  const skill = _agruBattlePickSkill();
+  const skill  = _agruBattlePickSkill();
   const alive  = _agruBattleGetAliveUsers();
   const bossAtk = 5 + Math.max(0, Math.floor((1 - agruBattleHP / agruBattleMaxHP) * 5));
-  const cx = stage.clientWidth / 2, cy = stage.clientHeight / 2;
-
-  _agruBattlePlayEffect(skill.id, cx, cy);
+  window._bossEfx?.onAttack();
 
   switch (skill.id) {
     case 'normal': {
       _agruAddSystemMsg(`😡 アゲルちゃんの通常攻撃！全員に ${bossAtk} ダメージ！`);
-      alive.forEach(u => { damageUser(u, bossAtk); if (u.hp <= 0) _agruBattleKillUser(u); });
-      _agruBattleGetSpeech('全員に通常攻撃した。短く威勢よく。');
+      alive.forEach(u => { const wasKo = u.ko; damageUser(u, bossAtk); if (!wasKo && u.ko) _agruBattleKillUser(u); });
+      _agruBattlePlayEffect(skill.id, alive);
+      _agruBattleGetSpeech('normal');
       break;
     }
     case 'focus_fire': {
@@ -6002,16 +7841,19 @@ function _agruBattleDoCounter() {
       if (!target) break;
       const dmg = bossAtk * 5;
       _agruAddSystemMsg(`🎯 集中砲火！${target.name || '名無し'} に ${dmg} ダメージ！`);
+      const wasKoFF = target.ko;
       damageUser(target, dmg);
-      if (target.hp <= 0) _agruBattleKillUser(target);
-      _agruBattleGetSpeech(`${target.name || '名無し'}を集中砲火した。短く残酷に。`);
+      if (!wasKoFF && target.ko) _agruBattleKillUser(target);
+      _agruBattlePlayEffect(skill.id, [target]);
+      _agruBattleGetSpeech('focus_fire');
       break;
     }
     case 'all_attack': {
       const dmg = bossAtk * 2;
       _agruAddSystemMsg(`💥 全体乱打！全員に ${dmg} ダメージ！`);
-      alive.forEach(u => { damageUser(u, dmg); if (u.hp <= 0) _agruBattleKillUser(u); });
-      _agruBattleGetSpeech('全員に全体乱打した。短く興奮気味に。');
+      alive.forEach(u => { const wasKo = u.ko; damageUser(u, dmg); if (!wasKo && u.ko) _agruBattleKillUser(u); });
+      _agruBattlePlayEffect(skill.id, alive);
+      _agruBattleGetSpeech('all_attack');
       break;
     }
     case 'instant_kill': {
@@ -6019,7 +7861,8 @@ function _agruBattleDoCounter() {
       if (!target) break;
       _agruAddSystemMsg(`☠️ 即死撃！${target.name || '名無し'} を瞬殺！`);
       _agruBattleKillUser(target);
-      _agruBattleGetSpeech(`${target.name || '名無し'}を一撃で消した。短く冷酷に。`);
+      _agruBattlePlayEffect(skill.id, [target]);
+      _agruBattleGetSpeech('instant_kill');
       break;
     }
     case 'mp_absorb': {
@@ -6028,13 +7871,15 @@ function _agruBattleDoCounter() {
       const stolen = target.mp || 0;
       target.mp = 0; updateStatsDisplay(target);
       _agruAddSystemMsg(`🌀 MP吸収！${target.name || '名無し'} の MP ${stolen} を全部奪った！`);
-      _agruBattleGetSpeech(`${target.name || '名無し'}のMPを全部吸収した。短く得意げに。`);
+      _agruBattlePlayEffect(skill.id, [target]);
+      _agruBattleGetSpeech('mp_absorb');
       break;
     }
     case 'all_mp_drain': {
       _agruAddSystemMsg('💸 全体MP吸収！全員のMP -10！');
       alive.forEach(u => { u.mp = Math.max(0, (u.mp || 0) - 10); updateStatsDisplay(u); });
-      _agruBattleGetSpeech('全員のMPを吸収した。短く高笑いで。');
+      _agruBattlePlayEffect(skill.id, alive);
+      _agruBattleGetSpeech('all_mp_drain');
       break;
     }
     case 'petrify': {
@@ -6044,7 +7889,8 @@ function _agruBattleDoCounter() {
       eff.stoneUntil = Date.now() + 60000;
       agruBattleStatusEffects.set(target.ipid, eff);
       _agruAddSystemMsg(`🗿 石化！${target.name || '名無し'} が60秒間攻撃不能！`);
-      _agruBattleGetSpeech(`${target.name || '名無し'}を石にした。短く冷ややかに。`);
+      _agruBattlePlayEffect(skill.id, [target]);
+      _agruBattleGetSpeech('petrify');
       break;
     }
     case 'sleep': {
@@ -6054,7 +7900,8 @@ function _agruBattleDoCounter() {
       eff.sleepUntil = Date.now() + 30000;
       agruBattleStatusEffects.set(target.ipid, eff);
       _agruAddSystemMsg(`💤 眠り！${target.name || '名無し'} が30秒間攻撃不能！`);
-      _agruBattleGetSpeech(`${target.name || '名無し'}を眠らせた。短くうっとりと。`);
+      _agruBattlePlayEffect(skill.id, [target]);
+      _agruBattleGetSpeech('sleep');
       break;
     }
     case 'charm': {
@@ -6064,7 +7911,8 @@ function _agruBattleDoCounter() {
       eff.charmedUntil = Date.now() + 30000;
       agruBattleStatusEffects.set(target.ipid, eff);
       _agruAddSystemMsg(`💕 魅了！${target.name || '名無し'} が30秒間味方になった！（攻撃が回復に）`);
-      _agruBattleGetSpeech(`${target.name || '名無し'}を魅了した。短く妖しく。`);
+      _agruBattlePlayEffect(skill.id, [target]);
+      _agruBattleGetSpeech('charm');
       break;
     }
     case 'curse': {
@@ -6074,7 +7922,8 @@ function _agruBattleDoCounter() {
       eff.curseUntil = Date.now() + 60000;
       agruBattleStatusEffects.set(target.ipid, eff);
       _agruAddSystemMsg(`🩸 呪い！${target.name || '名無し'} のダメージが60秒間半減！`);
-      _agruBattleGetSpeech(`${target.name || '名無し'}を呪った。短く不気味に。`);
+      _agruBattlePlayEffect(skill.id, [target]);
+      _agruBattleGetSpeech('curse');
       break;
     }
     case 'self_heal': {
@@ -6082,40 +7931,70 @@ function _agruBattleDoCounter() {
       agruBattleHP = Math.min(agruBattleMaxHP, agruBattleHP + healAmt);
       updateAgruBattleHpDisplay();
       _agruAddSystemMsg(`💚 自己回復！HP +${healAmt}！`);
-      _agruBattleGetSpeech('HPを回復した。短く余裕を見せて。');
+      _agruBattlePlayEffect(skill.id, null);
+      _agruBattleGetSpeech('self_heal');
       break;
     }
     case 'berserk': {
       agruBattleBerserkUntil = Date.now() + 30000;
       _agruAddSystemMsg('🔥 バーサーク！30秒間ダメージ無効！');
-      _agruBattleGetSpeech('バーサークモードに入った。短く狂気的に。');
+      _agruBattlePlayEffect(skill.id, null);
+      _agruBattleGetSpeech('berserk');
+      break;
+    }
+    case 'super_heal': {
+      if (_agruDefenseActive) break; // 既に防御中
+      _agruActivateDefense();
+      _agruBattlePlayEffect(skill.id, null);
+      _agruBattleGetSpeech('super_heal');
+      break;
+    }
+    case 'shield_char': {
+      if (_agruShieldChar) break; // 既に盾発動中
+      const target = alive[Math.floor(Math.random() * alive.length)];
+      if (!target) break;
+      _agruActivateShield(target);
+      _agruBattlePlayEffect(skill.id, [target]);
+      _agruBattleGetSpeech('shield_char');
+      break;
+    }
+    case 'delete_char': {
+      const target = alive[Math.floor(Math.random() * alive.length)];
+      if (!target) break;
+      _agruAddSystemMsg(`🗑️ デリート攻撃！${target.name || '名無し'} が消滅する…`);
+      if (target.el) target.el.classList.add('agru-float-delete');
+      _agruBattlePlayEffect(skill.id, [target]);
+      _agruBattleGetSpeech('delete_char');
+      setTimeout(() => _agruBattleKillUser(target), 2000);
       break;
     }
   }
 }
 
-async function _agruBattleGetSpeech(prompt) {
-  if (!agruBattleActive && !prompt.includes('敗北') && !prompt.includes('勝利')) return;
-  try {
-    const pct = Math.round(agruBattleHP / agruBattleMaxHP * 100);
-    const left = Math.max(0, Math.ceil((agruBattleEndTime - Date.now()) / 1000));
-    const sysExtra = `今バトル中。HP ${agruBattleHP}/${agruBattleMaxHP}(${pct}%)、残り${left}秒。`;
-    const stateCtx = _agruGetStateContext();
-    const systemPrompt = AGRU_DEFAULT_SYSTEM + '\n\n' + _agruGetAffinityContext()
-      + (stateCtx ? '\n\n' + stateCtx : '') + '\n\n' + sysExtra
-      + (agruSystem.trim() ? '\n\n' + agruSystem.trim() : '');
-    const res = await fetch('/api/ai-reply', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], model: aiModel, system: systemPrompt }),
-    });
-    const data = await res.json();
-    if (data.error || !data.reply) return;
-    const { emotion, replyText } = _agruParseResponse(data.reply.trim());
-    _agruNotifyEmotion(emotion, replyText);
-    _agruPlayVoicevox(replyText);
-    _agruAddBubble('left', 'アゲルちゃん', replyText);
-  } catch {}
+function _agruBattleGetSpeech(skillId) {
+  const text = (
+    agruBattleConfig?.skills?.[skillId]?.speech ||
+    agruBattleConfig?.[skillId + 'Speech'] ||
+    ''
+  ).trim();
+  if (!text) return;
+  _agruPlayVoicevox(text);
+  _agruBattleShowSpeechBubble(text);
+}
+
+function _agruBattleShowSpeechBubble(text) {
+  const el = document.getElementById('agruBattleSpeechBubble');
+  if (!el) return;
+  el.textContent = text;
+  el.style.display = 'block';
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = '';
+  clearTimeout(el._hideTimer);
+  el._hideTimer = setTimeout(() => {
+    el.style.opacity = '0';
+    setTimeout(() => { el.style.display = 'none'; el.style.opacity = ''; }, 500);
+  }, 6000);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -6248,8 +8127,10 @@ let _agruConvHistory = [];
 let _agruPoisonTurns = 0;
 
 // ── ボスアゲルバトル状態 ─────────────────────────────────────────
-let agruBattleActive   = false;
-let agruBattleHP       = 0;
+let agruBattleActive        = false;
+let _agruBattleEntranceDone = false;
+let agruBattleHP            = 0;
+let _agruLastHpBucket       = null;
 let agruBattleMaxHP    = 1000;
 let agruBattleEndTime  = 0;
 let agruBattleTimerInterval  = null;
@@ -6259,7 +8140,81 @@ let agruBattleBerserkUntil   = 0;
 let agruBattleConfig   = {};
 let agruBattleStatusEffects  = new Map(); // ipid → { stoneUntil, sleepUntil, charmedUntil, curseUntil }
 let _agruBattleKilledIds     = new Set();
-(async () => { try { const r = await fetch('/api/boss-ageru-config'); agruBattleConfig = await r.json(); } catch {} })();
+let _agruShieldChar          = null; // 盾キャラ攻撃で選ばれたユーザー
+let _agruShieldHp            = 0;
+let _agruShieldTimer         = null;
+let _agruDefenseActive       = false; // 超回復防御状態
+let _agruDefenseDmgAccum     = 0;    // 防御中の累積ダメージ（1hit=1）
+let _agruDefenseTimer        = null;
+(async () => {
+  try {
+    const r = await fetch('/api/boss-ageru-config');
+    agruBattleConfig = await r.json();
+    _applyBossLayoutConfig();
+    _applyTimerConfig();
+  } catch {}
+})();
+
+// 設定画面からのリアルタイムレイアウト更新（BroadcastChannel）
+function _bossUIFlyIn() {
+  const items = [
+    { el: document.getElementById('bossTimerWrap'),    delay:   0 },
+    { el: document.getElementById('agruBattleHpWrap'), delay: 160 },
+    { el: document.getElementById('agruBattleHpNum'),  delay: 260 },
+  ].filter(({ el }) => el && !el.classList.contains('hidden') && el.style.display !== 'none');
+
+  // 全要素を画面上方（開始位置）へ瞬間移動
+  items.forEach(({ el }) => {
+    const base = el.style.transform || '';
+    el._flyInBase = base;
+    el.style.transition = 'none';
+    el.style.opacity    = '0';
+    el.style.transform  = base ? `${base} translateY(-280px)` : 'translateY(-280px)';
+  });
+  if (items.length) items[0].el.offsetHeight; // 強制リフロー（1回）
+
+  // 各要素を指定位置へ stagger アニメート
+  items.forEach(({ el, delay }) => {
+    setTimeout(() => {
+      el.style.transition = 'transform 0.65s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.38s ease-out';
+      el.style.transform  = el._flyInBase;
+      el.style.opacity    = '';
+      setTimeout(() => {
+        el.style.transition = '';
+        delete el._flyInBase;
+      }, 800);
+    }, delay);
+  });
+}
+
+function _applyTimerConfig() {
+  const timerCfg = agruBattleConfig?.timer;
+  const tw = document.getElementById('bossTimerWrap');
+  if (tw && timerCfg) {
+    if (timerCfg.x !== undefined && timerCfg.x !== '') {
+      tw.style.left = timerCfg.x + 'px'; tw.style.transform = 'none';
+    } else {
+      tw.style.left = '50%'; tw.style.transform = 'translateX(-50%)';
+    }
+    tw.style.top    = (timerCfg.y ?? 12) + 'px';
+    // stage内: ボス(z30)より前=65、後ろ=28
+    tw.style.zIndex = timerCfg.behindBoss ? '28' : '65';
+  }
+  const td = document.getElementById('bossTimerDigits');
+  if (td && timerCfg?.size) td.style.fontSize = timerCfg.size + 'px';
+}
+// BroadcastChannel は変数に保持しないと GC に回収されリスナーが消えるため window に保持
+try {
+  window._bossLayoutChannel = new BroadcastChannel('kukuCome_bossLayout');
+  window._bossLayoutChannel.onmessage = ({ data }) => {
+    if (data.bossChar)  agruBattleConfig.bossChar  = data.bossChar;
+    if (data.hpGauge)   agruBattleConfig.hpGauge   = data.hpGauge;
+    if (data.battleLog) agruBattleConfig.battleLog = data.battleLog;
+    if (data.timer)     agruBattleConfig.timer      = data.timer;
+    _applyBossLayoutConfig();
+    if (data.timer) _applyTimerConfig();
+  };
+} catch {}
 let agruVoicevoxEnabled = localStorage.getItem('agruVoicevoxEnabled') === '1';
 let agruVoicevoxSpeaker = parseInt(localStorage.getItem('agruVoicevoxSpeaker') || '0');
 let agruVoicevoxSpeed   = parseFloat(localStorage.getItem('agruVoicevoxSpeed') || '1.0');
@@ -6344,6 +8299,10 @@ function _agruSlideImage(newSrc) {
   img.style.transition = 'none';
   img.style.transform  = `${_s}translateX(110%)`;
   img.src = newSrc;
+  if (agruBattleActive) {
+    const _bi = document.getElementById('agruBattleCharImg');
+    if (_bi) { _bi.src = newSrc; updateBossAgruPurupuru(); }
+  }
 
   const doSlide = () => {
     requestAnimationFrame(() => {
@@ -6578,7 +8537,20 @@ function _agruTrimLog() {
   while (rows.length > 10) rows.shift().remove();
 }
 
+function _agruBattleLog(text) {
+  const log = document.getElementById('agruBattleLog');
+  if (!log) return;
+  const el = document.createElement('div');
+  el.className = 'agru-battle-log-entry';
+  el.textContent = text;
+  log.appendChild(el);
+  // 古いエントリを削除（最大20件）
+  while (log.children.length > 5) log.removeChild(log.firstChild);
+  log.scrollTop = log.scrollHeight;
+}
+
 function _agruAddSystemMsg(text) {
+  if (agruBattleActive) { _agruBattleLog(text); return; }
   const log = document.getElementById('agruChatLog');
   if (!log) return;
   const el = document.createElement('div');
@@ -10652,6 +12624,18 @@ function handleAdminMessage(d, replyFn) {
     startAgruBattle();
   } else if (d.type === 'agruBattleEnd') {
     endAgruBattle(d.result || 'players');
+  } else if (d.type === 'bossLayoutUpdate') {
+    if (!agruBattleConfig) agruBattleConfig = {};
+    if (d.bossChar)    agruBattleConfig.bossChar    = d.bossChar;
+    if (d.hpGauge)    agruBattleConfig.hpGauge    = d.hpGauge;
+    if (d.battleLog)  agruBattleConfig.battleLog  = d.battleLog;
+    if (d.timer)      agruBattleConfig.timer       = d.timer;
+    if (d.speech)     agruBattleConfig.speech      = d.speech;
+    if (d.geoEffect)  agruBattleConfig.geoEffect   = d.geoEffect;
+    if (d.noiseEffect) agruBattleConfig.noiseEffect = d.noiseEffect;
+    if (d.hpImages)   agruBattleConfig.hpImages    = d.hpImages;
+    _applyBossLayoutConfig();
+    if (d.timer) _applyTimerConfig();
   } else if (d.type === 'agruSetParam') {
     const v = parseFloat(d.value);
     if (d.param === 'hunger')     { const _ph = agruHunger;     agruHunger     = Math.max(0, Math.min(100, v)); _agruDeadWakeCount = 0; if (agruHunger > 0) _agruRevertStateImage(); _agruUpdateHungerDisplay(agruHunger - _ph); }

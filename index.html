@@ -231,6 +231,7 @@
     <a class="sidebar-link" href="#sec-pet">🐾 ペットガチャ</a>
     <a class="sidebar-link" href="#sec-equip">⚔️ 装備レアリティ</a>
     <a class="sidebar-link" href="#sec-boss">🐉 ボスバトル</a>
+    <a class="sidebar-link" href="#sec-ageru-boss">👹 ボスアゲルバトル</a>
     <a class="sidebar-link" href="#sec-game">🎮 ゲーム機能</a>
     <a class="sidebar-link" href="#sec-char">🐱 キャラ設定</a>
     <a class="sidebar-link" href="#sec-bubble">💬 吹き出し形</a>
@@ -772,6 +773,127 @@
       <b>ボス画像は public/chara/ にある画像からランダム選択</b>。管理パネルの「揺れ設定」でボスにも揺れアニメを設定できます。<br>
       ボスのサイズはHP100→約120px、HP2000→約420pxとHP比例して大きくなります。<br>
       ボス撃破後は<b>一定時間後に次のボスが自動召喚</b>されます。
+    </div>
+  </div>
+
+  <!-- ── ボスアゲルバトル ── -->
+  <div class="section" id="sec-ageru-boss">
+    <div class="section-title">👹 ボスアゲルバトル</div>
+
+    <!-- 概要 -->
+    <div class="feature-grid" style="margin-bottom:16px">
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#f87171">👹 バトルの概要</div>
+        <div class="feature-card-body">
+          アゲルちゃんがボスとして出現し、<b>リスナー全員 vs アゲルちゃん</b>のバトルが始まります。<br>
+          リスナーはコメントで攻撃し、アゲルちゃんのHPを0にすれば<b>リスナー勝利</b>。<br>
+          タイマー（デフォルト5分）が0になるとアゲルちゃんの勝利。<br>
+          <b>アゲルちゃんは反撃スキルで視聴者のセーブデータを削除</b>することがあります。
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#7dd3fc">⚔️ 攻撃の仕組み</div>
+        <div class="feature-card-body">
+          ボスアゲルバトル中、<b>すべてのコメントが攻撃</b>になります。<br>
+          ダメージ＝コメント文字数（ヒット数）×1文字ごとに1〜<code>maxDmgPerHit</code>のランダム値。<br>
+          クリティカル時はダメージが2〜4倍になります（クリ率は各キャラのCRT値）。<br>
+          <b>早押し正解のバフ</b>（管理パネルで設定）があれば、一定時間ダメージが増加します。
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#fbbf24">⚠️ セーブ削除リスク</div>
+        <div class="feature-card-body">
+          アゲルちゃんのスキルによっては<b>ランダムな視聴者のセーブデータが削除</b>されます。<br>
+          削除されたキャラはLv・EXP・装備・ペット・MP・称号などがすべて失われます。<br>
+          盾キャラ（shield_char）になると攻撃を肩代わりできますが、HP0で削除されます。<br>
+          アゲル勝利時は<b>何事もなかったように配信が再開</b>されます。
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#22c55e">🏆 バトル結果</div>
+        <div class="feature-card-body">
+          <b>リスナー勝利</b>：設定した勝利画像がフルスクリーン表示→フェードアウト。アゲルタイプのキャラが画面から消えます。<br>
+          <b>アゲル勝利（タイムアップ）</b>：アゲルちゃんの会話モーダルが表示され、何事もなかったように配信が再開されます。<br>
+          どちらの場合も通常バトルに戻ります。
+        </div>
+      </div>
+    </div>
+
+    <!-- スキル一覧 -->
+    <div style="font-size:13px;font-weight:700;color:var(--accent);margin:20px 0 10px;letter-spacing:0.04em">🗡️ アゲルちゃんスキル一覧</div>
+    <table class="pet-table" style="margin-bottom:16px">
+      <thead>
+        <tr>
+          <th style="width:130px">スキル名</th>
+          <th style="width:100px">ID</th>
+          <th>効果</th>
+          <th style="width:80px">発動条件</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><b>ランダムコメント</b></td><td><code>random_comment</code></td><td>アゲルちゃんがランダムなセリフをしゃべる（無害）</td><td>全フェーズ</td></tr>
+        <tr><td><b>エモート</b></td><td><code>emote</code></td><td>ランダムな表情に一定時間切り替え</td><td>全フェーズ</td></tr>
+        <tr><td><b>ランダム移動</b></td><td><code>move</code></td><td>画面上でランダムな位置に移動</td><td>全フェーズ</td></tr>
+        <tr><td><b>振動</b></td><td><code>shake</code></td><td>アゲルちゃんが左右に激しく振動するアニメ</td><td>HP75%以下</td></tr>
+        <tr><td><b>咆哮</b></td><td><code>roar</code></td><td>大きく膨らんで咆哮する。BGMカット・効果音再生</td><td>HP50%以下</td></tr>
+        <tr><td><b>攻撃</b></td><td><code>attack</code></td><td>ランダムなリスナーを選んで一定ダメージを与える</td><td>全フェーズ</td></tr>
+        <tr><td><b>爆撃</b></td><td><code>bomb</code></td><td>全リスナーに一定ダメージ（ボムエフェクト付き）</td><td>HP50%以下</td></tr>
+        <tr><td><b>キャラ削除</b></td><td><code>delete_char</code></td><td>ランダムなリスナーのセーブデータを削除。浮き上がりアニメ後に消滅</td><td>HP50%以下</td></tr>
+        <tr><td><b>盾キャラ</b></td><td><code>shield_char</code></td><td>ランダムなリスナーを盾にする。攻撃を肩代わり。HP0か30秒で解除</td><td>HP75%以下</td></tr>
+        <tr><td><b>石化</b></td><td><code>freeze</code></td><td>ランダムなリスナーを一定時間攻撃不能にする</td><td>全フェーズ</td></tr>
+        <tr><td><b>眠り</b></td><td><code>sleep</code></td><td>ランダムなリスナーをzzz状態にする（攻撃でダメージ激減）</td><td>HP75%以下</td></tr>
+        <tr><td><b>魅了</b></td><td><code>charm</code></td><td>ランダムなリスナーを魅了。攻撃が味方に向く確率が上がる</td><td>HP50%以下</td></tr>
+        <tr><td><b>呪い</b></td><td><code>curse</code></td><td>ランダムなリスナーを呪い。一定時間ごとにダメージを受け続ける</td><td>HP25%以下</td></tr>
+        <tr><td><b>超回復</b></td><td><code>super_heal</code></td><td>防御状態になり30秒間全攻撃1ダメ。累積100ダメで防御崩壊（HP-10%）。30秒後HP+50%</td><td>HP50%以下</td></tr>
+        <tr><td><b>時間延長</b></td><td><code>time_extend</code></td><td>バトルタイマーを延長する</td><td>HP25%以下</td></tr>
+      </tbody>
+    </table>
+
+    <!-- 詳細解説 -->
+    <div class="feature-grid" style="margin-bottom:16px">
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#a78bfa">🛡️ 盾キャラ（shield_char）の詳細</div>
+        <div class="feature-card-body">
+          ランダムなリスナーが<b>画面中央に移動・サイズ1.5倍</b>になり、青い光のオーラをまとう盾役になります。<br>
+          バトル中の攻撃はすべて盾キャラに向かい、ボスは無敵になります。<br>
+          <b>盾キャラのHP</b>は仮想HP 99999。ダメージがHPに加算され続け、HP0になると盾キャラが削除されます。<br>
+          <b>30秒後</b>に盾が自然に解除され、リスナーは元の位置に戻ります（削除はされません）。
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-title" style="color:#7dd3fc">💙 超回復（super_heal）の詳細</div>
+        <div class="feature-card-body">
+          アゲルちゃんが<b>防御状態</b>になり、青白くパルスするオーラが発生します。<br>
+          防御中は<b>全攻撃が1ダメージ固定</b>になります。<br>
+          累積100ダメージを受けると<b>防御崩壊</b>：ガラス破砕エフェクト＋鎧破砕音が再生され、HP-10%のペナルティ。<br>
+          30秒タイマー終了時は防御崩壊せずに解除され、<b>HP+50%回復</b>します。
+        </div>
+      </div>
+    </div>
+
+    <div class="warn-box" style="margin-bottom:16px">
+      <b>タイマー演出</b>：残り時間が少なくなるとタイマーの数字が赤→黒と点滅します。HPの数字はリール式アニメーション（スロットのような回転）で変動します。<br>
+      <b>HP段階別画像</b>：管理パネルでHPの割合ごとにアゲルちゃんの画像を変えることができます（例：HP50%以下で傷ついた画像）。<br>
+      <b>飛び込み演出</b>：バトル開始時にアゲルちゃんが画面に飛び込んでくる演出を設定できます。
+    </div>
+
+    <!-- 管理者向け -->
+    <div style="font-size:13px;font-weight:700;color:var(--accent);margin:20px 0 10px;letter-spacing:0.04em">⚙️ 管理者向け設定</div>
+    <div class="btn-table" style="margin-bottom:12px">
+      <div class="btn-row"><span class="btn-label">📄 設定画面</span><div class="btn-desc2"><code>public/ageru-boss.html</code> をブラウザで開いて設定。JSON形式で保存・読み込みできます</div></div>
+      <div class="btn-row"><span class="btn-label">❤️ HP設定</span><div class="btn-desc2">アゲルちゃんの初期HP・HP段階別の画像を設定</div></div>
+      <div class="btn-row"><span class="btn-label">⏱️ タイマー</span><div class="btn-desc2">バトル制限時間（秒）を設定。デフォルト300秒（5分）</div></div>
+      <div class="btn-row"><span class="btn-label">🎭 スキル設定</span><div class="btn-desc2">各スキルを有効/無効・発動重み（強さ）をフェーズごとに設定</div></div>
+      <div class="btn-row"><span class="btn-label">💥 削除エフェクト</span><div class="btn-desc2">キャラ削除時のスプライトアニメーションを設定</div></div>
+      <div class="btn-row"><span class="btn-label">🏆 勝利演出</span><div class="btn-desc2">リスナー勝利時のフルスクリーン画像とアゲルタイプ画像リストを設定</div></div>
+      <div class="btn-row"><span class="btn-label">🔊 サウンド</span><div class="btn-desc2"><code>public/sound/boss/</code> に音声ファイルを入れると各種演出で自動再生</div></div>
+      <div class="btn-row"><span class="btn-label">📝 セリフ設定</span><div class="btn-desc2">バトル開始・被ダメ・勝利・敗北時のアゲルちゃんのセリフをカスタマイズ</div></div>
+    </div>
+
+    <div class="info-box">
+      ボスアゲルバトルは通常のボスバトルとは別個のシステムです。<b>アゲルちゃんコマンド（アゲルちゃんバトル開始）</b>で起動します。<br>
+      設定は <code>public/ageru-boss.html</code> から行い、JSONファイルとして保存・ロードできます。<br>
+      バトル中もスキルの重みや有効/無効はリアルタイムで設定ページから変更可能です。
     </div>
   </div>
 
