@@ -257,11 +257,11 @@ function applyBgImage(url) {
     stage.style.backgroundSize     = 'cover';
     stage.style.backgroundPosition = 'center';
     stage.style.backgroundRepeat   = 'no-repeat';
-    bgClearBtn.style.display = '';
+    if (bgClearBtn) bgClearBtn.style.display = '';
   } else {
     stage.style.backgroundImage = '';
-    bgClearBtn.style.display = 'none';
-    applyBgColor(bgColorInput.value);
+    if (bgClearBtn) bgClearBtn.style.display = 'none';
+    applyBgColor(bgColorInput ? bgColorInput.value : (localStorage.getItem('bgColor') || '#00FF00'));
   }
 }
 
@@ -272,21 +272,21 @@ function applyBgImage(url) {
     stage.style.backgroundColor = 'transparent';
   }
   const savedColor = localStorage.getItem('bgColor') || '#00FF00';
-  bgColorInput.value = savedColor;
+  if (bgColorInput) bgColorInput.value = savedColor;
   applyBgColor(savedColor);
   const savedUrl = localStorage.getItem('bgImageUrl');
   if (savedUrl) applyBgImage(savedUrl);
 })();
 
-bgColorInput.addEventListener('input', () => {
+bgColorInput?.addEventListener('input', () => {
   applyBgColor(bgColorInput.value);
   localStorage.setItem('bgColor', bgColorInput.value);
   saveSettingsToServer();
 });
 
-bgImageBtn.addEventListener('click', () => bgImageInput.click());
+bgImageBtn?.addEventListener('click', () => bgImageInput?.click());
 
-bgImageInput.addEventListener('change', async () => {
+bgImageInput?.addEventListener('change', async () => {
   const file = bgImageInput.files[0];
   if (!file) return;
   bgImageInput.value = '';
@@ -300,7 +300,6 @@ bgImageInput.addEventListener('change', async () => {
       });
       const data = await res.json();
       if (data.url) {
-        // キャッシュバスター付き
         const url = data.url + '?t=' + Date.now();
         localStorage.setItem('bgImageUrl', url);
         applyBgImage(url);
@@ -312,7 +311,7 @@ bgImageInput.addEventListener('change', async () => {
   reader.readAsDataURL(file);
 });
 
-bgClearBtn.addEventListener('click', async () => {
+bgClearBtn?.addEventListener('click', async () => {
   await fetch('/api/bg', { method: 'DELETE' }).catch(() => {});
   localStorage.removeItem('bgImageUrl');
   applyBgImage(null);
@@ -5198,7 +5197,7 @@ document.getElementById('stopBtn').addEventListener('click', () => {
   setStatus('idle', '● 停止中');
 });
 
-document.getElementById('clearStage').addEventListener('click', () => {
+document.getElementById('clearStage')?.addEventListener('click', () => {
   if (brState) { clearTimeout(brState.autoTimer); clearInterval(brState.escalateTimer); brState = null; }
   Object.values(users).forEach(u => {
     if (u.el)          u.el.remove();
@@ -5211,11 +5210,11 @@ document.getElementById('clearStage').addEventListener('click', () => {
   emptyHint.classList.remove('hidden');
 });
 
-document.getElementById('toggleLog').addEventListener('click', () => {
+document.getElementById('toggleLog')?.addEventListener('click', () => {
   document.getElementById('commentLog').classList.toggle('hidden');
 });
 
-document.getElementById('copyObsUrl').addEventListener('click', () => {
+document.getElementById('copyObsUrl')?.addEventListener('click', () => {
   const url = `${location.origin}/?obs=1`;
   navigator.clipboard.writeText(url).then(() => {
     const btn = document.getElementById('copyObsUrl');
@@ -5344,14 +5343,14 @@ async function openModal() {
   renderCharSlots();
 }
 
-document.getElementById('gatherBtn').addEventListener('click', gatherCharacters);
-document.getElementById('gatherBottomBtn').addEventListener('click', gatherCharactersBottom);
-document.getElementById('compactBtn').addEventListener('click', () => setCompactMode(!compactMode));
-document.getElementById('fiveMinBtn').addEventListener('click', () => setFiveMinMode(!fiveMinMode));
+document.getElementById('gatherBtn')?.addEventListener('click', gatherCharacters);
+document.getElementById('gatherBottomBtn')?.addEventListener('click', gatherCharactersBottom);
+document.getElementById('compactBtn')?.addEventListener('click', () => setCompactMode(!compactMode));
+document.getElementById('fiveMinBtn')?.addEventListener('click', () => setFiveMinMode(!fiveMinMode));
 
-document.getElementById('hayaoshiBtn').addEventListener('click', startHayaoshi);
+document.getElementById('hayaoshiBtn')?.addEventListener('click', startHayaoshi);
 
-document.getElementById('wordleBtn').addEventListener('click', () => {
+document.getElementById('wordleBtn')?.addEventListener('click', () => {
   const panel = document.getElementById('wordlePanel');
   if (panel) {
     panel.remove();
@@ -5363,7 +5362,7 @@ document.getElementById('wordleBtn').addEventListener('click', () => {
   }
 });
 
-document.getElementById('quizBtn').addEventListener('click', () => {
+document.getElementById('quizBtn')?.addEventListener('click', () => {
   if (quizState) {
     stopQuiz();
   } else if (quizQuestions.length > 0) {
@@ -5371,7 +5370,7 @@ document.getElementById('quizBtn').addEventListener('click', () => {
   }
 });
 
-document.getElementById('moveLockBtn').addEventListener('click', () => {
+document.getElementById('moveLockBtn')?.addEventListener('click', () => {
   moveLocked = !moveLocked;
   document.getElementById('moveLockBtn').classList.toggle('active', moveLocked);
   if (moveLocked) {
@@ -5384,14 +5383,14 @@ document.getElementById('moveLockBtn').addEventListener('click', () => {
   }
 });
 
-document.getElementById('debugBtn').addEventListener('click', () => {
+document.getElementById('debugBtn')?.addEventListener('click', () => {
   debugMode = !debugMode;
   document.getElementById('debugBtn').classList.toggle('active', debugMode);
   // 全キャラのステータス表示を即時更新
   Object.values(users).forEach(u => updateStatsDisplay(u));
 });
 
-document.getElementById('debugMpBtn').addEventListener('click', () => {
+document.getElementById('debugMpBtn')?.addEventListener('click', () => {
   Object.values(users).forEach(u => {
     u.mp = (u.mp ?? 0) + 30;
     updateStatsDisplay(u);
@@ -5487,13 +5486,13 @@ function spawnBloodBath() {
   }, 700);
 }
 
-document.getElementById('battleRoyaleBtn').addEventListener('click', startBattleRoyale);
+document.getElementById('battleRoyaleBtn')?.addEventListener('click', startBattleRoyale);
 
-document.getElementById('spikiBossBtn').addEventListener('click', () => {
+document.getElementById('spikiBossBtn')?.addEventListener('click', () => {
   spawnSpikiBoss();
 });
 
-document.getElementById('dismissBossBtn').addEventListener('click', () => {
+document.getElementById('dismissBossBtn')?.addEventListener('click', () => {
   if (!bossState) return;
   bossManuallyCleared = true;
   if (bossState.el) {
@@ -5516,7 +5515,7 @@ document.getElementById('dismissBossBtn').addEventListener('click', () => {
   if (prev) prev.remove();
 });
 
-document.getElementById('stopAllBtn').addEventListener('click', () => {
+document.getElementById('stopAllBtn')?.addEventListener('click', () => {
   Object.values(users).forEach(u => {
     u.movement = '止まれ';
     if (u.moveTimer) { clearTimeout(u.moveTimer); u.moveTimer = null; }
@@ -5526,7 +5525,7 @@ document.getElementById('stopAllBtn').addEventListener('click', () => {
   });
 });
 
-document.getElementById('moveAreaSelect').addEventListener('change', e => {
+document.getElementById('moveAreaSelect')?.addEventListener('change', e => {
   moveArea = MOVE_AREA_MAP[e.target.value] || MOVE_AREA_MAP['all'];
   localStorage.setItem('moveArea', e.target.value);
   saveSettingsToServer();
@@ -5580,11 +5579,11 @@ document.getElementById('moveAreaSelect').addEventListener('change', e => {
     }
   });
 
-  document.getElementById('charSizeReset').addEventListener('click', () => {
+  document.getElementById('charSizeReset')?.addEventListener('click', () => {
     charSlider.value = 100;
     charSlider.dispatchEvent(new Event('input'));
   });
-  document.getElementById('bossSizeReset').addEventListener('click', () => {
+  document.getElementById('bossSizeReset')?.addEventListener('click', () => {
     bossSlider.value = 100;
     bossSlider.dispatchEvent(new Event('input'));
   });
@@ -9740,11 +9739,11 @@ function launchBullets(user, text) {
     opVal.textContent = opSlider.value + '%';
     localStorage.setItem('nikoOpacity', nikoOpacity);
   });
-  document.getElementById('nikoSizeReset').addEventListener('click', () => {
+  document.getElementById('nikoSizeReset')?.addEventListener('click', () => {
     sizeSlider.value = 40;
     sizeSlider.dispatchEvent(new Event('input'));
   });
-  document.getElementById('nikoOpacityReset').addEventListener('click', () => {
+  document.getElementById('nikoOpacityReset')?.addEventListener('click', () => {
     opSlider.value = 100;
     opSlider.dispatchEvent(new Event('input'));
   });
@@ -9764,7 +9763,7 @@ function launchBullets(user, text) {
     localStorage.setItem('bossHpScale', bossHpScale);
     saveSettingsToServer();
   });
-  document.getElementById('bossHpScaleReset').addEventListener('click', () => {
+  document.getElementById('bossHpScaleReset')?.addEventListener('click', () => {
     slider.value = 1;
     slider.dispatchEvent(new Event('input'));
   });
@@ -9783,7 +9782,7 @@ function launchBullets(user, text) {
     val.textContent = bossAtkCoeff + 'x';
     localStorage.setItem('bossAtkCoeff', bossAtkCoeff);
   });
-  document.getElementById('bossAtkCoeffReset').addEventListener('click', () => {
+  document.getElementById('bossAtkCoeffReset')?.addEventListener('click', () => {
     slider.value = 20;
     slider.dispatchEvent(new Event('input'));
   });
@@ -9802,7 +9801,7 @@ function launchBullets(user, text) {
     val.textContent = slider.value + '%';
     localStorage.setItem('bossCounterRate', bossCounterRate);
   });
-  document.getElementById('counterRateReset').addEventListener('click', () => {
+  document.getElementById('counterRateReset')?.addEventListener('click', () => {
     slider.value = 40;
     slider.dispatchEvent(new Event('input'));
   });
@@ -9822,7 +9821,7 @@ function launchBullets(user, text) {
     localStorage.setItem('brHpMult', brHpMult);
     saveSettingsToServer();
   });
-  document.getElementById('brHpMultReset').addEventListener('click', () => {
+  document.getElementById('brHpMultReset')?.addEventListener('click', () => {
     slider.value = 200;
     slider.dispatchEvent(new Event('input'));
   });
@@ -9842,7 +9841,7 @@ function launchBullets(user, text) {
     localStorage.setItem('taimanHpMult', taimanHpMult);
     saveSettingsToServer();
   });
-  document.getElementById('taimanHpMultReset').addEventListener('click', () => {
+  document.getElementById('taimanHpMultReset')?.addEventListener('click', () => {
     slider.value = 10;
     slider.dispatchEvent(new Event('input'));
   });
@@ -9871,7 +9870,7 @@ document.getElementById('batchAssignAll').addEventListener('click', () => {
   refreshAllAvatars();
   renderCharSlots();
 });
-document.getElementById('openImgModal').addEventListener('click', () => openModal());
+document.getElementById('openImgModal')?.addEventListener('click', () => openModal());
 document.getElementById('closeModal').addEventListener('click',  () => { document.getElementById('imageModal').classList.add('hidden'); });
 document.getElementById('reloadImages').addEventListener('click', async () => { await loadImageList(); renderImageGrid(); renderCharSlots(); });
 document.getElementById('imageModal').addEventListener('click', e => {
@@ -10993,7 +10992,7 @@ setInterval(() => { if (newsTickerEnabled) fetchNewsAndRender(); }, 5 * 60 * 100
     val.textContent = slider.value + 's';
     localStorage.setItem('hayaoshiFreq', slider.value);
   });
-  document.getElementById('hayaoshiFreqReset').addEventListener('click', () => {
+  document.getElementById('hayaoshiFreqReset')?.addEventListener('click', () => {
     slider.value = 5; slider.dispatchEvent(new Event('input'));
   });
 })();
@@ -11011,7 +11010,7 @@ setInterval(() => { if (newsTickerEnabled) fetchNewsAndRender(); }, 5 * 60 * 100
     val.textContent = slider.value + 's';
     localStorage.setItem('hayaoshiSpeed', slider.value);
   });
-  document.getElementById('hayaoshiSpeedReset').addEventListener('click', () => {
+  document.getElementById('hayaoshiSpeedReset')?.addEventListener('click', () => {
     slider.value = 8; slider.dispatchEvent(new Event('input'));
   });
 })();
@@ -11555,20 +11554,20 @@ function renderBRTimerPanel() {
 
 setInterval(renderBRTimerPanel, 1000);
 
-document.getElementById('brTimerBtn').addEventListener('click', () => {
+document.getElementById('brTimerBtn')?.addEventListener('click', () => {
   brTimerVisible = !brTimerVisible;
   localStorage.setItem('brTimerVisible', brTimerVisible ? '1' : '0');
   document.getElementById('brTimerBtn').classList.toggle('active', brTimerVisible);
   renderBRTimerPanel();
 });
 
-document.getElementById('hideEquipBtn').addEventListener('click', () => {
+document.getElementById('hideEquipBtn')?.addEventListener('click', () => {
   equipHidden = !equipHidden;
   stage.classList.toggle('equip-hidden', equipHidden);
   document.getElementById('hideEquipBtn').classList.toggle('active', equipHidden);
 });
 
-document.getElementById('toggleBombBtn').addEventListener('click', () => {
+document.getElementById('toggleBombBtn')?.addEventListener('click', () => {
   bombHidden = !bombHidden;
   document.getElementById('bombBtn').style.display = bombHidden ? 'none' : '';
   document.getElementById('toggleBombBtn').classList.toggle('active', bombHidden);
@@ -11576,7 +11575,7 @@ document.getElementById('toggleBombBtn').addEventListener('click', () => {
   saveSettingsToServer();
 });
 
-document.getElementById('toggleTrashBtn').addEventListener('click', () => {
+document.getElementById('toggleTrashBtn')?.addEventListener('click', () => {
   trashHidden = !trashHidden;
   document.getElementById('trashCan').style.display = trashHidden ? 'none' : '';
   document.getElementById('toggleTrashBtn').classList.toggle('active', trashHidden);
@@ -11584,7 +11583,7 @@ document.getElementById('toggleTrashBtn').addEventListener('click', () => {
   saveSettingsToServer();
 });
 
-document.getElementById('toggleStatsBtn').addEventListener('click', () => {
+document.getElementById('toggleStatsBtn')?.addEventListener('click', () => {
   charStatsHidden = !charStatsHidden;
   document.body.classList.toggle('stats-hidden', charStatsHidden);
   document.getElementById('toggleStatsBtn').classList.toggle('active', charStatsHidden);
@@ -11592,7 +11591,7 @@ document.getElementById('toggleStatsBtn').addEventListener('click', () => {
   saveSettingsToServer();
 });
 
-document.getElementById('toggleBreatheBtn').addEventListener('click', () => {
+document.getElementById('toggleBreatheBtn')?.addEventListener('click', () => {
   breatheDisabled = !breatheDisabled;
   document.body.classList.toggle('no-breathe', breatheDisabled);
   document.getElementById('toggleBreatheBtn').classList.toggle('active', breatheDisabled);
@@ -11600,7 +11599,7 @@ document.getElementById('toggleBreatheBtn').addEventListener('click', () => {
   saveSettingsToServer();
 });
 
-document.getElementById('toggleBossFloatBtn').addEventListener('click', () => {
+document.getElementById('toggleBossFloatBtn')?.addEventListener('click', () => {
   bossFloatDisabled = !bossFloatDisabled;
   document.body.classList.toggle('no-boss-float', bossFloatDisabled);
   document.getElementById('toggleBossFloatBtn').classList.toggle('active', bossFloatDisabled);
@@ -11608,7 +11607,7 @@ document.getElementById('toggleBossFloatBtn').addEventListener('click', () => {
   saveSettingsToServer();
 });
 
-document.getElementById('toggleNewsTickerBtn').addEventListener('click', () => {
+document.getElementById('toggleNewsTickerBtn')?.addEventListener('click', () => {
   newsTickerEnabled = !newsTickerEnabled;
   const ticker = document.getElementById('newsTicker');
   if (ticker) {
@@ -11628,30 +11627,30 @@ document.getElementById('toggleNewsTickerBtn').addEventListener('click', () => {
 // ニューステッカー各種スライダー
 (function() {
   function ntSave(key, val) { localStorage.setItem(key, val); saveSettingsToServer(); }
-  document.getElementById('newsTickerWidthSlider').addEventListener('input', function() {
+  document.getElementById('newsTickerWidthSlider')?.addEventListener('input', function() {
     newsTickerWidth = parseInt(this.value); ntSave('newsTickerWidth', newsTickerWidth); applyNewsTickerSettings();
   });
-  document.getElementById('newsTickerXSlider').addEventListener('input', function() {
+  document.getElementById('newsTickerXSlider')?.addEventListener('input', function() {
     newsTickerX = parseInt(this.value); ntSave('newsTickerX', newsTickerX); applyNewsTickerSettings();
   });
-  document.getElementById('newsTickerYSlider').addEventListener('input', function() {
+  document.getElementById('newsTickerYSlider')?.addEventListener('input', function() {
     newsTickerY = parseInt(this.value); ntSave('newsTickerY', newsTickerY); applyNewsTickerSettings();
   });
-  document.getElementById('newsTickerRowsSlider').addEventListener('input', function() {
+  document.getElementById('newsTickerRowsSlider')?.addEventListener('input', function() {
     newsTickerRows = parseInt(this.value); ntSave('newsTickerRows', newsTickerRows); renderNewsTicker();
   });
-  document.getElementById('newsTickerFontSlider').addEventListener('input', function() {
+  document.getElementById('newsTickerFontSlider')?.addEventListener('input', function() {
     newsTickerFontSize = parseInt(this.value); ntSave('newsTickerFontSize', newsTickerFontSize); applyNewsTickerSettings();
   });
-  document.getElementById('newsTickerBgOpacitySlider').addEventListener('input', function() {
+  document.getElementById('newsTickerBgOpacitySlider')?.addEventListener('input', function() {
     newsTickerBgOpacity = parseInt(this.value); ntSave('newsTickerBgOpacity', newsTickerBgOpacity); applyNewsTickerSettings();
   });
-  document.getElementById('newsTickerSpeedSlider').addEventListener('input', function() {
+  document.getElementById('newsTickerSpeedSlider')?.addEventListener('input', function() {
     newsTickerSpeed = parseInt(this.value); ntSave('newsTickerSpeed', newsTickerSpeed);
     applyNewsTickerSettings();
     if (newsTickerEnabled) renderNewsTicker();
   });
-  document.getElementById('newsTickerIntervalSlider').addEventListener('input', function() {
+  document.getElementById('newsTickerIntervalSlider')?.addEventListener('input', function() {
     newsTickerInterval = parseInt(this.value); ntSave('newsTickerInterval', newsTickerInterval);
     applyNewsTickerSettings();
     if (newsTickerEnabled && newsTickerMode === 'slide') renderNewsTicker();
@@ -11708,7 +11707,7 @@ document.querySelectorAll('#newsTickerTategakiBtn').forEach(btn => {
   });
 });
 
-document.getElementById('toggleCharNameBtn').addEventListener('click', () => {
+document.getElementById('toggleCharNameBtn')?.addEventListener('click', () => {
   charNameHidden = !charNameHidden;
   document.body.classList.toggle('char-name-hidden', charNameHidden);
   document.getElementById('toggleCharNameBtn').classList.toggle('active', charNameHidden);
@@ -11717,12 +11716,12 @@ document.getElementById('toggleCharNameBtn').addEventListener('click', () => {
 });
 
 // 保存された表示状態を復元
-if (bombHidden)       { document.getElementById('bombBtn').style.display  = 'none'; document.getElementById('toggleBombBtn').classList.add('active'); }
-if (trashHidden)      { document.getElementById('trashCan').style.display = 'none'; document.getElementById('toggleTrashBtn').classList.add('active'); }
-if (charStatsHidden)  { document.body.classList.add('stats-hidden'); document.getElementById('toggleStatsBtn').classList.add('active'); }
-if (breatheDisabled)   { document.body.classList.add('no-breathe');    document.getElementById('toggleBreatheBtn').classList.add('active'); }
-if (bossFloatDisabled) { document.body.classList.add('no-boss-float'); document.getElementById('toggleBossFloatBtn').classList.add('active'); }
-if (charNameHidden)    { document.body.classList.add('char-name-hidden'); document.getElementById('toggleCharNameBtn').classList.add('active'); }
+if (bombHidden)       { document.getElementById('bombBtn').style.display  = 'none'; document.getElementById('toggleBombBtn')?.classList.add('active'); }
+if (trashHidden)      { document.getElementById('trashCan').style.display = 'none'; document.getElementById('toggleTrashBtn')?.classList.add('active'); }
+if (charStatsHidden)  { document.body.classList.add('stats-hidden'); document.getElementById('toggleStatsBtn')?.classList.add('active'); }
+if (breatheDisabled)   { document.body.classList.add('no-breathe');    document.getElementById('toggleBreatheBtn')?.classList.add('active'); }
+if (bossFloatDisabled) { document.body.classList.add('no-boss-float'); document.getElementById('toggleBossFloatBtn')?.classList.add('active'); }
+if (charNameHidden)    { document.body.classList.add('char-name-hidden'); document.getElementById('toggleCharNameBtn')?.classList.add('active'); }
 applyNewsTickerSettings();
 applyPanelSettings();
 (function() {
@@ -11731,11 +11730,11 @@ applyPanelSettings();
 })();
 if (newsTickerEnabled) {
   document.getElementById('newsTicker').classList.remove('hidden');
-  document.getElementById('toggleNewsTickerBtn').classList.add('active');
+  document.getElementById('toggleNewsTickerBtn')?.classList.add('active');
   fetchNewsAndRender();
 }
 
-document.getElementById('slotSoundBtn').addEventListener('click', () => {
+document.getElementById('slotSoundBtn')?.addEventListener('click', () => {
   slotSoundEnabled = !slotSoundEnabled;
   document.getElementById('slotSoundBtn').classList.toggle('active', !slotSoundEnabled);
   localStorage.setItem('slotSoundEnabled', slotSoundEnabled ? '1' : '0');
@@ -11744,11 +11743,11 @@ document.getElementById('slotSoundBtn').addEventListener('click', () => {
   const saved = localStorage.getItem('slotSoundEnabled');
   if (saved === '0') {
     slotSoundEnabled = false;
-    document.getElementById('slotSoundBtn').classList.add('active');
+    document.getElementById('slotSoundBtn')?.classList.add('active');
   }
 })();
 
-document.getElementById('slotAllStartBtn').addEventListener('click', () => {
+document.getElementById('slotAllStartBtn')?.addEventListener('click', () => {
   Object.values(users).filter(u => u.el && !u.slotAutoMode && !u.slotSpinning).forEach(u => {
     if ((u.mp ?? 0) < 1) return;
     u.slotAutoMode = true;
@@ -11758,7 +11757,7 @@ document.getElementById('slotAllStartBtn').addEventListener('click', () => {
   });
 });
 
-document.getElementById('slotAllStopBtn').addEventListener('click', () => {
+document.getElementById('slotAllStopBtn')?.addEventListener('click', () => {
   Object.values(users).filter(u => u.el).forEach(u => { u.slotAutoMode = false; });
 });
 
@@ -11836,21 +11835,22 @@ _ttsListeners.forEach(([id, ev, fn]) => document.getElementById(id)?.addEventLis
   charExcludeIds   = new Set((localStorage.getItem('charExcludeIds') || '').split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0));
 
   const sdPopWidth = parseInt(load('sdPopWidth', 480));
-  document.getElementById('sdWidthInput').value           = sdWidth;
-  document.getElementById('sdHeightInput').value          = sdHeight;
-  document.getElementById('sdStepsSlider').value          = sdSteps;
-  document.getElementById('sdStepsVal').textContent       = sdSteps;
-  document.getElementById('sdPopWidthSlider').value       = sdPopWidth;
-  document.getElementById('sdPopWidthVal').textContent    = sdPopWidth + 'px';
-  document.getElementById('sdPositiveSuffixInput').value  = sdPositiveSuffix;
-  document.getElementById('sdNegativeInput').value        = sdNegative;
-  document.getElementById('sdDisplayTimeSlider').value    = sdDisplayTime;
-  document.getElementById('sdDisplayTimeVal').textContent = sdDisplayTime + '秒';
-  document.getElementById('sdMosaicKeywordsInput').value  = sdMosaicKeywords;
-  document.getElementById('sdMosaicBlockSlider').value    = sdMosaicBlock;
-  document.getElementById('sdMosaicBlockVal').textContent = sdMosaicBlock + 'px';
-  const _cfgEl = document.getElementById('sdCfgScaleInput'); if (_cfgEl) _cfgEl.value = sdCfgScale;
-  const _smpEl = document.getElementById('sdSamplerInput');  if (_smpEl) _smpEl.value = sdSampler;
+  const _sdSet = (id, prop, val) => { const e = document.getElementById(id); if (e) e[prop] = val; };
+  _sdSet('sdWidthInput',           'value',       sdWidth);
+  _sdSet('sdHeightInput',          'value',       sdHeight);
+  _sdSet('sdStepsSlider',          'value',       sdSteps);
+  _sdSet('sdStepsVal',             'textContent', sdSteps);
+  _sdSet('sdPopWidthSlider',       'value',       sdPopWidth);
+  _sdSet('sdPopWidthVal',          'textContent', sdPopWidth + 'px');
+  _sdSet('sdPositiveSuffixInput',  'value',       sdPositiveSuffix);
+  _sdSet('sdNegativeInput',        'value',       sdNegative);
+  _sdSet('sdDisplayTimeSlider',    'value',       sdDisplayTime);
+  _sdSet('sdDisplayTimeVal',       'textContent', sdDisplayTime + '秒');
+  _sdSet('sdMosaicKeywordsInput',  'value',       sdMosaicKeywords);
+  _sdSet('sdMosaicBlockSlider',    'value',       sdMosaicBlock);
+  _sdSet('sdMosaicBlockVal',       'textContent', sdMosaicBlock + 'px');
+  _sdSet('sdCfgScaleInput',        'value',       sdCfgScale);
+  _sdSet('sdSamplerInput',         'value',       sdSampler);
 })();
 
 // SD設定: DOM が信頼できる値の源。変更のたびに localStorage＆サーバーへ保存。
@@ -11879,7 +11879,7 @@ document.getElementById('sdMosaicBlockSlider')?.addEventListener('input', e => {
 document.getElementById('sdCfgScaleInput')?.addEventListener('change', e => _sdSave('sdCfgScale', e.target.value));
 document.getElementById('sdSamplerInput')?.addEventListener('change',  e => _sdSave('sdSampler', e.target.value));
 
-document.getElementById('brAutoBtn').addEventListener('click', () => {
+document.getElementById('brAutoBtn')?.addEventListener('click', () => {
   brAutoEnabled = !brAutoEnabled;
   document.getElementById('brAutoBtn').classList.toggle('active', !brAutoEnabled);
 });
@@ -13683,7 +13683,7 @@ setInterval(() => {
 
 (function restorePanelVisibility() {
   // brTimerBtn の active 状態をセット（brTimerVisible は localStorage から初期化済み）
-  document.getElementById('brTimerBtn').classList.toggle('active', brTimerVisible);
+  document.getElementById('brTimerBtn')?.classList.toggle('active', brTimerVisible);
   if (brTimerVisible) renderBRTimerPanel();
 
   // ランキングパネル

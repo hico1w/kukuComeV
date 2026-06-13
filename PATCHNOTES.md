@@ -2,6 +2,19 @@
 
 ---
 
+## v2.646.0 — 2026-06-13
+
+### app.js：管理モーダル削除後のnull参照クラッシュを修正
+
+- **`public/app.js`**: `bgColorInput` / `bgImageBtn` / `bgImageInput` / `bgClearBtn` の null 参照クラッシュを修正（`initBg` IIFE が起動時クラッシュする問題）
+- **`public/app.js`**: 管理モーダル内にあった全ボタン・スライダー要素（`clearStage`, `toggleLog`, `copyObsUrl`, `gatherBtn` 等 40件以上）への `addEventListener` 呼び出しに `?.` オプショナルチェーンを追加
+- **`public/app.js`**: `openImgModal` の `addEventListener` を `?.` 対応に修正
+- **`public/app.js`**: `initSlotSound` / `restorePanelVisibility` IIFE 内の `slotSoundBtn` / `brTimerBtn` への直接 `classList` アクセスを `?.` 対応に修正
+- **`public/app.js`**: 起動時に実行される toggle ボタン状態復元コード（`toggleBombBtn` / `toggleTrashBtn` / `toggleStatsBtn` / `toggleBreatheBtn` / `toggleBossFloatBtn` / `toggleCharNameBtn` / `toggleNewsTickerBtn`）を `?.` 対応に修正
+- **`public/app.js`**: SD設定 IIFE 内の `sdWidthInput` 等 13要素への直接プロパティ代入を null ガード（`_sdSet` ヘルパー）に変更
+
+---
+
 ## v2.645.0 — 2026-06-13
 
 ### メインページから管理パネルボタン・ヘルプセクションを削除
