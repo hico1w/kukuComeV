@@ -7333,6 +7333,36 @@ function _agruBattleEntrance(onDone) {
   }, 3800);
 }
 
+function _agruRestoreModal() {
+  const modal = document.getElementById('agruModal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  modal.style.zIndex = agruModalZ || '';
+  // キャラ画像をデフォルトに戻す
+  const img = document.getElementById('agruCharImg');
+  if (img && agruDefaultImage) {
+    img.src = `/ageru/${encodeURIComponent(agruDefaultImage)}`;
+    img.addEventListener('load', updateAgruPurupuru, { once: true });
+  }
+  // サイズ・位置・背景を設定から復元
+  const cm = modal.querySelector('.agru-modal');
+  if (cm) {
+    if (agruModalWidth)  cm.style.width  = agruModalWidth  + 'px';
+    if (agruModalHeight) cm.style.height = agruModalHeight + 'px';
+    if (agruModalBgOpacity != null) cm.style.background = `rgba(255,248,251,${agruModalBgOpacity / 100})`;
+    const cx = localStorage.getItem('agruModalX');
+    const cy = localStorage.getItem('agruModalY');
+    if (cx && cy) {
+      const lx = parseFloat(cx), ly = parseFloat(cy);
+      if (lx >= 0 && ly >= 0 && lx < window.innerWidth - 60 && ly < window.innerHeight - 40) {
+        cm.style.left = cx; cm.style.top = cy; cm.style.transform = 'none';
+      } else {
+        localStorage.removeItem('agruModalX'); localStorage.removeItem('agruModalY');
+      }
+    }
+  }
+}
+
 function _agruBattleWipe() {
   if (!agruBattleActive) return;
   // タイマー・カウンターを即時停止
@@ -7532,16 +7562,8 @@ function endAgruBattle(result) {
     // 全滅 — アゲルちゃんの完全勝利
     _agruAddSystemMsg('☠️ 全滅…アゲルちゃんの完全勝利！全員のMPを奪われた…');
     Object.values(users).forEach(u => { u.mp = 0; updateStatsDisplay(u); });
-    if (agruActive && agruIdle) {
-      const _modal = document.getElementById('agruModal');
-      if (_modal) _modal.classList.remove('hidden');
-    } else if (!agruActive) {
-      agruActive = true;
-      agruIdle   = true;
-      const _modal = document.getElementById('agruModal');
-      if (_modal) _modal.classList.remove('hidden');
-      _agruAddSystemMsg('会話モードを再開しました。');
-    }
+    if (!agruActive) { agruActive = true; agruIdle = true; }
+    _agruRestoreModal();
   } else if (result === 'force') {
     // 強制終了 — MP変化なし・演出なし・会話モードそのまま維持
     _agruAddSystemMsg('⚠️ バトルを強制終了しました。');
@@ -7550,19 +7572,8 @@ function endAgruBattle(result) {
     _agruAddSystemMsg('😈 アゲルちゃんの勝利！全員のMPを奪われた…');
     _agruBattleGetSpeech('battleLose');
     Object.values(users).forEach(u => { u.mp = 0; updateStatsDisplay(u); });
-
-    // agruActive が立っていれば会話モーダルを再表示（何事もなかったように再開）
-    if (agruActive && agruIdle) {
-      const _modal = document.getElementById('agruModal');
-      if (_modal) _modal.classList.remove('hidden');
-    } else if (!agruActive) {
-      // バトル前に会話が起動していなかった場合は最低限の状態で再開
-      agruActive = true;
-      agruIdle   = true;
-      const _modal = document.getElementById('agruModal');
-      if (_modal) _modal.classList.remove('hidden');
-      _agruAddSystemMsg('会話モードを再開しました。');
-    }
+    if (!agruActive) { agruActive = true; agruIdle = true; }
+    _agruRestoreModal();
   }
 }
 

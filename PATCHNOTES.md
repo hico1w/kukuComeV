@@ -2,6 +2,13 @@
 
 ---
 
+## v2.671.0 — 2026-06-14
+
+### fix: アゲル勝利・全滅後に会話モーダルの画像・サイズ・位置が崩れる問題を修正
+
+- **`public/app.js`** `_agruRestoreModal()` を新規追加。`agruDefaultImage` でキャラ画像を復元し、`agruModalWidth` / `agruModalHeight` / `agruModalBgOpacity` / localStorage 位置情報でモーダルの見た目を完全に再適用する
+- **`public/app.js`** `endAgruBattle` の `'ageru'`（タイムアップ）・`'wipe'`（全滅）両ブランチで `classList.remove('hidden')` 単体呼び出しを `_agruRestoreModal()` に統一。画像非表示・サイズ崩れ・位置ずれをまとめて解消
+
 ## v2.670.0 — 2026-06-14
 
 ### feat: ボスアゲル全滅エンディング実装
