@@ -7682,7 +7682,7 @@ function _agruBattleKillUser(user) {
   _agruAddSystemMsg(`💀 ${user.name || '名無し'} が討伐された！セーブデータ消去…`);
   if (user.koTimer) { clearTimeout(user.koTimer); user.koTimer = null; }
 
-  // キャラ削除エフェクト
+  // キャラ削除エフェクト（el の位置を使うので null にする前に実行）
   const delEff = agruBattleConfig?.deleteEffect;
   if (delEff?.path && user.el) {
     const r = user.el.getBoundingClientRect();
@@ -7694,6 +7694,11 @@ function _agruBattleKillUser(user) {
     _agruAnimateSprite(canvas, delEff, () => canvas.remove());
   }
 
+  // el を即座に null にして ensureCharOnStage が新キャラを生成できるようにする
+  // （1500ms の間 el が残ると同じ PID のコメントが来ても新キャラが作れない）
+  const _killedEl = user.el;
+  user.el = null;
+
   const ipid = user.ipid;
   setTimeout(() => {
     if (user.bubbleTimer) clearTimeout(user.bubbleTimer);
@@ -7701,7 +7706,7 @@ function _agruBattleKillUser(user) {
     if (user.moveTimer)   clearTimeout(user.moveTimer);
     if (user.walkTimer)   clearTimeout(user.walkTimer);
     if (user.koTimer)     { clearTimeout(user.koTimer); user.koTimer = null; }
-    user.el?.remove();
+    _killedEl?.remove();
     delete users[ipid];
     const _sk = user.saveKey || ipid;
     delete _charSaveData[_sk];
