@@ -2,6 +2,19 @@
 
 ---
 
+## v2.665.0 — 2026-06-14
+
+### fix: アゲル系キャラが透明ゴーストで残留する問題を修正
+
+- **`public/app.js`** `endAgruBattle('players')` のアゲル系キャラ消滅処理: `u.el` を即 `null` にして `_killedEl` にキャプチャ。これまでは1秒後の削除タイマーまで `u.el` が残り、同じキャラが透明で残留していた
+
+### fix: autoReplyWords/Messages が再起動後に消える問題を修正
+
+- **`public/app.js`** `SETTINGS_KEYS` に `autoReplyWords`・`autoReplyMessages` を追加。これまで localStorage 止まりで `settings.json` に保存されなかった
+- `autoReplyConfig` 受信時に `saveSettingsToServer()` を呼び出し、即座にディスクへ永続化するよう変更
+
+---
+
 ## v2.663.0 — 2026-06-14
 
 ### fix: ボスアゲル削除キャラが透明ゴーストで残り新キャラが生成されない問題を修正

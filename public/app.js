@@ -380,6 +380,7 @@ const SETTINGS_KEYS = [
   'wordlePanelWidth','wordlePanelBgOpacity','rankingPanelBgOpacity','quizPanelBgOpacity',
   'agruImgCmdEnabled','agruUnloadEnabled',
   'afkOpacity','afkGrayscale','afkBrightness',
+  'autoReplyWords','autoReplyMessages',
 ];
 let _settingsSaveTimer = null;
 function saveSettingsToServer() {
@@ -7473,9 +7474,11 @@ function endAgruBattle(result) {
       Object.values(users).forEach(u => {
         const img = u.charImage || charImages[u.charDef?.id] || '';
         if (agruTypeSet.has(img) && u.el) {
-          u.el.style.transition = 'opacity 1s ease';
-          u.el.style.opacity = '0';
-          setTimeout(() => u.el?.remove(), 1000);
+          const _killedEl = u.el;
+          u.el = null;
+          _killedEl.style.transition = 'opacity 1s ease';
+          _killedEl.style.opacity = '0';
+          setTimeout(() => _killedEl.remove(), 1000);
         }
       });
     }
@@ -13306,6 +13309,7 @@ function handleAdminMessage(d, replyFn) {
   } else if (d.type === 'autoReplyConfig') {
     if (Array.isArray(d.words))    { autoReplyWords    = d.words;    localStorage.setItem('autoReplyWords',    JSON.stringify(d.words));    }
     if (Array.isArray(d.messages)) { autoReplyMessages = d.messages; localStorage.setItem('autoReplyMessages', JSON.stringify(d.messages)); }
+    saveSettingsToServer();
   } else if (d.type === 'volumeText') {
     const elMap = { seVolume:'seVolumeSlider', voiceVolume:'voiceVolumeSlider' };
     const elId = elMap[d.key];
