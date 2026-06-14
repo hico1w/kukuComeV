@@ -686,7 +686,14 @@ function ensureCharOnStage(user) {
   }
   if (!user.charDef) {
     const used = getUsedCharIds(user);
-    const allIds = Object.keys(charImages).map(Number).filter(id => id >= 1 && id <= 500 && !charExcludeIds.has(id));
+    const _agruExcludeSet = _agruPlayersWon && agruBattleConfig?.agruTypeImages?.length
+      ? new Set(agruBattleConfig.agruTypeImages.map(s => s.trim()).filter(Boolean))
+      : null;
+    const allIds = Object.keys(charImages).map(Number).filter(id => {
+      if (id < 1 || id > 500 || charExcludeIds.has(id)) return false;
+      if (_agruExcludeSet && _agruExcludeSet.has(charImages[id])) return false;
+      return true;
+    });
     const freeIds = allIds.filter(id => !used.has(id));
     const pool = freeIds.length > 0 ? freeIds : allIds; // 全枠埋まっていたら重複許容
     user.charDef = pool.length > 0
@@ -6589,7 +6596,10 @@ function _agruUpdateBossImgByHp() {
   }
   if (!imgFile) return;
   const battleImg = document.getElementById('agruBattleCharImg');
-  if (battleImg) battleImg.src = `/boss/${encodeURIComponent(imgFile)}`;
+  if (battleImg) {
+    battleImg.src = `/boss/${encodeURIComponent(imgFile)}`;
+    updateBossAgruPurupuru();
+  }
 }
 
 // ── ボスアゲルバトル エフェクトシステム ─────────────────────────────
@@ -7324,6 +7334,9 @@ function _agruBattleEntrance(onDone) {
 function endAgruBattle(result) {
   if (!agruBattleActive) return;
 
+  // 残留している勝利オーバーレイを必ず除去
+  document.getElementById('_agruWinOverlay')?.remove();
+
   // 登場演出を即座に中断・クリーンアップ（効果音も停止）
   _bossEntranceAborted = true;
   _stopEntranceSounds();
@@ -7351,6 +7364,7 @@ function endAgruBattle(result) {
   if (_agruDefenseTimer) { clearTimeout(_agruDefenseTimer); _agruDefenseTimer = null; }
   _agruDefenseActive    = false;
   _agruDefenseDmgAccum  = 0;
+  _agruDefenseShieldStop();
   document.getElementById('agruBattleCharImg')?.classList.remove('agru-defense');
 
   // 歌詞フロートを停止
@@ -7362,12 +7376,13 @@ function endAgruBattle(result) {
     const sc = _agruShieldChar;
     sc.el?.classList.remove('agru-shield-char');
     if (sc._shieldSavedStyle) {
-      if (sc.el) { sc.el.style.width = sc._shieldSavedStyle.width; sc.el.style.height = sc._shieldSavedStyle.height; }
+      if (sc.el) { sc.el.style.transform = sc._shieldSavedStyle.transform || ''; }
       delete sc._shieldSavedStyle;
     }
     _agruShieldChar = null;
   }
   _agruShieldHp = 0;
+  document.getElementById('_agruShieldHpDisplay')?.remove();
 
   // エフェクト・BGM 停止
   window._bossEfx?.stop();
@@ -7431,11 +7446,12 @@ function endAgruBattle(result) {
   updateAgruBattleHpDisplay();
   if (result === 'players') {
     // リスナー勝利
+    _agruPlayersWon = true; // アゲル系画像をキャラプールから除外
     _agruAddSystemMsg('🏆 アゲルちゃん討伐！リスナーの勝利！');
     _agruBattleGetSpeech('battleWin');
     Object.values(users).forEach(u => { if (u.el && !u.ko) { u.mp = (u.mp || 0) + 50; updateStatsDisplay(u); } });
 
-    // 勝利画像を全画面表示
+    // 勝利画像を全画面表示（クリックまたは15秒で自動消去）
     const winImg = agruBattleConfig?.winImage;
     if (winImg) {
       const overlay = document.createElement('div');
@@ -7445,7 +7461,9 @@ function endAgruBattle(result) {
       img.src = '/boss/' + encodeURIComponent(winImg);
       img.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain';
       overlay.appendChild(img);
-      overlay.addEventListener('click', () => overlay.remove());
+      const _removeOverlay = () => { clearTimeout(_winOverlayTimer); overlay.remove(); };
+      overlay.addEventListener('click', _removeOverlay);
+      const _winOverlayTimer = setTimeout(_removeOverlay, 15000);
       document.body.appendChild(overlay);
     }
 
@@ -7469,6 +7487,9 @@ function endAgruBattle(result) {
       closeAgruModal?.();
       _agruAddSystemMsg('会話モードを終了しました。');
     }
+  } else if (result === 'force') {
+    // 強制終了 — MP変化なし・演出なし・会話モードそのまま維持
+    _agruAddSystemMsg('⚠️ バトルを強制終了しました。');
   } else {
     // アゲルちゃん勝利 — 会話モーダルを再起動して何事もなかったように再開
     _agruAddSystemMsg('😈 アゲルちゃんの勝利！全員のMPを奪われた…');
@@ -7504,6 +7525,8 @@ function _agruBattleDealDamage(dmg, user) {
     }
     if (eff.curseUntil > now) dmg = Math.floor(dmg / 2); // 呪い中は半減
   }
+  // 盾キャラ生存中 + 防御状態: ボスHPは完全無敵
+  if (_agruShieldChar && !_agruBattleKilledIds.has(_agruShieldChar.ipid) && _agruDefenseActive) return;
   // 超回復防御状態: 1ダメージに制限
   if (_agruDefenseActive) {
     agruBattleHP = Math.max(0, agruBattleHP - 1);
@@ -7541,8 +7564,12 @@ function attackAgruBoss(user, msgLen) {
   user.mp = (user.mp ?? 0) + 1 + mpExtra;
   updateStatsDisplay(user);
 
-  // バトルログに記録
-  _agruBattleLog(`⚔️ ${user.name || '名無し'} → ${isCrit ? '💥CRIT ' : ''}${totalDmg} dmg`);
+  // バトルログに記録（防御中は実際に入る1dmg×ヒット数で表示）
+  if (_agruDefenseActive) {
+    _agruBattleLog(`⚔️ ${user.name || '名無し'} → 🛡️ ${hits} dmg`);
+  } else {
+    _agruBattleLog(`⚔️ ${user.name || '名無し'} → ${isCrit ? '💥CRIT ' : ''}${totalDmg} dmg`);
+  }
 
   const baseDmg = Math.floor(totalDmg / hits);
   for (let i = 0; i < hits; i++) {
@@ -7562,9 +7589,10 @@ function attackAgruBoss(user, msgLen) {
         const sc = _agruShieldChar;
         const scCenter = _agruCharCenter(sc);
         showDamageNumber?.(scCenter?.cx ?? stage.clientWidth / 2, (scCenter?.cy ?? stage.clientHeight / 2) - 20, d, isCrit);
+        _agruUpdateShieldHpDisplay();
         if (_agruShieldHp <= 0) {
           _agruAddSystemMsg(`💥 盾が砕けた！${sc.name || '名無し'} のセーブデータ消去…`);
-          _agruReleaseShield();
+          _agruReleaseShield(true); // 死亡時は中央に留まる
           _agruBattleKillUser(sc);
         }
         return;
@@ -7694,28 +7722,27 @@ function _agruCharCenter(user) {
 function _agruActivateShield(user) {
   if (!user?.el) return;
   _agruShieldChar = user;
-  _agruShieldHp   = 99999;
+  _agruShieldHp   = agruBattleConfig?.shieldMaxHp ?? 99999;
 
-  // 元のスタイルを保存
+  // 元のスタイルを保存（width/heightは不使用、transformで拡大）
   user._shieldSavedStyle = {
-    left:      user.el.style.left,
-    top:       user.el.style.top,
-    bottom:    user.el.style.bottom,
-    transform: user.el.style.transform,
-    zIndex:    user.el.style.zIndex,
+    left:       user.el.style.left,
+    top:        user.el.style.top,
+    bottom:     user.el.style.bottom,
+    transform:  user.el.style.transform,
+    zIndex:     user.el.style.zIndex,
     transition: user.el.style.transition,
-    width:     user.el.style.width,
-    height:    user.el.style.height,
   };
 
-  // 画面中央へ2倍サイズで引っ張りモーション
+  // 画面中央へ3倍サイズで引っ張りモーション
   const stageW = stage.clientWidth, stageH = stage.clientHeight;
   const sr = stage.getBoundingClientRect();
   const er = user.el.getBoundingClientRect();
   const curLeft = er.left - sr.left, curTop = er.top - sr.top;
   const cw = er.width || user.el.offsetWidth, ch = er.height || user.el.offsetHeight;
-  const newW = Math.round(cw * 2), newH = Math.round(ch * 2);
-  const tgtLeft = Math.round(stageW / 2 - newW / 2), tgtTop = Math.round(stageH / 2 - newH / 2);
+  // transform:scale(3) は要素の DOM サイズを変えずに視覚的に3倍に拡大するため、
+  // 中心を stage 中央に合わせるには left=stageW/2-cw/2, top=stageH/2-ch/2 とする
+  const tgtLeft = Math.round(stageW / 2 - cw / 2), tgtTop = Math.round(stageH / 2 - ch / 2);
   // 現在位置をピクセル固定（bottomをautoに）
   user.el.style.transition = 'none';
   user.el.style.bottom = 'auto';
@@ -7727,21 +7754,22 @@ function _agruActivateShield(user) {
   const pullTop  = curTop  - (tgtTop  - curTop)  * 0.07;
   user.el.style.transition = 'left 0.15s ease-out, top 0.15s ease-out';
   user.el.style.left = pullLeft + 'px'; user.el.style.top = pullTop + 'px';
-  // Phase 2: バネで中央にスナップ＋拡大
+  // Phase 2: バネで中央にスナップ＋ scale(3) で3倍拡大
   setTimeout(() => {
     if (!user.el || _agruShieldChar !== user) return;
     user.el.style.transition = [
-      'left   0.70s cubic-bezier(0.25, 0, 0.1, 1.45)',
-      'top    0.70s cubic-bezier(0.25, 0, 0.1, 1.45)',
-      'width  0.65s cubic-bezier(0.25, 0, 0.1, 1.25)',
-      'height 0.65s cubic-bezier(0.25, 0, 0.1, 1.25)',
+      'left      0.70s cubic-bezier(0.25, 0, 0.1, 1.45)',
+      'top       0.70s cubic-bezier(0.25, 0, 0.1, 1.45)',
+      'transform 0.65s cubic-bezier(0.25, 0, 0.1, 1.25)',
     ].join(', ');
     user.el.style.left = tgtLeft + 'px'; user.el.style.top = tgtTop + 'px';
-    user.el.style.width = newW + 'px'; user.el.style.height = newH + 'px';
+    user.el.style.transform = 'scale(2)';
     user.el.classList.add('agru-shield-char');
   }, 160);
 
-  _agruAddSystemMsg(`🛡️ ${user.name || '名無し'} が盾になった！（仮想HP: 99999）攻撃は盾キャラに当たる！`);
+  _agruAddSystemMsg(`🛡️ ${user.name || '名無し'} が盾になった！（仮想HP: ${(agruBattleConfig?.shieldMaxHp ?? 99999).toLocaleString()}）攻撃は盾キャラに当たる！`);
+  // 盾HP表示：アニメーション完了後に表示
+  setTimeout(() => { if (_agruShieldChar === user) _agruUpdateShieldHpDisplay(); }, 900);
 
   if (_agruShieldTimer) clearTimeout(_agruShieldTimer);
   _agruShieldTimer = setTimeout(() => {
@@ -7749,23 +7777,89 @@ function _agruActivateShield(user) {
   }, 30000);
 }
 
-function _agruReleaseShield() {
+function _agruUpdateShieldHpDisplay() {
+  let el = document.getElementById('_agruShieldHpDisplay');
+  if (!_agruShieldChar) { el?.remove(); return; }
+
+  const MAX_HP = agruBattleConfig?.shieldMaxHp ?? 99999;
+  const pct = Math.max(0, _agruShieldHp / MAX_HP);
+  // 六角形の縦幅（尖頭型） y:6〜122 = 116px
+  const HEX_TOP = 6, HEX_BOT = 122, HEX_H = HEX_BOT - HEX_TOP; // 116
+  const fillH = Math.round(HEX_H * pct);
+  const fillY = HEX_BOT - fillH;
+
+  if (!el) {
+    el = document.createElement('div');
+    el.id = '_agruShieldHpDisplay';
+    el.style.cssText = 'position:absolute;z-index:76;pointer-events:none;';
+    el.innerHTML = `
+      <svg width="120" height="128" viewBox="0 0 120 128" opacity="0.6"
+        style="filter:drop-shadow(0 0 6px #3b82f6)">
+        <defs>
+          <clipPath id="shieldHexClip">
+            <polygon points="60,6 110,35 110,93 60,122 10,93 10,35"/>
+          </clipPath>
+        </defs>
+        <polygon points="60,6 110,35 110,93 60,122 10,93 10,35"
+          fill="rgba(10,20,50,0.7)"/>
+        <rect id="_shieldHpFillRect" x="0" y="${fillY}" width="120" height="${fillH}"
+          fill="#3b82f6" opacity="0.45" clip-path="url(#shieldHexClip)"/>
+        <polygon points="60,6 110,35 110,93 60,122 10,93 10,35"
+          fill="none" stroke="#60a5fa" stroke-width="2"/>
+        <text id="_shieldHpText" x="60" y="65" text-anchor="middle"
+          dominant-baseline="middle" fill="white" font-size="15" font-weight="bold"
+          font-family="monospace">${_agruShieldHp.toLocaleString()}</text>
+      </svg>`;
+    stage.appendChild(el);
+    // 盾キャラの右横に配置（scale(2): 視覚右端 = stageW/2 + cw/2*2 = stageW/2 + cw）
+    const sc = _agruShieldChar;
+    const sw = stage.clientWidth, sh = stage.clientHeight;
+    if (sc?.el) {
+      const cw = sc.el.offsetWidth, ch = sc.el.offsetHeight;
+      const visualRightX = sw / 2 + cw;      // scale(2) の視覚右端
+      const visualCenterY = sh / 2;
+      el.style.left = (visualRightX + 12) + 'px';
+      el.style.top  = (visualCenterY - 64) + 'px'; // 六角形高さ128の中央合わせ
+    } else {
+      el.style.left = (sw / 2 + 60) + 'px';
+      el.style.top  = (sh / 2 - 64) + 'px';
+    }
+    return;
+  }
+
+  // 更新のみ
+  const fillRect = document.getElementById('_shieldHpFillRect');
+  if (fillRect) {
+    fillRect.setAttribute('y', String(fillY));
+    fillRect.setAttribute('height', String(fillH));
+  }
+  const txt = document.getElementById('_shieldHpText');
+  if (txt) txt.textContent = _agruShieldHp.toLocaleString();
+}
+
+function _agruReleaseShield(skipPositionRestore = false) {
   const user = _agruShieldChar;
   if (!user) return;
   _agruShieldChar = null;
   _agruShieldHp   = 0;
   if (_agruShieldTimer) { clearTimeout(_agruShieldTimer); _agruShieldTimer = null; }
+  document.getElementById('_agruShieldHpDisplay')?.remove();
+
+  if (skipPositionRestore) {
+    // 盾破壊による死亡: 位置はそのまま中央に残す。スタイルだけ後始末
+    if (user.el) user.el.classList.remove('agru-shield-char');
+    delete user._shieldSavedStyle;
+    return;
+  }
 
   if (user.el && user._shieldSavedStyle) {
     const s = user._shieldSavedStyle;
-    user.el.style.transition = 'left 0.4s ease, top 0.4s ease, width 0.4s ease, height 0.4s ease';
+    user.el.style.transition = 'left 0.4s ease, top 0.4s ease, transform 0.4s ease';
     user.el.style.left      = s.left;
     user.el.style.top       = s.top;
     user.el.style.bottom    = s.bottom;
     user.el.style.transform = s.transform;
     user.el.style.zIndex    = s.zIndex;
-    user.el.style.width     = s.width;
-    user.el.style.height    = s.height;
     user.el.classList.remove('agru-shield-char');
     setTimeout(() => { if (user.el) user.el.style.transition = s.transition; }, 500);
     delete user._shieldSavedStyle;
@@ -7840,21 +7934,208 @@ function _agruGlassShatterEffect() {
   })(performance.now());
 }
 
+let _agruDefenseShieldRAF = null;
+
+function _agruDefenseShieldStart() {
+  _agruDefenseShieldStop();
+  const fig = document.getElementById('agruBattleCharFigure') || document.getElementById('agruBossFigureWrap');
+  if (!fig) return;
+  const canvas = document.createElement('canvas');
+  canvas.id = '_agruDefenseShieldCanvas';
+  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:8';
+  fig.appendChild(canvas);
+
+  // ひび割れパターンを事前生成（再現性のある疑似乱数）
+  const _prng = s => { s = Math.sin(s) * 43758.5453; return s - Math.floor(s); };
+  const CRACK_COUNT = 12;
+  const cracks = Array.from({length: CRACK_COUNT}, (_, i) => {
+    const segs = [];
+    let ra = (i / CRACK_COUNT) * Math.PI * 2 + _prng(i * 7) * 0.8;
+    segs.push({rx: Math.cos(ra) * 0.92, ry: Math.sin(ra) * 0.92});
+    for (let j = 0; j < 5; j++) {
+      const prevR = Math.sqrt(segs[segs.length-1].rx**2 + segs[segs.length-1].ry**2);
+      const nr = prevR - (0.08 + _prng(i * 31 + j * 13) * 0.18);
+      if (nr < 0.05) break;
+      ra += (_prng(i * 53 + j * 97) - 0.5) * 0.9;
+      segs.push({rx: Math.cos(ra) * nr, ry: Math.sin(ra) * nr});
+    }
+    return segs;
+  });
+
+  let lastTs = null, t = 0, hitFlash = 0, prevDmgAccum = _agruDefenseDmgAccum;
+
+  const hexPath = (ctx, cx, cy, r, rot) => {
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = rot + i * Math.PI / 3;
+      i === 0 ? ctx.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r)
+              : ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+    }
+    ctx.closePath();
+  };
+
+  const loop = (ts) => {
+    if (!_agruDefenseActive) { _agruDefenseShieldStop(); return; }
+    _agruDefenseShieldRAF = requestAnimationFrame(loop);
+    if (lastTs === null) lastTs = ts;
+    const dt = Math.min((ts - lastTs) / 1000, 0.05); lastTs = ts;
+    t += dt;
+
+    if (_agruDefenseDmgAccum !== prevDmgAccum) { hitFlash = 1; prevDmgAccum = _agruDefenseDmgAccum; }
+    hitFlash = Math.max(0, hitFlash - dt * 5);
+
+    const W = canvas.offsetWidth, H = canvas.offsetHeight;
+    if (!W || !H) return;
+    if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, W, H);
+
+    const cx = W / 2, cy = H * 0.45;
+    const r  = Math.min(W, H) * 0.56;   // ← 大きめ
+    const dmgRatio = Math.min(1, _agruDefenseDmgAccum / 100);
+    const intact = 1 - dmgRatio * 0.55;
+    const pulse = (1 + 0.05 * Math.sin(t * 3)) * intact;
+    const f = hitFlash;
+    const R = r * pulse;
+
+    if (R < 2) return;
+
+    // 背景グラデーション（濃く）
+    hexPath(ctx, cx, cy, R, Math.PI / 6);
+    const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+    bg.addColorStop(0,   `rgba(59,130,246,${(0.22 + f * 0.14) * intact})`);
+    bg.addColorStop(0.6, `rgba(37,99,235,${(0.14 + f * 0.08) * intact})`);
+    bg.addColorStop(1,   'rgba(30,64,175,0)');
+    ctx.fillStyle = bg; ctx.fill();
+
+    // 外側六角形（ダメージで分割・濃いグロー）
+    ctx.save();
+    ctx.shadowColor = `rgba(96,165,250,${(0.95 + f * 0.05) * intact})`; ctx.shadowBlur = 30 + f * 18;
+    for (let seg = 0; seg < 6; seg++) {
+      if (dmgRatio > seg / 6 + 0.05 && _prng(seg * 17 + 3) < dmgRatio * 0.9) continue;
+      const a0 = Math.PI / 6 + seg * Math.PI / 3;
+      const a1 = a0 + Math.PI / 3;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a0) * R, cy + Math.sin(a0) * R);
+      ctx.lineTo(cx + Math.cos(a1) * R, cy + Math.sin(a1) * R);
+      ctx.strokeStyle = `rgba(${f > 0.2 ? '220,240,255' : '180,215,255'},${(0.95 + f * 0.05) * intact})`;
+      ctx.lineWidth = 3.5; ctx.stroke();
+    }
+    ctx.restore();
+
+    // 内側回転六角形（ダメージで徐々に消える）
+    if (dmgRatio < 0.85) {
+      hexPath(ctx, cx, cy, R * 0.70, t * 0.35 + Math.PI / 6);
+      ctx.strokeStyle = `rgba(147,197,253,${(0.75 + f * 0.20) * intact})`; ctx.lineWidth = 2; ctx.stroke();
+    }
+    if (dmgRatio < 0.65) {
+      hexPath(ctx, cx, cy, R * 0.45, -t * 0.55 + Math.PI / 6);
+      ctx.strokeStyle = `rgba(147,197,253,${(0.70 + f * 0.20) * intact})`; ctx.lineWidth = 2; ctx.stroke();
+    }
+    if (dmgRatio < 0.45) {
+      hexPath(ctx, cx, cy, R * 0.25, t * 1.1 + Math.PI / 6);
+      ctx.strokeStyle = `rgba(191,219,254,${(0.80 + f * 0.20) * intact})`; ctx.lineWidth = 2; ctx.stroke();
+    }
+
+    // スポーク（ダメージで1本ずつ消える）
+    ctx.save();
+    ctx.shadowColor = `rgba(191,219,254,0.8)`; ctx.shadowBlur = 12;
+    for (let i = 0; i < 6; i++) {
+      if (dmgRatio > i / 6 + 0.05 && _prng(i * 23 + 7) < dmgRatio * 0.85) continue;
+      const a = Math.PI / 6 + i * Math.PI / 3;
+      const x2 = cx + Math.cos(a) * R, y2 = cy + Math.sin(a) * R;
+      const g = ctx.createLinearGradient(cx, cy, x2, y2);
+      g.addColorStop(0, `rgba(191,219,254,${(0.80 + f * 0.2) * intact})`);
+      g.addColorStop(1, `rgba(96,165,250,${(0.25 + f * 0.1) * intact})`);
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x2, y2);
+      ctx.strokeStyle = g; ctx.lineWidth = 2; ctx.stroke();
+    }
+    ctx.restore();
+
+    // 外頂点ダイヤ（ダメージで欠ける）
+    ctx.save();
+    ctx.shadowColor = `rgba(219,234,254,1)`; ctx.shadowBlur = 18 + f * 10;
+    for (let i = 0; i < 6; i++) {
+      if (dmgRatio > i / 6 + 0.05 && _prng(i * 41 + 11) < dmgRatio * 0.9) continue;
+      const a = Math.PI / 6 + i * Math.PI / 3;
+      const vx = cx + Math.cos(a) * R, vy = cy + Math.sin(a) * R;
+      const ds = (13 + f * 6) * intact;
+      ctx.beginPath();
+      ctx.moveTo(vx, vy - ds); ctx.lineTo(vx + ds * 0.55, vy);
+      ctx.lineTo(vx, vy + ds); ctx.lineTo(vx - ds * 0.55, vy);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(219,234,254,${(1.0) * intact})`; ctx.fill();
+    }
+    ctx.restore();
+
+    // ひび割れ描画
+    const visibleCracks = Math.floor(dmgRatio * CRACK_COUNT);
+    if (visibleCracks > 0) {
+      ctx.save();
+      ctx.shadowColor = 'rgba(255,255,255,0.8)'; ctx.shadowBlur = 5;
+      for (let ci = 0; ci < visibleCracks; ci++) {
+        const segs = cracks[ci];
+        if (segs.length < 2) continue;
+        const age = Math.min(1, (dmgRatio - ci / CRACK_COUNT) * CRACK_COUNT);
+        ctx.beginPath();
+        ctx.moveTo(cx + segs[0].rx * r, cy + segs[0].ry * r);
+        for (let si = 1; si < Math.ceil(segs.length * age); si++) {
+          ctx.lineTo(cx + segs[si].rx * r, cy + segs[si].ry * r);
+        }
+        ctx.strokeStyle = `rgba(255,255,255,${0.9 * age})`;
+        ctx.lineWidth = 2 - dmgRatio * 0.8;
+        ctx.stroke();
+        ctx.strokeStyle = `rgba(100,150,255,${0.5 * age})`;
+        ctx.lineWidth = 3.5;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // 中心コアグロー
+    if (dmgRatio < 0.95) {
+      const cgr = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.35);
+      cgr.addColorStop(0,    `rgba(239,246,255,${(0.75 + f * 0.3) * intact})`);
+      cgr.addColorStop(0.45, `rgba(147,197,253,${(0.40 + f * 0.1) * intact})`);
+      cgr.addColorStop(1,    'rgba(96,165,250,0)');
+      ctx.beginPath(); ctx.arc(cx, cy, R * 0.35, 0, Math.PI * 2);
+      ctx.fillStyle = cgr; ctx.fill();
+    }
+
+    // ヒット時フラッシュ
+    if (f > 0.01) {
+      hexPath(ctx, cx, cy, R * 1.04, Math.PI / 6);
+      ctx.fillStyle = `rgba(255,255,255,${f * 0.25})`; ctx.fill();
+    }
+  };
+  _agruDefenseShieldRAF = requestAnimationFrame(loop);
+}
+
+function _agruDefenseShieldStop() {
+  if (_agruDefenseShieldRAF) { cancelAnimationFrame(_agruDefenseShieldRAF); _agruDefenseShieldRAF = null; }
+  document.getElementById('_agruDefenseShieldCanvas')?.remove();
+}
+
 function _agruActivateDefense() {
   if (_agruDefenseActive) return;
   _agruDefenseActive    = true;
   _agruDefenseDmgAccum  = 0;
   _agruAddSystemMsg('🛡️ 超回復！防御状態に入った…30秒間ほぼ無敵！攻撃をまとめると防御を崩せる！');
+  _agruDefenseShieldStart();
   const battleImg = document.getElementById('agruBattleCharImg');
   battleImg?.classList.add('agru-defense');
   // 防御中専用画像に切り替え
   const defImg = agruBattleConfig?.defenseImage;
-  if (defImg && battleImg) battleImg.src = `/boss/${encodeURIComponent(defImg)}`;
+  if (defImg && battleImg) {
+    battleImg.src = `/boss/${encodeURIComponent(defImg)}`;
+    updateBossAgruPurupuru();
+  }
   if (_agruDefenseTimer) clearTimeout(_agruDefenseTimer);
   _agruDefenseTimer = setTimeout(() => {
     if (!_agruDefenseActive) return;
     _agruDefenseActive = false;
     _agruDefenseTimer  = null;
+    _agruDefenseShieldStop();
     document.getElementById('agruBattleCharImg')?.classList.remove('agru-defense');
     // HP別画像に戻す
     _agruLastHpBucket = null;
@@ -7869,6 +8150,7 @@ function _agruActivateDefense() {
 function _agruBreakDefense() {
   if (!_agruDefenseActive) return;
   _agruDefenseActive = false;
+  _agruDefenseShieldStop();
   if (_agruDefenseTimer) { clearTimeout(_agruDefenseTimer); _agruDefenseTimer = null; }
   document.getElementById('agruBattleCharImg')?.classList.remove('agru-defense');
   // HP別画像に戻す
@@ -8385,6 +8667,7 @@ let agruBattleCounterTimer   = null;
 let agruBattleCounterInterval = 60;
 let agruBattleBerserkUntil   = 0;
 let agruBattleConfig   = {};
+let _agruPlayersWon    = false; // リスナー勝利後はアゲル系画像をキャラプールから除外
 let agruBattleStatusEffects  = new Map(); // ipid → { stoneUntil, sleepUntil, charmedUntil, curseUntil }
 let _agruBattleKilledIds     = new Set();
 let _agruShieldChar          = null; // 盾キャラ攻撃で選ばれたユーザー
@@ -13100,7 +13383,7 @@ function handleAdminMessage(d, replyFn) {
   } else if (d.type === 'agruBattleStart') {
     startAgruBattle();
   } else if (d.type === 'agruBattleEnd') {
-    endAgruBattle(d.result || 'players');
+    endAgruBattle(d.result || 'ageru');
   } else if (d.type === 'bossLayoutUpdate') {
     if (!agruBattleConfig) agruBattleConfig = {};
     if (d.bossChar)    agruBattleConfig.bossChar    = d.bossChar;

@@ -255,6 +255,16 @@
       text-align: center;
       width: 100%;
     }
+    .weight-pct {
+      font-size: 10px;
+      text-align: center;
+      color: #94a3b8;
+      min-height: 14px;
+    }
+    .weight-pct.pct-hi  { color: #4ade80; }
+    .weight-pct.pct-mid { color: #facc15; }
+    .weight-pct.pct-lo  { color: #94a3b8; }
+    .weight-pct.pct-na  { color: #475569; font-style: italic; }
 
     /* ── スプライト設定 ── */
     .sprite-grid {
@@ -1083,7 +1093,7 @@ const SKILL_DEFS = [
   { id: 'normal',       name: '通常攻撃',    defaultWeights: [60,50,40,30], desc: '生存キャラ全員に一定ダメージを与える。' },
   { id: 'focus_fire',   name: '集中砲火',    defaultWeights: [10,15,20,20], desc: 'ランダムな1体に通常の5倍ダメージを集中攻撃する。' },
   { id: 'all_attack',   name: '全体乱打',    defaultWeights: [10,12,15,15], desc: '全員に通常の2倍ダメージを与える。' },
-  { id: 'instant_kill', name: '即死撃',      defaultWeights: [0, 0, 1, 3],  desc: 'ランダムな1体を即座にKOする。セーブデータも削除される（HP25%以下で発動）。' },
+  { id: 'instant_kill', name: '即死撃',      defaultWeights: [0, 0, 1, 3],  minHpPct: 25, desc: 'ランダムな1体を即座にKOする。セーブデータも削除される（HP25%以下で発動）。' },
   { id: 'mp_absorb',    name: 'MP吸収',      defaultWeights: [8, 8, 7, 5],  desc: 'ランダムな1体のMPを全て奪い取る。' },
   { id: 'all_mp_drain', name: '全体MP吸収',  defaultWeights: [5, 6, 7, 8],  desc: '全員のMPを10ずつ奪い取る。' },
   { id: 'petrify',      name: '石化',        defaultWeights: [4, 4, 5, 5],  desc: 'ランダムな1体を60秒間石化させて攻撃不能にする。' },
@@ -1091,12 +1101,14 @@ const SKILL_DEFS = [
   { id: 'charm',        name: '魅了',        defaultWeights: [2, 2, 3, 4],  desc: 'ランダムな1体を30秒間魅了する。魅了中のキャラが攻撃するとボスのHPが回復してしまう。' },
   { id: 'curse',        name: '呪い',        defaultWeights: [3, 3, 4, 4],  desc: 'ランダムな1体を60秒間呪縛する。呪い中のキャラの攻撃ダメージが半減する。' },
   { id: 'self_heal',    name: '自己回復',    defaultWeights: [5, 6, 5, 3],  desc: 'ボス自身がHP+200回復する。' },
-  { id: 'berserk',      name: 'バーサーク',  defaultWeights: [0, 1, 3, 5],  desc: '30秒間、全てのダメージを無効化する（HP50%以下で発動）。' },
-  { id: 'shield_char',  name: '盾キャラ攻撃', defaultWeights: [0, 0, 2, 4], desc: 'ランダムな1体を盾にする。サイズ1.5倍で画面中央へ移動し仮想HP99999を得る。攻撃は盾キャラに当たり、HPが0になるとキャラ＆セーブデータ消滅。30秒経過で解放（HP25%以下で発動）。' },
-  { id: 'delete_char',  name: 'デリート攻撃', defaultWeights: [0, 0, 1, 3], desc: 'ランダムな1体を選んで浮遊させた後に削除する。キャラ＆セーブデータが永久消滅する（HP25%以下で発動）。' },
+  { id: 'berserk',      name: 'バーサーク',  defaultWeights: [0, 1, 3, 5],  minHpPct: 50, desc: '30秒間、全てのダメージを無効化する（HP50%以下で発動）。' },
+  { id: 'shield_char',  name: '盾キャラ攻撃', defaultWeights: [0, 0, 2, 4], minHpPct: 25, desc: 'ランダムな1体を盾にする。サイズ1.5倍で画面中央へ移動し仮想HP99999を得る。攻撃は盾キャラに当たり、HPが0になるとキャラ＆セーブデータ消滅。30秒経過で解放（HP25%以下で発動）。' },
+  { id: 'delete_char',  name: 'デリート攻撃', defaultWeights: [0, 0, 1, 3], minHpPct: 25, desc: 'ランダムな1体を選んで浮遊させた後に削除する。キャラ＆セーブデータが永久消滅する（HP25%以下で発動）。' },
   { id: 'super_heal',   name: '超回復',       defaultWeights: [0, 1, 3, 5], desc: '30秒間防御状態になり停止する。防御中は全攻撃が1ダメージに制限される。100ダメージ蓄積で防御崩壊（HP10%ペナルティ＋ガラス破砕エフェクト）。30秒経過で防御解除＋HP50%回復。' },
 ];
 const HP_TIER_LABELS = ['100-75%', '74-50%', '49-25%', '24-0%'];
+// ティアの下限（exclusive）— この値以下のHPでしか発動しないスキルのフィルタリングに使用
+const TIER_LOWER_BOUNDS = [75, 50, 25, 0];
 
 // ────────────────────────────────────────────────────────────────────
 // 状態
@@ -1550,7 +1562,7 @@ function buildSkillCards() {
           ${def.desc ? `<div style="font-size:11px;color:#64748b;margin-top:3px;line-height:1.5">${def.desc}</div>` : ''}
         </div>
         <label class="toggle" onclick="event.stopPropagation()" title="有効/無効" style="flex-shrink:0;margin-left:8px">
-          <input type="checkbox" id="enabled-${def.id}" checked>
+          <input type="checkbox" id="enabled-${def.id}" checked onchange="_recalcSkillProbs()">
           <span class="toggle-track"></span>
         </label>
       </div>
@@ -1563,7 +1575,8 @@ function buildSkillCards() {
             ${HP_TIER_LABELS.map((lbl, i) => `
               <div class="weight-cell">
                 <label>${lbl}</label>
-                <input type="number" class="w60" id="w${i}-${def.id}" min="0" max="999" value="0">
+                <input type="number" class="w60" id="w${i}-${def.id}" min="0" max="999" value="0" oninput="_recalcSkillProbs()">
+                <span class="weight-pct" id="pct${i}-${def.id}"></span>
               </div>
             `).join('')}
           </div>
@@ -1680,6 +1693,17 @@ function buildSkillCards() {
           </div>
         </div>
 
+        ${def.id === 'shield_char' ? `
+        <!-- 盾キャラ 仮想HP -->
+        <div>
+          <div class="skill-subsection-title">盾キャラ 仮想HP</div>
+          <div class="field-row">
+            <input type="number" class="w100" id="shieldMaxHp" min="1" max="9999999" value="99999">
+            <span class="field-hint">盾キャラが得る仮想HP（デフォルト: 99999）</span>
+          </div>
+        </div>
+        ` : ''}
+
       </div>
     `;
     list.appendChild(card);
@@ -1702,6 +1726,8 @@ function applyConfigToDOM() {
   if (config.defaultImage) _updateDefaultImgPreview(config.defaultImage);
   document.getElementById('defenseImage').value = config.defenseImage || '';
   if (config.defenseImage) _updateDefenseImgPreview(config.defenseImage);
+  const _shpEl = document.getElementById('shieldMaxHp');
+  if (_shpEl) _shpEl.value = config.shieldMaxHp ?? 99999;
   _buildHpImageRows();
   const hpImgs = config.hpImages || {};
   _HP_IMG_KEYS.forEach(k => {
@@ -1863,6 +1889,58 @@ function applyConfigToDOM() {
 
   _agruTypeImgs = Array.isArray(config.agruTypeImages) ? [...config.agruTypeImages] : [];
   _loadAgruTypeImgGrid();
+  _recalcSkillProbs();
+}
+
+// ────────────────────────────────────────────────────────────────────
+// スキル発動確率リアルタイム計算
+// ────────────────────────────────────────────────────────────────────
+function _recalcSkillProbs() {
+  // ティアtでスキルdefが発動可能か（HP条件チェック）
+  // TIER_LOWER_BOUNDS[t] はそのティアの下限（そのティアの最小HP%）
+  // minHpPct=50 → HP50%以下のみ → ティア0(>75%)とティア1(>50%)では発動不可
+  function isAvailable(def, t) {
+    if (!def.minHpPct) return true;
+    return TIER_LOWER_BOUNDS[t] < def.minHpPct;
+  }
+
+  for (let t = 0; t < 4; t++) {
+    let totalWeight = 0;
+    for (const def of SKILL_DEFS) {
+      const enabled = document.getElementById(`enabled-${def.id}`)?.checked;
+      if (!enabled) continue;
+      if (!isAvailable(def, t)) continue;
+      const w = parseFloat(document.getElementById(`w${t}-${def.id}`)?.value) || 0;
+      totalWeight += w;
+    }
+
+    for (const def of SKILL_DEFS) {
+      const span = document.getElementById(`pct${t}-${def.id}`);
+      if (!span) continue;
+      const enabled = document.getElementById(`enabled-${def.id}`)?.checked;
+      span.className = 'weight-pct';
+      if (!enabled) {
+        span.textContent = '';
+        continue;
+      }
+      if (!isAvailable(def, t)) {
+        span.textContent = '—';
+        span.classList.add('pct-na');
+        continue;
+      }
+      const w = parseFloat(document.getElementById(`w${t}-${def.id}`)?.value) || 0;
+      if (totalWeight === 0) {
+        span.textContent = w === 0 ? '0%' : '—';
+        span.classList.add('pct-na');
+        continue;
+      }
+      const pct = (w / totalWeight * 100);
+      span.textContent = pct < 0.1 ? '<0.1%' : pct.toFixed(1) + '%';
+      if (pct >= 30)      span.classList.add('pct-hi');
+      else if (pct >= 10) span.classList.add('pct-mid');
+      else                span.classList.add('pct-lo');
+    }
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -1878,6 +1956,7 @@ function collectConfig() {
     counterInterval:  parseInt(document.getElementById('counterInterval').value) || 60,
     defaultImage:  document.getElementById('bossDefaultImage').value.trim(),
     defenseImage:  document.getElementById('defenseImage').value.trim(),
+    shieldMaxHp:   parseInt(document.getElementById('shieldMaxHp')?.value) || 99999,
     hpImages: Object.fromEntries(_HP_IMG_KEYS.map(k => [String(k), (document.getElementById('hpImgInput' + k)?.value.trim() || '')])),
     battleStartSpeech: document.getElementById('battleStartSpeech').value.trim(),
     battleWinSpeech:   document.getElementById('battleWinSpeech').value.trim(),
@@ -2867,7 +2946,7 @@ function bossBattleStart() {
 }
 
 function bossBattleEnd() {
-  _bossSend({ type: 'agruBattleEnd', result: 'players' });
+  _bossSend({ type: 'agruBattleEnd', result: 'force' });
   _bossBattleOpStatus('強制終了を送信しました', '#94a3b8');
 }
 

@@ -2,6 +2,139 @@
 
 ---
 
+## v2.662.0 — 2026-06-14
+
+### feat: リスナー勝利後はアゲル系キャラをキャラ生成プールから除外
+
+- **`public/app.js`**: `_agruPlayersWon` フラグを追加。`endAgruBattle('players')` 時に `true` にセット（ページリロードまで維持）
+- **`public/app.js`** `ensureCharOnStage()`: `_agruPlayersWon` が true かつ `agruBattleConfig.agruTypeImages` が設定されている場合、対応するキャラIDをランダム選択プールから除外
+- アゲル系画像が設定されていない、または勝利前は従来通りの挙動を維持
+
+---
+
+## v2.661.0 — 2026-06-14
+
+### fix: リスナー勝利画像が消えない問題を修正
+
+- **`public/app.js`**: 勝利オーバーレイ（`_agruWinOverlay`）にクリック消去に加えて15秒自動消去タイマーを追加。クリックした場合はタイマーもキャンセルする
+
+---
+
+## v2.660.0 — 2026-06-14
+
+### feat/fix: 盾キャラ+超回復同時発動時の挙動改善
+
+- **`public/app.js`** `_agruBattleDealDamage()`: 盾キャラが生存中かつ超回復防御状態のとき、ボスHPを完全に減らさないよう修正（ペット効果・呪いなど直接ダメージ関数経由のパスも防御）
+- **`public/app.js`** `_agruReleaseShield()`: `skipPositionRestore` 引数を追加。`true` のとき位置を元に戻さず中央に留まる（盾破壊による死亡用）
+- **`public/app.js`** 盾HP=0で死亡する呼び出しを `_agruReleaseShield(true)` に変更。盾キャラが殺されたときは中央に留まったままセーブデータ削除エフェクトを待つ
+- タイマー解放（30秒経過）は従来通り元の位置に戻す（引数なし = `false`）
+
+---
+
+## v2.659.0 — 2026-06-14
+
+### feat: 盾キャラ攻撃の仮想HPを設定画面から変更可能に
+
+- **`public/ageru-boss.html`** `buildSkillCards()`: `shield_char` スキルカードに「盾キャラ 仮想HP」入力欄（`id="shieldMaxHp"`）を追加
+- **`public/ageru-boss.html`** `applyConfigToDOM()`: `config.shieldMaxHp` を読み込んで入力欄に反映
+- **`public/ageru-boss.html`** config収集: `shieldMaxHp` フィールドを保存対象に追加（デフォルト: 99999）
+- **`public/app.js`** `_agruActivateShield()`: ハードコードの `99999` を `agruBattleConfig?.shieldMaxHp ?? 99999` に変更
+- **`public/app.js`** `_agruUpdateShieldHpDisplay()`: `MAX_HP` を同様に設定値参照に変更
+- **`public/app.js`** 盾発動時のシステムメッセージも設定値を表示するよう修正
+
+---
+
+## v2.658.0 — 2026-06-14
+
+### fix: 超回復防御中のバトルログに本来の値が表示される問題を修正
+
+- **`public/app.js`** `attackAgruBoss()`: `_agruBattleLog()` の呼び出しがダメージ計算後・setTimeout外にあったため、防御中でも `totalDmg`（防御前の値）がログに記録されていたバグを修正
+- 防御中は実際に入るダメージ（1dmg × ヒット数）で `🛡️ N dmg` と表示するよう変更。通常時は従来通り
+
+---
+
+## v2.657.0 — 2026-06-14
+
+### fix: 強制終了時にリスナー勝利画像が表示される問題を修正
+
+- **`public/ageru-boss.html`** `bossBattleEnd()`: 送信する `result` を `'players'` → `'force'` に修正。これまで管理画面の「強制終了」ボタンがリスナー勝利と同じ結果を送っていたため勝利画像が出ていた
+- **`public/app.js`** `endAgruBattle()`: 関数先頭で `_agruWinOverlay` を必ず除去するように修正。前回バトルの勝利オーバーレイが残り続けるバグを解消
+- **`public/app.js`** `endAgruBattle()`: `result === 'force'` 分岐を追加。強制終了時はMP変化なし・勝利演出なし・会話モード状態を維持したまま静かに終了
+- **`public/app.js`** ソケットハンドラ: `d.result || 'players'` → `d.result || 'ageru'` に変更。`result` 未指定時のデフォルトをボス勝利に変更（リスナー勝利は明示的に指定された場合のみ発動）
+
+---
+
+## v2.656.0 — 2026-06-14
+
+### ボスアゲル 超回復シールドを拡大・高濃度化
+
+- **`public/app.js`**: `_agruDefenseShieldStart()` のシールド半径を `0.42 → 0.56`（約33%拡大）に変更
+- 背景グラデーションアルファを約2倍（0.10→0.22 / 0.06→0.14）に増加
+- 外側六角形の line-width を 2.5→3.5、アルファ 0.80→0.95 に増加、グロー shadowBlur を 20→30 に拡大
+- 内側回転六角形・スポーク・ダイヤのアルファも同様に増加（約1.5倍）
+- 中心コアグロー半径を R*0.32→R*0.35、アルファ 0.55→0.75 に増加
+- ヒットフラッシュアルファを 0.18→0.25 に増加
+- ひび割れの白ライン線幅・アルファも増加（0.7→0.9、1.5→2.0）
+
+---
+
+## v2.655.0 — 2026-06-14
+
+### ボスアゲル 超回復防御中シールドエフェクト
+
+- **`public/app.js`**: `_agruDefenseShieldStart()` / `_agruDefenseShieldStop()` を追加
+- 防御開始時にボスキャラの前面に Canvas 製六角形幾何学シールドを表示。外側六角形 + 回転する内側六角形3枚 + スポーク + 頂点ダイヤの多層構造
+- ダメージ蓄積（`_agruDefenseDmgAccum`）が増えるほど外枠が欠け・内側の六角形が消え・ひび割れ（12本、疑似乱数で事前生成）が増加し、崩壊直前は大きくひびだらけになる演出
+- ダメージ着弾時に白フラッシュ（`hitFlash`）
+- 防御解除（時間切れ・崩壊）と `endAgruBattle()` で canvas を除去
+
+---
+
+## v2.654.0 — 2026-06-14
+
+### fix: ぷるぷる設定が画像ごとに切り替わらない問題を修正
+
+- **`public/app.js`**: `_agruUpdateBossImgByHp()` が `battleImg.src` を直接セットした後に `updateBossAgruPurupuru()` を呼んでいなかったバグを修正。HP変化で画像が切り替わった際に前の画像のぷるぷる設定がそのまま残っていた
+- **`public/app.js`**: `_agruActivateDefense()` の防御画像切り替え後にも `updateBossAgruPurupuru()` を追加。画像ごとに設定された `purupuruMap` エントリを正しく適用するよう修正
+- 既存の `_bossCrossfadeImg()`（スキルエフェクト時）はすでに `updateBossAgruPurupuru()` を呼んでいたため変更不要
+
+---
+
+## v2.653.0 — 2026-06-14
+
+### ボスアゲル 盾キャラ調整
+
+- **`public/app.js`**: 盾キャラの拡大倍率を 3倍 → **2倍** に変更
+- **`public/app.js`**: 盾HP表示を盾キャラの右横に配置（scale(2)の視覚右端 + 12px）
+- **`public/app.js`**: 盾HP表示を半透明化（SVG全体 `opacity:0.6`、背景 `rgba(10,20,50,0.7)`）
+
+---
+
+## v2.652.0 — 2026-06-14
+
+### ボスアゲル 盾キャラ攻撃の強化
+
+- **`public/app.js`**: `_agruActivateShield()` でキャラの拡大を `width/height` ではなく `transform: scale(3)` で実装。アバター画像が実際に3倍に拡大されるよう修正（従来は `.character` コンテナの width/height を変えても `.avatar` 子要素の視覚サイズは変わっていなかった）
+- **`public/app.js`**: 中央への位置計算を `scale(3)` の transform-origin に合わせて修正（`left = stageW/2 - cw/2`）
+- **`public/app.js`**: `_agruReleaseShield()` / バトル終了リセットで `transform` を復元するよう修正
+- **`public/app.js`**: `_agruUpdateShieldHpDisplay()` 関数を追加。六角形SVGバー（数値のみ）で盾HPを表示。ダメージで青フィルが減少し、盾消滅・解放時に非表示になる
+
+---
+
+## v2.651.0 — 2026-06-13
+
+### ボスアゲル スキル発動確率リアルタイム表示
+
+- **`public/ageru-boss.html`**: `SKILL_DEFS` に `minHpPct` フィールドを追加（berserk=50、instant_kill/shield_char/delete_char=25）
+- **`public/ageru-boss.html`**: `TIER_LOWER_BOUNDS` 定数を追加（各HPティアの下限値）
+- **`public/ageru-boss.html`**: 各ウェイト入力欄の下に `<span class="weight-pct">` を追加、ティアごとの実発動確率（%）をリアルタイム表示
+- **`public/ageru-boss.html`**: `.weight-pct` CSS追加（pct-hi=緑≥30%、pct-mid=黄≥10%、pct-lo=グレー、pct-na=薄暗/イタリック）
+- **`public/ageru-boss.html`**: `_recalcSkillProbs()` 関数を追加。HP条件外ティアは「—」表示、disabled時は非表示
+- **`public/ageru-boss.html`**: ウェイト入力 `oninput`、有効チェックボックス `onchange` で `_recalcSkillProbs()` を呼び出し
+- **`public/ageru-boss.html`**: `applyConfigToDOM()` 末尾で `_recalcSkillProbs()` を呼び出しロード後に初期計算
+
+---
+
 ## v2.650.0 — 2026-06-13
 
 ### fix: 超回復防御中に専用画像がデフォルト画像に上書きされる問題を修正
