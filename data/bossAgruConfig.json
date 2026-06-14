@@ -20,6 +20,8 @@
   "battleStartSpeech": "お前を殺す。",
   "battleWinSpeech": "",
   "battleLoseSpeech": "",
+  "battleWipeSpeech": "",
+  "wipeImage": "",
   "deleteEffect": {
     "path": "戦闘エフェクトアニメ50/png/pipo-btleffect190_640.png",
     "cols": 2,
@@ -488,7 +490,7 @@
     "normal": {
       "enabled": true,
       "weights": [
-        5,
+        33,
         50,
         20,
         0
@@ -880,7 +882,7 @@
     "super_heal": {
       "enabled": true,
       "weights": [
-        76,
+        33,
         55,
         55,
         5

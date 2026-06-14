@@ -2,6 +2,16 @@
 
 ---
 
+## v2.670.0 — 2026-06-14
+
+### feat: ボスアゲル全滅エンディング実装
+
+- **`public/app.js`** `_agruBattleWipe()` を新規追加。全員討伐時にタイマーを即時停止し、全滅専用セリフ（`battleWipeSpeech`）を再生、全滅専用画像（`wipeImage`）を全画面表示。3.5秒後にフェードアウト（シーンチェンジ）してバトルを終了する
+- **`public/app.js`** `_agruBattleKillUser` に全滅チェックを追加。`user.el = null` 後に `_agruBattleGetAliveUsers().length === 0` を検出すると `_agruBattleWipe()` を 700ms 遅延で起動
+- **`public/app.js`** `endAgruBattle('wipe')` ブランチを追加。全滅時は全員 MP を 0 にし、アゲルちゃん会話モーダルを再開
+- **`public/app.js`** `_agruWipePending` フラグを追加し二重起動を防止。`startAgruBattle` でリセット
+- **`data/bossAgruConfig.json`** `battleWipeSpeech`（全滅時セリフ）・`wipeImage`（全滅時専用画像ファイル名）フィールドを追加
+
 ## v2.669.0 — 2026-06-14
 
 ### feat: ボスアゲル攻撃演出をコメント吹き出し飛翔モーションに変更

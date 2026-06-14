@@ -6208,6 +6208,7 @@ function startAgruBattle(maxHP) {
   agruBattleCounterInterval = cfg.counterInterval || 60;
   agruBattleStatusEffects.clear();
   _agruBattleKilledIds.clear();
+  _agruWipePending        = false;
   agruBattleBerserkUntil = 0;
 
   // 会話モードが起動していなければ最低限の状態だけ立ち上げる（AI不要）
@@ -7332,6 +7333,43 @@ function _agruBattleEntrance(onDone) {
   }, 3800);
 }
 
+function _agruBattleWipe() {
+  if (!agruBattleActive) return;
+  // タイマー・カウンターを即時停止
+  clearInterval(agruBattleTimerInterval);
+  clearInterval(agruBattleCounterTimer);
+  agruBattleTimerInterval = null;
+  agruBattleCounterTimer  = null;
+  // 全滅セリフ
+  _agruBattleGetSpeech('battleWipe');
+  _agruAddSystemMsg('☠️ 全滅…！アゲルちゃんの完全勝利！');
+  // 全滅画像オーバーレイ
+  const wipeImg = agruBattleConfig?.wipeImage;
+  let wipeOverlay = null;
+  if (wipeImg) {
+    wipeOverlay = document.createElement('div');
+    wipeOverlay.id = '_agruWipeOverlay';
+    wipeOverlay.style.cssText = 'position:fixed;inset:0;z-index:99998;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.8)';
+    const img = document.createElement('img');
+    img.src = '/boss/' + encodeURIComponent(wipeImg);
+    img.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain';
+    wipeOverlay.appendChild(img);
+    document.body.appendChild(wipeOverlay);
+  }
+  // シーンチェンジ（フェードアウト → バトル終了）
+  setTimeout(() => {
+    const scrim = document.createElement('div');
+    scrim.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#000;opacity:0;transition:opacity 1.2s ease;pointer-events:none';
+    document.body.appendChild(scrim);
+    requestAnimationFrame(() => requestAnimationFrame(() => { scrim.style.opacity = '1'; }));
+    setTimeout(() => {
+      wipeOverlay?.remove();
+      scrim.remove();
+      endAgruBattle('wipe');
+    }, 1400);
+  }, 3500);
+}
+
 function endAgruBattle(result) {
   if (!agruBattleActive) return;
 
@@ -7490,11 +7528,25 @@ function endAgruBattle(result) {
       closeAgruModal?.();
       _agruAddSystemMsg('会話モードを終了しました。');
     }
+  } else if (result === 'wipe') {
+    // 全滅 — アゲルちゃんの完全勝利
+    _agruAddSystemMsg('☠️ 全滅…アゲルちゃんの完全勝利！全員のMPを奪われた…');
+    Object.values(users).forEach(u => { u.mp = 0; updateStatsDisplay(u); });
+    if (agruActive && agruIdle) {
+      const _modal = document.getElementById('agruModal');
+      if (_modal) _modal.classList.remove('hidden');
+    } else if (!agruActive) {
+      agruActive = true;
+      agruIdle   = true;
+      const _modal = document.getElementById('agruModal');
+      if (_modal) _modal.classList.remove('hidden');
+      _agruAddSystemMsg('会話モードを再開しました。');
+    }
   } else if (result === 'force') {
     // 強制終了 — MP変化なし・演出なし・会話モードそのまま維持
     _agruAddSystemMsg('⚠️ バトルを強制終了しました。');
   } else {
-    // アゲルちゃん勝利 — 会話モーダルを再起動して何事もなかったように再開
+    // アゲルちゃん勝利（タイムアップ） — 会話モーダルを再起動
     _agruAddSystemMsg('😈 アゲルちゃんの勝利！全員のMPを奪われた…');
     _agruBattleGetSpeech('battleLose');
     Object.values(users).forEach(u => { u.mp = 0; updateStatsDisplay(u); });
@@ -7775,6 +7827,12 @@ function _agruBattleKillUser(user) {
   // （1500ms の間 el が残ると同じ PID のコメントが来ても新キャラが作れない）
   const _killedEl = user.el;
   user.el = null;
+
+  // 全滅チェック（el=null 後に判定することで正確なカウントになる）
+  if (agruBattleActive && !_agruWipePending && _agruBattleGetAliveUsers().length === 0) {
+    _agruWipePending = true;
+    setTimeout(() => _agruBattleWipe(), 700);
+  }
 
   const ipid = user.ipid;
   setTimeout(() => {
@@ -8752,6 +8810,7 @@ let agruBattleConfig   = {};
 let _agruPlayersWon    = false; // リスナー勝利後はアゲル系画像をキャラプールから除外
 let agruBattleStatusEffects  = new Map(); // ipid → { stoneUntil, sleepUntil, charmedUntil, curseUntil }
 let _agruBattleKilledIds     = new Set();
+let _agruWipePending         = false;
 let _agruShieldChar          = null; // 盾キャラ攻撃で選ばれたユーザー
 let _agruShieldHp            = 0;
 let _agruShieldTimer         = null;
