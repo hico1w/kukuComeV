@@ -1849,8 +1849,8 @@
   const _SLIDER_MAP = {
     nikoSizeSlider:     {key:'nikoFontSize',   save:v=>parseInt(v)},
     nikoOpacitySlider:  {key:'nikoOpacity',    save:v=>v/100},
-    hayaoshiFreqSlider: {key:'hayaoshiFreq',   save:v=>parseInt(v)*1000},
-    hayaoshiSpeedSlider:{key:'hayaoshiSpeed',  save:v=>parseInt(v)*1000},
+    hayaoshiFreqSlider: {key:'hayaoshiFreq',   save:v=>parseInt(v)},
+    hayaoshiSpeedSlider:{key:'hayaoshiSpeed',  save:v=>parseInt(v)},
     bossHpScaleSlider:  {key:'bossHpScale',    save:v=>parseFloat(v)},
     bossAtkCoeffSlider: {key:'bossAtkCoeff',   save:v=>parseInt(v)},
     counterRateSlider:  {key:'bossCounterRate',save:v=>v/100},
@@ -1965,8 +1965,8 @@
       const _ms = (src, dst, fn) => { if (json[src] !== undefined) s[dst] = fn(parseFloat(json[src])); };
       _ms('nikoFontSize',   'nikoSizeSlider',    v=>v);
       _ms('nikoOpacity',    'nikoOpacitySlider',  v=>Math.round(v*100));
-      _ms('hayaoshiFreq',   'hayaoshiFreqSlider', v=>Math.round(v/1000));
-      _ms('hayaoshiSpeed',  'hayaoshiSpeedSlider',v=>Math.round(v/1000));
+      _m('hayaoshiFreq',  'hayaoshiFreqSlider');
+      _m('hayaoshiSpeed', 'hayaoshiSpeedSlider');
       _m('bossHpScale',    'bossHpScaleSlider');
       _m('bossAtkCoeff',   'bossAtkCoeffSlider');
       _ms('bossCounterRate','counterRateSlider',  v=>Math.round(v*100));

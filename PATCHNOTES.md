@@ -2,6 +2,13 @@
 
 ---
 
+## v2.668.0 — 2026-06-14
+
+### fix: 早押し演出（頻度・速度）が保存されない問題を修正
+
+- **`public/admin.html`** `_SLIDER_MAP` の `hayaoshiFreqSlider`/`hayaoshiSpeedSlider`: save 関数が `parseInt(v)*1000` (ms換算) で保存していたが、app.js は秒のまま (`d.value`) を localStorage に保存するため `parseInt(v)` (直値) に修正
+- **`public/admin.html`** `_loadSettingsDirect()`: `hayaoshiFreq`/`hayaoshiSpeed` を `/1000` 変換せず直接スライダー値として渡すよう修正（変換は app.js 起動時に行われる）
+
 ## v2.667.0 — 2026-06-14
 
 ### fix: admin.html の設定保存を app.js 非依存に変更
