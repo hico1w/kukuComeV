@@ -4898,3 +4898,20 @@ body.compact-mode .title-tag         { display: none !important; }
 .lyr-out-sink     { animation: lyrSinkOut  2.00s ease                  forwards }
 .lyr-out-diss     { animation: lyrDissipate 1.80s ease                 forwards }
 .lyr-out-breath   { animation: lyrBreathOut 1.80s ease                 forwards }
+
+/* ── ボスアゲル リスナー勝利 バウンス演出 ── */
+@keyframes _agruVicGrow {
+  from { transform: scale(1) translateY(0); }
+  to   { transform: scale(2) translateY(0); }
+}
+@keyframes _agruVicBounce {
+  0%, 100% { transform: scale(2) translateY(0); }
+  45%      { transform: scale(2) translateY(-24px); }
+}
+.agru-victory-bounce {
+  transform-origin: bottom center;
+  z-index: 500 !important;
+  animation:
+    _agruVicGrow   0.5s cubic-bezier(.34,1.56,.64,1) forwards,
+    _agruVicBounce 0.65s ease-in-out 0.5s 15 forwards;
+}

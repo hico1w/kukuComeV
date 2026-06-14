@@ -7333,6 +7333,35 @@ function _agruBattleEntrance(onDone) {
   }, 3800);
 }
 
+function _agruBattleVictoryBounce() {
+  // バトル終了直後に呼ぶ。生存キャラを2倍+バウンスし、10秒後に元に戻す
+  const alive = Object.values(users).filter(u => u.el && !u.ko);
+  if (alive.length === 0) return;
+
+  alive.forEach(u => {
+    if (u.el) u.el.classList.add('agru-victory-bounce');
+  });
+
+  // 0.5s grow + 0.65s×15 bounce = 10.25s → 10.4s 後にリセット
+  setTimeout(() => {
+    alive.forEach(u => {
+      const el = document.getElementById('a-' + u.ipid);
+      if (!el) return;
+      el.classList.remove('agru-victory-bounce');
+      // アニメ終了時点の scale(2) から scale(1) にスムーズに戻す
+      el.style.transform  = 'scale(2)';
+      el.style.transition = 'transform 0.6s cubic-bezier(.34,1.56,.64,1)';
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        el.style.transform = '';
+      }));
+      setTimeout(() => {
+        el.style.transition     = '';
+        el.style.transformOrigin = '';
+      }, 700);
+    });
+  }, 10400);
+}
+
 function _agruRestoreModal() {
   const modal = document.getElementById('agruModal');
   if (!modal) return;
@@ -7550,6 +7579,9 @@ function endAgruBattle(result) {
         }
       });
     }
+
+    // 生存キャラを2倍バウンス（アゲル系消滅アニメが始まった後に起動）
+    setTimeout(() => _agruBattleVictoryBounce(), 400);
 
     // 会話モーダルを閉じる
     if (agruActive) {

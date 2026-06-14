@@ -2,6 +2,13 @@
 
 ---
 
+## v2.672.0 — 2026-06-14
+
+### feat: リスナー勝利時に生存キャラが2倍バウンス演出
+
+- **`public/app.js`** `_agruBattleVictoryBounce()` を新規追加。`endAgruBattle('players')` の400ms後に呼び出し。生存キャラ全員に `agru-victory-bounce` クラスを付与し、10.4秒後にスプリングトランジションで元サイズに戻す
+- **`public/style.css`** `@keyframes _agruVicGrow`（0.5s で scale(1)→scale(2)）と `@keyframes _agruVicBounce`（0.65s×15回 translateY バウンス）を追加。`.agru-victory-bounce` クラスで transform-origin:bottom center を設定し足元起点でキャラが大きくなる
+
 ## v2.671.0 — 2026-06-14
 
 ### fix: アゲル勝利・全滅後に会話モーダルの画像・サイズ・位置が崩れる問題を修正
