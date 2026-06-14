@@ -13158,16 +13158,27 @@ function handleAdminMessage(d, replyFn) {
     } else if (d.id === 'autoDeleteMinutesSlider') {
       autoDeleteMinutes = parseInt(d.value) || 0; localStorage.setItem('autoDeleteMinutes', autoDeleteMinutes); saveSettingsToServer();
     } else if (d.id === 'seVolumeSlider') {
-      seVolume = parseFloat(d.value); localStorage.setItem('seVolume', seVolume); saveSettingsToServer();
+      seVolume = parseFloat(d.value); localStorage.setItem('seVolume', seVolume);
     } else if (d.id === 'voiceVolumeSlider') {
-      voiceVolume = parseFloat(d.value); localStorage.setItem('voiceVolume', voiceVolume); saveSettingsToServer();
+      voiceVolume = parseFloat(d.value); localStorage.setItem('voiceVolume', voiceVolume);
     }
+    saveSettingsToServer();
   } else if (d.type === 'select' && d.id) {
     const el = document.getElementById(d.id);
     if (el) { el.value = d.value; el.dispatchEvent(new Event('change')); }
+    else if (d.id === 'moveAreaSelect') {
+      moveArea = MOVE_AREA_MAP[d.value] || MOVE_AREA_MAP['all'];
+      localStorage.setItem('moveArea', d.value);
+      saveSettingsToServer();
+    }
   } else if (d.type === 'color' && d.id) {
     const el = document.getElementById(d.id);
     if (el) { el.value = d.value; el.dispatchEvent(new Event('input')); }
+    else if (d.id === 'bgColor') {
+      applyBgColor(d.value);
+      localStorage.setItem('bgColor', d.value);
+      saveSettingsToServer();
+    }
   } else if (d.type === 'getState' || d.type === 'ping') {
     const sliderIds = ['nikoSizeSlider','nikoOpacitySlider','hayaoshiFreqSlider','hayaoshiSpeedSlider',
                        'bossHpScaleSlider','bossAtkCoeffSlider','counterRateSlider','charSizeSlider','bossSizeSlider','brHpMultSlider','taimanHpMultSlider',
@@ -13319,6 +13330,7 @@ function handleAdminMessage(d, replyFn) {
       localStorage.setItem(d.key, d.value);
       if (d.key === 'seVolume')    { seVolume    = parseFloat(d.value); const v = document.getElementById('seVolumeVal');    if (v) v.textContent = Math.round(seVolume    * 100) + '%'; }
       if (d.key === 'voiceVolume') { voiceVolume = parseFloat(d.value); const v = document.getElementById('voiceVolumeVal'); if (v) v.textContent = Math.round(voiceVolume * 100) + '%'; }
+      saveSettingsToServer();
     }
   } else if (d.type === 'ttsText') {
     const elMap = { ttsModel:'ttsModelInput', ttsVoice:'ttsVoiceInput', ttsF0UpKey:'ttsF0UpKeySlider',
@@ -13380,6 +13392,7 @@ function handleAdminMessage(d, replyFn) {
         if (d.key === 'sdPopWidth')    document.getElementById('sdPopWidthVal').textContent    = d.value + 'px';
         if (d.key === 'sdMosaicBlock') document.getElementById('sdMosaicBlockVal').textContent = d.value + 'px';
       }
+      saveSettingsToServer();
     }
   } else if (d.type === 'processComment') {
     if (d.comment) handleComment(d.comment);
@@ -13538,6 +13551,7 @@ function handleAdminMessage(d, replyFn) {
       if (!isNaN(val) && val >= 0) {
         SLOT_OUTCOMES[idx].mp = val;
         localStorage.setItem(d.key, val);
+        saveSettingsToServer();
       }
     }
   } else if (d.type === 'giveMp') {
@@ -13562,6 +13576,7 @@ function handleAdminMessage(d, replyFn) {
     if (!isNaN(v) && v >= 1 && v <= 50) {
       wordleDisplayRows = v;
       localStorage.setItem('wordleDisplayRows', v);
+      saveSettingsToServer();
       renderWordlePanel();
     }
   } else if (d.type === 'clearCharSave') {

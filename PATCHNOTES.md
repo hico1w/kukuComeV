@@ -2,6 +2,17 @@
 
 ---
 
+## v2.666.0 — 2026-06-14
+
+### fix: admin.htmlで変更した設定が保存されない問題を修正
+
+- **`public/app.js`** スライダーハンドラ全体: 各 `else if` の末尾に個別で `saveSettingsToServer()` を書いていたものを、ブロック末尾に一括呼び出しに変更。未保存だったスライダー（niko/hayaoshi/bossAtk/counterRate/afk など）が保存されるように
+- **`public/app.js`** `type:'color'` ハンドラ: `bgColor` の DOM 要素が index.html に存在しないため設定が完全に無視されていた → DOM がない場合は `applyBgColor()` + localStorage + save を直接実行
+- **`public/app.js`** `type:'select'` ハンドラ: `moveAreaSelect` の DOM 要素が index.html に存在しないため無視されていた → DOM がない場合は `moveArea` 変数 + localStorage + save を直接設定
+- **`public/app.js`** `type:'volumeText'` ハンドラ: localStorage 保存後に `saveSettingsToServer()` を追加
+- **`public/app.js`** `type:'sdText'` ハンドラ: localStorage 保存後に `saveSettingsToServer()` を追加
+- **`public/app.js`** `type:'slotMp'` / `type:'wordleRows'` ハンドラ: `saveSettingsToServer()` を追加
+
 ## v2.665.0 — 2026-06-14
 
 ### fix: アゲル系キャラが透明ゴーストで残留する問題を修正
