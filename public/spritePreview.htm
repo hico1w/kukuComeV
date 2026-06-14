@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sprite Preview</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #111827; color: #e5e7eb; font-family: system-ui, sans-serif; padding: 16px; }
+    h1 { margin-bottom: 12px; font-size: 1.3em; color: #f9fafb; }
+    .toolbar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .toolbar button { background: #374151; color: #e5e7eb; border: 1px solid #4b5563; padding: 5px 14px; cursor: pointer; border-radius: 6px; font-size: 0.85em; }
+    .toolbar button:hover { background: #4b5563; }
+    .toolbar input[type=search] { background: #1f2937; color: #e5e7eb; border: 1px solid #4b5563; padding: 5px 10px; border-radius: 6px; font-size: 0.85em; width: 200px; }
+    #showHiddenBtn { border-color: #6b7280; color: #9ca3af; }
+    #showHiddenBtn.active { background: #7f1d1d; border-color: #ef4444; color: #fca5a5; }
+
+    .folder-section { margin-bottom: 12px; }
+    .folder-header { background: #1f2937; padding: 8px 14px; cursor: pointer; border-radius: 8px; display: flex; align-items: center; gap: 8px; border: 1px solid #374151; user-select: none; }
+    .folder-header:hover { background: #374151; }
+    .folder-header h2 { font-size: 0.95em; font-weight: 600; }
+    .folder-header .count { font-size: 0.75em; color: #9ca3af; }
+    .folder-header .toggle { margin-left: auto; font-size: 0.8em; color: #9ca3af; transition: transform .2s; }
+    .folder-header.open .toggle { transform: rotate(90deg); }
+    .cards-grid { display: none; flex-wrap: wrap; gap: 12px; padding: 10px 0 4px; }
+    .cards-grid.open { display: flex; }
+
+    .card { background: #1f2937; border: 1px solid #374151; border-radius: 8px; padding: 10px; width: 230px; transition: border-color .2s; position: relative; }
+    .card:hover { border-color: #6b7280; }
+    .card.hidden-card { display: none; }
+    .card.hidden-card.show-mode { display: block; opacity: 0.45; border-color: #b91c1c !important; }
+    .card canvas { display: block; background: #000; border-radius: 4px; width: 210px; height: 210px; }
+    .card .badge { display: inline-block; font-size: 0.65em; padding: 1px 6px; border-radius: 10px; margin: 6px 0 2px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+    .badge-seq   { background: #064e3b; color: #6ee7b7; }
+    .badge-sheet { background: #1e1b4b; color: #a5b4fc; }
+    .card .label { font-size: 0.68em; color: #9ca3af; margin-bottom: 8px; word-break: break-all; line-height: 1.4; }
+    .card .controls { display: flex; flex-direction: column; gap: 5px; }
+    .ctrl-row { display: flex; align-items: center; gap: 6px; font-size: 0.72em; }
+    .ctrl-row label { width: 48px; color: #9ca3af; flex-shrink: 0; }
+    .ctrl-row input[type=range] { flex: 1; accent-color: #6366f1; }
+    .ctrl-row .val { width: 28px; text-align: right; color: #d1d5db; }
+    .ctrl-row input[type=number] { width: 56px; background: #374151; color: #e5e7eb; border: 1px solid #4b5563; padding: 2px 5px; border-radius: 4px; font-size: 1em; }
+    .btn-row { display: flex; gap: 5px; margin-top: 8px; }
+    .btn-row button { flex: 1; background: #374151; color: #e5e7eb; border: 1px solid #4b5563; padding: 4px; cursor: pointer; border-radius: 5px; font-size: 0.78em; transition: background .15s; }
+    .btn-row button:hover { background: #4b5563; }
+    .btn-row button.orig-btn { background: #1e3a5f; border-color: #3b82f6; color: #93c5fd; }
+    .btn-row button.orig-btn:hover { background: #1e40af; }
+    .btn-row button.copy-btn { flex: none; padding: 4px 8px; font-size: 0.7em; }
+
+    /* 非表示ボタン（カード右上） */
+    .hide-btn {
+      position: absolute; top: 5px; right: 5px;
+      background: none; border: none; color: #4b5563; cursor: pointer;
+      font-size: 0.85em; padding: 1px 5px; border-radius: 3px; line-height: 1;
+    }
+    .hide-btn:hover { background: #374151; color: #f87171; }
+    .card.hidden-card .hide-btn { color: #6ee7b7; background: #374151; border: 1px solid #4b5563; }
+
+    .loading { text-align: center; color: #9ca3af; padding: 60px; font-size: 0.9em; }
+    .err { color: #f87171; }
+
+    /* ── Modal ── */
+    #imgModal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.92); z-index: 9000;
+      flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    }
+    #imgModal.open { display: flex; }
+    #imgModalWrap { overflow: auto; max-width: 92vw; max-height: 76vh; line-height: 0; }
+    #imgModalCanvas { display: block; image-rendering: pixelated; }
+    #imgModalInfo { font-size: 0.82em; color: #9ca3af; text-align: center; }
+    #imgModalNav { display: none; align-items: center; gap: 12px; font-size: 0.85em; }
+    #imgModalNav button { background: #374151; color: #e5e7eb; border: 1px solid #4b5563; padding: 4px 12px; cursor: pointer; border-radius: 5px; }
+    #imgModalNav button:disabled { opacity: 0.3; cursor: default; }
+    #imgModalClose { background: #374151; color: #e5e7eb; border: 1px solid #4b5563; padding: 6px 20px; cursor: pointer; border-radius: 6px; font-size: 0.85em; }
+    #imgModalClose:hover { background: #4b5563; }
+  </style>
+</head>
+<body>
+  <h1>Sprite Preview</h1>
+  <div class="toolbar">
+    <button onclick="playAll()">▶ 全て再生</button>
+    <button onclick="stopAll()">⏹ 全て停止</button>
+    <input type="search" id="filterInput" placeholder="フィルター..." oninput="applyFilter(this.value)">
+    <button id="showHiddenBtn" onclick="toggleShowHidden()">非表示: 0</button>
+  </div>
+  <div id="content"><div class="loading">読み込み中...</div></div>
+
+  <div id="imgModal">
+    <div id="imgModalWrap"><canvas id="imgModalCanvas"></canvas></div>
+    <div id="imgModalInfo"></div>
+    <div id="imgModalNav">
+      <button id="imgModalPrev">◀ 前</button>
+      <span id="imgModalNavInfo"></span>
+      <button id="imgModalNext">次 ▶</button>
+    </div>
+    <button id="imgModalClose">✕ 閉じる</button>
+  </div>
+
+  <script>
+  const allCards = [];
+  let allSections = [];
+
+  // ── Settings persistence ─────────────────────────────────────────────────
+  function saveSettings(key, data) {
+    try { localStorage.setItem('spr:' + key, JSON.stringify(data)); } catch {}
+  }
+  function loadSettings(key) {
+    try { return JSON.parse(localStorage.getItem('spr:' + key)) || null; } catch { return null; }
+  }
+
+  // ── Hidden management ────────────────────────────────────────────────────
+  const hiddenKeys = new Set(JSON.parse(localStorage.getItem('spr-hidden') || '[]'));
+  let showingHidden = false;
+
+  function saveHidden() {
+    localStorage.setItem('spr-hidden', JSON.stringify([...hiddenKeys]));
+  }
+  function updateHiddenBtn() {
+    const btn = document.getElementById('showHiddenBtn');
+    btn.textContent = showingHidden
+      ? `非表示管理中 (${hiddenKeys.size}) — 終了`
+      : `非表示: ${hiddenKeys.size}`;
+    btn.classList.toggle('active', showingHidden);
+  }
+  function toggleShowHidden() {
+    showingHidden = !showingHidden;
+    document.querySelectorAll('.card.hidden-card').forEach(c => {
+      c.classList.toggle('show-mode', showingHidden);
+    });
+    updateHiddenBtn();
+  }
+  function applyHideState(cardEl, key) {
+    const isHidden = hiddenKeys.has(key);
+    cardEl.classList.toggle('hidden-card', isHidden);
+    if (isHidden && showingHidden) cardEl.classList.add('show-mode');
+    const btn = cardEl.querySelector('.hide-btn');
+    if (btn) btn.textContent = isHidden ? '復元' : '✕';
+  }
+  function toggleHide(key, cardEl) {
+    if (hiddenKeys.has(key)) {
+      hiddenKeys.delete(key);
+    } else {
+      hiddenKeys.add(key);
+    }
+    saveHidden();
+    applyHideState(cardEl, key);
+    updateHiddenBtn();
+  }
+
+  // ── Modal ────────────────────────────────────────────────────────────────
+  let _modalGetData = null;
+  let _modalIdx = 0;
+
+  function openModal(getModalData) {
+    _modalGetData = getModalData;
+    _modalIdx = 0;
+    document.getElementById('imgModal').classList.add('open');
+    redrawModal();
+  }
+  function closeModal() {
+    document.getElementById('imgModal').classList.remove('open');
+    _modalGetData = null;
+  }
+  function redrawModal() {
+    if (!_modalGetData) return;
+    const { imgs, cols, rows } = _modalGetData();
+    if (!imgs || !imgs.length) return;
+    const imgIdx = Math.max(0, Math.min(_modalIdx, imgs.length - 1));
+    const img = imgs[imgIdx];
+
+    if (!img.complete || !img.naturalWidth) { img.onload = redrawModal; return; }
+
+    const maxW = Math.min(window.innerWidth  * 0.9,  img.naturalWidth  * 4);
+    const maxH = Math.min(window.innerHeight * 0.74, img.naturalHeight * 4);
+    const s    = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight, 4);
+    const W    = Math.round(img.naturalWidth  * s);
+    const H    = Math.round(img.naturalHeight * s);
+
+    const canvas = document.getElementById('imgModalCanvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, 0, 0, W, H);
+
+    const fw = W / cols, fh = H / rows;
+    ctx.strokeStyle = 'rgba(255,55,55,0.85)';
+    ctx.lineWidth = 1;
+    for (let c = 1; c < cols; c++) {
+      const x = Math.round(c * fw) + 0.5;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    }
+    for (let r = 1; r < rows; r++) {
+      const y = Math.round(r * fh) + 0.5;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+    if (cols > 1 || rows > 1) {
+      const fs = Math.max(9, Math.min(14, fw * 0.28, fh * 0.28));
+      ctx.font = `bold ${fs}px monospace`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const n = r * cols + c + 1;
+          const tx = (c + 0.5) * fw, ty = (r + 0.5) * fh;
+          ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillText(n, tx + 1, ty + 1);
+          ctx.fillStyle = 'rgba(255,200,200,0.95)'; ctx.fillText(n, tx, ty);
+        }
+      }
+    }
+
+    document.getElementById('imgModalInfo').textContent =
+      `${img.naturalWidth}×${img.naturalHeight}px  |  cols:${cols}  rows:${rows}  |  ${cols * rows} frames`;
+
+    const nav = document.getElementById('imgModalNav');
+    if (imgs.length > 1) {
+      nav.style.display = 'flex';
+      document.getElementById('imgModalNavInfo').textContent = `${imgIdx + 1} / ${imgs.length}`;
+      document.getElementById('imgModalPrev').disabled = imgIdx <= 0;
+      document.getElementById('imgModalNext').disabled = imgIdx >= imgs.length - 1;
+    } else {
+      nav.style.display = 'none';
+    }
+  }
+  document.getElementById('imgModal').addEventListener('click', e => { if (e.target.id === 'imgModal') closeModal(); });
+  document.getElementById('imgModalClose').onclick = closeModal;
+  document.getElementById('imgModalPrev').onclick = () => { _modalIdx = Math.max(0, _modalIdx - 1); redrawModal(); };
+  document.getElementById('imgModalNext').onclick = () => { _modalIdx++; redrawModal(); };
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  // ── Main init ────────────────────────────────────────────────────────────
+  async function init() {
+    const content = document.getElementById('content');
+    try {
+      const { folders } = await fetch('/api/sprite-folders').then(r => r.json());
+      content.innerHTML = '';
+      for (const folder of folders) {
+        const section = buildFolderHeader(folder);
+        content.appendChild(section);
+        allSections.push(section);
+      }
+      updateHiddenBtn();
+    } catch (e) {
+      content.innerHTML = `<div class="loading err">エラー: ${e.message}</div>`;
+    }
+  }
+
+  // フォルダヘッダーのみ作成（カードは展開時に遅延生成）
+  function buildFolderHeader(folder) {
+    const section = document.createElement('div');
+    section.className = 'folder-section';
+    section.dataset.folder = folder;
+
+    const grid = document.createElement('div');
+    grid.className = 'cards-grid';
+
+    const countSpan = el('span', 'count', '');
+    const toggleSpan = el('span', 'toggle', '▶');
+    const header = document.createElement('div');
+    header.className = 'folder-header';
+    header.appendChild(el('h2', '', folder));
+    header.appendChild(countSpan);
+    header.appendChild(toggleSpan);
+
+    let loaded = false;
+    header.onclick = async () => {
+      const opening = !header.classList.contains('open');
+      header.classList.toggle('open', opening);
+      grid.classList.toggle('open', opening);
+
+      if (opening && !loaded) {
+        loaded = true;
+        countSpan.textContent = '読み込み中...';
+        try {
+          const { images } = await fetch('/api/sprite-list/' + encodeURIComponent(folder)).then(r => r.json());
+          const count = buildCards(grid, folder, images);
+          countSpan.textContent = count ? `${count} sprites` : '(空)';
+        } catch {
+          countSpan.textContent = 'エラー';
+        }
+      }
+    };
+
+    section.appendChild(header);
+    section.appendChild(grid);
+    return section;
+  }
+
+  function buildCards(grid, folder, images) {
+    if (!images.length) return 0;
+    const bySubfolder = {};
+    for (const img of images) {
+      const parts = img.split('/');
+      const sub = parts.slice(0, -1).join('/') || '_root';
+      if (!bySubfolder[sub]) bySubfolder[sub] = [];
+      bySubfolder[sub].push(img);
+    }
+    let count = 0;
+    for (const [sub, files] of Object.entries(bySubfolder)) {
+      for (const group of groupImages(files.sort())) {
+        const card = group.type === 'sequence'
+          ? buildSequenceCard(folder, sub, group.files)
+          : buildSheetCard(folder, group.file);
+        grid.appendChild(card);
+        count++;
+      }
+    }
+    return count;
+  }
+
+  function groupImages(files) {
+    if (files.length === 1) return [{ type: 'sheet', file: files[0] }];
+    const stripSuffix = n => n.replace(/\.\w+$/, '').replace(/(\d+[a-z]?|[a-z])$/i, '');
+    const bases = files.map(f => stripSuffix(f.split('/').pop()));
+    const byBase = {};
+    files.forEach((f, i) => { (byBase[bases[i]] = byBase[bases[i]] || []).push(f); });
+    const result = [];
+    for (const grp of Object.values(byBase)) {
+      if (grp.length >= 3) result.push({ type: 'sequence', files: grp.sort() });
+      else grp.sort().forEach(f => result.push({ type: 'sheet', file: f }));
+    }
+    return result.length ? result : [{ type: 'sequence', files }];
+  }
+
+  function imgUrl(folder, relPath) {
+    return '/sprite/' + [folder, ...relPath.split('/')].map(encodeURIComponent).join('/');
+  }
+
+  // ── Sequence card ────────────────────────────────────────────────────────
+  function buildSequenceCard(folder, sub, files) {
+    const storageKey = folder + '/' + sub;
+    const saved = loadSettings(storageKey);
+    let cols = saved?.cols ?? 1, rows = saved?.rows ?? 1, fps = saved?.fps ?? 10;
+    const save = () => saveSettings(storageKey, { cols, rows, fps });
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.folder = folder;
+
+    const hideBtn = el('button', 'hide-btn', '✕');
+    hideBtn.title = '非表示にする';
+    card.appendChild(hideBtn);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 210; canvas.height = 210;
+    card.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+
+    card.appendChild(el('div', 'badge badge-seq', `sequence (${files.length}f)`));
+    card.appendChild(el('div', 'label', `${folder} / ${sub}`));
+
+    const controls = document.createElement('div');
+    controls.className = 'controls';
+    const colsRow = makeSliderRow('cols', 1, 20, cols, v => { cols = v; save(); if (animId) restart(); if (_modalGetData) redrawModal(); });
+    const rowsRow = makeSliderRow('rows', 1, 20, rows, v => { rows = v; save(); if (animId) restart(); if (_modalGetData) redrawModal(); });
+    const fpsRow  = makeSliderRow('fps',  1, 30, fps,  v => { fps  = v; save(); if (animId) restart(); });
+    [colsRow, rowsRow, fpsRow].forEach(r => controls.appendChild(r));
+    card.appendChild(controls);
+
+    const btnRow = document.createElement('div');
+    btnRow.className = 'btn-row';
+    const playBtn = el('button', '', '▶');
+    const stopBtn = el('button', '', '⏹');
+    const origBtn = el('button', 'orig-btn', '元画像');
+    const copyBtn = el('button', 'copy-btn', 'config');
+    [playBtn, stopBtn, origBtn, copyBtn].forEach(b => btnRow.appendChild(b));
+    card.appendChild(btnRow);
+
+    // 画像は IntersectionObserver 発火時に初めてロード
+    let imgs = null;
+    function ensureImgs() {
+      if (!imgs) imgs = files.map(f => { const i = new Image(); i.src = imgUrl(folder, f); return i; });
+      return imgs;
+    }
+
+    let animId = null, frame = 0;
+    const totalFrames = () => (imgs?.length || files.length) * cols * rows;
+
+    function drawFrame() {
+      if (!imgs) return;
+      const fpf = cols * rows;
+      const fileIdx = Math.floor(frame / fpf) % imgs.length;
+      const fin = frame % fpf;
+      const img = imgs[fileIdx];
+      ctx.clearRect(0, 0, 210, 210);
+      if (!img.complete || !img.naturalWidth) return;
+      const fw = img.naturalWidth / cols, fh = img.naturalHeight / rows;
+      const col = fin % cols, row = Math.floor(fin / cols);
+      const s = Math.min(210 / fw, 210 / fh) || 1;
+      const dw = fw * s, dh = fh * s;
+      ctx.drawImage(img, col * fw, row * fh, fw, fh, (210 - dw) / 2, (210 - dh) / 2, dw, dh);
+    }
+    function start() {
+      ensureImgs();
+      if (animId) clearInterval(animId);
+      frame = 0;
+      animId = setInterval(() => { drawFrame(); frame = (frame + 1) % totalFrames(); }, 1000 / fps);
+      playBtn.textContent = '⏸';
+    }
+    function stop() {
+      if (animId) { clearInterval(animId); animId = null; }
+      playBtn.textContent = '▶';
+    }
+    function restart() { stop(); start(); }
+
+    playBtn.onclick = () => animId ? stop() : start();
+    stopBtn.onclick = () => { stop(); frame = 0; ctx.clearRect(0, 0, 210, 210); };
+    origBtn.onclick = () => openModal(() => ({ imgs: ensureImgs(), cols, rows }));
+    copyBtn.onclick = () => {
+      const config = { path: folder + '/' + sub + '/' + files[0].split('/').pop(), frameFiles: files.map(f => f.split('/').pop()), cols, rows, fps };
+      navigator.clipboard.writeText(JSON.stringify(config, null, 2));
+      copyBtn.textContent = '✓'; setTimeout(() => copyBtn.textContent = 'config', 1500);
+    };
+    hideBtn.onclick = () => toggleHide(storageKey, card);
+
+    applyHideState(card, storageKey);
+    allCards.push({ start, stop });
+
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && !card.classList.contains('hidden-card')) {
+        start(); obs.disconnect();
+      }
+    });
+    obs.observe(card);
+    return card;
+  }
+
+  // ── Sheet card ───────────────────────────────────────────────────────────
+  function buildSheetCard(folder, file) {
+    const storageKey = folder + '/' + file;
+    const saved = loadSettings(storageKey);
+    let cols = saved?.cols ?? 5, rows = saved?.rows ?? 4;
+    let fps  = saved?.fps  ?? 10, frameCount = saved?.frameCount ?? 0;
+    const save = () => saveSettings(storageKey, { cols, rows, fps, frameCount });
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.folder = folder;
+
+    const hideBtn = el('button', 'hide-btn', '✕');
+    hideBtn.title = '非表示にする';
+    card.appendChild(hideBtn);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 210; canvas.height = 210;
+    card.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+
+    card.appendChild(el('div', 'badge badge-sheet', 'sheet'));
+    card.appendChild(el('div', 'label', `${folder} / ${file}`));
+
+    const controls = document.createElement('div');
+    controls.className = 'controls';
+    const colsRow = makeSliderRow('cols', 1, 20, cols, v => { cols = v; save(); if (animId) restart(); if (_modalGetData) redrawModal(); });
+    const rowsRow = makeSliderRow('rows', 1, 20, rows, v => { rows = v; save(); if (animId) restart(); if (_modalGetData) redrawModal(); });
+    const fpsRow  = makeSliderRow('fps',  1, 30, fps,  v => { fps  = v; save(); if (animId) restart(); });
+    const fcRow = document.createElement('div');
+    fcRow.className = 'ctrl-row';
+    const fcInput = document.createElement('input');
+    fcInput.type = 'number'; fcInput.value = frameCount; fcInput.min = 0; fcInput.max = 999;
+    fcInput.title = '0=auto(cols×rows)';
+    fcInput.oninput = () => { frameCount = parseInt(fcInput.value) || 0; save(); if (animId) restart(); };
+    fcRow.appendChild(el('label', '', 'frames')); fcRow.appendChild(fcInput);
+    [colsRow, rowsRow, fpsRow, fcRow].forEach(r => controls.appendChild(r));
+    card.appendChild(controls);
+
+    const btnRow = document.createElement('div');
+    btnRow.className = 'btn-row';
+    const playBtn = el('button', '', '▶');
+    const stopBtn = el('button', '', '⏹');
+    const origBtn = el('button', 'orig-btn', '元画像');
+    const copyBtn = el('button', 'copy-btn', 'config');
+    [playBtn, stopBtn, origBtn, copyBtn].forEach(b => btnRow.appendChild(b));
+    card.appendChild(btnRow);
+
+    // 画像は IntersectionObserver 発火時にロード
+    let img = null;
+    function ensureImg() {
+      if (!img) { img = new Image(); img.src = imgUrl(folder, file); }
+      return img;
+    }
+
+    let animId = null, frame = 0;
+    function draw() {
+      if (!img?.complete || !img.naturalWidth) return;
+      const fc = frameCount || (cols * rows);
+      const fw = img.naturalWidth / cols, fh = img.naturalHeight / rows;
+      const col = frame % cols, row = Math.floor(frame / cols);
+      const s = Math.min(210 / fw, 210 / fh) || 1;
+      const dw = fw * s, dh = fh * s;
+      ctx.clearRect(0, 0, 210, 210);
+      ctx.drawImage(img, col * fw, row * fh, fw, fh, (210 - dw) / 2, (210 - dh) / 2, dw, dh);
+      frame = (frame + 1) % fc;
+    }
+    function start() {
+      const i = ensureImg();
+      if (animId) clearInterval(animId);
+      frame = 0;
+      if (i.complete) animId = setInterval(draw, 1000 / fps);
+      else i.onload = () => { animId = setInterval(draw, 1000 / fps); };
+      playBtn.textContent = '⏸';
+    }
+    function stop() {
+      if (animId) { clearInterval(animId); animId = null; }
+      playBtn.textContent = '▶';
+    }
+    function restart() { stop(); start(); }
+
+    playBtn.onclick = () => animId ? stop() : start();
+    stopBtn.onclick = () => { stop(); frame = 0; ctx.clearRect(0, 0, 210, 210); };
+    origBtn.onclick = () => openModal(() => ({ imgs: [ensureImg()], cols, rows }));
+    copyBtn.onclick = () => {
+      const config = { path: folder + '/' + file, cols, rows, fps, frameCount: frameCount || cols * rows };
+      navigator.clipboard.writeText(JSON.stringify(config, null, 2));
+      copyBtn.textContent = '✓'; setTimeout(() => copyBtn.textContent = 'config', 1500);
+    };
+    hideBtn.onclick = () => toggleHide(storageKey, card);
+
+    applyHideState(card, storageKey);
+    allCards.push({ start, stop });
+
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && !card.classList.contains('hidden-card')) {
+        start(); obs.disconnect();
+      }
+    });
+    obs.observe(card);
+    return card;
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  function makeSliderRow(labelText, min, max, init, onChange) {
+    const row = document.createElement('div');
+    row.className = 'ctrl-row';
+    const slider = document.createElement('input');
+    slider.type = 'range'; slider.min = min; slider.max = max; slider.value = init;
+    const valSpan = el('span', 'val', String(init));
+    slider.oninput = () => { valSpan.textContent = slider.value; onChange(parseInt(slider.value)); };
+    row.appendChild(el('label', '', labelText)); row.appendChild(slider); row.appendChild(valSpan);
+    return row;
+  }
+
+  function playAll() { allCards.forEach(c => c.start()); }
+  function stopAll() { allCards.forEach(c => c.stop()); }
+
+  function applyFilter(q) {
+    const lower = q.toLowerCase();
+    allSections.forEach(sec => {
+      const folderMatch = sec.dataset.folder.toLowerCase().includes(lower);
+      let visible = 0;
+      sec.querySelectorAll('.card').forEach(card => {
+        const label = card.querySelector('.label')?.textContent.toLowerCase() || '';
+        const show = !lower || folderMatch || label.includes(lower);
+        card.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      sec.style.display = visible === 0 && lower ? 'none' : '';
+    });
+  }
+
+  init();
+  </script>
+</body>
+</html>

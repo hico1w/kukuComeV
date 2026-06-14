@@ -1602,6 +1602,24 @@ function buildSkillCards() {
           </div>
         </div>
 
+        ${def.id === 'focus_fire' ? `
+        <!-- 集中砲火 連打画像 -->
+        <div>
+          <div class="skill-subsection-title">連打画像（最大6枚・高速切替）</div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            ${[0,1,2,3,4,5].map(i => `
+            <div class="ageru-img-row">
+              <span style="color:#64748b;font-size:11px;min-width:14px;text-align:right">${i+1}</span>
+              <input type="text" class="w-full" id="rapidImg${i}-focus_fire"
+                placeholder="フォルダ名/ファイル名.png"
+                oninput="_updateRapidImgPreview(${i}, this.value)">
+              <button class="btn-secondary btn-sm" onclick="openBossImgModal('rapidImg${i}-focus_fire')">画像を選ぶ</button>
+              <img class="ageru-img-preview" id="rapidImgPreview${i}-focus_fire" alt="">
+            </div>`).join('')}
+          </div>
+        </div>
+        ` : ''}
+
         <!-- スプライトエフェクト（ターゲット側） -->
         <div>
           <div class="skill-subsection-title">スプライトエフェクト（ターゲット側）</div>
@@ -1690,6 +1708,13 @@ function buildSkillCards() {
               placeholder="sentou/剣で斬る1.mp3">
             <button class="btn-secondary btn-sm" onclick="openSoundModal('${def.id}')">音を選ぶ</button>
             <button class="btn-play btn-sm" onclick="playSound('${def.id}')">▶</button>
+          </div>
+          <div class="field-row" style="margin-top:6px;gap:6px">
+            <label style="font-size:11px;color:#94a3b8;min-width:36px">音量</label>
+            <input type="range" id="soundVolume-${def.id}" min="0" max="100" value="100" style="flex:1"
+              oninput="document.getElementById('soundVolumeVal-${def.id}').textContent=this.value">
+            <span id="soundVolumeVal-${def.id}" style="min-width:26px;text-align:right;font-size:11px">100</span>
+            <span style="font-size:11px;color:#94a3b8">%</span>
           </div>
         </div>
 
@@ -1855,6 +1880,19 @@ function applyConfigToDOM() {
       const prev = document.getElementById(`imgPreview-${def.id}`);
       if (prev) { prev.src = '/boss/' + encodeURIComponent(sk.image); prev.style.display = 'block'; prev.onerror = () => { prev.style.display = 'none'; }; }
     }
+    if (def.id === 'focus_fire') {
+      const ri = sk.rapidImages || [];
+      for (let i = 0; i < 6; i++) {
+        const v = ri[i] || '';
+        const inp = document.getElementById(`rapidImg${i}-focus_fire`);
+        if (inp) inp.value = v;
+        const prev = document.getElementById(`rapidImgPreview${i}-focus_fire`);
+        if (prev) {
+          if (v) { prev.src = '/boss/' + encodeURIComponent(v); prev.style.display = 'block'; prev.onerror = () => prev.style.display = 'none'; }
+          else prev.style.display = 'none';
+        }
+      }
+    }
     document.getElementById(`spritePath-${def.id}`).value = sprite.path || '';
     document.getElementById(`spriteCols-${def.id}`).value = sprite.cols ?? 5;
     document.getElementById(`spriteRows-${def.id}`).value = sprite.rows ?? 4;
@@ -1869,6 +1907,9 @@ function applyConfigToDOM() {
     document.getElementById(`bossSpriteFps-${def.id}`).value = bossSprite.fps ?? 10;
     document.getElementById(`bossSpriteSize-${def.id}`).value = bossSprite.size ?? 200;
     document.getElementById(`sound-${def.id}`).value = sk.sound || '';
+    const svol = sk.soundVolume ?? 100;
+    document.getElementById(`soundVolume-${def.id}`).value = svol;
+    document.getElementById(`soundVolumeVal-${def.id}`).textContent = svol;
   }
 
   // キャラ削除エフェクト
@@ -2061,6 +2102,11 @@ function collectConfig() {
       weights,
       speech: document.getElementById(`speech-${def.id}`).value.trim(),
       image: document.getElementById(`image-${def.id}`).value.trim(),
+      ...(def.id === 'focus_fire' ? {
+        rapidImages: [0,1,2,3,4,5]
+          .map(i => document.getElementById(`rapidImg${i}-focus_fire`)?.value.trim() || '')
+          .filter(Boolean)
+      } : {}),
       sprite: {
         path:       document.getElementById(`spritePath-${def.id}`).value.trim(),
         cols:       parseInt(document.getElementById(`spriteCols-${def.id}`).value) || 5,
@@ -2078,6 +2124,7 @@ function collectConfig() {
         size:       parseInt(document.getElementById(`bossSpriteSize-${def.id}`).value) || 200,
       },
       sound: document.getElementById(`sound-${def.id}`).value.trim(),
+      soundVolume: parseInt(document.getElementById(`soundVolume-${def.id}`).value) || 100,
     };
   }
   return cfg;
@@ -2225,7 +2272,9 @@ function playSound(skillId) {
   const path = document.getElementById(`sound-${skillId}`).value.trim();
   if (!path) { alert('効果音パスが入力されていません'); return; }
   if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
+  const vol = (parseInt(document.getElementById(`soundVolume-${skillId}`).value) || 100) / 100;
   const a = new Audio('/sound/' + path);
+  a.volume = Math.min(1, vol);
   _currentAudio = a;
   a.play().catch(e => alert('再生に失敗しました: ' + e.message));
   a.onended = () => { if (_currentAudio === a) _currentAudio = null; };
@@ -2663,6 +2712,15 @@ function closeAgruImgModal() {
   _agruImgSelectedPath = null;
 }
 
+function _updateRapidImgPreview(idx, val) {
+  const prev = document.getElementById(`rapidImgPreview${idx}-focus_fire`);
+  if (!prev) return;
+  if (!val) { prev.style.display = 'none'; return; }
+  prev.src = '/boss/' + encodeURIComponent(val);
+  prev.style.display = 'block';
+  prev.onerror = () => { prev.style.display = 'none'; };
+}
+
 function _updateAgruImgPreview(skillId, val) {
   const prev = document.getElementById(`imgPreview-${skillId}`);
   if (!prev) return;
@@ -2867,6 +2925,12 @@ function confirmBossImgSelect() {
       const input = document.getElementById('hpImgInput' + key);
       if (input) input.value = _bossImgSelectedFile;
       _updateHpImgPreview(Number(key), _bossImgSelectedFile);
+    } else if (typeof _bossImgTargetId === 'string' && /^rapidImg\d+-/.test(_bossImgTargetId)) {
+      // 集中砲火 連打画像
+      const input = document.getElementById(_bossImgTargetId);
+      if (input) input.value = _bossImgSelectedFile;
+      const prev = document.getElementById(_bossImgTargetId.replace('rapidImg', 'rapidImgPreview'));
+      if (prev) { prev.src = '/boss/' + encodeURIComponent(_bossImgSelectedFile); prev.style.display = 'block'; prev.onerror = () => prev.style.display = 'none'; }
     } else if (_bossImgTargetId) {
       // スキル画像
       const input = document.getElementById(`image-${_bossImgTargetId}`);

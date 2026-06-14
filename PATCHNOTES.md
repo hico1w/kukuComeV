@@ -2,6 +2,91 @@
 
 ---
 
+## v2.689.0 — 2026-06-15
+
+### fix: ダメージ数字をエフェクトより手前に表示・サイズ2倍
+
+- **`public/app.js`** `showDamageNumber`: `document.body` に `position:fixed` で追加するよう変更（従来は `#stage` に `position:absolute`）。`#stage` は `position:fixed` で独自スタッキングコンテキストを形成するため内側の z-index がいくら高くても body 直下のエフェクト canvas に負けていた。stage座標→ビューポート座標変換（`sr.left/top` を加算）も追加
+- **`public/style.css`** `.dmg-number { position: fixed }` に変更
+- **`public/app.js`** `showDamageNumber`: フォントサイズ計算に `×2` を追加し全ダメージ数字を2倍サイズに
+
+## v2.688.0 — 2026-06-15
+
+### fix: 超回復防御中はスキル発動をスキップ
+
+- **`public/app.js`** `_agruBattleDoCounter` の先頭に `if (_agruDefenseActive) return` を追加。超回復スキルによる30秒防御状態が続いている間はカウンタータイマーが発火しても次のスキルを使わない
+
+## v2.687.0 — 2026-06-14
+
+### feat: ボスアゲルバトル — スキルごとの効果音音量設定
+
+- **`public/ageru-boss.html`** 効果音セクションに音量スライダー（0〜100%）を追加。`id="soundVolume-{skillId}"`
+- **`public/ageru-boss.html`** `applyConfigToDOM`: `sk.soundVolume` をスライダーに反映（未設定時は 100）
+- **`public/ageru-boss.html`** `collectConfig`: `soundVolume` をスキル設定に含めて保存
+- **`public/ageru-boss.html`** `playSound`: プレビュー再生時にも設定音量を適用
+- **`public/app.js`** `_agruBattlePlayEffect`: `cfg.soundVolume / 100 × seVolume` を Audio の volume に設定
+
+## v2.686.0 — 2026-06-14
+
+### feat: spritePreview — 非表示機能・遅延ロードで軽量化
+
+- **`public/spritePreview.htm`** カード右上に「✕」非表示ボタンを追加。非表示状態は `localStorage`（`spr-hidden` キー）に永続保存
+- ツールバーに「非表示: N」ボタンを追加。クリックで「非表示管理中」モードに切り替わり、隠したカードが赤枠で再表示され「復元」ボタンで個別に戻せる
+- フォルダをデフォルト折りたたみに変更。展開時のみ API を叩いてカードを生成（遅延ロード）→ 初期表示が大幅に高速化
+- シーケンスカード・シートカードとも画像ロードを IntersectionObserver 発火時まで遅延。DOM 上に存在するだけでは HTTP リクエストが飛ばない
+
+## v2.685.0 — 2026-06-14
+
+### feat: spritePreview — 元画像モーダル・設定永続保存
+
+- **`public/spritePreview.htm`** 全カードに「元画像」ボタンを追加。クリックすると元画像をモーダルで表示し、現在の cols/rows に合わせたグリッド線・フレーム番号をオーバーレイ
+- cols/rows スライダー変更時にモーダルのグリッドをリアルタイム更新
+- シーケンスカードのモーダルに前後ナビゲーション（◀ / ▶）
+- cols/rows/fps/frames の設定を localStorage に永続保存（キー: `spr:{folder}/{path}`）。次回ページ読み込み時に自動復元
+
+## v2.684.0 — 2026-06-14
+
+### feat: スプライトプレビューページ追加
+
+- **`public/spritePreview.htm`** 新規作成。`http://localhost:3000/spritePreview.htm` でアクセス可能
+- `/api/sprite-folders` と `/api/sprite-list/:folder` を利用して `public/sprite/` 内の全スプライトを自動列挙
+- 同一ベース名の連番ファイル（3枚以上）は自動検出してシーケンスアニメとして再生
+- 単体PNGはスプライトシートモード（cols / rows / fps / frames を個別調整可能）
+- IntersectionObserver でビューポートに入ったカードから自動再生
+- フォルダセクションの折りたたみ、全体フィルター検索、全再生/全停止、configコピー機能
+
+## v2.683.0 — 2026-06-14
+
+### fix: 状態異常アイコンをキャラに重ねて表示・1.5倍サイズに変更
+
+- **`public/style.css`** `.agru-status-icon` の配置を `bottom:100%`（頭上）から `top:50%; left:50%`（キャラ中央重ね）に変更。フォントサイズを 22px → 33px（1.5倍）に変更。float アニメーションも `translate(-50%,-50%)` ベースに合わせて修正
+
+## v2.682.0 — 2026-06-14
+
+### feat: 魅了・眠り状態のキャラにアイコン表示
+
+- **`public/style.css`** `.agru-status-icon` を追加。`.avatar-wrap` 内に `position:absolute; bottom:100%` で配置し、上下にふわふわ浮くアニメーション付き
+- **`public/app.js`** `_agruSetStatusIcon(user, type)` — キャラの avatar-wrap にアイコン div（💕 / 💤）を追加・差替・除去
+- **`public/app.js`** `_agruUpdateAllStatusIcons()` — 全キャラの効果期限を確認してアイコンを更新。`_agruBattleUpdateTimer`（毎秒）から呼び出し
+- **`public/app.js`** `_agruClearAllStatusIcons()` — `endAgruBattle` 終了時に全アイコンを一括除去
+- **`public/app.js`** charm / sleep スキル適用直後に `_agruSetStatusIcon` を即時呼び出し
+
+## v2.681.0 — 2026-06-14
+
+### feat: 集中砲火スキルに連打画像アニメーション追加・ageru-boss.htmlに設定UI追加
+
+- **`public/app.js`** `_agruFocusFireRapid(images, onDone)` 関数を追加。最大6枚の画像を80ms間隔×3周で高速切替し、終了後にデフォルト画像へクロスフェード復帰。プリロードを100ms先行実行
+- **`public/app.js`** `_agruBattlePlayEffect` の `focus_fire` 処理に `cfg.rapidImages` があれば `_agruFocusFireRapid` を優先使用する分岐を追加
+- **`public/ageru-boss.html`** 集中砲火スキルカードに「連打画像（最大6枚）」セクションを追加。各スロットに入力欄・画像選択ボタン・プレビューを配置
+- **`public/ageru-boss.html`** `applyConfigToDOM` / `collectConfig` / 画像モーダル確定ハンドラ / `_updateRapidImgPreview` を対応追加
+
+## v2.680.0 — 2026-06-14
+
+### fix: リスナー勝利時のキャラ拡大倍率を2倍→1.3倍に変更
+
+- **`public/style.css`** `_agruVicGrow` / `_agruVicBounce` の `scale(2)` を `scale(1.3)` に変更
+- **`public/app.js`** `_agruBattleVictoryBounce` クリーンアップ時のインライン transform を `scale(1.3)` に変更
+
 ## v2.679.0 — 2026-06-14
 
 ### fix: リスナー勝利画像に旧ぷるぷる設定が反映される・アスペクト比が一瞬崩れる問題を修正

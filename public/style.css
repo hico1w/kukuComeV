@@ -1937,6 +1937,24 @@ body {
   50%       { filter: drop-shadow(0 0 24px #bfdbfe) drop-shadow(0 0 52px rgba(191,219,254,0.75)); }
 }
 
+/* ── ボスバトル: 状態異常アイコン ── */
+.agru-status-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 33px;
+  line-height: 1;
+  pointer-events: none;
+  z-index: 200;
+  white-space: nowrap;
+  animation: agru-status-float 1.2s ease-in-out infinite;
+  filter: drop-shadow(0 1px 4px rgba(0,0,0,0.75));
+}
+@keyframes agru-status-float {
+  0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+  50%       { transform: translate(-50%, -50%) translateY(-6px); }
+}
+
 /* ── ボスバトル: 盾キャラ ── */
 .agru-shield-char {
   filter: drop-shadow(0 0 10px #60a5fa) drop-shadow(0 0 20px #3b82f6);
@@ -2373,7 +2391,7 @@ body {
   100% { transform: translateY(-55px) scale(0.6); opacity: 0; }
 }
 .dmg-number {
-  position: absolute;
+  position: fixed;
   font-size: 22px;
   font-weight: 900;
   color: #fbbf24;
@@ -4902,11 +4920,11 @@ body.compact-mode .title-tag         { display: none !important; }
 /* ── ボスアゲル リスナー勝利 バウンス演出 ── */
 @keyframes _agruVicGrow {
   from { transform: scale(1) translateY(0); }
-  to   { transform: scale(2) translateY(0); }
+  to   { transform: scale(1.3) translateY(0); }
 }
 @keyframes _agruVicBounce {
-  0%, 100% { transform: scale(2) translateY(0); }
-  45%      { transform: scale(2) translateY(-24px); }
+  0%, 100% { transform: scale(1.3) translateY(0); }
+  45%      { transform: scale(1.3) translateY(-24px); }
 }
 .agru-victory-bounce {
   transform-origin: bottom center;

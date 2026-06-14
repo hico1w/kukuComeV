@@ -3274,21 +3274,21 @@ function showDamageNumber(x, y, text, isCrit, forceFontSize, color) {
   const numVal = typeof text === 'number' ? text : (parseInt(String(text).replace(/\D/g, '')) || 0);
   el.style.fontSize = Math.round((forceFontSize
     ? forceFontSize * 3
-    : Math.min((18 + Math.floor(numVal / 4) * 3) * 3, 174)) * (dmgFontScale / 100)) + 'px';
+    : Math.min((18 + Math.floor(numVal / 4) * 3) * 3, 174)) * (dmgFontScale / 100) * 2) + 'px';
   if (color) el.style.color = color;
-  const rawX = x - 15 + (Math.random() - 0.5) * 60;
-  const rawY = y      + (Math.random() - 0.5) * 30;
+  // stage座標→ビューポート座標に変換し body に追加（エフェクトcanvas z-index:9999 より手前にするため）
+  const sr = stage.getBoundingClientRect();
+  const rawX = x + sr.left - 15 + (Math.random() - 0.5) * 60;
+  const rawY = y + sr.top       + (Math.random() - 0.5) * 30;
   el.style.left   = rawX + 'px';
   el.style.top    = rawY + 'px';
-  el.style.zIndex = charZCounter + 1;
-  stage.appendChild(el);
-  // offsetWidth/Height forces reflow — clamp to stage bounds
-  const sw = stage.clientWidth;
-  const sh = stage.clientHeight;
+  el.style.zIndex = 10000;
+  document.body.appendChild(el);
+  // clamp to viewport
   const ew = el.offsetWidth;
   const eh = el.offsetHeight;
-  const cx = Math.max(0, Math.min(rawX, sw - ew));
-  const cy = Math.max(0, Math.min(rawY, sh - eh));
+  const cx = Math.max(0, Math.min(rawX, window.innerWidth  - ew));
+  const cy = Math.max(0, Math.min(rawY, window.innerHeight - eh));
   if (cx !== rawX) el.style.left = cx + 'px';
   if (cy !== rawY) el.style.top  = cy + 'px';
   el.addEventListener('animationend', () => el.remove(), { once: true });
@@ -6115,12 +6115,39 @@ function _updateTimerReels(el, str) {
   });
 }
 
+function _agruSetStatusIcon(user, type) {
+  const wrap = document.getElementById('a-' + user.ipid)?.parentElement; // .avatar-wrap
+  if (!wrap) return;
+  wrap.querySelectorAll('.agru-status-icon').forEach(el => el.remove());
+  if (!type) return;
+  const icon = document.createElement('div');
+  icon.className = 'agru-status-icon';
+  icon.textContent = type === 'charm' ? '💕' : '💤';
+  wrap.appendChild(icon);
+}
+
+function _agruUpdateAllStatusIcons() {
+  const now = Date.now();
+  Object.values(users).forEach(u => {
+    if (!u.el) return;
+    const eff = agruBattleStatusEffects.get(u.ipid) || {};
+    const charmed = (eff.charmedUntil || 0) > now;
+    const asleep  = (eff.sleepUntil  || 0) > now;
+    _agruSetStatusIcon(u, charmed ? 'charm' : asleep ? 'sleep' : null);
+  });
+}
+
+function _agruClearAllStatusIcons() {
+  document.querySelectorAll('.agru-status-icon').forEach(el => el.remove());
+}
+
 function _agruBattleUpdateTimer() {
   const el = document.getElementById('agruBattleTimerText');
   if (!el || !agruBattleActive) return;
   const left = Math.max(0, Math.ceil((agruBattleEndTime - Date.now()) / 1000));
   const m = Math.floor(left / 60), s = left % 60;
   el.textContent = `残り ${m}:${s.toString().padStart(2,'0')}`;
+  _agruUpdateAllStatusIcons(); // 毎秒アイコンの期限切れチェック
   if (left <= 0) endAgruBattle('ageru');
 }
 
@@ -7425,9 +7452,9 @@ function _agruBattleVictoryBounce() {
     alive.forEach(u => {
       const el = u.el;  // クラスを付けたのと同じ要素
       if (!el) return;
-      // アニメ終了状態(scale2)をインラインで固定してからクラスを外す（fill-mode が外れても scale(2) を維持）
+      // アニメ終了状態をインラインで固定してからクラスを外す（fill-mode が外れても scale を維持）
       el.style.transformOrigin = 'bottom center';
-      el.style.transform  = 'scale(2)';
+      el.style.transform  = 'scale(1.3)';
       el.classList.remove('agru-victory-bounce');
       el.style.transition = 'transform 0.6s cubic-bezier(.34,1.56,.64,1)';
       requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -7693,6 +7720,7 @@ function endAgruBattle(result) {
     document.getElementById('a-' + u.ipid)?.querySelector('.hp-gray-overlay')?.remove();
     u.el?.classList.remove('agru-float-delete');
   });
+  _agruClearAllStatusIcons();
 
   // 吹き出しを非表示
   const _bubble = document.getElementById('agruBattleSpeechBubble');
@@ -8569,11 +8597,35 @@ function _agruAnimateSprite(canvas, sp, onDone) {
   img.onerror = () => onDone();
 }
 
+function _agruFocusFireRapid(images, onDone) {
+  const el = document.getElementById('agruBattleCharImg');
+  if (!el || !images?.length) { onDone?.(); return; }
+  const FRAME_MS = 80;
+  const CYCLES   = 3;
+  const frames   = [];
+  for (let c = 0; c < CYCLES; c++) frames.push(...images);
+  // プリロード後に開始（最大100ms待機）
+  images.forEach(src => { const img = new Image(); img.src = '/boss/' + encodeURIComponent(src); });
+  setTimeout(() => {
+    let i = 0;
+    const tick = () => {
+      el.src = '/boss/' + encodeURIComponent(frames[i++]);
+      if (i < frames.length) setTimeout(tick, FRAME_MS);
+      else setTimeout(() => onDone?.(), FRAME_MS);
+    };
+    tick();
+  }, 100);
+}
+
 function _agruBattlePlayEffect(skillId, targets) {
   const cfg = agruBattleConfig?.skills?.[skillId];
   if (!cfg) return;
 
-  if (cfg.sound) new Audio('/sound/' + cfg.sound).play().catch(() => {});
+  if (cfg.sound) {
+    const _sa = new Audio('/sound/' + cfg.sound);
+    _sa.volume = Math.min(1, ((cfg.soundVolume ?? 100) / 100) * seVolume);
+    _sa.play().catch(() => {});
+  }
 
   // ボス側エフェクト（アゲルちゃんの上に固定座標で重ねる）
   if (cfg.bossSprite?.path) {
@@ -8612,6 +8664,15 @@ function _agruBattlePlayEffect(skillId, targets) {
   const bossDefaultPath = agruBattleConfig?.defaultImage
     ? `/boss/${encodeURIComponent(agruBattleConfig.defaultImage)}`
     : null;
+
+  // 集中砲火: 連打画像が設定されていれば高速切替
+  if (skillId === 'focus_fire' && cfg.rapidImages?.length > 0) {
+    _agruFocusFireRapid(cfg.rapidImages, () => {
+      if (bossDefaultPath && agruBattleActive && !_agruDefenseActive) _bossCrossfadeImg(bossDefaultPath);
+    });
+    return;
+  }
+
   if (cfg.image) {
     _bossCrossfadeImg(`/boss/${encodeURIComponent(cfg.image)}`, () => {
       if (bossDefaultPath && !_agruDefenseActive) {
@@ -8734,6 +8795,7 @@ function _bossCrossfadeImg(newSrc, onDone) {
 
 function _agruBattleDoCounter() {
   if (!agruBattleActive) return;
+  if (_agruDefenseActive) return; // 超回復防御中はスキル発動しない
   const skill  = _agruBattlePickSkill();
   const alive  = _agruBattleGetAliveUsers();
   const bossAtk = 5 + Math.max(0, Math.floor((1 - agruBattleHP / agruBattleMaxHP) * 5));
@@ -8810,6 +8872,7 @@ function _agruBattleDoCounter() {
       const eff = agruBattleStatusEffects.get(target.ipid) || {};
       eff.sleepUntil = Date.now() + 30000;
       agruBattleStatusEffects.set(target.ipid, eff);
+      _agruSetStatusIcon(target, 'sleep');
       _agruAddSystemMsg(`💤 眠り！${target.name || '名無し'} が30秒間攻撃不能！`);
       _agruBattlePlayEffect(skill.id, [target]);
       _agruBattleGetSpeech('sleep');
@@ -8821,6 +8884,7 @@ function _agruBattleDoCounter() {
       const eff = agruBattleStatusEffects.get(target.ipid) || {};
       eff.charmedUntil = Date.now() + 30000;
       agruBattleStatusEffects.set(target.ipid, eff);
+      _agruSetStatusIcon(target, 'charm');
       _agruAddSystemMsg(`💕 魅了！${target.name || '名無し'} が30秒間味方になった！（攻撃が回復に）`);
       _agruBattlePlayEffect(skill.id, [target]);
       _agruBattleGetSpeech('charm');
