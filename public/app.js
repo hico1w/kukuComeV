@@ -400,8 +400,8 @@ let hayaoshiAutoTimerRed   = null;
 let namesPool       = [];
 let sinjakomeWords  = [];
 let yojijukugoWords = [];
-let hayaoshiFreq  = 5000;  // 白：自動起動間隔(ms)　赤はこの3倍
-let hayaoshiSpeed = 7500;  // 流れるアニメーション duration(ms)
+let hayaoshiFreq  = (parseInt(localStorage.getItem('hayaoshiFreq'))  || 5) * 1000;
+let hayaoshiSpeed = (parseInt(localStorage.getItem('hayaoshiSpeed')) || 8) * 1000;
 let treasureChestEl    = null;
 let treasureChestTimer = null;
 let treasureAutoTimer  = null;
@@ -2032,11 +2032,11 @@ let brTimerDragState = null;
 let brTimerPanelX   = parseInt(localStorage.getItem('brTimerPanelX')) || 10;
 let brTimerPanelY   = parseInt(localStorage.getItem('brTimerPanelY')) || 150;
 let bossCount = 1;       // 現在何体目のボスか
-let bossCounterRate = 0.40; // 反撃確率（0〜1）
-let bossHpScale    = 1;    // ボスHP倍率（1〜100）
-let bossAtkCoeff   = 20;   // 参加者ATK合計への係数
-let brHpMult       = 200;  // バトルロイヤル仮想HP倍率
-let taimanHpMult   = 10;   // タイマン仮想HP倍率
+let bossCounterRate = parseFloat(localStorage.getItem('bossCounterRate') ?? '0.40');
+let bossHpScale    = parseFloat(localStorage.getItem('bossHpScale')    ?? '1');
+let bossAtkCoeff   = parseInt(localStorage.getItem('bossAtkCoeff')   ?? '20');
+let brHpMult       = parseInt(localStorage.getItem('brHpMult')       ?? '200');
+let taimanHpMult   = parseInt(localStorage.getItem('taimanHpMult')   ?? '10');
 let taimanDefeatCommand = localStorage.getItem('taimanDefeatCommand') || '';
 let taimanCharScale     = parseFloat(localStorage.getItem('taimanCharScale') || '4');
 let taimanCooldown      = parseInt(localStorage.getItem('taimanCooldown')) || 5 * 60 * 1000;
@@ -2054,8 +2054,8 @@ let petAspectExp        = parseFloat(localStorage.getItem('petAspectExp') ?? '0.
 let petPortraitBoost    = parseFloat(localStorage.getItem('petPortraitBoost') ?? '0');
 let jiggleConfig        = {};
 try { jiggleConfig = JSON.parse(localStorage.getItem('jiggleConfig') || '{}'); } catch(e) {}
-let nikoFontSize  = 40;  // 早押しコメント文字サイズ(px)
-let nikoOpacity   = 1.0; // 早押しコメント透明度（0〜1）
+let nikoFontSize  = parseInt(localStorage.getItem('nikoFontSize')  || '40');
+let nikoOpacity   = parseFloat(localStorage.getItem('nikoOpacity') || '1.0');
 function nextBossHp() {
   const totalAtk = Object.values(users).filter(u => u.el && !u.ko)
     .reduce((sum, u) => sum + calcAtk(u), 0);
@@ -7423,20 +7423,24 @@ function _agruBattleVictoryBounce() {
   // 0.5s grow + 0.65s×15 bounce = 10.25s → 10.4s 後にリセット
   setTimeout(() => {
     alive.forEach(u => {
-      const el = document.getElementById('a-' + u.ipid);
+      const el = u.el;  // クラスを付けたのと同じ要素
       if (!el) return;
-      el.classList.remove('agru-victory-bounce');
-      // アニメ終了時点の scale(2) から scale(1) にスムーズに戻す
+      // アニメ終了状態(scale2)をインラインで固定してからクラスを外す（fill-mode が外れても scale(2) を維持）
+      el.style.transformOrigin = 'bottom center';
       el.style.transform  = 'scale(2)';
+      el.classList.remove('agru-victory-bounce');
       el.style.transition = 'transform 0.6s cubic-bezier(.34,1.56,.64,1)';
       requestAnimationFrame(() => requestAnimationFrame(() => {
-        el.style.transform = '';
+        el.style.transform = 'scale(1)';
       }));
       setTimeout(() => {
+        el.style.transform      = '';
         el.style.transition     = '';
         el.style.transformOrigin = '';
       }, 700);
     });
+    // スケールリセット完了後に下集合
+    setTimeout(() => gatherCharactersBottom(), 800);
   }, 10400);
 }
 
@@ -7507,8 +7511,101 @@ function _agruBattleWipe() {
   }, 3500);
 }
 
+// HP0 → 砕け散りエフェクト → 勝利フロー
+function _agruPlayerVictoryIntro() {
+  if (!agruBattleActive || _agruVictoryPending) return;
+  _agruVictoryPending = true;
+  clearInterval(agruBattleTimerInterval);
+  clearInterval(agruBattleCounterTimer);
+  agruBattleTimerInterval = null;
+  agruBattleCounterTimer  = null;
+  _agruShatterEffect(() => {
+    _agruVictoryPending = false;
+    endAgruBattle('players');
+  });
+}
+
+function _agruShatterEffect(onDone) {
+  const W = window.innerWidth, H = window.innerHeight;
+  const cols = 5, rows = 4;
+
+  // 格子点をジッター付きで生成（境界は固定）
+  const pts = [];
+  for (let r = 0; r <= rows; r++) {
+    for (let c = 0; c <= cols; c++) {
+      const edge = (r === 0 || r === rows || c === 0 || c === cols);
+      const jx = edge ? 0 : (Math.random() - 0.5) * (W / cols * 0.55);
+      const jy = edge ? 0 : (Math.random() - 0.5) * (H / rows * 0.55);
+      pts.push([c * W / cols + jx, r * H / rows + jy]);
+    }
+  }
+
+  // 三角形シャード（クワッドを対角線で2分割）
+  const shards = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const tl = pts[r*(cols+1)+c],   tr = pts[r*(cols+1)+c+1];
+      const bl = pts[(r+1)*(cols+1)+c], br = pts[(r+1)*(cols+1)+c+1];
+      if (Math.random() > 0.5) { shards.push([tl,tr,bl], [tr,br,bl]); }
+      else                     { shards.push([tl,tr,br], [tl,br,bl]); }
+    }
+  }
+
+  // 白フラッシュ（爆発の瞬間）
+  const flash = document.createElement('div');
+  flash.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#fff;opacity:0.85;transition:opacity 600ms ease;pointer-events:none';
+  document.body.appendChild(flash);
+  requestAnimationFrame(() => requestAnimationFrame(() => { flash.style.opacity = '0'; }));
+  setTimeout(() => flash.remove(), 650);
+
+  // シャードコンテナ
+  const container = document.createElement('div');
+  container.style.cssText = 'position:fixed;inset:0;z-index:99999;pointer-events:none;overflow:hidden';
+  document.body.appendChild(container);
+
+  const maxDelay = 320;
+  const dur = 1350;
+  const scx = W / 2, scy = H * 0.45;
+
+  shards.forEach(tri => {
+    const cx = (tri[0][0] + tri[1][0] + tri[2][0]) / 3;
+    const cy = (tri[0][1] + tri[1][1] + tri[2][1]) / 3;
+    const dx = cx - scx, dy = cy - scy;
+    const len = Math.sqrt(dx*dx + dy*dy) || 1;
+    const speed = 380 + Math.random() * 420;
+    const vx = (dx/len) * speed + (Math.random()-0.5)*160;
+    const vy = (dy/len) * speed + (Math.random()-0.5)*160;
+    const rot = (Math.random()-0.5) * 210;
+    const delay = Math.random() * maxDelay;
+    const hue = 200 + Math.random() * 40;
+    const sat = 45 + Math.random() * 35;
+    const lig = 15 + Math.random() * 30;
+
+    const div = document.createElement('div');
+    const poly = tri.map(p => `${p[0].toFixed(1)}px ${p[1].toFixed(1)}px`).join(',');
+    div.style.cssText = `position:fixed;left:0;top:0;width:${W}px;height:${H}px;`
+      + `clip-path:polygon(${poly});`
+      + `background:linear-gradient(${Math.random()*360}deg,`
+      +   `hsl(${hue},${sat}%,${lig}%),hsl(${hue+10},${sat-10}%,${lig*0.5}%));`
+      + `filter:drop-shadow(0 0 4px rgba(147,197,253,0.85));`;
+    container.appendChild(div);
+
+    setTimeout(() => {
+      div.style.transition = `transform ${dur}ms cubic-bezier(0.03,0,0.82,1), opacity ${dur}ms cubic-bezier(0.15,0,1,1)`;
+      div.style.transformOrigin = `${cx}px ${cy}px`;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        div.style.transform = `translate(${vx}px,${vy}px) rotate(${rot}deg)`;
+        div.style.opacity = '0';
+      }));
+    }, delay);
+  });
+
+  setTimeout(() => { container.remove(); onDone(); }, maxDelay + dur + 100);
+}
+
 function endAgruBattle(result) {
   if (!agruBattleActive) return;
+  _agruVictoryPending = false;
 
   // 残留している勝利オーバーレイを必ず除去
   document.getElementById('_agruWinOverlay')?.remove();
@@ -7575,18 +7672,22 @@ function endAgruBattle(result) {
   // UI を元に戻す
   _agruBattleLeaveUI();
 
-  // バトル背景・キャラを非表示
-  document.getElementById('agruBattleOverlay')?.classList.add('hidden');
-  const _bfWrap = document.getElementById('agruBossFigureWrap');
-  if (_bfWrap) {
-    _bfWrap.querySelectorAll('.puru-canvas').forEach(c => { if (c._puruImg) c._puruImg.style.opacity = ''; c.remove(); });
-    _bfWrap.classList.add('hidden');
+  // バトル背景・キャラを非表示（リスナー勝利時は10秒後にフェードで消す）
+  if (result !== 'players') {
+    document.getElementById('agruBattleOverlay')?.classList.add('hidden');
+    const _bfWrap = document.getElementById('agruBossFigureWrap');
+    if (_bfWrap) {
+      _bfWrap.querySelectorAll('.puru-canvas').forEach(c => { if (c._puruImg) c._puruImg.style.opacity = ''; c.remove(); });
+      _bfWrap.classList.add('hidden');
+    }
+    document.getElementById('agruBattleCharWrap')?.classList.add('hidden');
   }
-  document.getElementById('agruBattleCharWrap')?.classList.add('hidden');
 
-  // バトル背景・レイアウトをリセット
-  _agruApplyBattleBg(null);
-  _resetBossLayoutConfig();
+  // バトル背景・レイアウトをリセット（リスナー勝利時は10秒後に実施）
+  if (result !== 'players') {
+    _agruApplyBattleBg(null);
+    _resetBossLayoutConfig();
+  }
   _agruBattleRestoreChars();
   Object.values(users).forEach(u => {
     document.getElementById('a-' + u.ipid)?.querySelector('.hp-gray-overlay')?.remove();
@@ -7627,38 +7728,59 @@ function endAgruBattle(result) {
     _agruBattleGetSpeech('battleWin');
     Object.values(users).forEach(u => { if (u.el && !u.ko) { u.mp = (u.mp || 0) + 50; updateStatsDisplay(u); } });
 
-    // 勝利画像をキャラより奥に表示（10秒後に砂エフェクトで消去）
+    // ボスアゲル画像を勝利画像に差し替え（ぷるぷる除去→フェードイン）
     const winImg = agruBattleConfig?.winImage;
     if (winImg) {
-      const overlay = document.createElement('div');
-      overlay.id = '_agruWinOverlay';
-      overlay.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none';
-      const img = document.createElement('img');
-      img.src = '/boss/' + encodeURIComponent(winImg);
-      img.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain';
-      overlay.appendChild(img);
-      // #stage の先頭に挿入 → キャラ（後から appendChild）より DOM が前 → 自然にキャラが前面になる
-      stage.insertBefore(overlay, stage.firstChild);
-      setTimeout(() => { if (overlay.isConnected) _agruWinImageDisintegrate(overlay); }, 10000);
+      const battleCharImg = document.getElementById('agruBattleCharImg');
+      if (battleCharImg) {
+        // 旧ぷるぷるキャンバスを除去（imgのopacityも復元される）
+        const _figEl = document.getElementById('agruBattleCharFigure') || document.getElementById('agruBossFigureWrap');
+        _figEl?.querySelectorAll('.puru-canvas').forEach(c => { if (c._puruImg) c._puruImg.style.opacity = ''; c.remove(); });
+        // src切り替え中の一瞬のアスペクト比崩れを防ぐため先にopacity:0にする
+        battleCharImg.style.transition = '';
+        battleCharImg.style.opacity = '0';
+        battleCharImg.src = '/boss/' + encodeURIComponent(winImg);
+        const _showWinImg = () => {
+          battleCharImg.style.transition = 'opacity 0.4s ease';
+          battleCharImg.style.opacity = '1';
+        };
+        if (battleCharImg.complete && battleCharImg.naturalWidth) _showWinImg();
+        else battleCharImg.addEventListener('load', _showWinImg, { once: true });
+      }
     }
 
-    // アゲル系キャラを消滅
+    // アゲル系キャラをランダム非アゲル系に変更（消滅させず勝利演出に参加させる）
     const agruTypeSet = new Set((agruBattleConfig?.agruTypeImages || []).map(s => s.trim()).filter(Boolean));
     if (agruTypeSet.size > 0) {
+      const imgPool = (availableImages.length > 0 ? availableImages : Object.values(charImages).filter(v => v))
+        .filter(img => !agruTypeSet.has(img));
       Object.values(users).forEach(u => {
+        if (!u.el || u.ko) return;
         const img = u.charImage || charImages[u.charDef?.id] || '';
-        if (agruTypeSet.has(img) && u.el) {
-          const _killedEl = u.el;
-          u.el = null;
-          _killedEl.style.transition = 'opacity 1s ease';
-          _killedEl.style.opacity = '0';
-          setTimeout(() => _killedEl.remove(), 1000);
+        if (agruTypeSet.has(img) && imgPool.length > 0) {
+          u.charImage = imgPool[Math.floor(Math.random() * imgPool.length)];
+          applyAvatarStyle(u);
         }
       });
     }
 
-    // 生存キャラを2倍バウンス（アゲル系消滅アニメが始まった後に起動）
+    // 生存キャラを2倍バウンス（アゲル系変更後に起動）
     setTimeout(() => _agruBattleVictoryBounce(), 400);
+
+    // ボスUI を10秒後にフェードアウト・背景リセット
+    const _bossFadeIds = ['agruBattleOverlay','agruBossFigureWrap','agruBattleCharWrap'];
+    setTimeout(() => {
+      const _bossEls = _bossFadeIds.map(id => document.getElementById(id)).filter(Boolean);
+      _bossEls.forEach(el => { el.style.transition = 'opacity 1.5s ease'; el.style.opacity = '0'; });
+      setTimeout(() => {
+        _bossEls.forEach(el => { el.style.transition = ''; el.style.opacity = ''; el.classList.add('hidden'); });
+        document.getElementById('agruBossFigureWrap')
+          ?.querySelectorAll('.puru-canvas')
+          .forEach(c => { if (c._puruImg) c._puruImg.style.opacity = ''; c.remove(); });
+        _agruApplyBattleBg(null);
+        _resetBossLayoutConfig();
+      }, 1500);
+    }, 10000);
 
     // 会話モーダルを閉じる
     if (agruActive) {
@@ -7712,7 +7834,7 @@ function _agruBattleDealDamage(dmg, user) {
   }
   agruBattleHP = Math.max(0, agruBattleHP - dmg);
   updateAgruBattleHpDisplay();
-  if (agruBattleHP <= 0) setTimeout(() => endAgruBattle('players'), 500);
+  if (agruBattleHP <= 0) _agruPlayerVictoryIntro();
 }
 
 // 吹き出しをキャラからボスアゲルへ飛ばす演出
@@ -7875,7 +7997,7 @@ function attackAgruBoss(user, msgLen, msgText) {
       }
       showDamageNumber?.(dmgX, dmgY, actualDmg, _agruDefenseActive ? false : isCrit);
       if (_agruDefenseActive && _agruDefenseDmgAccum >= 100) { _agruBreakDefense(); return; }
-      if (agruBattleHP <= 0 && agruBattleActive) setTimeout(() => endAgruBattle('players'), 300);
+      if (agruBattleHP <= 0 && agruBattleActive) _agruPlayerVictoryIntro();
     }, FLIGHT_MS + i * 200);
   }
 }
@@ -8424,7 +8546,7 @@ function _agruBreakDefense() {
   agruBattleHP = Math.max(0, agruBattleHP - penaltyDmg);
   updateAgruBattleHpDisplay();
   _agruAddSystemMsg(`💥 防御崩壊！HP -${penaltyDmg} ペナルティ！`);
-  if (agruBattleHP <= 0 && agruBattleActive) setTimeout(() => endAgruBattle('players'), 400);
+  if (agruBattleHP <= 0 && agruBattleActive) _agruPlayerVictoryIntro();
 }
 
 function _agruAnimateSprite(canvas, sp, onDone) {
@@ -8931,6 +9053,7 @@ let _agruPlayersWon    = false; // リスナー勝利後はアゲル系画像を
 let agruBattleStatusEffects  = new Map(); // ipid → { stoneUntil, sleepUntil, charmedUntil, curseUntil }
 let _agruBattleKilledIds     = new Set();
 let _agruWipePending         = false;
+let _agruVictoryPending      = false;
 let _agruShieldChar          = null; // 盾キャラ攻撃で選ばれたユーザー
 let _agruShieldHp            = 0;
 let _agruShieldTimer         = null;

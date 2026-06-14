@@ -442,7 +442,7 @@
   <div class="section-title">💾 セーブ管理</div>
   <div class="btn-row">
     <button class="btn-red" onclick="deleteUnprotectedSave()">🗑 保護以外を削除</button>
-    <button class="btn-red" onclick="deleteAllSave()">🗑 全削除</button>
+    <button class="btn-red" onclick="deleteNonNumericIdSave()">🗑 ID非5桁を削除</button>
     <button onclick="loadSaveList()">🔄 一覧を更新</button>
   </div>
   <div id="saveListWrap" style="margin-top:6px;max-height:220px;overflow-y:auto"></div>
@@ -2155,12 +2155,19 @@
     loadSaveList();
   }
 
-  function deleteAllSave() {
-    if (!confirm('全キャラのセーブデータを削除しますか？\nこの操作は取り消せません。')) return;
-    fetch('/api/char-save', { method: 'DELETE' })
-      .then(r => r.json())
-      .then(() => { adminSend({ type: 'clearCharSave' }); document.getElementById('saveListWrap').innerHTML = ''; alert('セーブデータを削除しました。'); })
-      .catch(() => alert('削除に失敗しました。'));
+  async function deleteNonNumericIdSave() {
+    let data;
+    try { data = await fetch('/api/char-save').then(r => r.json()); } catch { alert('データ取得に失敗しました。'); return; }
+    const toDelete = Object.keys(data).filter(k => !/^\d{5}$/.test(k));
+    if (!toDelete.length) { alert('対象のセーブデータはありません。'); return; }
+    if (!confirm(`IDが数字5桁以外の ${toDelete.length} 件を削除しますか？\nこの操作は取り消せません。`)) return;
+    for (const key of toDelete) {
+      try {
+        await fetch(`/api/char-save/${encodeURIComponent(key)}`, { method: 'DELETE' });
+        adminSend({ type: 'deleteCharSave', key });
+      } catch {}
+    }
+    loadSaveList();
   }
 
   async function loadSaveList() {

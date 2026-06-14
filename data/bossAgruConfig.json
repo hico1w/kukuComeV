@@ -18,19 +18,17 @@
     "100": "00332-3171073214.png"
   },
   "battleStartSpeech": "お前を殺す。",
-  "battleWinSpeech": "",
-  "battleLoseSpeech": "",
-  "battleWipeSpeech": "",
-  "wipeImage": "",
+  "battleWinSpeech": "e",
+  "battleLoseSpeech": "ah",
   "deleteEffect": {
     "path": "戦闘エフェクトアニメ50/png/pipo-btleffect190_640.png",
     "cols": 2,
     "rows": 5,
     "frameCount": 20,
     "fps": 8,
-    "size": 200
+    "size": 303
   },
-  "winImage": "1.png",
+  "winImage": "00028-2085923595.png",
   "agruTypeImages": [
     "00000-2030634083.png",
     "00004-159183190.png",

@@ -2,6 +2,57 @@
 
 ---
 
+## v2.679.0 — 2026-06-14
+
+### fix: リスナー勝利画像に旧ぷるぷる設定が反映される・アスペクト比が一瞬崩れる問題を修正
+
+- **`public/app.js`** 勝利画像への `src` 切り替え前に `agruBattleCharFigure` 配下の `.puru-canvas` を明示的に除去。旧ボス画像のぷるぷるキャンバスが残存して新 src の描画に適用される問題を解消
+- **`public/app.js`** puru-canvas 除去後に `battleCharImg.style.opacity = '0'` を設定してから `src` を変更し、新画像ロード完了後に `opacity: 1` にフェードインすることでアスペクト比崩れを防止
+
+## v2.678.0 — 2026-06-14
+
+### feat: セーブ管理「ID非5桁を削除」ボタン追加・「全削除」ボタン削除
+
+- **`public/admin.html`** セーブ管理の「全削除」ボタンを削除
+- **`public/admin.html`** 「ID非5桁を削除」ボタンを追加。`/api/char-save` から全キーを取得し `/^\d{5}$/` にマッチしないキーを一括削除する `deleteNonNumericIdSave()` を実装
+
+## v2.677.0 — 2026-06-14
+
+### feat: ボスアゲルHP0時に砕け散りスローモーションエフェクト追加
+
+- **`public/app.js`** `_agruShatterEffect(onDone)` 関数を追加。画面をジッター付き三角形シャード40枚に分割し、白フラッシュ演出後に各シャードがスローモーション（`cubic-bezier(0.03,0,0.82,1)`）でランダム方向に飛び散る。終了後に `onDone` を呼び出す（所要時間 約1.8秒）
+- **`public/app.js`** `_agruPlayerVictoryIntro()` 関数を追加。HP0検知時に `_agruVictoryPending` フラグで多重起動を防ぎながら `_agruShatterEffect` を起動し、完了後に `endAgruBattle('players')` を呼び出す。タイマー類はイントロ開始時に即停止
+- **`public/app.js`** HP0判定の3箇所（`_agruBattleDealDamage`・`_launchAtkBubble`・`_agruBreakDefense`）を `endAgruBattle('players')` 直接呼び出しから `_agruPlayerVictoryIntro()` に変更
+- **`public/app.js`** `endAgruBattle` 冒頭で `_agruVictoryPending = false` をリセット
+
+## v2.676.0 — 2026-06-14
+
+### fix: リスナー勝利時に背景等がすぐ消える問題を修正・ボスアゲル画像を勝利画像に差し替え
+
+- **`public/app.js`** `endAgruBattle('players')` 時に `_agruApplyBattleBg(null)` と `_resetBossLayoutConfig()` を即時実行しないよう変更。10秒後のフェードアウト完了後に実行することで、バトル背景が10秒間維持されるようになった
+- **`public/app.js`** リスナー勝利時に `agruBattleCharImg` の `src` を `winImage` に差し替えてボスフィギュアエリアに勝利画像を表示。従来の `#stage` 上への `_agruWinOverlay` 挿入は廃止
+
+## v2.675.0 — 2026-06-14
+
+### fix: 設定値が起動時に反映されない問題を修正（早押し・ニコ・ボスバトルパラメータ）
+
+- **`public/app.js`** `hayaoshiFreq` / `hayaoshiSpeed` の初期値を `localStorage` から直接読み込むよう変更。`initHayaoshiFreqSlider` / `initHayaoshiSpeedSlider` はスライダー要素が `index.html` に存在しないため早期リターンしており、保存値が反映されていなかった
+- **`public/app.js`** `nikoFontSize` / `nikoOpacity` の初期値も同様に `localStorage` から読み込むよう修正
+- **`public/app.js`** `bossHpScale` / `bossAtkCoeff` / `bossCounterRate` / `brHpMult` / `taimanHpMult` の初期値も `localStorage` から読み込むよう修正。いずれも対応する init IIFE がスライダー要素の有無で早期リターンしており、`index.html` 上で設定値が反映されていなかった
+
+### fix: リスナー勝利時のバウンスアニメーションが元サイズに戻らない問題を修正
+
+- **`public/app.js`** `_agruBattleVictoryBounce` のクリーンアップが `#a-{ipid}`（内側 avatar div）に対して行われていたのを `u.el`（クラスを付けたのと同じ要素）に修正。アニメ終了状態の `scale(2)` をインラインで固定してからクラスを外すことで滑らかな `scale(1)` への戻りを実現
+- **`public/app.js`** バウンスリセット後に `gatherCharactersBottom()` を呼び出して下集合を実行するよう追加
+
+### feat: リスナー勝利時のアゲル系キャラ処理を消滅からランダム変更に変更
+
+- **`public/app.js`** 勝利時のアゲル系キャラを消滅させる代わりに `availableImages` からランダムな非アゲル系画像に変更し `applyAvatarStyle` で更新。変更後のキャラも勝利バウンスに参加する
+
+### feat: リスナー勝利時のボスUI を10秒後にフェードアウト
+
+- **`public/app.js`** `endAgruBattle('players')` 時にボスオーバーレイ・ボスフィギュアラップ・キャララップの即時非表示をスキップし、10秒後に `opacity 1.5s ease` トランジションでフェードアウトするよう変更
+
 ## v2.674.0 — 2026-06-14
 
 ### fix: ボスアゲル終了時に水平反転が残るキャラがいる問題を修正
