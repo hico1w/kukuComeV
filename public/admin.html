@@ -1842,6 +1842,154 @@
   function adminSend(msg) {
     channel.postMessage(msg);
     if (_ws?.readyState === WebSocket.OPEN) _ws.send(JSON.stringify(msg));
+    _adminDirectSave(msg);
+  }
+
+  // ── 直接保存（app.js 非依存でサーバーに永続化） ─────────────────────
+  const _SLIDER_MAP = {
+    nikoSizeSlider:     {key:'nikoFontSize',   save:v=>parseInt(v)},
+    nikoOpacitySlider:  {key:'nikoOpacity',    save:v=>v/100},
+    hayaoshiFreqSlider: {key:'hayaoshiFreq',   save:v=>parseInt(v)*1000},
+    hayaoshiSpeedSlider:{key:'hayaoshiSpeed',  save:v=>parseInt(v)*1000},
+    bossHpScaleSlider:  {key:'bossHpScale',    save:v=>parseFloat(v)},
+    bossAtkCoeffSlider: {key:'bossAtkCoeff',   save:v=>parseInt(v)},
+    counterRateSlider:  {key:'bossCounterRate',save:v=>v/100},
+    charSizeSlider:     {key:'charSizeScale',  save:v=>v/100},
+    bossSizeSlider:     {key:'bossSizeScale',  save:v=>v/100},
+    brHpMultSlider:     {key:'brHpMult',       save:v=>parseInt(v)},
+    taimanHpMultSlider: {key:'taimanHpMult',   save:v=>parseInt(v)},
+    dmgFontScaleSlider: {key:'dmgFontScale',   save:v=>parseInt(v)},
+    newsTickerWidthSlider:    {key:'newsTickerWidth',     save:v=>parseInt(v)},
+    newsTickerXSlider:        {key:'newsTickerX',         save:v=>parseInt(v)},
+    newsTickerYSlider:        {key:'newsTickerY',         save:v=>parseInt(v)},
+    newsTickerRowsSlider:     {key:'newsTickerRows',      save:v=>parseInt(v)},
+    newsTickerFontSlider:     {key:'newsTickerFontSize',  save:v=>parseInt(v)},
+    newsTickerBgOpacitySlider:{key:'newsTickerBgOpacity', save:v=>parseInt(v)},
+    newsTickerSpeedSlider:    {key:'newsTickerSpeed',     save:v=>parseInt(v)},
+    newsTickerIntervalSlider: {key:'newsTickerInterval',  save:v=>parseInt(v)},
+    wordlePanelWidthSlider:   {key:'wordlePanelWidth',    save:v=>parseInt(v)},
+    wordlePanelBgSlider:      {key:'wordlePanelBgOpacity',save:v=>parseInt(v)},
+    rankingPanelBgSlider:     {key:'rankingPanelBgOpacity',save:v=>parseInt(v)},
+    quizPanelBgSlider:        {key:'quizPanelBgOpacity',  save:v=>parseInt(v)},
+    afkOpacitySlider:         {key:'afkOpacity',          save:v=>parseInt(v)},
+    afkGrayscaleSlider:       {key:'afkGrayscale',        save:v=>parseInt(v)},
+    afkBrightnessSlider:      {key:'afkBrightness',       save:v=>parseInt(v)},
+    gatherRowMaxSlider:             {key:'gatherRowMax',             save:v=>parseInt(v)},
+    gatherMarginLeftSlider:         {key:'gatherMarginLeft',         save:v=>parseInt(v)},
+    gatherMarginRightSlider:        {key:'gatherMarginRight',        save:v=>parseInt(v)},
+    gatherMarginBottomSlider:       {key:'gatherMarginBottom',       save:v=>parseInt(v)},
+    contentModeGatherMarginBottomSlider:{key:'contentModeGatherMarginBottom',save:v=>parseInt(v)},
+    contentModeGatherMarginLeftSlider:  {key:'contentModeGatherMarginLeft',  save:v=>parseInt(v)},
+    contentModeGatherMarginRightSlider: {key:'contentModeGatherMarginRight', save:v=>parseInt(v)},
+    contentModeCharSizePctSlider:  {key:'contentModeCharSizePct', save:v=>parseInt(v)},
+    contentModeBossSizePctSlider:  {key:'contentModeBossSizePct', save:v=>parseInt(v)},
+    autoDeleteMinutesSlider:{key:'autoDeleteMinutes', save:v=>parseInt(v)},
+    seVolumeSlider:         {key:'seVolume',          save:v=>parseFloat(v)},
+    voiceVolumeSlider:      {key:'voiceVolume',       save:v=>parseFloat(v)},
+    taimanCharScaleSlider:  {key:'taimanCharScale',   save:v=>parseFloat(v)},
+    taimanCooldownSlider:   {key:'taimanCooldown',    save:v=>parseInt(v)*1000},
+    charAspectExpSlider:    {key:'charAspectExp',     save:v=>parseFloat(v)},
+    charPortraitBoostSlider:{key:'charPortraitBoost', save:v=>parseFloat(v)},
+    charStatsBottomSlider:  {key:'charStatsBottom',   save:v=>parseInt(v)},
+    charStatsLeftSlider:    {key:'charStatsLeft',     save:v=>parseInt(v)},
+    charEquipXSlider:       {key:'charEquipOffsetX',  save:v=>parseInt(v)},
+    charEquipYSlider:       {key:'charEquipOffsetY',  save:v=>parseInt(v)},
+    petSizeSlider:          {key:'petSizeScale',      save:v=>v/100},
+    petAspectExpSlider:     {key:'petAspectExp',      save:v=>parseFloat(v)},
+    petPortraitBoostSlider: {key:'petPortraitBoost',  save:v=>parseFloat(v)},
+  };
+  let _patchTimer = null;
+  const _pendingPatches = {};
+  function _patchSettings(patches) {
+    if (!patches) return;
+    Object.assign(_pendingPatches, patches);
+    clearTimeout(_patchTimer);
+    _patchTimer = setTimeout(() => {
+      const p = Object.assign({}, _pendingPatches);
+      Object.keys(_pendingPatches).forEach(k => delete _pendingPatches[k]);
+      fetch('/api/settings', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(p)}).catch(()=>{});
+    }, 500);
+  }
+  function _adminDirectSave(msg) {
+    let p = null;
+    if (msg.type==='slider' && msg.id && _SLIDER_MAP[msg.id]) {
+      const m = _SLIDER_MAP[msg.id]; p = {[m.key]: m.save(msg.value)};
+    } else if (msg.type==='aiText')      { p = {[msg.key]: msg.value}; }
+    else if (msg.type==='sdText')        { p = {[msg.key]: msg.value}; }
+    else if (msg.type==='agruText')      { p = {[msg.key]: msg.value}; }
+    else if (msg.type==='agruEmotionMap'){ p = {agruEmotionMap: JSON.stringify(msg.map||{})}; }
+    else if (msg.type==='volumeText')    { p = {[msg.key]: msg.value}; }
+    else if (msg.type==='autoReplyConfig'){ p = {autoReplyWords: JSON.stringify(msg.words||[]), autoReplyMessages: JSON.stringify(msg.messages||[])}; }
+    else if (msg.type==='color'  && msg.id==='bgColor')       { p = {bgColor: msg.value}; }
+    else if (msg.type==='select' && msg.id==='moveAreaSelect') { p = {moveArea: msg.value}; }
+    else if (msg.type==='taimanCharScale')   { p = {taimanCharScale: parseFloat(msg.value)||4}; }
+    else if (msg.type==='taimanDefeatCmd')   { p = {taimanDefeatCommand: msg.value||''}; }
+    else if (msg.type==='taimanCooldown')    { p = {taimanCooldown: (parseInt(msg.value)||0)*1000}; }
+    else if (msg.type==='autoDeleteTimeout') { p = {autoDeleteMinutes: parseInt(msg.value)||30}; }
+    else if (msg.type==='charAspectExp')     { p = {charAspectExp: parseFloat(msg.value)}; }
+    else if (msg.type==='charPortraitBoost') { p = {charPortraitBoost: parseFloat(msg.value)}; }
+    else if (msg.type==='petSizeScale')      { p = {petSizeScale: parseFloat(msg.value)}; }
+    else if (msg.type==='petAspectExp')      { p = {petAspectExp: parseFloat(msg.value)}; }
+    else if (msg.type==='petPortraitBoost')  { p = {petPortraitBoost: parseFloat(msg.value)}; }
+    else if (msg.type==='charStatsOffset')   { p = {charStatsBottom: parseInt(msg.bottom), charStatsLeft: parseInt(msg.left)}; }
+    else if (msg.type==='charEquipOffset')   { p = {charEquipOffsetX: parseInt(msg.x), charEquipOffsetY: parseInt(msg.y)}; }
+    else if (msg.type==='slotMp')            { p = {[msg.key]: parseInt(msg.value)}; }
+    else if (msg.type==='wordleRows')        { p = {wordleDisplayRows: parseInt(msg.value)}; }
+    else if (msg.type==='charFontSizes')     { p = {charFontSizes: JSON.stringify(msg.sizes||{})}; }
+    if (p) _patchSettings(p);
+  }
+
+  // ── 起動時にサーバーから直接読み込み（app.js 非依存） ─────────────────
+  async function _loadSettingsDirect() {
+    try {
+      const json = await fetch('/api/settings').then(r => r.json());
+      const s = {};
+      ['aiModel','aiSystem','ollamaReviewPrompt','agruSystem','agruDefaultImage','agruEmotionMap',
+       'agruCharTags','agruVoicevoxEnabled','agruVoicevoxSpeaker','agruVoicevoxSpeed','agruVoicevoxVolume',
+       'agruSdWidth','agruSdHeight','agruSdSteps','agruSdCfgScale','agruSdPositiveSuffix',
+       'agruIdleDelay','agruIdleDelayImage','agruChatFontSize','agruChatBold','agruFontLeft','agruFontRight',
+       'agruYtVolume','agruBgmVolume','agruYtWidth','agruYtHeight','agruYtOpacity','agruYtEnabled',
+       'agruImgCmdEnabled','agruUnloadEnabled','agruModalZ','agruYtModalZ','agruModalWidth','agruModalHeight',
+       'agruModalBgOpacity','agruChatImgSize','agruCharImgHeight','agruCharImgScale',
+       'sdWidth','sdHeight','sdSteps','sdPopWidth','sdPositiveSuffix','sdNegative','sdDisplayTime',
+       'sdMosaicKeywords','sdMosaicBlock','sdCfgScale','sdSampler',
+       'taimanDefeatCommand','charExcludeIds','autoDeleteMinutes','wordleDisplayRows',
+       'seVolume','voiceVolume','bgColor','moveArea',
+       'charFontSizes','jiggleConfig','purupuruConfig','autoReplyWords','autoReplyMessages',
+       'taimanCharScale','taimanCooldown','charAspectExp','charPortraitBoost',
+       'charStatsBottom','charStatsLeft','charEquipOffsetX','charEquipOffsetY',
+       'petSizeScale','petAspectExp','petPortraitBoost',
+       'slotMpJackpot','slotMpDiamond','slotMpStar','slotMpBell','slotMpCherry',
+      ].forEach(k => { if (json[k] !== undefined) s[k] = json[k]; });
+      const _m = (src, dst) => { if (json[src] !== undefined) s[dst] = json[src]; };
+      const _ms = (src, dst, fn) => { if (json[src] !== undefined) s[dst] = fn(parseFloat(json[src])); };
+      _ms('nikoFontSize',   'nikoSizeSlider',    v=>v);
+      _ms('nikoOpacity',    'nikoOpacitySlider',  v=>Math.round(v*100));
+      _ms('hayaoshiFreq',   'hayaoshiFreqSlider', v=>Math.round(v/1000));
+      _ms('hayaoshiSpeed',  'hayaoshiSpeedSlider',v=>Math.round(v/1000));
+      _m('bossHpScale',    'bossHpScaleSlider');
+      _m('bossAtkCoeff',   'bossAtkCoeffSlider');
+      _ms('bossCounterRate','counterRateSlider',  v=>Math.round(v*100));
+      _ms('charSizeScale',  'charSizeSlider',     v=>Math.round(v*100));
+      _ms('bossSizeScale',  'bossSizeSlider',     v=>Math.round(v*100));
+      _m('brHpMult',       'brHpMultSlider'); _m('taimanHpMult','taimanHpMultSlider');
+      _m('dmgFontScale',   'dmgFontScaleSlider');
+      _m('newsTickerWidth','newsTickerWidthSlider'); _m('newsTickerX','newsTickerXSlider');
+      _m('newsTickerY','newsTickerYSlider'); _m('newsTickerRows','newsTickerRowsSlider');
+      _m('newsTickerFontSize','newsTickerFontSlider'); _m('newsTickerBgOpacity','newsTickerBgOpacitySlider');
+      _m('newsTickerSpeed','newsTickerSpeedSlider'); _m('newsTickerInterval','newsTickerIntervalSlider');
+      _m('wordlePanelWidth','wordlePanelWidthSlider'); _m('wordlePanelBgOpacity','wordlePanelBgSlider');
+      _m('rankingPanelBgOpacity','rankingPanelBgSlider'); _m('quizPanelBgOpacity','quizPanelBgSlider');
+      _m('afkOpacity','afkOpacitySlider'); _m('afkGrayscale','afkGrayscaleSlider'); _m('afkBrightness','afkBrightnessSlider');
+      _m('gatherRowMax','gatherRowMaxSlider'); _m('gatherMarginLeft','gatherMarginLeftSlider');
+      _m('gatherMarginRight','gatherMarginRightSlider'); _m('gatherMarginBottom','gatherMarginBottomSlider');
+      _m('contentModeGatherMarginBottom','contentModeGatherMarginBottomSlider');
+      _m('contentModeGatherMarginLeft','contentModeGatherMarginLeftSlider');
+      _m('contentModeGatherMarginRight','contentModeGatherMarginRightSlider');
+      _m('contentModeCharSizePct','contentModeCharSizePctSlider');
+      _m('contentModeBossSizePct','contentModeBossSizePctSlider');
+      applyState(s);
+    } catch(e) {}
   }
 
   function setConnected(v) {
@@ -1865,6 +2013,7 @@
     _ws.onclose = () => { setConnected(false); setTimeout(connectWS, 3000); };
   }
   connectWS();
+  _loadSettingsDirect();
 
   // ── 受信ハンドラ ─────────────────────────────────────────────────
   function handleReply(d) {

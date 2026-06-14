@@ -2,6 +2,15 @@
 
 ---
 
+## v2.667.0 — 2026-06-14
+
+### fix: admin.html の設定保存を app.js 非依存に変更
+
+- **`server.js`** `makeDataEndpoints()` に `PATCH /api/settings` を追加。既存設定とマージして保存するため admin.html が個別キーを上書きできる
+- **`public/admin.html`** `adminSend()` に `_adminDirectSave()` フックを追加。スライダー・テキスト・セレクト等すべての設定変更を `/api/settings` へ直接 PATCH 保存（app.js が切断中でも確実に永続化）
+- **`public/admin.html`** `_loadSettingsDirect()` を追加。ページ起動時に `/api/settings` を直接フェッチしてフォームを復元（app.js が未起動でも設定を表示できる）
+- スライダー ID → settings.json キー + 値変換の対応表 `_SLIDER_MAP` を定義（全スライダー網羅）
+
 ## v2.666.0 — 2026-06-14
 
 ### fix: admin.htmlで変更した設定が保存されない問題を修正

@@ -253,6 +253,17 @@ function makeDataEndpoints(route, file) {
       res.json({ ok: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
+  // PATCH: 既存設定とマージして保存（admin.html の直接保存用）
+  app.patch(route, (req, res) => {
+    try {
+      const dir = path.dirname(file);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      const current = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : {};
+      const merged = Object.assign(current, req.body || {});
+      fs.writeFileSync(file, JSON.stringify(merged));
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
 }
 
 const DATA = p => path.join(__dirname, 'data', p);
