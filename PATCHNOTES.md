@@ -2,6 +2,14 @@
 
 ---
 
+## v2.673.0 — 2026-06-14
+
+### feat: リスナー勝利画像をキャラ背面に表示・砂エフェクトで消去
+
+- **`public/app.js`** 勝利画像を `position:fixed;background:黒` のオーバーレイから `position:absolute;inset:0` で `#stage` 先頭に挿入する方式に変更。キャラ要素は `stage.appendChild` で後から追加されるため自然にキャラが前面になる
+- **`public/app.js`** 背景暗化・クリック消去を廃止。表示時間を15秒→10秒に変更
+- **`public/app.js`** `_agruWinImageDisintegrate(container)` を新規追加。10秒後に起動し、画像をオフスクリーンCanvasでピクセルデータ化→STEP=6pxのパーティクル（重力・摩擦・ランダム遅延あり）が散って砂のように消えるアニメーションを実装。パーティクルcanvasも `#stage` 内（キャラ背面）に配置
+
 ## v2.672.0 — 2026-06-14
 
 ### feat: リスナー勝利時に生存キャラが2倍バウンス演出

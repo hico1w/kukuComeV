@@ -7333,6 +7333,81 @@ function _agruBattleEntrance(onDone) {
   }, 3800);
 }
 
+function _agruWinImageDisintegrate(container) {
+  const imgEl = container.querySelector('img');
+  if (!imgEl) { container.remove(); return; }
+
+  const ir = imgEl.getBoundingClientRect();
+  const sr = stage.getBoundingClientRect();
+  const W  = Math.round(ir.width);
+  const H  = Math.round(ir.height);
+  if (W < 4 || H < 4) { container.remove(); return; }
+
+  // 画像をオフスクリーンCanvasに描画してピクセルデータを取得
+  const off = document.createElement('canvas');
+  off.width = W; off.height = H;
+  const octx = off.getContext('2d', { willReadFrequently: true });
+  try { octx.drawImage(imgEl, 0, 0, W, H); }
+  catch (_) {
+    container.style.transition = 'opacity 0.8s';
+    container.style.opacity = '0';
+    setTimeout(() => container.remove(), 900);
+    return;
+  }
+  const pixels = octx.getImageData(0, 0, W, H).data;
+
+  // 実際に描画するCanvasを#stage内（キャラDOMより前）に配置
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  canvas.style.cssText = `position:absolute;left:${ir.left - sr.left}px;top:${ir.top - sr.top}px;width:${W}px;height:${H}px;pointer-events:none`;
+  stage.insertBefore(canvas, container.nextSibling);
+  const ctx = canvas.getContext('2d');
+
+  container.style.visibility = 'hidden';
+
+  // パーティクル生成（STEP px ごとに1パーティクル）
+  const STEP = 6;
+  const pts  = [];
+  for (let y = 0; y < H; y += STEP) {
+    for (let x = 0; x < W; x += STEP) {
+      const i = (y * W + x) * 4;
+      if (pixels[i + 3] < 20) continue;
+      pts.push({
+        x: x + Math.random() * STEP,
+        y: y + Math.random() * STEP,
+        r: pixels[i], g: pixels[i + 1], b: pixels[i + 2],
+        a: pixels[i + 3] / 255,
+        vx: (Math.random() - 0.3) * 2.5,
+        vy: -(Math.random() * 1.2 + 0.1),
+        life:  1.0,
+        decay: 0.007 + Math.random() * 0.011,
+        delay: Math.floor(Math.random() * 18),
+      });
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    let alive = false;
+    for (const p of pts) {
+      if (p.delay > 0) { p.delay--; alive = true; continue; }
+      if (p.life <= 0) continue;
+      alive = true;
+      p.x   += p.vx;
+      p.y   += p.vy;
+      p.vy  += 0.05;
+      p.vx  *= 0.988;
+      p.life -= p.decay;
+      if (p.life <= 0) continue;
+      ctx.fillStyle = `rgba(${p.r},${p.g},${p.b},${(p.a * p.life).toFixed(3)})`;
+      ctx.fillRect(Math.round(p.x), Math.round(p.y), STEP - 1, STEP - 1);
+    }
+    if (alive) requestAnimationFrame(draw);
+    else { canvas.remove(); container.remove(); }
+  }
+  requestAnimationFrame(draw);
+}
+
 function _agruBattleVictoryBounce() {
   // バトル終了直後に呼ぶ。生存キャラを2倍+バウンスし、10秒後に元に戻す
   const alive = Object.values(users).filter(u => u.el && !u.ko);
@@ -7549,20 +7624,19 @@ function endAgruBattle(result) {
     _agruBattleGetSpeech('battleWin');
     Object.values(users).forEach(u => { if (u.el && !u.ko) { u.mp = (u.mp || 0) + 50; updateStatsDisplay(u); } });
 
-    // 勝利画像を全画面表示（クリックまたは15秒で自動消去）
+    // 勝利画像をキャラより奥に表示（10秒後に砂エフェクトで消去）
     const winImg = agruBattleConfig?.winImage;
     if (winImg) {
       const overlay = document.createElement('div');
       overlay.id = '_agruWinOverlay';
-      overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);cursor:pointer';
+      overlay.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none';
       const img = document.createElement('img');
       img.src = '/boss/' + encodeURIComponent(winImg);
       img.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain';
       overlay.appendChild(img);
-      const _removeOverlay = () => { clearTimeout(_winOverlayTimer); overlay.remove(); };
-      overlay.addEventListener('click', _removeOverlay);
-      const _winOverlayTimer = setTimeout(_removeOverlay, 15000);
-      document.body.appendChild(overlay);
+      // #stage の先頭に挿入 → キャラ（後から appendChild）より DOM が前 → 自然にキャラが前面になる
+      stage.insertBefore(overlay, stage.firstChild);
+      setTimeout(() => { if (overlay.isConnected) _agruWinImageDisintegrate(overlay); }, 10000);
     }
 
     // アゲル系キャラを消滅
