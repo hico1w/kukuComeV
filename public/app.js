@@ -4271,7 +4271,7 @@ function handleComment(comment) {
   }
 
   // ── ボスアゲルバトル攻撃 ──
-  if (agruBattleActive) attackAgruBoss(user, message.length);
+  if (agruBattleActive) attackAgruBoss(user, message.length, message);
 
   // ── アゲルちゃん会話モード ──
   if (agruActive && message.trim() === 'カフェオレ投与') {
@@ -7543,7 +7543,77 @@ function _agruBattleDealDamage(dmg, user) {
   if (agruBattleHP <= 0) setTimeout(() => endAgruBattle('players'), 500);
 }
 
-function attackAgruBoss(user, msgLen) {
+// 吹き出しをキャラからボスアゲルへ飛ばす演出
+function _launchAtkBubble(user, text) {
+  if (!user.el || !text) return;
+  const sr = stage.getBoundingClientRect();
+  const cr = user.el.getBoundingClientRect();
+  const bossEl = document.getElementById('agruBattleCharImg');
+  if (!bossEl) return;
+  const br = bossEl.getBoundingClientRect();
+
+  const sx = cr.left - sr.left + cr.width / 2;
+  const sy = cr.top  - sr.top  + cr.height * 0.25;
+  const ex = br.left - sr.left + br.width / 2;
+  const ey = br.top  - sr.top  + br.height * 0.3;
+
+  const label = text.length > 18 ? text.slice(0, 18) + '…' : text;
+
+  const fly = document.createElement('div');
+  fly.style.cssText = [
+    'position:absolute', `left:${sx}px`, `top:${sy}px`,
+    'transform:translate(-50%,-100%) scale(1)',
+    'background:rgba(255,255,255,0.96)',
+    'color:#111',
+    'border-radius:14px',
+    'padding:5px 10px',
+    'font-size:13px',
+    'font-weight:bold',
+    'white-space:nowrap',
+    'max-width:180px',
+    'overflow:hidden',
+    'text-overflow:ellipsis',
+    'box-shadow:0 3px 10px rgba(0,0,0,0.35)',
+    'pointer-events:none',
+    'z-index:9000',
+    'opacity:1',
+    'will-change:left,top,transform,opacity',
+  ].join(';');
+  fly.textContent = label;
+
+  // 三角形のしっぽ
+  const tail = document.createElement('div');
+  tail.style.cssText = 'position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:8px solid rgba(255,255,255,0.96)';
+  fly.appendChild(tail);
+
+  stage.appendChild(fly);
+
+  // アーチを作るための中間点: X は線形補間、Y は少し上に膨らませる
+  const FLIGHT = 420;
+  const midX = (sx + ex) / 2;
+  const midY = Math.min(sy, ey) - Math.abs(ey - sy) * 0.35 - 40;
+
+  let start = null;
+  function step(ts) {
+    if (!start) start = ts;
+    const t = Math.min((ts - start) / FLIGHT, 1);
+    const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // ease-in-out
+    // 2次ベジェ補間
+    const bx = (1-ease)*(1-ease)*sx + 2*(1-ease)*ease*midX + ease*ease*ex;
+    const by = (1-ease)*(1-ease)*sy + 2*(1-ease)*ease*midY + ease*ease*ey;
+    const scale = 1 - ease * 0.45;
+    const opacity = t > 0.75 ? 1 - (t - 0.75) / 0.25 : 1;
+    fly.style.left    = bx + 'px';
+    fly.style.top     = by + 'px';
+    fly.style.transform = `translate(-50%,-100%) scale(${scale})`;
+    fly.style.opacity = opacity;
+    if (t < 1) requestAnimationFrame(step);
+    else fly.remove();
+  }
+  requestAnimationFrame(step);
+}
+
+function attackAgruBoss(user, msgLen, msgText) {
   if (!agruBattleActive || agruBattleHP <= 0) return;
   if (user.ko) return;
   const eff = agruBattleStatusEffects.get(user.ipid) || {};
@@ -7573,6 +7643,10 @@ function attackAgruBoss(user, msgLen) {
   } else {
     _agruBattleLog(`⚔️ ${user.name || '名無し'} → ${isCrit ? '💥CRIT ' : ''}${totalDmg} dmg`);
   }
+
+  // 吹き出しをボスへ飛ばす演出
+  const FLIGHT_MS = 420;
+  _launchAtkBubble(user, msgText || '');
 
   const baseDmg = Math.floor(totalDmg / hits);
   for (let i = 0; i < hits; i++) {
@@ -7630,7 +7704,7 @@ function attackAgruBoss(user, msgLen) {
       showDamageNumber?.(dmgX, dmgY, actualDmg, _agruDefenseActive ? false : isCrit);
       if (_agruDefenseActive && _agruDefenseDmgAccum >= 100) { _agruBreakDefense(); return; }
       if (agruBattleHP <= 0 && agruBattleActive) setTimeout(() => endAgruBattle('players'), 300);
-    }, i * 200);
+    }, FLIGHT_MS + i * 200);
   }
 }
 
