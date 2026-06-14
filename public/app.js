@@ -1657,8 +1657,11 @@ function _agruBattleRestoreChars() {
     u.el.style.left = u.x + 'px'; u.el.style.top = u.y + 'px';
     if (u._preBattleFacing !== undefined) {
       u.facingRight = u._preBattleFacing;
-      applyFacingFlip(u);
+    } else if (u._preBattleX !== undefined) {
+      // バトル前に向き未設定だったキャラ: placeGroup による強制反転を解除
+      delete u.facingRight;
     }
+    applyFacingFlip(u);
     delete u._preBattleX; delete u._preBattleY; delete u._preBattleFacing;
   });
 }

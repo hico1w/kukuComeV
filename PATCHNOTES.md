@@ -2,6 +2,12 @@
 
 ---
 
+## v2.674.0 — 2026-06-14
+
+### fix: ボスアゲル終了時に水平反転が残るキャラがいる問題を修正
+
+- **`public/app.js`** `_agruBattleRestoreChars` を修正。`_preBattleFacing` が `undefined` のキャラ（バトル前に `facingRight` 未設定だったキャラ）も `applyFacingFlip` を必ず呼ぶよう変更。バトル中に `placeGroup` で強制セットされた向きを確実に解除する。`_preBattleX` が設定済み（＝集合対象だった）場合のみ `facingRight` を削除して初期状態に戻す
+
 ## v2.673.0 — 2026-06-14
 
 ### feat: リスナー勝利画像をキャラ背面に表示・砂エフェクトで消去
