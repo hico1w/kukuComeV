@@ -2,6 +2,18 @@
 
 ---
 
+## v2.722.0 — 2026-06-15
+
+### feat: 未登録だった新キャラ4件を登録・マニュアル反映
+
+- `chara/` に存在するが `data/charImages.json` に未登録だった新キャラ4件を登録（キー264〜267）: `ppageru.png` / `pageru.png` / `chameageru.png` / `chamerageru.png`
+- アプリは `/chara-s/`（＝`public/chara/`）から配信するため、4ファイルを `public/chara/` にもコピー（マニュアルは root `chara/` から読み込むため両方に配置）
+- `index.html` の `STANDALONE_CHARS` を再同期（263→267件）
+- 別形式の `.jpg`/`.jpeg` 6件（同名 `.png` が既登録）は重複のため除外
+- 補足: `/sync-chars` は charImages.json を正とするため、未登録の画像ファイルは検出対象外だった（今回は手動で登録）
+
+---
+
 ## v2.721.0 — 2026-06-15
 
 ### docs: index.html フォント一覧を全掲載（FONT_MAP 全86件）
