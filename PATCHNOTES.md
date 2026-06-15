@@ -2,6 +2,21 @@
 
 ---
 
+## v2.712.0 — 2026-06-15
+
+### fix: 複数回ボスアゲルを行ったとき前バトルの背景/オーバーレイが残る・重くなる問題を修正
+
+- **根本原因1**: リスナー勝利時の10秒フェードタイマー（`setTimeout 10000`）が追跡されておらず、次バトル開始後に発火してオーバーレイ非表示・背景リセットを実行してしまっていた
+- **根本原因2**: `_agruBattleVictoryBounce` の10.4秒タイマーも追跡されておらず、次バトル中に発火してキャラのtransformをリセット→`gatherCharactersBottom()`を呼び出していた
+- **根本原因3**: `_agruPlayersWon` が次バトル開始時にリセットされず、画像プールの絞り込みが残り続けた
+- **根本原因4**: 前バトル終了時のフェード途中に新バトルが開始されると、オーバーレイに `opacity:0`/`transition` インラインスタイルが残り、バトル画面が不可視になった
+- **`public/app.js`** `startAgruBattle`: `_agruPlayersWon=false`リセット、`_agruVictoryFadeTimer`/`_agruVictoryBounceTimer`をキャンセル、オーバーレイのopacity/transitionをリセット、`_agruWipeOverlay`/`_agruWinOverlay`の残留DOM除去、`agru-victory-bounce`クラス・インラインスタイルをキャラからクリア
+- **`public/app.js`** `endAgruBattle`: `_agruVictoryFadeTimer`/`_agruVictoryBounceTimer`キャンセル、`_agruWipeOverlay`除去を追加
+- **`public/app.js`** `endAgruBattle`(result='players')のタイマーを`_agruVictoryFadeTimer`/`_agruVictoryBounceTimer`変数で追跡
+- **`public/app.js`** `_agruBattleVictoryBounce`: 内部10.4秒タイマーを`_agruVictoryBounceTimer`で追跡。バトル中でなければ`gatherCharactersBottom()`を実行
+
+---
+
 ## v2.711.0 — 2026-06-15
 
 ### fix: AFK透明度・グレースケール・明るさ等のスライダー設定がページ起動時に反映されない問題を修正

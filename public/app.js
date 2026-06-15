@@ -6257,6 +6257,21 @@ function startAgruBattle(maxHP) {
   _agruBattleKilledIds.clear();
   _agruWipePending        = false;
   agruBattleBerserkUntil = 0;
+  _agruPlayersWon = false;
+
+  // 前バトルの勝利フェードタイマーをキャンセル（次バトルの背景/オーバーレイを壊さないよう）
+  if (_agruVictoryFadeTimer)   { clearTimeout(_agruVictoryFadeTimer);   _agruVictoryFadeTimer   = null; }
+  if (_agruVictoryBounceTimer) { clearTimeout(_agruVictoryBounceTimer); _agruVictoryBounceTimer = null; }
+
+  // 前バトルで残った DOM 要素を除去
+  document.getElementById('_agruWipeOverlay')?.remove();
+  document.getElementById('_agruWinOverlay')?.remove();
+
+  // オーバーレイの opacity/transition を初期化（前バトルがフェード途中だった場合に備えて）
+  ['agruBattleOverlay', 'agruBossFigureWrap', 'agruBattleCharWrap'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.opacity = ''; el.style.transition = ''; }
+  });
 
   // 会話モードが起動していなければ最低限の状態だけ立ち上げる（AI不要）
   if (!agruActive) {
@@ -6308,6 +6323,14 @@ function startAgruBattle(maxHP) {
   _applyBossLayoutConfig();
   if (lyricsFloatEnabled) startLyricsFloat();
   _agruBattleEntranceDone = false;
+  // 前バトルの victory-bounce クラス・インラインスタイルをクリア
+  Object.values(users).forEach(u => {
+    if (!u.el) return;
+    u.el.classList.remove('agru-victory-bounce');
+    u.el.style.transform      = '';
+    u.el.style.transition     = '';
+    u.el.style.transformOrigin = '';
+  });
   _agruBattleGatherChars();
   Object.values(users).forEach(u => { if (u.el) updateBattleGrayscale(u); });
 
@@ -7483,7 +7506,8 @@ function _agruBattleVictoryBounce() {
   });
 
   // 0.5s grow + 0.65s×15 bounce = 10.25s → 10.4s 後にリセット
-  setTimeout(() => {
+  _agruVictoryBounceTimer = setTimeout(() => {
+    _agruVictoryBounceTimer = null;
     alive.forEach(u => {
       const el = u.el;  // クラスを付けたのと同じ要素
       if (!el) return;
@@ -7502,7 +7526,7 @@ function _agruBattleVictoryBounce() {
       }, 700);
     });
     // スケールリセット完了後に下集合
-    setTimeout(() => gatherCharactersBottom(), 800);
+    if (!agruBattleActive) setTimeout(() => gatherCharactersBottom(), 800);
   }, 10400);
 }
 
@@ -7695,6 +7719,11 @@ function endAgruBattle(result) {
   agruBattleTimerInterval = null;
   agruBattleCounterTimer  = null;
 
+  // 前回バトル残留タイマーをキャンセル（連続起動時の干渉防止）
+  if (_agruVictoryFadeTimer)   { clearTimeout(_agruVictoryFadeTimer);   _agruVictoryFadeTimer   = null; }
+  if (_agruVictoryBounceTimer) { clearTimeout(_agruVictoryBounceTimer); _agruVictoryBounceTimer = null; }
+  document.getElementById('_agruWipeOverlay')?.remove();
+
   // 超回復防御状態をリセット
   if (_agruDefenseTimer) { clearTimeout(_agruDefenseTimer); _agruDefenseTimer = null; }
   _agruDefenseActive    = false;
@@ -7849,11 +7878,15 @@ function endAgruBattle(result) {
     }
 
     // 生存キャラを2倍バウンス（アゲル系変更後に起動）
-    setTimeout(() => _agruBattleVictoryBounce(), 400);
+    _agruVictoryBounceTimer = setTimeout(() => {
+      _agruVictoryBounceTimer = null;
+      _agruBattleVictoryBounce();
+    }, 400);
 
-    // ボスUI を10秒後にフェードアウト・背景リセット
+    // ボスUI を10秒後にフェードアウト・背景リセット（次バトル開始でキャンセル）
     const _bossFadeIds = ['agruBattleOverlay','agruBossFigureWrap','agruBattleCharWrap'];
-    setTimeout(() => {
+    _agruVictoryFadeTimer = setTimeout(() => {
+      _agruVictoryFadeTimer = null;
       const _bossEls = _bossFadeIds.map(id => document.getElementById(id)).filter(Boolean);
       _bossEls.forEach(el => { el.style.transition = 'opacity 1.5s ease'; el.style.opacity = '0'; });
       setTimeout(() => {
@@ -9189,6 +9222,8 @@ let agruBattleStatusEffects  = new Map(); // ipid → { stoneUntil, sleepUntil, 
 let _agruBattleKilledIds     = new Set();
 let _agruWipePending         = false;
 let _agruVictoryPending      = false;
+let _agruVictoryFadeTimer    = null; // リスナー勝利時の10秒フェードタイマー
+let _agruVictoryBounceTimer  = null; // リスナー勝利時のバウンスタイマー
 let _agruShieldChar          = null; // 盾キャラ攻撃で選ばれたユーザー
 let _agruShieldHp            = 0;
 let _agruShieldTimer         = null;
