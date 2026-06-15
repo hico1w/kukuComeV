@@ -2,6 +2,17 @@
 
 ---
 
+## v2.714.0 — 2026-06-15
+
+### refactor: リファクタリング Phase 2（spawnエフェクト群の共通化・挙動変更なし）
+
+- **`public/app.js`** パーティクル生成の定型処理（`createElement`→`cssText`→`appendChild`→`animate`→終了で`remove`）を共通ヘルパー `_spawnParticle(cssText, keyframes, options, init)` に集約
+- 対象: `spawnFireworks` / `spawnConfetti` / `spawnConfettiSmall` / `spawnShootingStar` / `spawnHeartShower` / `spawnSakura` / `spawnSnow` / `spawnExplosion` / `spawnBubbles` / `spawnLightning`
+- 各関数名・パーティクルのcssText・キーフレーム・タイミング・個数は一切変更していないため見た目・挙動は同一
+- `node --check` で構文確認済み
+
+---
+
 ## v2.713.0 — 2026-06-15
 
 ### refactor: リファクタリング Phase 1（安全な掃除・挙動変更なし）
