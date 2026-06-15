@@ -2117,8 +2117,8 @@ let lyricsFloatColorMode  = 'dark';
 let lyricsFloatBlur       = 0;
 let lyricsFloatFont       = '';
 // TTS設定
-let seVolume      = 1.0;  // 効果音マスター音量
-let voiceVolume   = 1.0;  // ボイスコメント音量
+let seVolume      = parseFloat(localStorage.getItem('seVolume')    ?? '1.0');  // 効果音マスター音量
+let voiceVolume   = parseFloat(localStorage.getItem('voiceVolume') ?? '1.0');  // ボイスコメント音量
 let ttsModel      = '';
 let ttsVoice      = 'ja-JP-NanamiNeural-Female';
 let ttsF0UpKey    = 0;
@@ -2141,10 +2141,13 @@ let sdSampler        = localStorage.getItem('sdSampler') || 'Euler a';
 let charExcludeIds   = new Set();
 let kaiBullets    = [];          // 射コマンド物理弾リスト
 let kaiAnimId     = null;        // 射物理ループ requestAnimationFrame ID
-let kaiSpeed      = 18;          // 射出強さ
-let kaiRestitution = 0.65;       // 反発係数
-let kaiGravity    = 0.35;        // 重力加速度
-let kaiBulletSize = 32;          // 弾文字サイズ(px)
+let kaiSpeed      = parseInt(localStorage.getItem('kaiSpeed')       ?? '18');          // 射出強さ
+let kaiRestitution = parseFloat(localStorage.getItem('kaiRestitution') ?? '65') / 100; // 反発係数
+let kaiGravity    = parseFloat(localStorage.getItem('kaiGravity')    ?? '35') / 100;   // 重力加速度
+let kaiBulletSize = parseInt(localStorage.getItem('kaiBulletSize')   ?? '32');          // 弾文字サイズ(px)
+let afkOpacity    = parseInt(localStorage.getItem('afkOpacity')    ?? '45');
+let afkGrayscale  = parseInt(localStorage.getItem('afkGrayscale')  ?? '60');
+let afkBrightness = parseInt(localStorage.getItem('afkBrightness') ?? '55');
 let bossDamageMap    = {};          // ipid → { name, totalDmg } 現ボス戦分
 let cumulativeDmgMap = (() => { try { return JSON.parse(localStorage.getItem('cumulativeDmgMap') || '{}'); } catch { return {}; } })();
 let rankingState       = null;
@@ -6268,8 +6271,9 @@ function startAgruBattle(maxHP) {
   hayaoshiItems.forEach(it => { clearTimeout(it.timeoutId); if (it.el?.parentNode) it.el.remove(); });
   hayaoshiItems = [];
 
-  // 会話モードBGMを停止（バトル終了後に再開）
+  // 会話モードBGMを停止・YouTube再生を停止（バトル終了後に再開）
   _agruBgmPause();
+  { const _ym = document.getElementById('agruYtModal'); const _yi = document.getElementById('agruYtIframe'); if (_ym) _ym.classList.add('hidden'); if (_yi) _yi.src = ''; }
 
   // 通常ボスを消滅（バトル終了後に再召喚）
   bossManuallyCleared = false; // バトル終了後の自動召喚を保証
@@ -10503,11 +10507,11 @@ function launchBullets(user, text) {
   defs.forEach(({ id, valId, key, def, fmt, apply }) => {
     const slider = document.getElementById(id);
     const valEl  = document.getElementById(valId);
-    if (!slider) return;
     const saved = parseInt(localStorage.getItem(key) ?? def);
+    apply(saved);
+    if (!slider) return;
     slider.value = saved;
     if (valEl) valEl.textContent = fmt(saved);
-    apply(saved);
     slider.addEventListener('input', () => {
       const v = parseInt(slider.value);
       if (valEl) valEl.textContent = fmt(v);
@@ -10530,11 +10534,11 @@ function launchBullets(user, text) {
   defs.forEach(({ id, valId, key, def, cssVar, toCSS }) => {
     const slider = document.getElementById(id);
     const valEl  = document.getElementById(valId);
-    if (!slider) return;
     const saved = parseInt(localStorage.getItem(key) ?? def);
+    document.documentElement.style.setProperty(cssVar, toCSS(saved));
+    if (!slider) return;
     slider.value = saved;
     if (valEl) valEl.textContent = saved + '%';
-    document.documentElement.style.setProperty(cssVar, toCSS(saved));
     slider.addEventListener('input', () => {
       const v = parseInt(slider.value);
       if (valEl) valEl.textContent = v + '%';

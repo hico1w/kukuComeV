@@ -2,6 +2,27 @@
 
 ---
 
+## v2.711.0 — 2026-06-15
+
+### fix: AFK透明度・グレースケール・明るさ等のスライダー設定がページ起動時に反映されない問題を修正
+
+- **根本原因1**: `afkOpacity`/`afkGrayscale`/`afkBrightness` が変数宣言されておらず暗黙グローバルになっていた。`initAfkSliders` がindex.htmlではスライダー要素がないため早期リターンし、CSS変数 `--afk-opacity` 等が初期化されなかった
+- **根本原因2**: `kaiSpeed`/`kaiRestitution`/`kaiGravity`/`kaiBulletSize` がハードコードのデフォルト値で宣言されており、index.htmlではスライダーなしで早期リターンのため保存値が復元されなかった
+- **`public/app.js`** 変数宣言（line ~2144-2150）: `kaiSpeed`/`kaiRestitution`/`kaiGravity`/`kaiBulletSize`/`seVolume`/`voiceVolume` をlocalStorageから初期化するよう変更。`afkOpacity`/`afkGrayscale`/`afkBrightness` を新規宣言してlocalStorageから初期化
+- **`public/app.js`** `initKaiSliders` IIFE: `apply(saved)` をスライダー要素チェックより前に移動し、index.htmlでも変数が正しく初期化されるよう修正
+- **`public/app.js`** `initAfkSliders` IIFE: CSS変数の `setProperty` をスライダー要素チェックより前に移動し、index.htmlでもAFKスタイルが起動時に適用されるよう修正
+
+---
+
+## v2.710.0 — 2026-06-15
+
+### feat: ボスアゲル起動時にYouTube再生を停止
+
+- **`public/app.js`** `startAgruBattle`: `_agruBgmPause()` の直後に `agruYtModal` を非表示・`agruYtIframe.src` をクリアしてYouTube再生を停止
+- `closeAgruYtModal` はBGM再開を含むため直接呼ばず、モーダル停止部分のみインラインで実行
+
+---
+
 ## v2.709.0 — 2026-06-15
 
 ### fix: ボスアゲル終了時にOllama停止チェックを勝敗問わず実行

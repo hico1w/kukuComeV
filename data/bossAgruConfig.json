@@ -1,7 +1,7 @@
 {
-  "maxHP": 999999,
-  "timeLimit": 500,
-  "counterInterval": 5,
+  "maxHP": 99999,
+  "timeLimit": 300,
+  "counterInterval": 15,
   "defaultImage": "00332-3171073214.png",
   "defenseImage": "00023-130843035.png",
   "shieldMaxHp": 999,
@@ -432,7 +432,7 @@
     "thick": 2,
     "gap": 28,
     "gapDir": "right",
-    "numX": 943,
+    "numX": 913,
     "numY": 365,
     "numSize": 67,
     "numFont": "",
@@ -576,8 +576,8 @@
         "fps": 10,
         "size": 800
       },
-      "sound": "",
-      "soundVolume": 100
+      "sound": "boss/nc213140_[SE]_血がブバッッと噴き出す音_[高音質].mp3",
+      "soundVolume": 65
     },
     "instant_kill": {
       "enabled": true,
@@ -585,9 +585,9 @@
         0,
         0,
         1,
-        3
+        25
       ],
-      "speech": "sokusi",
+      "speech": "delete",
       "image": "",
       "sprite": {
         "path": "",
@@ -605,7 +605,7 @@
         "fps": 10,
         "size": 400
       },
-      "sound": "",
+      "sound": "boss/nc46978_消滅1.wav",
       "soundVolume": 100
     },
     "mp_absorb": {
@@ -698,7 +698,7 @@
     "sleep": {
       "enabled": true,
       "weights": [
-        10,
+        5,
         3,
         4,
         4
@@ -727,7 +727,7 @@
     "charm": {
       "enabled": true,
       "weights": [
-        10,
+        5,
         2,
         3,
         4
@@ -902,7 +902,7 @@
       "enabled": true,
       "weights": [
         10,
-        55,
+        25,
         55,
         5
       ],
