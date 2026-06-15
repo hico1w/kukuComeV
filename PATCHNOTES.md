@@ -2,6 +2,17 @@
 
 ---
 
+## v2.715.0 — 2026-06-15
+
+### refactor: リファクタリング Phase 3（タイマー残留対策の安全網インフラ・挙動変更なし）
+
+- **`public/app.js`** タイマーグループ・ユーティリティ `makeTimerGroup()` を追加。グループ単位で `setTimeout`/`setInterval` を追跡し `clearAll()` でまとめてキャンセルできる
+- アゲルバトル専用グループ `agruBattleTimers` を追加し、`startAgruBattle`（開始時）と `endAgruBattle`（終了時）の teardown で `agruBattleTimers.clearAll()` を呼ぶよう組込み。今後バトル中の一時演出タイマーを `agruBattleTimers.setTimeout(fn, ms)` で登録すれば、連続起動時に自動一掃され「背景/演出の残留」バグを構造的に防げる
+- 現時点ではグループ登録タイマーが無いため `clearAll()` は実質no-op＝**既存の挙動は完全に不変**。`node --check` 確認済み
+- 補足: 既存のバトルエフェクト内 `setTimeout` の一括移行は、後始末（DOM削除・onDone連鎖）を担うtimeoutを途中キャンセルするとDOMリークを招くため見送り。個別移行は実機テストと合わせて段階実施する
+
+---
+
 ## v2.714.0 — 2026-06-15
 
 ### refactor: リファクタリング Phase 2（spawnエフェクト群の共通化・挙動変更なし）

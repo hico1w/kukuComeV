@@ -2032,6 +2032,40 @@ function spawnLightning(cx, cy) {
 }
 
 // ──────────────────────────────────────────────────────────────────
+// タイマーグループ（残留タイマー対策の安全網）
+//   グループ単位で setTimeout/setInterval を追跡し、clearAll() でまとめて
+//   キャンセルできる。バトル開始/終了時に呼ぶことで「前の状態の積み残し
+//   タイマーが次バトルに干渉する」残留バグ（背景残留・重さ）を防ぐ。
+//   使い方: agruBattleTimers.setTimeout(fn, ms) で登録 → teardown で clearAll()
+// ──────────────────────────────────────────────────────────────────
+function makeTimerGroup() {
+  const timeouts  = new Set();
+  const intervals = new Set();
+  return {
+    setTimeout(fn, ms) {
+      const id = setTimeout(() => { timeouts.delete(id); fn(); }, ms);
+      timeouts.add(id);
+      return id;
+    },
+    setInterval(fn, ms) {
+      const id = setInterval(fn, ms);
+      intervals.add(id);
+      return id;
+    },
+    clear(id) { clearTimeout(id); clearInterval(id); timeouts.delete(id); intervals.delete(id); },
+    clearAll() {
+      timeouts.forEach(clearTimeout);
+      intervals.forEach(clearInterval);
+      timeouts.clear();
+      intervals.clear();
+    },
+  };
+}
+// アゲルバトル専用のタイマーグループ。バトル中に生成する一時的な演出
+// タイマーをここに登録すると、startAgruBattle / endAgruBattle で自動一掃される。
+const agruBattleTimers = makeTimerGroup();
+
+// ──────────────────────────────────────────────────────────────────
 // ボス討伐・育成
 // ──────────────────────────────────────────────────────────────────
 let bossState = null;
@@ -6258,6 +6292,7 @@ function _agruBattleLeaveUI() {
 
 function startAgruBattle(maxHP) {
   if (agruBattleActive) return;
+  agruBattleTimers.clearAll(); // 前バトルの積み残し演出タイマーを一掃（残留対策）
   const cfg = agruBattleConfig;
   agruBattleMaxHP = maxHP || cfg.maxHP || 1000;
   agruBattleHP    = agruBattleMaxHP;
@@ -7729,6 +7764,7 @@ function endAgruBattle(result) {
   clearInterval(agruBattleCounterTimer);
   agruBattleTimerInterval = null;
   agruBattleCounterTimer  = null;
+  agruBattleTimers.clearAll(); // グループ登録済みの演出タイマーを一掃（残留対策）
 
   // 前回バトル残留タイマーをキャンセル（連続起動時の干渉防止）
   if (_agruVictoryFadeTimer)   { clearTimeout(_agruVictoryFadeTimer);   _agruVictoryFadeTimer   = null; }
