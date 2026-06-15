@@ -2,6 +2,18 @@
 
 ---
 
+## v2.716.0 — 2026-06-15
+
+### refactor: リファクタリング Phase 5（app.js を機能単位で13分割・挙動変更なし）
+
+- **`public/app.js`（約14,900行）を `public/js/` 配下の13ファイルに分割**。元ファイルの出現順を保ったまま連続行で切り出し、`index.html` に番号順で読み込む。classic script のためグローバルスコープは共有され、関数・コマンド・変数の挙動は単一ファイル時と完全に同一
+- 分割ファイル: `app-01-core-characters.js`（キャラ/アバター/移動/吹き出し）/ `app-02-effects.js`（spawnエフェクト）/ `app-03-boss-pets.js`（ボス育成/ペット定義/タイマーグループ）/ `app-04-battle-royale.js` / `app-05-taiman-boss.js`（タイマン/ボス討伐）/ `app-06-comment-handler.js`（handleComment）/ `app-07-ui-stage-ai.js`（モーダル/物理/TTS/AI）/ `app-08-agru-chat.js`（アゲル会話）/ `app-09-agru-battle-fx.js`（バトル演出）/ `app-10-agru-battle-skills.js`（反撃スキル）/ `app-11-agru-state-sd.js`（バトル状態/SD生成）/ `app-12-features-minigames.js`（ガチャ/ランキング/各ミニゲーム）/ `app-13-race-admin-misc.js`（競馬/管理連携/自動処理）
+- **検証**: 13ファイルを番号順に連結すると分割前の `app.js` と**バイト単位で一致**（md5 `cc0fe883...`）。各ファイル `node --check` 通過。稼働中サーバで全ファイルがHTTP 200配信されパースOKを確認
+- ナビ用に `public/js/README.md`（機能→ファイル対応表）を追加。元 `public/app.js` は削除（git履歴から復元可能）
+- **`public/index.html`** の `<script src="app.js">` を13ファイルの順次読み込みに差し替え
+
+---
+
 ## v2.715.0 — 2026-06-15
 
 ### refactor: リファクタリング Phase 3（タイマー残留対策の安全網インフラ・挙動変更なし）

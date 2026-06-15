@@ -248,6 +248,20 @@
   </div>
 
   <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="app.js"></script>
+  <!-- app.js を機能単位で分割（番号順に読み込むこと＝元の実行順を保持）。
+       全ファイル同一グローバルスコープを共有するため、関数・コマンドの動作は単一ファイル時と同一。 -->
+  <script src="js/app-01-core-characters.js"></script>
+  <script src="js/app-02-effects.js"></script>
+  <script src="js/app-03-boss-pets.js"></script>
+  <script src="js/app-04-battle-royale.js"></script>
+  <script src="js/app-05-taiman-boss.js"></script>
+  <script src="js/app-06-comment-handler.js"></script>
+  <script src="js/app-07-ui-stage-ai.js"></script>
+  <script src="js/app-08-agru-chat.js"></script>
+  <script src="js/app-09-agru-battle-fx.js"></script>
+  <script src="js/app-10-agru-battle-skills.js"></script>
+  <script src="js/app-11-agru-state-sd.js"></script>
+  <script src="js/app-12-features-minigames.js"></script>
+  <script src="js/app-13-race-admin-misc.js"></script>
 </body>
 </html>
