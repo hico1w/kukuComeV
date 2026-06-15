@@ -752,8 +752,8 @@
 
       <div class="cmd-card">
         <div class="cmd-row"><span class="cmd-code red">ボス召喚</span></div>
-        <div class="cmd-desc">ランダムHP（100〜2000）のボスを召喚。ボス戦中は再使用不可</div>
-        <div class="cmd-variants"><span class="variant">ボス召喚</span><span class="variant">ボス召喚:500（HP指定・上限2000）</span></div>
+        <div class="cmd-desc">ボスを召喚。HPは<b>参加キャラ全員の総攻撃力 × 係数</b>（最小100。係数・スケールは管理パネルで調整）。<code>ボス召喚:数値</code>でHP直接指定（最小10・上限なし）。ボス戦中は再使用不可</div>
+        <div class="cmd-variants"><span class="variant">ボス召喚</span><span class="variant">ボス召喚:500（HP直接指定）</span></div>
       </div>
 
       <div class="cmd-card">
@@ -768,10 +768,10 @@
 
     </div>
     <div class="danger-box">
-      ボスは攻撃を受けるたびに<b>反撃確率（デフォルト20%）で全キャラに反撃（ダメージ5）</b>します。反撃率・ダメージは管理パネルで変更可。<br>
+      ボスは攻撃を受けたあと<b>反撃確率（デフォルト40%）で全キャラに反撃</b>します。反撃ダメージは <b>5 ＋ 撃破した数</b>（周回が進むほど増加）。反撃率は管理パネルで変更可。<br>
       ボスを倒すと全員 <b>HP+20 回復</b>＋ボスHPに応じたレアリティのランダム装備が全キャラに配布されます。<br>
       <b>ボス画像は public/chara/ にある画像からランダム選択</b>。管理パネルの「揺れ設定」でボスにも揺れアニメを設定できます。<br>
-      ボスのサイズはHP100→約120px、HP2000→約420pxとHP比例して大きくなります。<br>
+      ボスのサイズは<b>管理パネルのスケール設定</b>で変更できます（既定で約200px相当）。<br>
       ボス撃破後は<b>一定時間後に次のボスが自動召喚</b>されます。
     </div>
   </div>
@@ -1264,6 +1264,7 @@
       <div class="cmd-card">
         <div class="cmd-row"><span class="cmd-code pink">出して</span></div>
         <div class="cmd-desc">コメントに含めると <b>MP20消費</b> してAI画像（Stable Diffusion）を生成して吹き出しに表示。MPが20未満は失敗</div>
+        <div class="cmd-variants"><span class="variant">出して</span><span class="variant">出ろ</span><span class="variant">生成</span><span class="variant">gen</span></div>
       </div>
 
       <div class="cmd-card">
@@ -1489,8 +1490,8 @@
             </tr>
           </table>
           <div class="warn-box" style="margin-top:6px;font-size:12px">
-            💡 投与コマンド（肉投与・エナドリ等）はチャットバブルに表示されず、<b>システムメッセージ</b>として表示されます。AIへの返答要求はしません。<br>
-            <span class="variant">水道水投与</span> MP-10 → 好感度-5（嫌がらせ用）
+            💡 投与コマンド（肉投与・エナドリ等）はチャットバブルに表示されず、<b>システムメッセージ</b>として表示されます。<br>
+            <span class="variant">水道水投与</span> MP-10 → 好感度-5 ／ <span class="variant">毒投与</span> 空腹-10＋毒状態（いずれも嫌がらせ用）
           </div>
         </div>
       </div>
