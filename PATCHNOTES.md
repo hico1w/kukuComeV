@@ -2,6 +2,21 @@
 
 ---
 
+## v2.724.0 — 2026-06-15
+
+### fix: ボスアゲルバトル スキル演出後にHP別画像へ戻るよう修正
+
+- **根本原因**: `_agruBattlePlayEffect` の `getRestorePath()` と画像なしスキルの復帰分岐が、スキル演出後に常に**デフォルト画像**へ戻していた（HP別画像を考慮していなかった）
+- **`app-08-agru-chat.js`**: 現在HPに対応するHP別画像のパスを返す `_agruBattleHpImagePath()` を追加（HP別画像が未設定なら null）
+- **`app-10-agru-battle-skills.js`** `_agruBattlePlayEffect`: 復帰先を「防御中→防御画像／それ以外→HP別画像（無ければデフォルト画像）」に変更。`cfg.image` なしスキルの復帰も同じく `getRestorePath()` 経由に統一
+
+### feat: ボスアゲル ぷるぷる設定にPポイント配置のコピー＆ペーストを追加
+
+- **`ageru-boss.html`** の「ぷるぷる設定（ボスアゲル画像）」に **📋 コピー / 📌 貼り付け** ボタンを追加。選択中画像のPポイント配置をコピーし、別画像を選んで貼り付けると配置を引き継げる
+- admin.html の `puruCopyPoints`/`puruPastePoints` と同方式（`_bossPuruCopiedPoints` に points を deep clone → 貼り付け時に per-index で適用 → `buildBossPuruPointsUI` 再描画＋`syncBossPuruConfig` 保存）
+
+---
+
 ## v2.723.0 — 2026-06-15
 
 ### chore: 重複画像の削除＋ /sync-chars に未登録ファイル警告を追加

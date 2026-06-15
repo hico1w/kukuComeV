@@ -633,13 +633,13 @@ function _agruBattlePlayEffect(skillId, targets) {
   const bossDefaultPath = agruBattleConfig?.defaultImage
     ? `/boss/${encodeURIComponent(agruBattleConfig.defaultImage)}`
     : null;
-  // 防御中なら防御画像、それ以外はデフォルト画像に戻す
+  // 防御中なら防御画像、それ以外は現在HPのHP別画像（無ければデフォルト画像）に戻す
   const getRestorePath = () => {
     if (_agruDefenseActive) {
       const d = agruBattleConfig?.defenseImage;
       return d ? `/boss/${encodeURIComponent(d)}` : null;
     }
-    return bossDefaultPath;
+    return _agruBattleHpImagePath() || bossDefaultPath;
   };
 
   // 集中砲火: 連打画像が設定されていれば高速切替
@@ -659,8 +659,9 @@ function _agruBattlePlayEffect(skillId, targets) {
         if (rp) _bossCrossfadeImg(rp);
       }, 2000);
     });
-  } else if (!_agruDefenseActive && bossDefaultPath) {
-    _bossCrossfadeImg(bossDefaultPath);
+  } else if (!_agruDefenseActive) {
+    const rp = getRestorePath();
+    if (rp) _bossCrossfadeImg(rp);
   }
 }
 

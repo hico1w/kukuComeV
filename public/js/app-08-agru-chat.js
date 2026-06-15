@@ -839,3 +839,16 @@ function _agruUpdateBossImgByHp() {
   }
 }
 
+// 現在のHPに対応するHP別画像のパスを返す（HP別画像が未設定 or 該当なしなら null）。
+// スキル演出後に「デフォルト画像」ではなく現在HPの画像へ戻すために使う。
+function _agruBattleHpImagePath() {
+  const hpImages = agruBattleConfig?.hpImages;
+  if (!hpImages || !Object.values(hpImages).some(Boolean)) return null;
+  const pct    = agruBattleMaxHP > 0 ? agruBattleHP / agruBattleMaxHP * 100 : 0;
+  const bucket = Math.max(10, Math.ceil(pct / 10) * 10);
+  for (let t = bucket; t >= 10; t -= 10) {
+    if (hpImages[String(t)]) return `/boss/${encodeURIComponent(hpImages[String(t)])}`;
+  }
+  return null;
+}
+
