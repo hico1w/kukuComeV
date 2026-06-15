@@ -15,3 +15,8 @@
 - メインのフロントロジックは旧 `public/app.js`（約14,900行）を機能単位で **`public/js/app-01〜13-*.js` に分割** したもの。`public/index.html` が番号順に読み込む。
 - **どのファイルに何があるか・編集時の制約（読み込み順＝実行順を壊さない／新ファイルは `index.html` に順序通り追加など）は [`public/js/README.md`](public/js/README.md) を参照すること。**
 - 全ファイルは同一のグローバルスコープを共有する classic script。関数名・コマンド名は分割前から不変なので、機能名から該当ファイルを特定できる（例: 「スロット」→ `app-12-features-minigames.js`）。
+
+## キャラ一覧の更新
+
+- ルートの `E:\claude\kukuCome\index.html`（コマンド一覧ページ）のキャラ一覧（`STANDALONE_CHARS`）を更新するときは、**手動で編集せず `/sync-chars` スキルを読み込んで実行すること。**
+- `/sync-chars` は `data/charImages.json` を正として、root `chara/` への不足ファイル補完と `index.html` の `STANDALONE_CHARS` 書き換えを一括で行う（定義は `.claude/commands/sync-chars.md`）。
