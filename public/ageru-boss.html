@@ -1113,10 +1113,10 @@
 // スキル定義
 // ────────────────────────────────────────────────────────────────────
 const SKILL_DEFS = [
-  { id: 'normal',       name: '通常攻撃',    defaultWeights: [60,50,40,30], desc: '生存キャラ全員に一定ダメージを与える。' },
-  { id: 'focus_fire',   name: '集中砲火',    defaultWeights: [10,15,20,20], desc: 'ランダムな1体に通常の5倍ダメージを集中攻撃する。' },
-  { id: 'all_attack',   name: '全体乱打',    defaultWeights: [10,12,15,15], desc: '全員に通常の2倍ダメージを与える。' },
-  { id: 'instant_kill', name: '即死撃',      defaultWeights: [0, 0, 1, 3],  minHpPct: 25, desc: 'ランダムな1体を即座にKOする。セーブデータも削除される（HP25%以下で発動）。' },
+  { id: 'normal',       name: '通常攻撃',    defaultWeights: [60,50,40,30], atkMult: 1, desc: '生存キャラ全員に基礎攻撃×攻撃倍率のダメージを与える。' },
+  { id: 'focus_fire',   name: '集中砲火',    defaultWeights: [10,15,20,20], atkMult: 5, desc: 'ランダムな1体に基礎攻撃×攻撃倍率のダメージを集中攻撃する。' },
+  { id: 'all_attack',   name: '全体乱打',    defaultWeights: [10,12,15,15], atkMult: 2, desc: '全員に基礎攻撃×攻撃倍率のダメージを与える。' },
+  { id: 'instant_kill', name: '即死撃',      defaultWeights: [0, 0, 1, 3],  desc: 'ランダムな1体を即座にKOする。セーブデータも削除される。' },
   { id: 'mp_absorb',    name: 'MP吸収',      defaultWeights: [8, 8, 7, 5],  desc: 'ランダムな1体のMPを全て奪い取る。' },
   { id: 'all_mp_drain', name: '全体MP吸収',  defaultWeights: [5, 6, 7, 8],  desc: '全員のMPを10ずつ奪い取る。' },
   { id: 'petrify',      name: '石化',        defaultWeights: [4, 4, 5, 5],  desc: 'ランダムな1体を60秒間石化させて攻撃不能にする。' },
@@ -1124,9 +1124,9 @@ const SKILL_DEFS = [
   { id: 'charm',        name: '魅了',        defaultWeights: [2, 2, 3, 4],  desc: 'ランダムな1体を30秒間魅了する。魅了中のキャラが攻撃するとボスのHPが回復してしまう。' },
   { id: 'curse',        name: '呪い',        defaultWeights: [3, 3, 4, 4],  desc: 'ランダムな1体を60秒間呪縛する。呪い中のキャラの攻撃ダメージが半減する。' },
   { id: 'self_heal',    name: '自己回復',    defaultWeights: [5, 6, 5, 3],  desc: 'ボス自身がHP+200回復する。' },
-  { id: 'berserk',      name: 'バーサーク',  defaultWeights: [0, 1, 3, 5],  minHpPct: 50, desc: '30秒間、全てのダメージを無効化する（HP50%以下で発動）。' },
-  { id: 'shield_char',  name: '盾キャラ攻撃', defaultWeights: [0, 0, 2, 4], minHpPct: 25, desc: 'ランダムな1体を盾にする。サイズ1.5倍で画面中央へ移動し仮想HP99999を得る。攻撃は盾キャラに当たり、HPが0になるとキャラ＆セーブデータ消滅。30秒経過で解放（HP25%以下で発動）。' },
-  { id: 'delete_char',  name: 'デリート攻撃', defaultWeights: [0, 0, 1, 3], minHpPct: 25, desc: 'ランダムな1体を選んで浮遊させた後に削除する。キャラ＆セーブデータが永久消滅する（HP25%以下で発動）。' },
+  { id: 'berserk',      name: 'バーサーク',  defaultWeights: [0, 1, 3, 5],  desc: '30秒間、全てのダメージを無効化する。' },
+  { id: 'shield_char',  name: '盾キャラ攻撃', defaultWeights: [0, 0, 2, 4], desc: 'ランダムな1体を盾にする。サイズ1.5倍で画面中央へ移動し仮想HP99999を得る。攻撃は盾キャラに当たり、HPが0になるとキャラ＆セーブデータ消滅。30秒経過で解放。' },
+  { id: 'delete_char',  name: 'デリート攻撃', defaultWeights: [0, 0, 1, 3], desc: 'ランダムな1体を選んで浮遊させた後に削除する。キャラ＆セーブデータが永久消滅する。' },
   { id: 'super_heal',   name: '超回復',       defaultWeights: [0, 1, 3, 5], desc: '30秒間防御状態になり停止する。防御中は全攻撃が1ダメージに制限される。100ダメージ蓄積で防御崩壊（HP10%ペナルティ＋ガラス破砕エフェクト）。30秒経過で防御解除＋HP50%回復。' },
 ];
 const HP_TIER_LABELS = ['100-75%', '74-50%', '49-25%', '24-0%'];
@@ -1605,6 +1605,17 @@ function buildSkillCards() {
           </div>
         </div>
 
+        ${def.atkMult !== undefined ? `
+        <!-- 攻撃力（攻撃倍率） -->
+        <div>
+          <div class="skill-subsection-title">攻撃力</div>
+          <div class="field-row">
+            <input type="number" class="w60" id="atkMult-${def.id}" min="0" max="99" step="0.1" value="${def.atkMult}">
+            <span class="field-hint">攻撃倍率（実ダメージ = 基礎攻撃 × この値。基礎攻撃=5〜10, ボスHP低下で上昇）</span>
+          </div>
+        </div>
+        ` : ''}
+
         <!-- セリフ -->
         <div>
           <div class="skill-subsection-title">セリフ</div>
@@ -1933,6 +1944,8 @@ function applyConfigToDOM() {
     const svol = sk.soundVolume ?? 100;
     document.getElementById(`soundVolume-${def.id}`).value = svol;
     document.getElementById(`soundVolumeVal-${def.id}`).textContent = svol;
+    const atkMultEl = document.getElementById(`atkMult-${def.id}`);
+    if (atkMultEl) atkMultEl.value = sk.atkMult ?? def.atkMult ?? 1;
   }
 
   // キャラ削除エフェクト
@@ -1960,20 +1973,12 @@ function applyConfigToDOM() {
 // スキル発動確率リアルタイム計算
 // ────────────────────────────────────────────────────────────────────
 function _recalcSkillProbs() {
-  // ティアtでスキルdefが発動可能か（HP条件チェック）
-  // TIER_LOWER_BOUNDS[t] はそのティアの下限（そのティアの最小HP%）
-  // minHpPct=50 → HP50%以下のみ → ティア0(>75%)とティア1(>50%)では発動不可
-  function isAvailable(def, t) {
-    if (!def.minHpPct) return true;
-    return TIER_LOWER_BOUNDS[t] < def.minHpPct;
-  }
-
+  // HP閾値ゲートは廃止。全スキルが全ティアで発動可能（発動可否は重みのみで制御）。
   for (let t = 0; t < 4; t++) {
     let totalWeight = 0;
     for (const def of SKILL_DEFS) {
       const enabled = document.getElementById(`enabled-${def.id}`)?.checked;
       if (!enabled) continue;
-      if (!isAvailable(def, t)) continue;
       const w = parseFloat(document.getElementById(`w${t}-${def.id}`)?.value) || 0;
       totalWeight += w;
     }
@@ -1985,11 +1990,6 @@ function _recalcSkillProbs() {
       span.className = 'weight-pct';
       if (!enabled) {
         span.textContent = '';
-        continue;
-      }
-      if (!isAvailable(def, t)) {
-        span.textContent = '—';
-        span.classList.add('pct-na');
         continue;
       }
       const w = parseFloat(document.getElementById(`w${t}-${def.id}`)?.value) || 0;
@@ -2148,6 +2148,9 @@ function collectConfig() {
       },
       sound: document.getElementById(`sound-${def.id}`).value.trim(),
       soundVolume: parseInt(document.getElementById(`soundVolume-${def.id}`).value) || 100,
+      ...(def.atkMult !== undefined
+        ? { atkMult: parseFloat(document.getElementById(`atkMult-${def.id}`).value) || def.atkMult }
+        : {}),
     };
   }
   return cfg;

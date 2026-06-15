@@ -2,6 +2,21 @@
 
 ---
 
+## v2.718.0 — 2026-06-15
+
+### feat: ボスアゲルバトル スキルの攻撃力を設定可能化＋HP閾値ゲートを廃止
+
+- **攻撃力（攻撃倍率）を設定画面から変更可能に**
+  - `ageru-boss.html` のスキル設定に「攻撃力」欄を追加（攻撃ダメージを持つ `通常攻撃`/`集中砲火`/`全体乱打` のみ表示）。実ダメージ = 基礎攻撃(5〜10, ボスHP低下で上昇) × 攻撃倍率
+  - 既定倍率: 通常攻撃=1 / 全体乱打=2 / 集中砲火=5（従来のダメージと同一）。`config.skills.<id>.atkMult` として保存・復元
+  - **`app-10-agru-battle-skills.js`** `_agruBattleDoCounter`: `normal`/`focus_fire`/`all_attack` のダメージ式を `Math.round(bossAtk × atkMult)` に変更（設定値、未設定時は既定倍率）
+- **HP閾値による発動制限（minHpPct）を廃止**
+  - **`app-10`** `_agruBattlePickSkill`: `if (s.minHpPct && pct > s.minHpPct) return false;` を削除。`AGRU_BATTLE_SKILLS` から `minHpPct`（berserk/instant_kill/shield_char/delete_char）を除去
+  - 発動可否は「発動確率（HPティア別の重み）」のみで制御。重み[0]（HP100-75%）を1以上にすればHP100%から発動可能。重みで同等の制御ができるため閾値は不要
+  - `ageru-boss.html`: `SKILL_DEFS` から `minHpPct` と説明文の「（HP○%以下で発動）」を削除。`_recalcSkillProbs` の HP条件判定（`isAvailable`）を撤去し全ティアで確率表示
+
+---
+
 ## v2.717.0 — 2026-06-15
 
 ### refactor: リファクタリング Phase 4（handleComment軽量化・consoleログ除去・挙動変更なし）

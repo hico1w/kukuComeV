@@ -11,10 +11,10 @@ const AGRU_BATTLE_SKILLS = [
   { id: 'charm',        name: '魅了',         weights: [2,  2,  3,  4] },
   { id: 'curse',        name: '呪い',         weights: [3,  3,  4,  4] },
   { id: 'self_heal',    name: '自己回復',     weights: [5,  6,  5,  3] },
-  { id: 'berserk',      name: 'バーサーク',   weights: [0,  1,  3,  5], minHpPct: 50 },
-  { id: 'instant_kill', name: '即死撃',       weights: [0,  0,  1,  3], minHpPct: 25 },
-  { id: 'shield_char',  name: '盾キャラ攻撃', weights: [0,  0,  2,  4], minHpPct: 25 },
-  { id: 'delete_char',  name: 'デリート攻撃', weights: [0,  0,  1,  3], minHpPct: 25 },
+  { id: 'berserk',      name: 'バーサーク',   weights: [0,  1,  3,  5] },
+  { id: 'instant_kill', name: '即死撃',       weights: [0,  0,  1,  3] },
+  { id: 'shield_char',  name: '盾キャラ攻撃', weights: [0,  0,  2,  4] },
+  { id: 'delete_char',  name: 'デリート攻撃', weights: [0,  0,  1,  3] },
   { id: 'super_heal',   name: '超回復',       weights: [0,  1,  3,  5] },
 ];
 
@@ -22,7 +22,7 @@ function _agruBattlePickSkill() {
   const pct = agruBattleHP / agruBattleMaxHP * 100;
   const tier = pct > 75 ? 0 : pct > 50 ? 1 : pct > 25 ? 2 : 3;
   const candidates = AGRU_BATTLE_SKILLS.filter(s => {
-    if (s.minHpPct && pct > s.minHpPct) return false;
+    // HP閾値ゲートは廃止。発動可否は発動確率（HPティア別の重み）のみで制御する。
     const cfg = agruBattleConfig?.skills?.[s.id];
     return cfg?.enabled !== false;
   });
@@ -780,12 +780,16 @@ function _agruBattleDoCounter(forceSkillId) {
     : _agruBattlePickSkill();
   const alive  = _agruBattleGetAliveUsers();
   const bossAtk = 5 + Math.max(0, Math.floor((1 - agruBattleHP / agruBattleMaxHP) * 5));
+  // 攻撃倍率（設定画面で変更可能）。基礎攻撃 bossAtk × この倍率がダメージになる。
+  // 既定値: 通常=1 / 全体乱打=2 / 集中砲火=5（未設定時は従来挙動を維持）
+  const _atkMult = (id, def) => agruBattleConfig?.skills?.[id]?.atkMult ?? def;
   window._bossEfx?.onAttack();
 
   switch (skill.id) {
     case 'normal': {
-      _agruAddSystemMsg(`😡 アゲルちゃんの通常攻撃！全員に ${bossAtk} ダメージ！`);
-      alive.forEach(u => { const wasKo = u.ko; damageUser(u, bossAtk); if (!wasKo && u.ko) _agruBattleKillUser(u); });
+      const dmg = Math.round(bossAtk * _atkMult('normal', 1));
+      _agruAddSystemMsg(`😡 アゲルちゃんの通常攻撃！全員に ${dmg} ダメージ！`);
+      alive.forEach(u => { const wasKo = u.ko; damageUser(u, dmg); if (!wasKo && u.ko) _agruBattleKillUser(u); });
       _agruBattlePlayEffect(skill.id, alive);
       _agruBattleGetSpeech('normal');
       break;
@@ -793,7 +797,7 @@ function _agruBattleDoCounter(forceSkillId) {
     case 'focus_fire': {
       const target = alive[Math.floor(Math.random() * alive.length)];
       if (!target) break;
-      const dmg = bossAtk * 5;
+      const dmg = Math.round(bossAtk * _atkMult('focus_fire', 5));
       _agruAddSystemMsg(`🎯 集中砲火！${target.name || '名無し'} に ${dmg} ダメージ！`);
       const wasKoFF = target.ko;
       damageUser(target, dmg);
@@ -803,7 +807,7 @@ function _agruBattleDoCounter(forceSkillId) {
       break;
     }
     case 'all_attack': {
-      const dmg = bossAtk * 2;
+      const dmg = Math.round(bossAtk * _atkMult('all_attack', 2));
       _agruAddSystemMsg(`💥 全体乱打！全員に ${dmg} ダメージ！`);
       alive.forEach(u => { const wasKo = u.ko; damageUser(u, dmg); if (!wasKo && u.ko) _agruBattleKillUser(u); });
       _agruBattlePlayEffect(skill.id, alive);
