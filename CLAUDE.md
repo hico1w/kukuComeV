@@ -16,7 +16,14 @@
 - **どのファイルに何があるか・編集時の制約（読み込み順＝実行順を壊さない／新ファイルは `index.html` に順序通り追加など）は [`public/js/README.md`](public/js/README.md) を参照すること。**
 - 全ファイルは同一のグローバルスコープを共有する classic script。関数名・コマンド名は分割前から不変なので、機能名から該当ファイルを特定できる（例: 「スロット」→ `app-12-features-minigames.js`）。
 
-## キャラ一覧の更新
+## ルート index.html（コマンドマニュアル）の更新
 
-- ルートの `E:\claude\kukuCome\index.html`（コマンド一覧ページ）のキャラ一覧（`STANDALONE_CHARS`）を更新するときは、**手動で編集せず `/sync-chars` スキルを読み込んで実行すること。**
-- `/sync-chars` は `data/charImages.json` を正として、root `chara/` への不足ファイル補完と `index.html` の `STANDALONE_CHARS` 書き換えを一括で行う（定義は `.claude/commands/sync-chars.md`）。
+ルートの `E:\claude\kukuCome\index.html` は、ユーザー向けのコマンドマニュアル兼コマンド生成ページ。アプリ側でコマンドや仕様を変えると取り残されやすいので、**手動で直接編集せず以下のスキルを読み込んで使うこと。**
+
+- **キャラ一覧（`STANDALONE_CHARS`）の更新 → `/sync-chars`**
+  `data/charImages.json` を正として `chara/` 補完と `STANDALONE_CHARS` 書き換えを一括実行（定義: `.claude/commands/sync-chars.md`）。
+- **コマンド一覧・コマンド生成の選択肢・各機能の仕様（マニュアル全体）の最新化 → `/update-index`**
+  コードの実装を正として各セクションを照合し、差分を提示→承認後に反映（定義: `.claude/commands/update-index.md`）。
+- 補足: アプリのコマンド／仕様を変更したら、対応する index.html セクションが古くなるので `/update-index` で追従する。
+
+> 例: ボスアゲルのスキル仕様（攻撃力・発動条件など）を変えたら、index.html の「👹 ボスアゲルバトル」セクションも `/update-index` で更新する。
