@@ -96,8 +96,6 @@ function resolveColor(v) {
 function handleComment(comment) {
   if (comment.from === 'admin') return;
 
-  console.log('[comment]', JSON.stringify(comment, null, 2));
-
   const type  = comment.type || 'comment';
   const ipid  = comment.ipid || comment.from || 'master';
   const user  = getUser(ipid);
@@ -185,6 +183,7 @@ function handleComment(comment) {
 
   const rawMessage = decodeHtml(comment.message ?? '');
   const message    = stripPrefix(rawMessage);
+  const trimmedMsg = message.trim(); // message は const のため一度だけ算出して再利用
   if (message) {
     if (!user.recentComments) user.recentComments = [];
     user.recentComments.push(message);
@@ -194,7 +193,7 @@ function handleComment(comment) {
   // ── 馬券ベット ──
   if (raceState?.phase === 'betting') {
     // 全角→半角に正規化してから判定
-    const betMsg = message.trim()
+    const betMsg = trimmedMsg
       .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
       .replace(/[－−‐]/g, '-')
       .replace(/　/g, ' ');
@@ -218,7 +217,7 @@ function handleComment(comment) {
 
   // ── ベット（タイマン中）──
   if (taimanState?.betPhase) {
-    const betMsg = message.trim()
+    const betMsg = trimmedMsg
       .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
       .replace(/　/g, ' ');
     const betMatch = betMsg.match(/^ベット\s+([12])\s+(\d+)$/);
@@ -372,7 +371,7 @@ function handleComment(comment) {
   if (agruBattleActive) attackAgruBoss(user, message.length, message);
 
   // ── アゲルちゃん会話モード ──
-  if (agruActive && message.trim() === 'カフェオレ投与') {
+  if (agruActive && trimmedMsg === 'カフェオレ投与') {
     if ((user.mp ?? 0) < 50) {
       showBubble(user, `MPが足りない… (${user.mp ?? 0}/50)`, {});
     } else {
@@ -382,7 +381,7 @@ function handleComment(comment) {
       _agruUpdateAffinityDisplay(20);
       _agruAddSystemMsg(`${user.name || '名無し'}がカフェオレをプレゼントした！好感度あがった！`);
     }
-  } else if (agruActive && message.trim() === '水道水投与') {
+  } else if (agruActive && trimmedMsg === '水道水投与') {
     if ((user.mp ?? 0) < 10) {
       showBubble(user, `MPが足りない… (${user.mp ?? 0}/10)`, {});
     } else {
@@ -409,7 +408,7 @@ function handleComment(comment) {
     _agruAddSystemMsg(`☠️ ${user.name || '名無し'}が毒を投与した！空腹度が減った…`);
     _agruShowStateImage('毒');
     if (agruIdle) _agruSend(message, user.name);
-  } else if (!agruBattleActive && agruActive && agruIdle && message.trim() && !/^[ァ-ヶー]{5}$/.test(message.trim()) && !_isAgruSkipCmd(message)) {
+  } else if (!agruBattleActive && agruActive && agruIdle && trimmedMsg && !/^[ァ-ヶー]{5}$/.test(trimmedMsg) && !_isAgruSkipCmd(message)) {
     _agruSend(message, user.name);
   }
 
@@ -446,7 +445,6 @@ function handleComment(comment) {
 
   // ── 早押しチェック（他の処理より前に判定）──────
   {
-    const trimmedMsg = message.trim();
     const matchWhite = hayaoshiItems.find(it => it.type === 'white' && it.keyword === trimmedMsg);
     if (matchWhite) {
       clearTimeout(matchWhite.timeoutId);
@@ -485,7 +483,7 @@ function handleComment(comment) {
 
   // ── クイズ回答チェック ────────────────────────
   if (quizState && !quizState.answered) {
-    handleQuizAnswer(user, message.trim());
+    handleQuizAnswer(user, trimmedMsg);
   }
 
   // ── ランダムタイマン ──────────────────────────────
@@ -517,7 +515,7 @@ function handleComment(comment) {
 
   // ── タイマン ─────────────────────────────────────
   {
-    const taimanM = message.trim().match(/^タイマン[：:](.+)$/);
+    const taimanM = trimmedMsg.match(/^タイマン[：:](.+)$/);
     if (taimanM) {
       if (compactMode || contentMode) return;
       const targetName = taimanM[1].trim();
@@ -548,7 +546,7 @@ function handleComment(comment) {
   // ── AFK ───────────────────────────────────────
   if (user.afk || user.afkText) {
     // masterは「戻りました」のみ解除
-    const canClearAfk = !isMasterUser(user) || message.trim() === '戻りました';
+    const canClearAfk = !isMasterUser(user) || trimmedMsg === '戻りました';
     if (canClearAfk) {
       user.afk = false;
       user.afkText = null;
@@ -572,7 +570,7 @@ function handleComment(comment) {
     return;
   }
   // 放置コマンド: 「放置:テキスト」
-  const afkTextMatch = message.trim().match(/^(?:放置|無明)[：:](.+)$/);
+  const afkTextMatch = trimmedMsg.match(/^(?:放置|無明)[：:](.+)$/);
   if (afkTextMatch) {
     ensureCharOnStage(user);
     const text = afkTextMatch[1].trim();
@@ -615,7 +613,7 @@ function handleComment(comment) {
   }
 
   // ── TTSコマンド ──────────────────────────────
-  const ttsMatch = message.trim().match(/^tts[：:](.+)$/);
+  const ttsMatch = trimmedMsg.match(/^tts[：:](.+)$/);
   if (ttsMatch) {
     ensureCharOnStage(user); showBubble(user, message, {});
     playTTS(ttsMatch[1].trim());
@@ -623,7 +621,7 @@ function handleComment(comment) {
   }
 
   // ── ノベル起動コマンド ────────────────────────
-  if (message.trim() === 'ノベル起動') {
+  if (trimmedMsg === 'ノベル起動') {
     if (!isMasterUser(user)) return;
     ensureCharOnStage(user); showBubble(user, message, {});
     openNovelModal();
@@ -631,7 +629,7 @@ function handleComment(comment) {
   }
 
   // ── AI返答コマンド（ai：質問） ────────────────
-  const aiMatch = message.trim().match(/^(?:ai|AI|ＡＩ)[：:](.+)$/i);
+  const aiMatch = trimmedMsg.match(/^(?:ai|AI|ＡＩ)[：:](.+)$/i);
   if (aiMatch) {
     ensureCharOnStage(user); showBubble(user, message, {});
     askAI(user, aiMatch[1].trim());
@@ -639,7 +637,7 @@ function handleComment(comment) {
   }
 
   // ── 宝箱を開ける ─────────────────────────────
-  if (message.trim() === '開ける') {
+  if (trimmedMsg === '開ける') {
     if (!agruBattleActive) {
       ensureCharOnStage(user); showBubble(user, message, {});
       openTreasureChest(user);
@@ -1172,8 +1170,8 @@ function handleComment(comment) {
   }
 
   // Wordle チェック：元のメッセージがカタカナ5文字なら推測として処理
-  if (wordleState && /^[゠-ヿ]{5}$/.test(message.trim())) {
-    handleWordleGuess(user, message.trim());
+  if (wordleState && /^[゠-ヿ]{5}$/.test(trimmedMsg)) {
+    handleWordleGuess(user, trimmedMsg);
   }
 
   // コンボチェック

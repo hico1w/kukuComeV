@@ -304,9 +304,7 @@ bgImageInput?.addEventListener('change', async () => {
         localStorage.setItem('bgImageUrl', url);
         applyBgImage(url);
       }
-    } catch (err) {
-      console.error('BG upload error:', err);
-    }
+    } catch (err) {}
   };
   reader.readAsDataURL(file);
 });

@@ -53,7 +53,6 @@ async function fetchComments() {
     const onStage = Object.values(users).filter(u => u.el).length;
     setStatus('running', `● 受信中 (${onStage} キャラ)`);
   } catch (err) {
-    console.error(err);
     setStatus('error', '● 通信エラー');
   }
 }
@@ -642,16 +641,14 @@ async function playTTS(text) {
       }),
     });
     const data = await res.json();
-    if (data.error) { console.warn('[TTS]', data.error); return; }
+    if (data.error) { return; }
     if (_ttsAudio) { _ttsAudio.pause(); _ttsAudio = null; }
     const audio = new Audio(data.url);
     audio.volume = ttsVolume;
     _ttsAudio = audio;
     audio.play().catch(() => {});
     audio.onended = () => { if (_ttsAudio === audio) _ttsAudio = null; };
-  } catch (e) {
-    console.warn('[TTS]', e.message);
-  }
+  } catch (e) {}
 }
 
 // ── AI返答（Ollama） ─────────────────────────────────────────────

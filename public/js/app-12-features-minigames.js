@@ -569,12 +569,11 @@ function showStatusModal(user, autoClose = true, triggerCnum = null) {
   const close = () => overlay.remove();
 
   const captureAndPostDiscord = async () => {
-    console.log('[capture] start triggerCnum=', triggerCnum, 'html2canvas=', typeof html2canvas);
-    if (triggerCnum == null) { console.warn('[capture] skip: triggerCnum is null'); return; }
-    if (typeof html2canvas === 'undefined') { console.warn('[capture] skip: html2canvas not loaded'); return; }
+    if (triggerCnum == null) { return; }
+    if (typeof html2canvas === 'undefined') { return; }
 
     const modalEl = overlay.querySelector('.sm-modal');
-    if (!modalEl) { console.warn('[capture] skip: modalEl not found'); return; }
+    if (!modalEl) { return; }
 
     // 画像がすべて読み込まれるのを待つ（未ロードがあれば最大3秒待機）
     const pendingImgs = [...modalEl.querySelectorAll('img')].filter(img => !img.complete || img.naturalWidth === 0);
@@ -619,14 +618,11 @@ function showStatusModal(user, autoClose = true, triggerCnum = null) {
 
       // スタイル変更後1フレーム待ってレイアウトを確定させる
       await new Promise(r => requestAnimationFrame(r));
-      console.log('[capture] modalEl size=', modalEl.offsetWidth, 'x', modalEl.offsetHeight,
-                  'scroll=', modalEl.scrollWidth, 'x', modalEl.scrollHeight);
 
       // ① object-fit:contain img をキャンバスに差し替え
       for (const img of modalEl.querySelectorAll('.sm-avatar, .sm-pet-img')) {
         const bW = img.offsetWidth, bH = img.offsetHeight;
         const nW = img.naturalWidth, nH = img.naturalHeight;
-        console.log('[capture] img', img.className, 'box=', bW, bH, 'natural=', nW, nH);
         if (!bW || !bH || !nW || !nH || !img.parentElement) continue;
         const scale2 = 2;
         const cvs = document.createElement('canvas');
@@ -645,7 +641,6 @@ function showStatusModal(user, autoClose = true, triggerCnum = null) {
 
       const captureW = modalEl.scrollWidth  || modalEl.offsetWidth;
       const captureH = modalEl.scrollHeight || modalEl.offsetHeight;
-      console.log('[capture] html2canvas start w=', captureW, 'h=', captureH);
       const canvas = await html2canvas(modalEl, {
         backgroundColor: '#0f121c',
         scale: 2,
@@ -654,25 +649,18 @@ function showStatusModal(user, autoClose = true, triggerCnum = null) {
         width: captureW,
         height: captureH,
       });
-      console.log('[capture] html2canvas done canvas=', canvas.width, 'x', canvas.height);
 
       const dataUrl = canvas.toDataURL('image/png');
-      console.log('[capture] posting to /api/status-screenshot dataUrl length=', dataUrl.length);
       const resp = await fetch('/api/status-screenshot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageDataUrl: dataUrl, userName: user.name }),
       });
       const data = await resp.json();
-      console.log('[capture] response=', data);
       if (data.url) {
-        console.log('[capture] posting comment >>', triggerCnum, data.url);
         postAIReply(`>>${triggerCnum} ${data.url}`);
-      } else {
-        console.warn('[capture] no url in response', data);
       }
     } catch (e) {
-      console.error('[capture] error', e);
     } finally {
       restoreStyles();
       for (const { cvs, img } of restoreList) cvs.parentElement?.replaceChild(img, cvs);
@@ -948,7 +936,7 @@ async function fetchNewsAndRender() {
   try {
     const items = await fetch('/api/news').then(r => r.json());
     if (Array.isArray(items) && items.length > 0) _newsCachedItems = items;
-  } catch(e) { console.warn('[news fetch]', e.message); }
+  } catch(e) {}
   renderNewsTicker();
 }
 

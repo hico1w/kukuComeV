@@ -2,6 +2,18 @@
 
 ---
 
+## v2.717.0 — 2026-06-15
+
+### refactor: リファクタリング Phase 4（handleComment軽量化・consoleログ除去・挙動変更なし）
+
+- **`app-06-comment-handler.js`** `handleComment`: 全コメントで16回再計算していた `message.trim()` を、関数冒頭で1回だけ算出する `trimmedMsg` に集約（`message` は const のため値は不変）。コメント1件あたりの文字列処理を削減
+- **フロントエンド全 `console.*`（28箇所）を除去**。`console.log('[comment]', JSON.stringify(comment, null, 2))` のように全コメントで実行されていた整形JSON化を含む。`if (data.error) { return; }` の `return` や `showBubble`/`setStatus`/`postAIReply` 等のロジックは保持し、console呼び出しのみ削除したため挙動は不変
+  - 対象ファイル: `app-01`(BG upload catch) / `app-06`(コメントログ) / `app-07`(受信catch・TTS) / `app-11`(VoiceVox・AI・SD・Suno・アゲルログ・pop音) / `app-12`(ステータスキャプチャ・ニュースfetch)
+- 各ファイル `node --check`・全13ファイル連結パース OK
+- 補足: `server.js` のログ（21箇所・サーバ起動/障害診断用）は対象外として残置
+
+---
+
 ## v2.716.0 — 2026-06-15
 
 ### refactor: リファクタリング Phase 5（app.js を機能単位で13分割・挙動変更なし）

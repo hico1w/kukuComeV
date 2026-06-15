@@ -407,7 +407,7 @@ _agruPopAudio.volume = 0.5;
 function _agruPlayPopSound() {
   const a = _agruPopAudio.cloneNode();
   a.volume = _agruPopAudio.volume;
-  a.play().catch(e => console.warn('[agru] pop sound error:', e));
+  a.play().catch(() => {});
 }
 
 function _agruTrimLog() {
@@ -509,20 +509,17 @@ async function _agruPlayVoicevox(text) {
       body: JSON.stringify({ text, speaker: agruVoicevoxSpeaker, speedScale: agruVoicevoxSpeed }),
     });
     const data = await res.json();
-    if (data.error) { console.warn('[VoiceVox]', data.error); return; }
+    if (data.error) { return; }
     if (_agruVvAudio) { _agruVvAudio.pause(); _agruVvAudio = null; }
     const audio = new Audio(data.audio);
     audio.volume = agruVoicevoxVolume;
     _agruVvAudio = audio;
     audio.play().catch(() => {});
     audio.onended = () => { if (_agruVvAudio === audio) _agruVvAudio = null; };
-  } catch (e) {
-    console.warn('[VoiceVox]', e.message);
-  }
+  } catch (e) {}
 }
 
 function _agruLog(msg, type) {
-  console.log('[アゲルちゃん]', msg);
   const _m = { type: 'agruLog', msg: String(msg), logType: type || '' };
   if (_adminWs?.readyState === WebSocket.OPEN) _adminWs.send(JSON.stringify(_m));
   else _adminBC.postMessage(_m);
@@ -908,7 +905,6 @@ window.addEventListener('message', e => {
     }
     // Suno 終了検知（送ってくれるか確認用ログ）
     const isSunoFrame = document.getElementById('agruYtIframe')?.src?.includes('suno.com');
-    if (isSunoFrame && data.event !== 'onStateChange') console.log('[suno msg]', data);
     // Suno が ended 系イベントを送ってきた場合
     if (isSunoFrame && (data.type === 'playback_end' || data.status === 'ended' || data.event === 'ended')) {
       closeAgruYtModal();
@@ -1148,13 +1144,11 @@ async function askAI(user, question) {
       body: JSON.stringify({ prompt: question, model: aiModel, system: systemPrompt }),
     });
     const data = await res.json();
-    if (data.error) { console.warn('[AI]', data.error); return; }
+    if (data.error) { return; }
     const reply = data.reply.trim();
     showBubble(user, reply, {});
     addToLog(user, `🤖 AI返答: ${reply}`, '#818cf8');
-  } catch (e) {
-    console.warn('[AI]', e.message);
-  }
+  } catch (e) {}
 }
 
 // ── Stable Diffusion 画像生成 ────────────────────────────────────
@@ -1202,7 +1196,6 @@ async function _sdGenerateOne(user, prompt) {
     });
     const data = await res.json();
     if (data.error) {
-      console.error('[SD]', data.error);
       showBubble(user, '❌ ' + data.error.slice(0, 40), {});
       addToLog(user, '🎨SD ❌ ' + data.error.slice(0, 80), '#ef4444');
       return;
@@ -1212,7 +1205,6 @@ async function _sdGenerateOne(user, prompt) {
     }
     showSDImage(user, data.image, prompt, data.translatedPrompt || prompt, cfg);
   } catch (e) {
-    console.error('[SD fetch]', e);
     showBubble(user, '❌ 通信エラー', {});
   }
 }
