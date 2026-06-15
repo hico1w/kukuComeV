@@ -3821,6 +3821,48 @@ body.no-boss-float .boss-avatar { animation: none !important; }
 .news-ticker-slide-item.nt-entering { animation: ntSlideIn 0.55s cubic-bezier(0.22,1,0.36,1) forwards; }
 .news-ticker-slide-item.nt-leaving  { animation: ntSlideOut 0.45s ease forwards; }
 
+/* ── 縦書き縦スクロールモード (vtate) ── */
+.news-ticker-vtate-track {
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+@keyframes newsTickerVTateScroll {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-50%); }
+}
+.news-ticker-vtate-item {
+  display: block;
+  writing-mode: vertical-rl;
+  white-space: nowrap;
+  overflow: hidden;
+  max-height: var(--vtate-max-h, 200px);
+  padding: 6px 6px;
+  font-size: var(--ntf, 13px);
+  color: #ddd6fe;
+  cursor: pointer;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(168,85,247,0.12);
+  box-sizing: border-box;
+  line-height: 1.4;
+}
+.news-ticker-vtate-item:hover { color: #f0e6ff; background: rgba(168,85,247,0.08); }
+.news-ticker-vtate-item .news-source {
+  display: inline-block;
+  font-size: calc(var(--ntf, 13px) - 2px);
+  font-weight: bold;
+  padding: 3px 1px;
+  border-radius: 3px;
+  margin-bottom: 5px;
+}
+.news-ticker-vtate-item .news-source.src-gigazine { background: #2563eb; color: #fff; }
+.news-ticker-vtate-item .news-source.src-yahoo    { background: #7c3aed; color: #fff; }
+.news-ticker-vtate-item .news-source.src-nhk      { background: #0e7490; color: #fff; }
+.news-ticker-vtate-item .news-source.src-other    { background: #6b21a8; color: #e9d5ff; }
+.news-ticker-vtate-title {
+  display: inline;
+}
+
 /* ── ニュース記事モーダル ── */
 .news-modal-overlay {
   position: fixed;

@@ -375,7 +375,7 @@ const SETTINGS_KEYS = [
   'agruChatFontSize','agruChatBold','agruFontLeft','agruFontRight','agruCharTags','agruYtVolume','agruBgmVolume','agruYtWidth','agruYtHeight','agruYtOpacity','agruYtEnabled','agruModalZ','agruYtModalZ',
   'agruModalWidth','agruModalHeight','agruModalBgOpacity','agruChatImgSize','agruCharImgHeight','agruCharImgScale',
   'bombHidden','trashHidden','charStatsHidden','charNameHidden','breatheDisabled','bossFloatDisabled',
-  'newsTickerEnabled','newsTickerWidth','newsTickerX','newsTickerY','newsTickerRows','newsTickerFontSize','newsTickerBgOpacity','newsTickerSpeed','newsTickerMode','newsTickerInterval','newsTickerTategaki',
+  'newsTickerEnabled','newsTickerWidth','newsTickerX','newsTickerY','newsTickerRows','newsTickerFontSize','newsTickerBgOpacity','newsTickerSpeed','newsTickerMode','newsTickerInterval','newsTickerTategaki','newsTickerHeight',
   'dmgFontScale',
   'wordlePanelWidth','wordlePanelBgOpacity','rankingPanelBgOpacity','quizPanelBgOpacity',
   'agruImgCmdEnabled','agruUnloadEnabled',
@@ -685,6 +685,10 @@ function ensureCharOnStage(user) {
   if (user.el) {
     return;
   }
+  // ボスアゲルバトル中は新規キャラ生成禁止（KO済みの再生成も禁止）
+  if (agruBattleActive) return;
+  // バトル中にKOされたキャラはバトル終了後も再生成しない
+  if (_agruBattleKilledIds.has(user.ipid)) return;
   if (!user.charDef) {
     const used = getUsedCharIds(user);
     const _agruExcludeSet = _agruPlayersWon && agruBattleConfig?.agruTypeImages?.length
@@ -2093,6 +2097,7 @@ let newsTickerSpeed     = parseInt(localStorage.getItem('newsTickerSpeed'))     
 let newsTickerMode     = localStorage.getItem('newsTickerMode')                 || 'hscroll';
 let newsTickerInterval = parseInt(localStorage.getItem('newsTickerInterval'))   || 8;
 let newsTickerTategaki = localStorage.getItem('newsTickerTategaki') === 'true';
+let newsTickerHeight   = parseInt(localStorage.getItem('newsTickerHeight'))   || 0;
 let wordlePanelWidth      = parseInt(localStorage.getItem('wordlePanelWidth'))      || 200;
 let wordlePanelBgOpacity  = localStorage.getItem('wordlePanelBgOpacity')  !== null ? parseInt(localStorage.getItem('wordlePanelBgOpacity'))  : 93;
 let rankingPanelBgOpacity = localStorage.getItem('rankingPanelBgOpacity') !== null ? parseInt(localStorage.getItem('rankingPanelBgOpacity')) : 92;
@@ -3400,10 +3405,16 @@ function spawnBoss(maxHp) {
   if (bossState) {
     if (bossState.el) bossState.el.remove();
   }
-  // ボス画像：charaフォルダからランダム選択、なければ絵文字
-  const bossImg = availableImages.length > 0
-    ? availableImages[Math.floor(Math.random() * availableImages.length)]
+  // ボス画像：charaフォルダからランダム選択（リスナー勝利後はアゲル系を除外）
+  const _bossAgruExclude = _agruPlayersWon && agruBattleConfig?.agruTypeImages?.length
+    ? new Set(agruBattleConfig.agruTypeImages.map(s => s.trim()).filter(Boolean))
     : null;
+  const _bossImgPool = _bossAgruExclude
+    ? availableImages.filter(f => !_bossAgruExclude.has(f))
+    : availableImages;
+  const bossImg = _bossImgPool.length > 0
+    ? _bossImgPool[Math.floor(Math.random() * _bossImgPool.length)]
+    : (availableImages.length > 0 ? availableImages[Math.floor(Math.random() * availableImages.length)] : null);
   const avatarInner = bossImg
     ? `<img src="/chara-s/${encodeURIComponent(bossImg)}" alt="boss">`
     : '🐉';
@@ -4167,7 +4178,7 @@ function handleComment(comment) {
   }
 
   // ── YouTube URL 共有でMP回復 ──
-  {
+  if (!agruBattleActive) {
     // comment.urlはURLエンコードされている場合がある（例: v%3DID → v=ID）
     const urlDecoded = comment.url ? decodeURIComponent(comment.url) : '';
     const plainMsg = (comment.message ?? '').replace(/<[^>]+>/g, ' ');
@@ -4233,7 +4244,7 @@ function handleComment(comment) {
   }
 
   // ── YouTube停止（会話モード外でも有効）── 50MP消費
-  if (/止めて/.test(message)) {
+  if (!agruBattleActive && /止めて/.test(message)) {
     if ((user.mp ?? 0) < 50) {
       showBubble(user, `MPが足りない… (${user.mp ?? 0}/50)`, {});
     } else {
@@ -4504,6 +4515,7 @@ function handleComment(comment) {
   // ── 出ろ/出して/生成コマンド：SD画像生成 ──────
   if (/出ろ|出して|生成|gen/i.test(message)) {
     if (!agruImgCmdEnabled) return; // 画像コマンド無視設定
+    if (agruBattleActive) return; // バトル中は画像コマンド無効
     if (agruActive) return; // 会話モード中は _agruSend 側で処理
     ensureCharOnStage(user);
     if ((user.mp ?? 0) < 20) {
@@ -4544,8 +4556,10 @@ function handleComment(comment) {
 
   // ── 宝箱を開ける ─────────────────────────────
   if (message.trim() === '開ける') {
-    ensureCharOnStage(user); showBubble(user, message, {});
-    openTreasureChest(user);
+    if (!agruBattleActive) {
+      ensureCharOnStage(user); showBubble(user, message, {});
+      openTreasureChest(user);
+    }
     return;
   }
 
@@ -6254,6 +6268,23 @@ function startAgruBattle(maxHP) {
   hayaoshiItems.forEach(it => { clearTimeout(it.timeoutId); if (it.el?.parentNode) it.el.remove(); });
   hayaoshiItems = [];
 
+  // 会話モードBGMを停止（バトル終了後に再開）
+  _agruBgmPause();
+
+  // 通常ボスを消滅（バトル終了後に再召喚）
+  bossManuallyCleared = false; // バトル終了後の自動召喚を保証
+  if (bossState) {
+    if (bossState.el) {
+      bossState.el.style.transition = 'transform 0.4s ease-in, opacity 0.4s ease-in';
+      bossState.el.style.transform  = 'scale(0) rotate(15deg)';
+      bossState.el.style.opacity    = '0';
+      setTimeout(() => { bossState?.el?.remove(); bossState = null; }, 450);
+    } else {
+      bossState = null;
+    }
+    document.getElementById('bossSpeech')?.remove();
+  }
+
   // UI 切替（パネル非表示・装備/ステータス/名前 強制表示）
   _agruBattleEnterUI();
 
@@ -7716,11 +7747,32 @@ function endAgruBattle(result) {
     _resetBossLayoutConfig();
   }
   _agruBattleRestoreChars();
+  _agruBattleKilledIds.clear(); // バトル終了後はKO済み制限を解除し再生成を許可
   Object.values(users).forEach(u => {
     document.getElementById('a-' + u.ipid)?.querySelector('.hp-gray-overlay')?.remove();
     u.el?.classList.remove('agru-float-delete');
   });
   _agruClearAllStatusIcons();
+
+  // 会話モードBGMを再開
+  if (agruActive) _agruBgmPlay();
+
+  // バトル終了時: Ollamaが停止していれば起動（勝敗問わず）
+  fetch('/api/srv/start/ollama', { method: 'POST' }).catch(() => {});
+
+  // ボス勝利時: 好感度・空腹度を初期値にリセット
+  if (result === 'ageru') {
+    agruAffinity = 50;
+    agruHunger   = 100;
+    _agruUpdateAffinityDisplay(0);
+    _agruUpdateHungerDisplay(0);
+    _agruAddSystemMsg('😈 アゲルちゃんの勝利！好感度・空腹度が初期化された…');
+  }
+
+  // 通常ボスを再召喚（手動消滅していない場合）
+  if (!bossManuallyCleared && !compactMode && !bossState) {
+    spawnBoss(nextBossHp());
+  }
 
   // 吹き出しを非表示
   const _bubble = document.getElementById('agruBattleSpeechBubble');
@@ -7839,6 +7891,7 @@ function endAgruBattle(result) {
 function _agruBattleDealDamage(dmg, user) {
   if (!agruBattleActive || agruBattleHP <= 0) return;
   if (agruBattleBerserkUntil > Date.now()) return; // バーサーク中は無効
+  if (user && _agruBattleKilledIds.has(user.ipid)) return; // KO済みは攻撃不能
   if (user) {
     const eff = agruBattleStatusEffects.get(user.ipid) || {};
     const now = Date.now();
@@ -7938,6 +7991,7 @@ function _launchAtkBubble(user, text) {
 function attackAgruBoss(user, msgLen, msgText) {
   if (!agruBattleActive || agruBattleHP <= 0) return;
   if (user.ko) return;
+  if (_agruBattleKilledIds.has(user.ipid)) return;
   const eff = agruBattleStatusEffects.get(user.ipid) || {};
   const now = Date.now();
   if (eff.stoneUntil > now || eff.sleepUntil > now) { showBubble(user, '攻撃できない！', {}); return; }
@@ -8112,10 +8166,13 @@ function _agruBattleKillUser(user) {
     if (user.walkTimer)   clearTimeout(user.walkTimer);
     if (user.koTimer)     { clearTimeout(user.koTimer); user.koTimer = null; }
     _killedEl?.remove();
-    delete users[ipid];
-    const _sk = user.saveKey || ipid;
-    delete _charSaveData[_sk];
-    fetch(`/api/char-save/${encodeURIComponent(_sk)}`, { method: 'DELETE' }).catch(() => {});
+    // バトル終了後に再生成されていた場合（el が復活）はユーザーを保護する
+    if (!user.el) {
+      delete users[ipid];
+      const _sk = user.saveKey || ipid;
+      delete _charSaveData[_sk];
+      fetch(`/api/char-save/${encodeURIComponent(_sk)}`, { method: 'DELETE' }).catch(() => {});
+    }
   }, 1500);
 }
 
@@ -8550,7 +8607,7 @@ function _agruActivateDefense() {
     // HP別画像に戻す
     _agruLastHpBucket = null;
     _agruUpdateBossImgByHp();
-    const heal = Math.floor(agruBattleMaxHP * 0.5);
+    const heal = Math.floor(agruBattleMaxHP * 0.3);
     agruBattleHP = Math.min(agruBattleMaxHP, agruBattleHP + heal);
     updateAgruBattleHpDisplay();
     _agruAddSystemMsg(`💚 防御解除！HP +${heal} 回復した！`);
@@ -8570,7 +8627,7 @@ function _agruBreakDefense() {
   _agruGlassShatterEffect();
   new Audio('/sound/boss/' + encodeURIComponent('nc211892_[SE]_盾・鎧が壊れる音・粉砕する音_[高音質].mp3')).play().catch(() => {});
 
-  const penaltyDmg = Math.floor(agruBattleMaxHP * 0.1);
+  const penaltyDmg = Math.floor(agruBattleMaxHP * 0.05);
   agruBattleHP = Math.max(0, agruBattleHP - penaltyDmg);
   updateAgruBattleHpDisplay();
   _agruAddSystemMsg(`💥 防御崩壊！HP -${penaltyDmg} ペナルティ！`);
@@ -8659,27 +8716,36 @@ function _agruBattlePlayEffect(skillId, targets) {
   }
 
   // ボス画像切替（クロスフェード）
-  // 防御中は画像を上書きしない（defenseImage が優先）
-  if (_agruDefenseActive) return;
   const bossDefaultPath = agruBattleConfig?.defaultImage
     ? `/boss/${encodeURIComponent(agruBattleConfig.defaultImage)}`
     : null;
+  // 防御中なら防御画像、それ以外はデフォルト画像に戻す
+  const getRestorePath = () => {
+    if (_agruDefenseActive) {
+      const d = agruBattleConfig?.defenseImage;
+      return d ? `/boss/${encodeURIComponent(d)}` : null;
+    }
+    return bossDefaultPath;
+  };
 
   // 集中砲火: 連打画像が設定されていれば高速切替
   if (skillId === 'focus_fire' && cfg.rapidImages?.length > 0) {
     _agruFocusFireRapid(cfg.rapidImages, () => {
-      if (bossDefaultPath && agruBattleActive && !_agruDefenseActive) _bossCrossfadeImg(bossDefaultPath);
+      const rp = getRestorePath();
+      if (rp && agruBattleActive) _bossCrossfadeImg(rp);
     });
     return;
   }
 
   if (cfg.image) {
     _bossCrossfadeImg(`/boss/${encodeURIComponent(cfg.image)}`, () => {
-      if (bossDefaultPath && !_agruDefenseActive) {
-        setTimeout(() => { if (agruBattleActive && !_agruDefenseActive) _bossCrossfadeImg(bossDefaultPath); }, 2000);
-      }
+      setTimeout(() => {
+        if (!agruBattleActive) return;
+        const rp = getRestorePath();
+        if (rp) _bossCrossfadeImg(rp);
+      }, 2000);
     });
-  } else if (bossDefaultPath) {
+  } else if (!_agruDefenseActive && bossDefaultPath) {
     _bossCrossfadeImg(bossDefaultPath);
   }
 }
@@ -8793,10 +8859,11 @@ function _bossCrossfadeImg(newSrc, onDone) {
   }, 230);
 }
 
-function _agruBattleDoCounter() {
+function _agruBattleDoCounter(forceSkillId) {
   if (!agruBattleActive) return;
-  if (_agruDefenseActive) return; // 超回復防御中はスキル発動しない
-  const skill  = _agruBattlePickSkill();
+  const skill  = forceSkillId
+    ? (AGRU_BATTLE_SKILLS.find(s => s.id === forceSkillId) || { id: forceSkillId })
+    : _agruBattlePickSkill();
   const alive  = _agruBattleGetAliveUsers();
   const bossAtk = 5 + Math.max(0, Math.floor((1 - agruBattleHP / agruBattleMaxHP) * 5));
   window._bossEfx?.onAttack();
@@ -11542,10 +11609,21 @@ function applyNewsTickerSettings() {
   ticker.style.setProperty('--ntf', newsTickerFontSize + 'px');
   // 背景透明度
   ticker.style.setProperty('--ntbg', (newsTickerBgOpacity / 100).toFixed(2));
-  // 高さ（行数 × 行高）
-  const rowH = Math.max(30, newsTickerFontSize * 2.6);
-  ticker.style.height = (newsTickerRows * rowH) + 'px';
-  ticker.style.setProperty('--ntrowh', rowH + 'px');
+  // 高さ
+  if (newsTickerHeight > 0) {
+    ticker.style.height = newsTickerHeight + 'px';
+    ticker.style.setProperty('--ntrowh', newsTickerHeight + 'px');
+    ticker.style.setProperty('--vtate-max-h', (newsTickerHeight - 20) + 'px');
+  } else if (newsTickerMode === 'vtate') {
+    const vtateH = Math.max(newsTickerRows * 100, 80);
+    ticker.style.height = vtateH + 'px';
+    ticker.style.setProperty('--ntrowh', vtateH + 'px');
+    ticker.style.setProperty('--vtate-max-h', (vtateH - 20) + 'px');
+  } else {
+    const rowH = Math.max(30, newsTickerFontSize * 2.6);
+    ticker.style.height = (newsTickerRows * rowH) + 'px';
+    ticker.style.setProperty('--ntrowh', rowH + 'px');
+  }
   // コントロール同期（存在する要素のみ）
   const _set = (id, val, txt) => {
     const el = document.getElementById(id);
@@ -11562,10 +11640,11 @@ function applyNewsTickerSettings() {
   _set('newsTickerBgOpacitySlider', newsTickerBgOpacity, newsTickerBgOpacity + '%');
   _set('newsTickerSpeedSlider',     newsTickerSpeed,     newsTickerSpeed + '%');
   _set('newsTickerIntervalSlider',  newsTickerInterval,  newsTickerInterval + '秒');
+  _set('newsTickerHeightSlider',    newsTickerHeight,    newsTickerHeight > 0 ? newsTickerHeight + 'px' : '自動');
   // モードボタン active 状態
-  ['H','V','S'].forEach(m => {
+  ['H','V','S','T'].forEach(m => {
     document.querySelectorAll('#newsTickerMode' + m + 'Btn').forEach(b => {
-      b.classList.toggle('active', newsTickerMode === {H:'hscroll',V:'vscroll',S:'slide'}[m]);
+      b.classList.toggle('active', newsTickerMode === {H:'hscroll',V:'vscroll',S:'slide',T:'vtate'}[m]);
     });
   });
   // 縦書きクラス（先頭で取得済みの ticker を再利用）
@@ -11600,6 +11679,7 @@ function renderNewsTicker() {
   _newsModalData = [];
   if      (newsTickerMode === 'vscroll') _renderVScroll(wrap, items);
   else if (newsTickerMode === 'slide')   _renderSlide(wrap, items);
+  else if (newsTickerMode === 'vtate')   _renderVTate(wrap, items);
   else                                   _renderHScroll(wrap, items);
   applyNewsTickerSettings();
 }
@@ -11647,6 +11727,32 @@ function _renderVScroll(wrap, items) {
   const speedFactor = Math.max(0.1, newsTickerSpeed / 100);
   const duration = Math.max(5, items.length * 2.5 / speedFactor);
   requestAnimationFrame(() => { void track.offsetWidth; track.style.animation = `newsTickerVScroll ${duration}s linear infinite`; });
+}
+
+function _renderVTate(wrap, items) {
+  items.forEach(i => _newsModalData.push(i));
+  const track = document.createElement('div');
+  track.className = 'news-ticker-vtate-track';
+  const makeItem = (item, idx) => {
+    const el = document.createElement('div');
+    el.className = 'news-ticker-vtate-item';
+    el.onclick = () => openNewsModalByIdx(idx);
+    const src = document.createElement('span');
+    src.className = `news-source ${_newsSourceClass(item.source)}`;
+    src.textContent = item.source;
+    const t = document.createElement('span');
+    t.className = 'news-ticker-vtate-title';
+    t.textContent = item.title;
+    el.append(src, t);
+    return el;
+  };
+  items.forEach((item, i) => track.appendChild(makeItem(item, i)));
+  items.forEach((item, i) => track.appendChild(makeItem(item, i)));
+  track.style.animation = 'none';
+  wrap.appendChild(track);
+  const speedFactor = Math.max(0.1, newsTickerSpeed / 100);
+  const duration = Math.max(5, items.length * 4.0 / speedFactor);
+  requestAnimationFrame(() => { void track.offsetWidth; track.style.animation = `newsTickerVTateScroll ${duration}s linear infinite`; });
 }
 
 function _renderSlide(wrap, items) {
@@ -12463,8 +12569,8 @@ document.querySelectorAll('#newsTickerTategakiBtn').forEach(btn => {
 });
 
 // ニューステッカー表示モード切り替え
-['H','V','S'].forEach(m => {
-  const modeMap = {H:'hscroll', V:'vscroll', S:'slide'};
+['H','V','S','T'].forEach(m => {
+  const modeMap = {H:'hscroll', V:'vscroll', S:'slide', T:'vtate'};
   document.querySelectorAll('#newsTickerMode' + m + 'Btn').forEach(btn => {
     btn.addEventListener('click', () => {
       newsTickerMode = modeMap[m];
@@ -12808,6 +12914,7 @@ function showComboText(count) {
 // ── 宝箱システム ──────────────────────────────────────────────────
 function spawnTreasureChest() {
   if (compactMode) return;
+  if (agruBattleActive) return;
   if (treasureChestEl) return;
   const el = document.createElement('div');
   el.id = 'treasureChest';
@@ -13570,6 +13677,8 @@ function handleAdminMessage(d, replyFn) {
     } else if (d.id === 'newsTickerIntervalSlider') {
       newsTickerInterval = parseInt(d.value); localStorage.setItem('newsTickerInterval', newsTickerInterval); saveSettingsToServer();
       applyNewsTickerSettings(); if (newsTickerEnabled && newsTickerMode === 'slide') renderNewsTicker();
+    } else if (d.id === 'newsTickerHeightSlider') {
+      newsTickerHeight = parseInt(d.value); localStorage.setItem('newsTickerHeight', newsTickerHeight); saveSettingsToServer(); applyNewsTickerSettings();
     } else if (d.id === 'wordlePanelWidthSlider') {
       wordlePanelWidth = parseInt(d.value); localStorage.setItem('wordlePanelWidth', wordlePanelWidth); saveSettingsToServer(); applyPanelSettings();
     } else if (d.id === 'wordlePanelBgSlider') {
@@ -13846,6 +13955,8 @@ function handleAdminMessage(d, replyFn) {
     startAgruBattle();
   } else if (d.type === 'agruBattleEnd') {
     endAgruBattle(d.result || 'ageru');
+  } else if (d.type === 'agruBattleSkill') {
+    _agruBattleDoCounter(d.skillId);
   } else if (d.type === 'bossLayoutUpdate') {
     if (!agruBattleConfig) agruBattleConfig = {};
     if (d.bossChar)    agruBattleConfig.bossChar    = d.bossChar;

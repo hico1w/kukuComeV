@@ -573,6 +573,29 @@
   <div id="battleOpStatus" style="font-size:11px;color:#475569;margin-top:6px;min-height:16px"></div>
 </div>
 
+<!-- デバッグ: スキル強制発動 -->
+<div class="section">
+  <div class="section-title">🛠 デバッグ — スキル強制発動</div>
+  <div style="display:flex;flex-wrap:wrap;gap:6px">
+    <button onclick="_bossSend({type:'agruBattleSkill',skillId:'normal'})"        style="padding:5px 10px;font-size:12px;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:5px;cursor:pointer">通常攻撃</button>
+    <button onclick="_bossSend({type:'agruBattleSkill',skillId:'focus_fire'})"    style="padding:5px 10px;font-size:12px;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:5px;cursor:pointer">集中砲火</button>
+    <button onclick="_bossSend({type:'agruBattleSkill',skillId:'all_attack'})"    style="padding:5px 10px;font-size:12px;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:5px;cursor:pointer">全体乱打</button>
+    <button onclick="_bossSend({type:'agruBattleSkill',skillId:'mp_absorb'})"     style="padding:5px 10px;font-size:12px;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:5px;cursor:pointer">MP吸収</button>
+    <button onclick="_bossSend({type:'agruBattleSkill',skillId:'all_mp_drain'})"  style="padding:5px 10px;font-size:12px;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:5px;cursor:pointer">全体MP吸収</button>
+    <button onclick="_bossSend({type:'agruBattleSkill',skillId:'petrify'})"       style="padding:5px 10px;font-size:12px;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:5px;cursor:pointer">石化</button>
+    <button onclick="_bossSend({type:'agruBattleSkill',skillId:'sleep'})"         style="padding:5px 10px;font-size:12px;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:5px;cursor:pointer">眠り</button>
+    <button onclick="_bossSend({type:'agruBattleSkill',skillId:'charm'})"         style="padding:5px 10px;font-size:12px;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:5px;cursor:pointer">魅了</button>
+    <button onclick="_bossSend({type:'agruBattleSkill',skillId:'curse'})"         style="padding:5px 10px;font-size:12px;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:5px;cursor:pointer">呪い</button>
+    <button onclick="_bossSend({type:'agruBattleSkill',skillId:'berserk'})"       style="padding:5px 10px;font-size:12px;background:#1e293b;color:#fbbf24;border:1px solid #b45309;border-radius:5px;cursor:pointer">バーサーク</button>
+    <button onclick="_bossSend({type:'agruBattleSkill',skillId:'self_heal'})"     style="padding:5px 10px;font-size:12px;background:#1e293b;color:#4ade80;border:1px solid #166534;border-radius:5px;cursor:pointer">自己回復</button>
+    <button onclick="_bossSend({type:'agruBattleSkill',skillId:'super_heal'})"    style="padding:5px 10px;font-size:12px;background:#1e293b;color:#4ade80;border:1px solid #166534;border-radius:5px;cursor:pointer">超回復</button>
+    <button onclick="_bossSend({type:'agruBattleSkill',skillId:'instant_kill'})"  style="padding:5px 10px;font-size:12px;background:#1e293b;color:#f87171;border:1px solid #7f1d1d;border-radius:5px;cursor:pointer">即死撃</button>
+    <button onclick="_bossSend({type:'agruBattleSkill',skillId:'shield_char'})"   style="padding:5px 10px;font-size:12px;background:#1e293b;color:#93c5fd;border:1px solid #1e40af;border-radius:5px;cursor:pointer">盾キャラ攻撃</button>
+    <button onclick="_bossSend({type:'agruBattleSkill',skillId:'delete_char'})"   style="padding:5px 10px;font-size:12px;background:#1e293b;color:#f87171;border:1px solid #7f1d1d;border-radius:5px;cursor:pointer">デリート攻撃</button>
+  </div>
+  <div style="font-size:10px;color:#475569;margin-top:5px">バトル進行中のみ有効。ランダム選択をスキップして指定スキルを即発動。</div>
+</div>
+
 <!-- 基本設定 -->
 <div class="section">
   <div class="section-title">バトル基本設定</div>

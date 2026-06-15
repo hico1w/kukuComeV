@@ -2,6 +2,172 @@
 
 ---
 
+## v2.709.0 — 2026-06-15
+
+### fix: ボスアゲル終了時にOllama停止チェックを勝敗問わず実行
+
+- **`public/app.js`** `endAgruBattle`: `result === 'players'` 限定だった Ollama 起動呼び出しを条件なしに変更。勝敗に関わらずバトル終了時に `POST /api/srv/start/ollama` を実行（起動済みならサーバー側でスキップ）
+
+---
+
+## v2.708.0 — 2026-06-15
+
+### fix: ボスアゲル終了後に通常ボスが召喚されないことがある問題を修正
+
+- **根本原因**: バトル開始前にユーザーが手動でボスを消していた場合、`bossManuallyCleared = true` のままバトルが始まり、終了時の自動召喚チェック `!bossManuallyCleared` が false になってスキップされていた
+- **`public/app.js`** `startAgruBattle`: 通常ボス消滅処理の直前に `bossManuallyCleared = false` をリセット。これによりボスアゲル終了後は常にボスが自動召喚される
+
+---
+
+## v2.707.0 — 2026-06-15
+
+### fix: ボスアゲルバトルで死亡キャラが画面中央から攻撃できてしまう問題を修正
+
+- **根本原因①**: `attackAgruBoss` が `user.ko` しか確認しておらず、`instant_kill` 等でキルされたユーザーや削除後に再生成されたユーザーが `_agruBattleKilledIds` をすり抜けていた
+- **根本原因②**: `getCharCenter` が `user.el === null` のとき `stage` 中央座標を返すため、死亡キャラの攻撃エフェクトが中央から発生していた
+- **`public/app.js`** `attackAgruBoss`: `_agruBattleKilledIds.has(user.ipid)` チェックを追加し、KO済みユーザーの攻撃を早期リターンでブロック
+
+---
+
+## v2.706.0 — 2026-06-15
+
+### fix: ボスアゲル終了後にKO済みリスナーがキャラを再生成できない問題を修正
+
+- **根本原因**: `endAgruBattle` で `_agruBattleKilledIds` がクリアされなかったため、バトル後も `ensureCharOnStage` が killed ユーザーを弾き続けていた
+- **`public/app.js`** `endAgruBattle`: `_agruBattleRestoreChars()` の直後に `_agruBattleKilledIds.clear()` を追加し、バトル終了後は再生成制限を解除
+- **`public/app.js`** `_agruBattleKillUser` 内 1500ms タイマー: `user.el` が復活している場合（バトル終了後に再生成済み）は `delete users[ipid]` / charSave削除をスキップし、ユーザーオブジェクトを保護
+
+---
+
+## v2.705.0 — 2026-06-15
+
+### feat: ボスアゲル勝利時に好感度・空腹度を初期値にリセット
+
+- **`public/app.js`** `endAgruBattle`: `result === 'ageru'`（ボス勝利）のとき `agruAffinity = 50`・`agruHunger = 100` にリセットし表示を更新
+
+---
+
+## v2.704.0 — 2026-06-15
+
+### feat: ボスアゲルバトル中は画像・YouTubeコマンドを無効化
+
+- **`public/app.js`** 画像生成コマンド (`出ろ|出して|生成|gen`): `agruBattleActive` 中は早期リターン
+- **`public/app.js`** YouTube URL共有ブロック: `agruBattleActive` 中はブロック全体をスキップ
+- **`public/app.js`** YouTube停止コマンド (`止めて`): `agruBattleActive` 中はスキップ
+
+---
+
+## v2.703.0 — 2026-06-15
+
+### feat: ボスアゲルバトル中は宝箱を非表示
+
+- **`public/app.js`** `spawnTreasureChest`: `agruBattleActive` 中は早期リターンで宝箱を出現させない（自動出現・手動呼び出し両方）
+- **`public/app.js`** `開ける` コマンド: バトル中はコマンドを無視（`return` は維持し他の処理への波及を防ぐ）
+
+---
+
+## v2.702.0 — 2026-06-15
+
+### feat: ボスアゲルデバッグ用スキル強制発動UI追加
+
+- **`public/ageru-boss.html`**: バトル操作セクション直下に「🛠 デバッグ — スキル強制発動」セクションを追加。全15スキルをクリック1つで即発動できるボタンを配置
+- **`public/app.js`** `_agruBattleDoCounter`: `forceSkillId` 引数を追加。指定時はランダム選択をスキップして指定スキルを実行
+- **`public/app.js`** `handleAdminMessage`: `agruBattleSkill` タイプを追加し `_agruBattleDoCounter(d.skillId)` を呼び出し
+
+---
+
+## v2.701.0 — 2026-06-15
+
+### fix: 超回復30秒経過時の回復量を50%→30%に変更
+
+- **`public/app.js`** `_agruActivateDefense`: タイムアウト時の `agruBattleMaxHP * 0.5` → `* 0.3` に変更
+
+---
+
+## v2.700.0 — 2026-06-15
+
+### fix: 超回復防御崩壊時のHPペナルティを10%→5%に変更
+
+- **`public/app.js`** `_agruBreakDefense`: `agruBattleMaxHP * 0.1` → `* 0.05` に変更
+
+---
+
+## v2.699.0 — 2026-06-15
+
+### feat: ボスアゲルバトル プレイヤー勝利時にOllamaを自動起動
+
+- **`public/app.js`** `endAgruBattle`: `result === 'players'` のとき `POST /api/srv/start/ollama` を呼び出し、停止していた場合でもOllamaを再起動する（既に起動中ならサーバー側で安全にスキップ）
+
+---
+
+## v2.698.0 — 2026-06-15
+
+### feat: 超回復防御中にスキルの画像・エフェクトを表示（バリア維持）
+
+- **`public/app.js`** `_agruBattlePlayEffect`: `_agruDefenseActive` 時の早期 `return` を削除し、防御中もスキル画像のクロスフェードとエフェクトが再生されるように変更
+- スキル画像表示後の復帰先を `getRestorePath()` で動的に判定：防御中なら `defenseImage` に、それ以外は `defaultImage` に戻す
+- `focus_fire` の連打後も同様に防御画像へ復帰するよう修正
+
+---
+
+## v2.697.0 — 2026-06-15
+
+### fix: ボスアゲルバトル中にKO済みキャラが攻撃できる問題を修正
+
+- **`public/app.js`** `_agruBattleDealDamage`: `_agruBattleKilledIds` に含まれる ipid のユーザーはダメージ処理を早期リターンでスキップ
+
+## v2.696.0 — 2026-06-15
+
+### fix: 超回復防御中もスキル発動を許可（バリアは維持）
+
+- **`public/app.js`** `_agruBattleDoCounter`: `_agruDefenseActive` 中のスキップ処理を削除。バリア・ダメージ軽減ロジックはそのまま維持
+
+## v2.695.0 — 2026-06-15
+
+### fix: ボスアゲル勝利後の通常ボスにアゲル系キャラが選ばれないよう修正
+
+- **`public/app.js`** `spawnBoss`: `_agruPlayersWon` が true のとき `agruBattleConfig.agruTypeImages` に含まれるファイル名を `availableImages` から除外したプールで画像を選択する。フィルタ後にプールが空の場合は全画像から選択するフォールバックあり
+
+## v2.694.0 — 2026-06-15
+
+### feat: ボスアゲルバトル中の新規キャラ生成禁止
+
+- **`public/app.js`** `ensureCharOnStage`: `agruBattleActive` が true のとき `el` を持たないユーザーの生成をスキップ（バトル中に新規コメントしても出現しない）
+- **`public/app.js`** `ensureCharOnStage`: `_agruBattleKilledIds` に含まれる ipid はバトル終了後も `el` の再生成をスキップ（次バトル開始時に `clear()` されるまで復活しない）
+
+## v2.693.0 — 2026-06-15
+
+### feat: ボスアゲルバトル開始/終了時の連携処理追加
+
+- **`public/app.js`** `startAgruBattle`: バトル開始時に会話モードBGMを `_agruBgmPause()` で停止し、通常ボス（`bossState`）が存在すれば消滅アニメーション後に除去
+- **`public/app.js`** `endAgruBattle`: バトル終了後に `agruActive` が true なら `_agruBgmPlay()` でBGMを再開し、`bossManuallyCleared` でない場合は `spawnBoss(nextBossHp())` で通常ボスを再召喚
+
+## v2.692.0 — 2026-06-15
+
+### feat/fix: ニュースステッカー — vtate1列化・縦幅スライダー追加・幅0%対応
+
+- **`public/style.css`** `.news-ticker-vtate-item`: `display: flex` → `display: block; writing-mode: vertical-rl` に変更し、ソースバッジとタイトルが同一縦列に並ぶよう1列化
+- **`public/style.css`** `.news-ticker-vtate-item .news-source`: `display: inline-block; writing-mode: vertical-rl; margin-bottom: 5px` に変更してバッジも縦書きで1行に統合
+- **`public/style.css`** `.news-ticker-vtate-title`: `display: inline` に変更（親の `writing-mode` を継承）
+- **`public/app.js`** `newsTickerHeight` 変数追加（デフォルト0=自動）。`applyNewsTickerSettings` で高さ優先順位: 明示指定値 → vtate自動（rows×100px）→ 通常（rows×rowH）
+- **`public/app.js`** `handleAdminMessage`: `newsTickerHeightSlider` ハンドラ追加
+- **`public/admin.html`** 縦幅スライダー追加（0=自動〜600px、10px刻み）。`_SLIDER_MAP` / `applyState` / `_loadSettingsDirect` に登録
+- **`public/admin.html`** `newsTickerWidthSlider`: `min="20"` → `min="0"` に変更し幅を0%まで減らせるように
+
+## v2.691.0 — 2026-06-15
+
+## v2.690.0 — 2026-06-15
+
+### feat: ニュースステッカー — 縦書き縦スクロールモード追加
+
+- **`public/app.js`** `_renderVTate(wrap, items)` 追加。縦書き（`writing-mode: vertical-rl`）で各アイテムを表示し、トラックを縦方向に `-50%` スクロール（シームレスループ）
+- **`public/app.js`** `applyNewsTickerSettings`: モードが `vtate` のとき高さを `newsTickerRows × 100px` で計算し `--vtate-max-h` CSS変数も設定。モードボタンのactive判定に `T:'vtate'` を追加
+- **`public/app.js`** `renderNewsTicker`: `newsTickerMode === 'vtate'` のとき `_renderVTate` を呼ぶ分岐を追加
+- **`public/app.js`** モード切り替えイベントリスナー: `['H','V','S','T']` に拡張
+- **`public/style.css`** `.news-ticker-vtate-track / -item / -title` および `@keyframes newsTickerVTateScroll` を追加。タイトルは `writing-mode: vertical-rl; white-space: nowrap; max-height: var(--vtate-max-h)` でコンテナ高さに収まるよう表示
+- **`public/admin.html`** 表示モード行に「縦書き↕」ボタン（`id="newsTickerModeTBtn"`）を追加
+- **`public/index.html`** adminパネルからのBroadcastChannel経由クリックが届くよう、モードボタン（H/V/S/T/Tategaki）の非表示対応要素を追加（既存のH/V/S/縦書きボタンが動作しない問題も同時修正）
+
 ## v2.689.0 — 2026-06-15
 
 ### fix: ダメージ数字をエフェクトより手前に表示・サイズ2倍

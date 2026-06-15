@@ -213,8 +213,13 @@
   <div class="section-title">📰 ニューステッカー設定</div>
   <div class="size-row">
     <span class="size-label">横幅</span>
-    <input id="newsTickerWidthSlider" type="range" min="20" max="100" step="1" value="100" class="size-slider" oninput="syncSlider(this,'newsTickerWidthVal',v=>v+'%')">
+    <input id="newsTickerWidthSlider" type="range" min="0" max="100" step="1" value="100" class="size-slider" oninput="syncSlider(this,'newsTickerWidthVal',v=>v+'%')">
     <span id="newsTickerWidthVal">100%</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">縦幅</span>
+    <input id="newsTickerHeightSlider" type="range" min="0" max="1000" step="10" value="0" class="size-slider" oninput="syncSlider(this,'newsTickerHeightVal',v=>v==0?'自動':v+'px')">
+    <span id="newsTickerHeightVal">自動</span>
   </div>
   <div class="size-row">
     <span class="size-label">位置X</span>
@@ -251,6 +256,7 @@
     <button id="newsTickerModeHBtn" class="btn active" onclick="adminSend({type:'click',id:'newsTickerModeHBtn'})">↔ 横</button>
     <button id="newsTickerModeVBtn" class="btn"        onclick="adminSend({type:'click',id:'newsTickerModeVBtn'})">↕ 縦</button>
     <button id="newsTickerModeSBtn" class="btn"        onclick="adminSend({type:'click',id:'newsTickerModeSBtn'})">⏱ スライド</button>
+    <button id="newsTickerModeTBtn" class="btn"        onclick="adminSend({type:'click',id:'newsTickerModeTBtn'})">縦書き↕</button>
     <button id="newsTickerTategakiBtn" class="btn"     onclick="adminSend({type:'click',id:'newsTickerTategakiBtn'})">縦書き</button>
   </div>
   <div class="size-row">
@@ -1860,6 +1866,7 @@
     taimanHpMultSlider: {key:'taimanHpMult',   save:v=>parseInt(v)},
     dmgFontScaleSlider: {key:'dmgFontScale',   save:v=>parseInt(v)},
     newsTickerWidthSlider:    {key:'newsTickerWidth',     save:v=>parseInt(v)},
+    newsTickerHeightSlider:   {key:'newsTickerHeight',    save:v=>parseInt(v)},
     newsTickerXSlider:        {key:'newsTickerX',         save:v=>parseInt(v)},
     newsTickerYSlider:        {key:'newsTickerY',         save:v=>parseInt(v)},
     newsTickerRowsSlider:     {key:'newsTickerRows',      save:v=>parseInt(v)},
@@ -1974,7 +1981,7 @@
       _ms('bossSizeScale',  'bossSizeSlider',     v=>Math.round(v*100));
       _m('brHpMult',       'brHpMultSlider'); _m('taimanHpMult','taimanHpMultSlider');
       _m('dmgFontScale',   'dmgFontScaleSlider');
-      _m('newsTickerWidth','newsTickerWidthSlider'); _m('newsTickerX','newsTickerXSlider');
+      _m('newsTickerWidth','newsTickerWidthSlider'); _m('newsTickerHeight','newsTickerHeightSlider'); _m('newsTickerX','newsTickerXSlider');
       _m('newsTickerY','newsTickerYSlider'); _m('newsTickerRows','newsTickerRowsSlider');
       _m('newsTickerFontSize','newsTickerFontSlider'); _m('newsTickerBgOpacity','newsTickerBgOpacitySlider');
       _m('newsTickerSpeed','newsTickerSpeedSlider'); _m('newsTickerInterval','newsTickerIntervalSlider');
@@ -2387,6 +2394,7 @@
       { id:'rankingPanelBgSlider',     valId:'rankingPanelBgVal',     fmt: v=>v+'%'  },
       { id:'quizPanelBgSlider',        valId:'quizPanelBgVal',        fmt: v=>v+'%'  },
       { id:'newsTickerIntervalSlider', valId:'newsTickerIntervalVal',  fmt: v=>v+'秒' },
+      { id:'newsTickerHeightSlider',   valId:'newsTickerHeightVal',    fmt: v=>v==0?'自動':v+'px' },
     ];
     sliderDefs.forEach(({ id, valId, fmt }) => {
       if (s[id] !== undefined) {
