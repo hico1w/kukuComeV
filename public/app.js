@@ -9154,36 +9154,31 @@ function _agruUpdateAffinityDisplay(delta = 0) {
   if (delta > 0) _agruShowParamPop('💕 好感度↑', '#f472b6', true);
   else if (delta < 0) _agruShowParamPop('💔 好感度↓', '#9ca3af', false);
 }
-function _agruUpdateHungerDisplay(delta = 0) {
-  const el = document.getElementById('agruHungerDisplay');
+// 共通: 10段のパラメータバー（空腹/眠気/性欲）を描画する土台。
+// _agruUpdateHungerDisplay 等の各ステータス更新関数から呼ばれる。
+function _agruRenderParamBar(elId, icon, mark, onCls, offCls, filled) {
+  const el = document.getElementById(elId);
   if (!el) return;
-  const filled = Math.round(Math.max(0, agruHunger) / 10);
-  let html = '<span style="font-size:15px;margin-top:0">🍖</span>';
+  let html = `<span style="font-size:15px;margin-top:0">${icon}</span>`;
   for (let i = 0; i < 10; i++)
-    html += `<span class="${i < filled ? 'agru-param-hunger-on' : 'agru-param-hunger-off'}">◆</span>`;
+    html += `<span class="${i < filled ? onCls : offCls}">${mark}</span>`;
   el.innerHTML = html;
+}
+function _agruUpdateHungerDisplay(delta = 0) {
+  _agruRenderParamBar('agruHungerDisplay', '🍖', '◆', 'agru-param-hunger-on', 'agru-param-hunger-off',
+    Math.round(Math.max(0, agruHunger) / 10));
   if (delta > 0) _agruShowParamPop('🍖 空腹↓', '#fb923c', false);
   else if (delta < 0) _agruShowParamPop('🍖 空腹↑', '#ef4444', true);
 }
 function _agruUpdateSleepDisplay(delta = 0) {
-  const el = document.getElementById('agruSleepDisplay');
-  if (!el) return;
-  const filled = Math.round(Math.min(100, agruSleepiness) / 10);
-  let html = '<span style="font-size:15px;margin-top:0">💤</span>';
-  for (let i = 0; i < 10; i++)
-    html += `<span class="${i < filled ? 'agru-param-sleep-on' : 'agru-param-sleep-off'}">●</span>`;
-  el.innerHTML = html;
+  _agruRenderParamBar('agruSleepDisplay', '💤', '●', 'agru-param-sleep-on', 'agru-param-sleep-off',
+    Math.round(Math.min(100, agruSleepiness) / 10));
   if (delta > 0) _agruShowParamPop('💤 眠気↑', '#818cf8', true);
   else if (delta < 0) _agruShowParamPop('💤 眠気↓', '#facc15', false);
 }
 function _agruUpdateLibidoDisplay(delta = 0) {
-  const el = document.getElementById('agruLibidoDisplay');
-  if (!el) return;
-  const filled = Math.round(Math.max(0, agruLibido) / 10);
-  let html = '<span style="font-size:15px;margin-top:0">❓</span>';
-  for (let i = 0; i < 10; i++)
-    html += `<span class="${i < filled ? 'agru-param-libido-on' : 'agru-param-libido-off'}">★</span>`;
-  el.innerHTML = html;
+  _agruRenderParamBar('agruLibidoDisplay', '❓', '★', 'agru-param-libido-on', 'agru-param-libido-off',
+    Math.round(Math.max(0, agruLibido) / 10));
   if (delta > 0) _agruShowParamPop('❓↑', '#a78bfa', true);
   else if (delta < 0) _agruShowParamPop('❓↓', '#94a3b8', false);
 }

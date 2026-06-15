@@ -2,6 +2,16 @@
 
 ---
 
+## v2.713.0 — 2026-06-15
+
+### refactor: リファクタリング Phase 1（安全な掃除・挙動変更なし）
+
+- **不要物削除**: `public/help/hico1w.io/`（独自`.git`を持つ古いプロジェクト複製・コード参照なし）を削除
+- **`public/app.js`** 重複コード集約: ほぼ同一だった `_agruUpdateHungerDisplay` / `_agruUpdateSleepDisplay` / `_agruUpdateLibidoDisplay` の10段バー描画処理を共通ヘルパー `_agruRenderParamBar(elId, icon, mark, onCls, offCls, filled)` に集約。各関数名・DOM ID・表示記号・CSSクラス・計算式は不変のため挙動は完全に同一
+- `node --check` で構文確認済み
+
+---
+
 ## v2.712.0 — 2026-06-15
 
 ### fix: 複数回ボスアゲルを行ったとき前バトルの背景/オーバーレイが残る・重くなる問題を修正
