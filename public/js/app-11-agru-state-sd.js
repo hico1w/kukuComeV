@@ -858,14 +858,8 @@ function _agruScheduleAutoTalk() {
   _agruAutoTalkTimer = setTimeout(_agruAutoTalk, Math.max(10, agruAutoTalkInterval) * 1000);
 }
 
-// 状況に応じてプロンプトを切り替え（バトル/ゲーム中は実況、それ以外は話題振り）
+// 自発トークは常に「話題振り」に統一
 function _agruAutoTalkPrompt() {
-  if (bossState && !bossState.defeated)
-    return `今、視聴者がボス（残りHP約${Math.max(0, Math.round(bossState.hp || 0))}）と戦っています。その戦いの様子を短く実況してください。`;
-  if (typeof quizState !== 'undefined' && quizState && !quizState.answered)
-    return '今クイズを出題中です。出題に絡めて短く実況・コメントしてください。';
-  if (typeof wordleState !== 'undefined' && wordleState)
-    return '今みんなで言葉当て（Wordle）をやっています。短く実況・応援してください。';
   return '今、誰のコメントもない静かな時間です。あなたから視聴者に短く話題を振ってください（今の気分・好きなこと・配信の感想など）。';
 }
 
