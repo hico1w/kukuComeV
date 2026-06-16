@@ -376,7 +376,7 @@ const SETTINGS_KEYS = [
   'newsTickerEnabled','newsTickerWidth','newsTickerX','newsTickerY','newsTickerRows','newsTickerFontSize','newsTickerBgOpacity','newsTickerSpeed','newsTickerMode','newsTickerInterval','newsTickerTategaki','newsTickerHeight',
   'dmgFontScale',
   'wordlePanelWidth','wordlePanelBgOpacity','rankingPanelBgOpacity','quizPanelBgOpacity',
-  'agruImgCmdEnabled','agruUnloadEnabled','agruManualMode',
+  'agruImgCmdEnabled','agruUnloadEnabled','agruManualMode','agruAutoTalkEnabled','agruAutoTalkInterval','agruAutoTalkMaxStreak',
   'afkOpacity','afkGrayscale','afkBrightness',
   'autoReplyWords','autoReplyMessages',
 ];

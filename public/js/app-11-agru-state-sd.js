@@ -154,6 +154,12 @@ function _agruApplyCharScale() {
 let _agruSelfieLocked    = false;
 let agruIdleDelay        = parseInt(localStorage.getItem('agruIdleDelay')) || 10;
 let agruIdleDelayImage   = parseInt(localStorage.getItem('agruIdleDelayImage')) || 30;
+// 自発トーク: 無言が続くとアゲルちゃんから話題を振る／実況する
+let agruAutoTalkEnabled   = localStorage.getItem('agruAutoTalkEnabled') === '1';
+let agruAutoTalkInterval  = parseInt(localStorage.getItem('agruAutoTalkInterval'))  || 90; // 無言→発話までの秒数
+let agruAutoTalkMaxStreak = parseInt(localStorage.getItem('agruAutoTalkMaxStreak')) || 3;  // 連続自発トークの上限
+let _agruAutoTalkTimer    = null;
+let _agruAutoTalkStreak   = 0;
 let agruChatFontSize     = parseInt(localStorage.getItem('agruChatFontSize')) || 14;
 let agruChatBold         = localStorage.getItem('agruChatBold') === '1';
 if (agruChatBold) document.documentElement.style.setProperty('--agru-font-weight', 'bold');
@@ -657,6 +663,8 @@ function _agruNotifyEmotion(emotion, replyText) {
 async function _agruSend(message, commenter) {
   if (!agruActive) return;
   if (_agruSelfieLocked) return;
+  _agruAutoTalkStreak = 0;   // 視聴者の交流があったので自発トークの連続カウントをリセット
+  _agruScheduleAutoTalk();    // 無言タイマーをこのコメントから再カウント
   // 手動返答モード: コメントはチャットに表示しパラメータも更新するが、自動返答（Ollama）はしない。
   // アゲルちゃんの発言は admin.html の手動返答入力（_agruManualReply）から行う。
   if (agruManualMode) {
@@ -815,6 +823,7 @@ async function _agruSend(message, commenter) {
           if (agruActive) { agruIdle = true; _agruSetStatus('コメント待ち...'); }
         }, agruIdleDelay * 1000);
       }
+      _agruScheduleAutoTalk(); // 返答後の無言からも自発トークを再カウント
     });
   } catch (e) {
     _agruLog('例外: ' + e.message, 'err');
@@ -840,6 +849,66 @@ function _agruManualReply(text) {
     }, agruIdleDelay * 1000);
   });
   _agruScrollBottom?.();
+}
+
+// ── 自発トーク（無言が続くとアゲルちゃんから話題を振る／実況する） ──
+function _agruScheduleAutoTalk() {
+  clearTimeout(_agruAutoTalkTimer);
+  if (!agruAutoTalkEnabled) return;
+  _agruAutoTalkTimer = setTimeout(_agruAutoTalk, Math.max(10, agruAutoTalkInterval) * 1000);
+}
+
+// 状況に応じてプロンプトを切り替え（バトル/ゲーム中は実況、それ以外は話題振り）
+function _agruAutoTalkPrompt() {
+  if (bossState && !bossState.defeated)
+    return `今、視聴者がボス（残りHP約${Math.max(0, Math.round(bossState.hp || 0))}）と戦っています。その戦いの様子を短く実況してください。`;
+  if (typeof quizState !== 'undefined' && quizState && !quizState.answered)
+    return '今クイズを出題中です。出題に絡めて短く実況・コメントしてください。';
+  if (typeof wordleState !== 'undefined' && wordleState)
+    return '今みんなで言葉当て（Wordle）をやっています。短く実況・応援してください。';
+  return '今、誰のコメントもない静かな時間です。あなたから視聴者に短く話題を振ってください（今の気分・好きなこと・配信の感想など）。';
+}
+
+async function _agruAutoTalk() {
+  // 条件を満たさないときは喋らず再スケジュールのみ
+  if (!agruAutoTalkEnabled || !agruActive || agruBattleActive || agruManualMode || _agruSelfieLocked || !agruIdle) {
+    _agruScheduleAutoTalk();
+    return;
+  }
+  // 連続自発トークの上限。視聴者コメントが来るまで停止（独り言の連発を防ぐ）
+  if (_agruAutoTalkStreak >= agruAutoTalkMaxStreak) return;
+  _agruAutoTalkStreak++;
+  agruIdle = false;
+  clearTimeout(_agruIdleTimer);
+  _agruSetStatus('返答中...');
+  try {
+    const stateCtx = _agruGetStateContext();
+    const systemPrompt = AGRU_DEFAULT_SYSTEM + '\n\n' + _agruGetAffinityContext() + (stateCtx ? '\n\n' + stateCtx : '') + (agruSystem.trim() ? '\n\n' + agruSystem.trim() : '');
+    const messages = [..._agruConvHistory, { role: 'user', content: _agruAutoTalkPrompt() }];
+    const res = await fetch('/api/ai-reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, model: aiModel, system: systemPrompt }),
+    });
+    const data = await res.json();
+    if (data.error || !data.reply) { agruIdle = true; _agruScheduleAutoTalk(); return; }
+    const raw = data.reply.trim();
+    // 自発トークは好感度を変えない（視聴者の入力ではないため）。会話履歴にも積まない
+    const { emotion, replyText } = _agruParseResponse(raw);
+    _agruNotifyEmotion(emotion, replyText);
+    _agruPlayVoicevox(replyText);
+    if (_agruPoisonTurns > 0) _agruShowStateImage('毒'); else _agruSetImage(emotion);
+    const _t = document.getElementById('agruTypingIndicator'); if (_t) _t.remove();
+    _agruAddBubble('left', 'アゲルちゃん', replyText, () => {
+      _agruIdleTimer = setTimeout(() => {
+        if (agruActive) { agruIdle = true; _agruSetStatus('コメント待ち...'); }
+      }, agruIdleDelay * 1000);
+      _agruScheduleAutoTalk();
+    });
+  } catch (e) {
+    agruIdle = true;
+    _agruScheduleAutoTalk();
+  }
 }
 
 async function _agruDebug(message) {
@@ -994,6 +1063,8 @@ async function openAgruModal() {
   if (agruActive) return;
   agruActive = true;
   agruIdle   = false;
+  _agruAutoTalkStreak = 0;
+  _agruScheduleAutoTalk(); // 自発トークの無言タイマー開始
   clearTimeout(_agruIdleTimer);
   clearInterval(_agruTypeTimer);
   _agruConvHistory = [];
@@ -1050,6 +1121,8 @@ function closeAgruModal() {
   _agruSelfieLocked = false;
   _agruStopShake();
   clearTimeout(_agruIdleTimer);
+  clearTimeout(_agruAutoTalkTimer); // 自発トーク停止
+  _agruAutoTalkStreak = 0;
   clearInterval(_agruTypeTimer);
   closeAgruYtModal();
   _agruBgmStop();

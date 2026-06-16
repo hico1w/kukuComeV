@@ -1546,6 +1546,25 @@
     </div>
     <div style="font-size:10px;color:#64748b;margin-top:4px">手動モード中はコメントに自動返答しません。ここから入力した文をアゲルちゃんが発言します（VoiceVox再生あり）。</div>
   </div>
+  <!-- 自発トーク -->
+  <div style="margin-top:10px;padding:8px;background:rgba(15,23,42,0.6);border:1px solid #1e293b;border-radius:6px">
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:#93c5fd;margin-bottom:6px">
+      <input type="checkbox" id="agruAutoTalkChk" onchange="sendAgruText('agruAutoTalkEnabled', this.checked ? '1' : '0')">
+      自発トーク（無言が続くとアゲルちゃんから話題を振る／実況）
+    </label>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:11px;color:#94a3b8">無言→発話</span>
+      <input id="agruAutoTalkIntervalInput" type="number" min="15" max="600" step="5" value="90"
+             style="width:64px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:3px 6px"
+             onchange="sendAgruText('agruAutoTalkInterval', this.value)">
+      <span style="font-size:11px;color:#94a3b8">秒 ／ 連続上限</span>
+      <input id="agruAutoTalkMaxStreakInput" type="number" min="1" max="20" step="1" value="3"
+             style="width:52px;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:3px 6px"
+             onchange="sendAgruText('agruAutoTalkMaxStreak', this.value)">
+      <span style="font-size:11px;color:#94a3b8">回</span>
+    </div>
+    <div style="font-size:10px;color:#64748b;margin-top:4px">バトル/ゲーム中は実況、それ以外は話題振り。連続上限に達すると視聴者コメントが来るまで停止。手動モード中は無効。</div>
+  </div>
   <!-- デバッグ -->
   <div style="margin-top:10px;padding:8px;background:rgba(15,23,42,0.6);border:1px solid #1e293b;border-radius:6px">
     <div style="font-size:10px;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">デバッグ</div>
@@ -1987,7 +2006,7 @@
        'agruSdWidth','agruSdHeight','agruSdSteps','agruSdCfgScale','agruSdPositiveSuffix',
        'agruIdleDelay','agruIdleDelayImage','agruChatFontSize','agruChatBold','agruFontLeft','agruFontRight',
        'agruYtVolume','agruBgmVolume','agruYtWidth','agruYtHeight','agruYtOpacity','agruYtEnabled',
-       'agruImgCmdEnabled','agruUnloadEnabled','agruManualMode','agruModalZ','agruYtModalZ','agruModalWidth','agruModalHeight',
+       'agruImgCmdEnabled','agruUnloadEnabled','agruManualMode','agruAutoTalkEnabled','agruAutoTalkInterval','agruAutoTalkMaxStreak','agruModalZ','agruYtModalZ','agruModalWidth','agruModalHeight',
        'agruModalBgOpacity','agruChatImgSize','agruCharImgHeight','agruCharImgScale','agruParamPosX','agruParamPosY',
        'sdWidth','sdHeight','sdSteps','sdPopWidth','sdPositiveSuffix','sdNegative','sdDisplayTime',
        'sdMosaicKeywords','sdMosaicBlock','sdCfgScale','sdSampler',
@@ -2514,6 +2533,9 @@
     if (s.agruParamPosX       !== undefined) { const el = document.getElementById('agruParamPosXInput'); if (el) { el.value = s.agruParamPosX; const v = document.getElementById('agruParamPosXVal'); if (v) v.textContent = s.agruParamPosX; } }
     if (s.agruParamPosY       !== undefined) { const el = document.getElementById('agruParamPosYInput'); if (el) { el.value = s.agruParamPosY; const v = document.getElementById('agruParamPosYVal'); if (v) v.textContent = s.agruParamPosY; } }
     if (s.agruManualMode      !== undefined) { const el = document.getElementById('agruManualModeChk'); if (el) el.checked = (s.agruManualMode === true || s.agruManualMode === '1'); _updateManualReplyUI(); }
+    if (s.agruAutoTalkEnabled !== undefined) { const el = document.getElementById('agruAutoTalkChk'); if (el) el.checked = (s.agruAutoTalkEnabled === true || s.agruAutoTalkEnabled === '1'); }
+    if (s.agruAutoTalkInterval !== undefined) { const el = document.getElementById('agruAutoTalkIntervalInput'); if (el) el.value = s.agruAutoTalkInterval; }
+    if (s.agruAutoTalkMaxStreak !== undefined) { const el = document.getElementById('agruAutoTalkMaxStreakInput'); if (el) el.value = s.agruAutoTalkMaxStreak; }
     if (s.agruCharImgScale    !== undefined) { const el = document.getElementById('agruCharImgScaleInput');  if (el) el.value = s.agruCharImgScale; }
     if (s.agruModalBgOpacity  !== undefined) { const el = document.getElementById('agruModalBgOpacityInput'); if (el) { el.value = s.agruModalBgOpacity; const v = document.getElementById('agruModalBgOpacityVal'); if (v) v.textContent = s.agruModalBgOpacity + '%'; } }
     if (s.agruChatImgSize     !== undefined) { const el = document.getElementById('agruChatImgSizeInput'); if (el) el.value = s.agruChatImgSize; }

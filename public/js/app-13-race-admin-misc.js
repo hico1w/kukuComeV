@@ -1075,6 +1075,9 @@ function handleAdminMessage(d, replyFn) {
     state.agruParamPosX          = agruParamPosX;
     state.agruParamPosY          = agruParamPosY;
     state.agruManualMode         = agruManualMode;
+    state.agruAutoTalkEnabled    = agruAutoTalkEnabled;
+    state.agruAutoTalkInterval   = agruAutoTalkInterval;
+    state.agruAutoTalkMaxStreak  = agruAutoTalkMaxStreak;
     state.autoDeleteMinutes   = autoDeleteMinutes;
     state.autoReplyWords    = JSON.stringify(autoReplyWords);
     state.autoReplyMessages = JSON.stringify(autoReplyMessages);
@@ -1281,6 +1284,9 @@ function handleAdminMessage(d, replyFn) {
     if (d.key === 'agruParamPosX')          { agruParamPosX = parseInt(d.value) || 0; _applyAgruParamPos(); }
     if (d.key === 'agruParamPosY')          { agruParamPosY = parseInt(d.value) || 0; _applyAgruParamPos(); }
     if (d.key === 'agruManualMode')         { agruManualMode = d.value === '1'; if (agruManualMode && agruActive) { agruIdle = true; _agruSetStatus('コメント待ち...'); } }
+    if (d.key === 'agruAutoTalkEnabled')    { agruAutoTalkEnabled = d.value === '1'; _agruScheduleAutoTalk(); }
+    if (d.key === 'agruAutoTalkInterval')   { agruAutoTalkInterval = parseInt(d.value) || 90; _agruScheduleAutoTalk(); }
+    if (d.key === 'agruAutoTalkMaxStreak')  { agruAutoTalkMaxStreak = parseInt(d.value) || 3; }
     const elMap = { agruSystem: 'agruSystemInput' };
     const el = elMap[d.key] ? document.getElementById(elMap[d.key]) : null;
     if (el) el.value = d.value;

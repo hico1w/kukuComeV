@@ -2,6 +2,22 @@
 
 ---
 
+## v2.734.0 — 2026-06-16
+
+### feat: アゲルちゃん「自発トーク」を追加（無言が続くと自分から話題を振る／実況）
+
+- 管理パネルのトグルで **自発トーク** を有効化。コメントが途切れて一定時間（既定90秒）経つと、アゲルちゃんが Ollama で自分から発言する（VoiceVox再生あり）
+- **状況に応じてモード自動切替**: ボス戦/クイズ/Wordle中は「実況」、それ以外は「話題振り」
+- **連続上限**（既定3回）に達すると、次の視聴者コメントが来るまで停止（独り言の連発を防止）
+- 手動返答モード中・ボスアゲルバトル中・画像生成ロック中は自発トークしない。好感度は変動させない（視聴者入力ではないため）
+- **`app-11-agru-state-sd.js`**: `agruAutoTalkEnabled`/`agruAutoTalkInterval`/`agruAutoTalkMaxStreak`（localStorage永続）と `_agruScheduleAutoTalk()`/`_agruAutoTalkPrompt()`/`_agruAutoTalk()` を追加。`_agruSend`・`openAgruModal`・`closeAgruModal` に無言タイマーの開始/リセット/停止を組込み
+- **`app-13-race-admin-misc.js`**: `agruText` 受信に3設定を追加、state同期にも追加
+- **`app-01-core-characters.js`**: `SETTINGS_KEYS` に3キーを追加
+- **`admin.html`**: 自発トークのトグル＋無言秒数＋連続上限のUIを追加、state反映も追加
+- **`index.html`**: マニュアルに自発トークの説明を追記
+
+---
+
 ## v2.733.0 — 2026-06-16
 
 ### fix: 手動返答（とアゲル画像ランダム切替）が自動モードでも発生していた問題を修正
