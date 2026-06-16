@@ -825,6 +825,7 @@ async function _agruSend(message, commenter) {
 
 // 手動返答モード: admin.html から入力したアゲルちゃんのセリフを発言として表示する。
 function _agruManualReply(text) {
+  if (!agruManualMode) return; // 手動返答モードのときだけ動作（自動モードでは発言・ランダム画像をしない）
   const replyText = (text || '').trim();
   if (!replyText || !agruActive) return;
   agruIdle = false;

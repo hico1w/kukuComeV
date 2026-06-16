@@ -1533,14 +1533,14 @@
   <!-- 手動返答モード -->
   <div style="margin-top:10px;padding:8px;background:rgba(74,4,78,0.25);border:1px solid #7e22ce;border-radius:6px">
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:#f0abfc;margin-bottom:6px">
-      <input type="checkbox" id="agruManualModeChk" onchange="sendAgruText('agruManualMode', this.checked ? '1' : '0')">
+      <input type="checkbox" id="agruManualModeChk" onchange="sendAgruText('agruManualMode', this.checked ? '1' : '0'); _updateManualReplyUI()">
       手動返答モード（OFFのときはOllamaで自動返答）
     </label>
     <div style="display:flex;gap:4px">
-      <input id="agruManualReplyInput" type="text" placeholder="アゲルちゃんのセリフを入力..."
+      <input id="agruManualReplyInput" type="text" placeholder="アゲルちゃんのセリフを入力..." disabled
              style="flex:1;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:3px 6px">
-      <button onclick="sendAgruManualReply()"
-              style="padding:3px 10px;font-size:11px;background:#4a044e;color:#f0abfc;border:1px solid #7e22ce;border-radius:4px;cursor:pointer;flex-shrink:0">
+      <button id="agruManualReplyBtn" onclick="sendAgruManualReply()" disabled
+              style="padding:3px 10px;font-size:11px;background:#4a044e;color:#f0abfc;border:1px solid #7e22ce;border-radius:4px;cursor:pointer;flex-shrink:0;opacity:0.45">
         発言
       </button>
     </div>
@@ -2513,7 +2513,7 @@
     if (s.agruCharImgHeight   !== undefined) { const el = document.getElementById('agruCharImgHeightInput'); if (el) el.value = s.agruCharImgHeight; }
     if (s.agruParamPosX       !== undefined) { const el = document.getElementById('agruParamPosXInput'); if (el) { el.value = s.agruParamPosX; const v = document.getElementById('agruParamPosXVal'); if (v) v.textContent = s.agruParamPosX; } }
     if (s.agruParamPosY       !== undefined) { const el = document.getElementById('agruParamPosYInput'); if (el) { el.value = s.agruParamPosY; const v = document.getElementById('agruParamPosYVal'); if (v) v.textContent = s.agruParamPosY; } }
-    if (s.agruManualMode      !== undefined) { const el = document.getElementById('agruManualModeChk'); if (el) el.checked = (s.agruManualMode === true || s.agruManualMode === '1'); }
+    if (s.agruManualMode      !== undefined) { const el = document.getElementById('agruManualModeChk'); if (el) el.checked = (s.agruManualMode === true || s.agruManualMode === '1'); _updateManualReplyUI(); }
     if (s.agruCharImgScale    !== undefined) { const el = document.getElementById('agruCharImgScaleInput');  if (el) el.value = s.agruCharImgScale; }
     if (s.agruModalBgOpacity  !== undefined) { const el = document.getElementById('agruModalBgOpacityInput'); if (el) { el.value = s.agruModalBgOpacity; const v = document.getElementById('agruModalBgOpacityVal'); if (v) v.textContent = s.agruModalBgOpacity + '%'; } }
     if (s.agruChatImgSize     !== undefined) { const el = document.getElementById('agruChatImgSizeInput'); if (el) el.value = s.agruChatImgSize; }
@@ -3346,7 +3346,16 @@
     input.value = '';
   }
 
+  function _updateManualReplyUI() {
+    const on = !!document.getElementById('agruManualModeChk')?.checked;
+    const inp = document.getElementById('agruManualReplyInput');
+    const btn = document.getElementById('agruManualReplyBtn');
+    if (inp) inp.disabled = !on;
+    if (btn) { btn.disabled = !on; btn.style.opacity = on ? '1' : '0.45'; }
+  }
+
   function sendAgruManualReply() {
+    if (!document.getElementById('agruManualModeChk')?.checked) return; // 手動モード時のみ
     const input = document.getElementById('agruManualReplyInput');
     const msg = input?.value.trim();
     if (!msg) return;
