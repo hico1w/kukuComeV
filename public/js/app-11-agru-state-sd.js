@@ -122,6 +122,19 @@ let agruModalHeight      = parseInt(localStorage.getItem('agruModalHeight')    ?
 let agruModalBgOpacity   = parseInt(localStorage.getItem('agruModalBgOpacity') ?? '45');
 let agruChatImgSize      = parseInt(localStorage.getItem('agruChatImgSize')    ?? '350');
 document.documentElement.style.setProperty('--agru-chat-img-maxh', agruChatImgSize + 'px');
+
+// 会話モードのパラメータメーター（.agru-params-overlay）の表示位置オフセット（px）。
+// 既定位置（左6px・下6px）からの相対移動。管理パネルから変更可能。
+let agruParamPosX        = parseInt(localStorage.getItem('agruParamPosX') ?? '0');
+let agruParamPosY        = parseInt(localStorage.getItem('agruParamPosY') ?? '0');
+function _applyAgruParamPos() {
+  const el = document.querySelector('.agru-params-overlay');
+  if (el) {
+    el.style.left   = (6 + agruParamPosX) + 'px';
+    el.style.bottom = (6 + agruParamPosY) + 'px';
+  }
+}
+_applyAgruParamPos();
 let agruCharImgHeight    = parseInt(localStorage.getItem('agruCharImgHeight')  ?? '360');
 document.documentElement.style.setProperty('--agru-char-img-height', agruCharImgHeight + 'px');
 let agruCharImgScale     = parseFloat(localStorage.getItem('agruCharImgScale') ?? '1');

@@ -1064,6 +1064,8 @@ function handleAdminMessage(d, replyFn) {
     state.agruChatImgSize        = agruChatImgSize;
     state.agruCharImgHeight      = agruCharImgHeight;
     state.agruCharImgScale       = agruCharImgScale;
+    state.agruParamPosX          = agruParamPosX;
+    state.agruParamPosY          = agruParamPosY;
     state.autoDeleteMinutes   = autoDeleteMinutes;
     state.autoReplyWords    = JSON.stringify(autoReplyWords);
     state.autoReplyMessages = JSON.stringify(autoReplyMessages);
@@ -1265,6 +1267,8 @@ function handleAdminMessage(d, replyFn) {
     if (d.key === 'agruChatImgSize')        { agruChatImgSize = parseInt(d.value) || 350; document.documentElement.style.setProperty('--agru-chat-img-maxh', agruChatImgSize + 'px'); }
     if (d.key === 'agruCharImgHeight')      { agruCharImgHeight = parseInt(d.value) || 360; document.documentElement.style.setProperty('--agru-char-img-height', agruCharImgHeight + 'px'); }
     if (d.key === 'agruCharImgScale')       { agruCharImgScale = parseFloat(d.value) || 1; _agruApplyCharScale(); }
+    if (d.key === 'agruParamPosX')          { agruParamPosX = parseInt(d.value) || 0; _applyAgruParamPos(); }
+    if (d.key === 'agruParamPosY')          { agruParamPosY = parseInt(d.value) || 0; _applyAgruParamPos(); }
     const elMap = { agruSystem: 'agruSystemInput' };
     const el = elMap[d.key] ? document.getElementById(elMap[d.key]) : null;
     if (el) el.value = d.value;

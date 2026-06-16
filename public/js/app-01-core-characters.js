@@ -371,7 +371,7 @@ const SETTINGS_KEYS = [
   'agruVoicevoxEnabled','agruVoicevoxSpeaker','agruVoicevoxSpeed','agruVoicevoxVolume',
   'agruSdWidth','agruSdHeight','agruSdSteps','agruSdCfgScale','agruSdPositiveSuffix','agruIdleDelay','agruIdleDelayImage',
   'agruChatFontSize','agruChatBold','agruFontLeft','agruFontRight','agruCharTags','agruYtVolume','agruBgmVolume','agruYtWidth','agruYtHeight','agruYtOpacity','agruYtEnabled','agruModalZ','agruYtModalZ',
-  'agruModalWidth','agruModalHeight','agruModalBgOpacity','agruChatImgSize','agruCharImgHeight','agruCharImgScale',
+  'agruModalWidth','agruModalHeight','agruModalBgOpacity','agruChatImgSize','agruCharImgHeight','agruCharImgScale','agruParamPosX','agruParamPosY',
   'bombHidden','trashHidden','charStatsHidden','charNameHidden','breatheDisabled','bossFloatDisabled',
   'newsTickerEnabled','newsTickerWidth','newsTickerX','newsTickerY','newsTickerRows','newsTickerFontSize','newsTickerBgOpacity','newsTickerSpeed','newsTickerMode','newsTickerInterval','newsTickerTategaki','newsTickerHeight',
   'dmgFontScale',

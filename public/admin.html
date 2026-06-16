@@ -1254,6 +1254,19 @@
     <span id="agruModalBgOpacityVal" style="font-size:11px;color:#e2e8f0;min-width:36px;text-align:right">45%</span>
   </div>
   <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+    <label style="font-size:11px;color:#94a3b8;min-width:72px">パラメータ位置</label>
+    <span class="size-label">横→</span>
+    <input id="agruParamPosXInput" type="range" min="-100" max="1200" step="5" value="0"
+           style="flex:1;accent-color:#f43f5e"
+           oninput="document.getElementById('agruParamPosXVal').textContent=this.value;sendAgruText('agruParamPosX',this.value)">
+    <span id="agruParamPosXVal" style="font-size:11px;color:#e2e8f0;min-width:36px;text-align:right">0</span>
+    <span class="size-label">上↑</span>
+    <input id="agruParamPosYInput" type="range" min="-100" max="700" step="5" value="0"
+           style="flex:1;accent-color:#f43f5e"
+           oninput="document.getElementById('agruParamPosYVal').textContent=this.value;sendAgruText('agruParamPosY',this.value)">
+    <span id="agruParamPosYVal" style="font-size:11px;color:#e2e8f0;min-width:36px;text-align:right">0</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
     <label style="font-size:11px;color:#94a3b8;min-width:72px">チャット画像</label>
     <span class="size-label">最大高さ</span>
     <input id="agruChatImgSizeInput" type="number" min="50" max="1000" step="10" value="350"
@@ -1957,7 +1970,7 @@
        'agruIdleDelay','agruIdleDelayImage','agruChatFontSize','agruChatBold','agruFontLeft','agruFontRight',
        'agruYtVolume','agruBgmVolume','agruYtWidth','agruYtHeight','agruYtOpacity','agruYtEnabled',
        'agruImgCmdEnabled','agruUnloadEnabled','agruModalZ','agruYtModalZ','agruModalWidth','agruModalHeight',
-       'agruModalBgOpacity','agruChatImgSize','agruCharImgHeight','agruCharImgScale',
+       'agruModalBgOpacity','agruChatImgSize','agruCharImgHeight','agruCharImgScale','agruParamPosX','agruParamPosY',
        'sdWidth','sdHeight','sdSteps','sdPopWidth','sdPositiveSuffix','sdNegative','sdDisplayTime',
        'sdMosaicKeywords','sdMosaicBlock','sdCfgScale','sdSampler',
        'taimanDefeatCommand','charExcludeIds','autoDeleteMinutes','wordleDisplayRows',
@@ -2480,6 +2493,8 @@
     if (s.agruModalWidth      !== undefined) { const el = document.getElementById('agruModalWidthInput'); if (el) el.value = s.agruModalWidth; }
     if (s.agruModalHeight     !== undefined) { const el = document.getElementById('agruModalHeightInput'); if (el) el.value = s.agruModalHeight; }
     if (s.agruCharImgHeight   !== undefined) { const el = document.getElementById('agruCharImgHeightInput'); if (el) el.value = s.agruCharImgHeight; }
+    if (s.agruParamPosX       !== undefined) { const el = document.getElementById('agruParamPosXInput'); if (el) { el.value = s.agruParamPosX; const v = document.getElementById('agruParamPosXVal'); if (v) v.textContent = s.agruParamPosX; } }
+    if (s.agruParamPosY       !== undefined) { const el = document.getElementById('agruParamPosYInput'); if (el) { el.value = s.agruParamPosY; const v = document.getElementById('agruParamPosYVal'); if (v) v.textContent = s.agruParamPosY; } }
     if (s.agruCharImgScale    !== undefined) { const el = document.getElementById('agruCharImgScaleInput');  if (el) el.value = s.agruCharImgScale; }
     if (s.agruModalBgOpacity  !== undefined) { const el = document.getElementById('agruModalBgOpacityInput'); if (el) { el.value = s.agruModalBgOpacity; const v = document.getElementById('agruModalBgOpacityVal'); if (v) v.textContent = s.agruModalBgOpacity + '%'; } }
     if (s.agruChatImgSize     !== undefined) { const el = document.getElementById('agruChatImgSizeInput'); if (el) el.value = s.agruChatImgSize; }

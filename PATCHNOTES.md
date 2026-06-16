@@ -2,6 +2,19 @@
 
 ---
 
+## v2.728.0 — 2026-06-16
+
+### feat: 会話モードのパラメータメーター表示位置を管理パネルから調整可能に
+
+- 会話モードのパラメータメーター（`.agru-params-overlay`、好感度/空腹/眠気/❓）の表示位置を、admin.html の **「パラメータ位置」X/Y スライダー**で調整できるようにした（既定の左下位置からのオフセットpx）
+- **`app-11-agru-state-sd.js`**: `agruParamPosX` / `agruParamPosY`（localStorage永続）と適用関数 `_applyAgruParamPos()` を追加（`.agru-params-overlay` の `left`/`bottom` をオフセット）
+- **`app-13-race-admin-misc.js`**: `agruText` 受信に `agruParamPosX`/`agruParamPosY` の適用を追加、管理パネルへの state 同期にも追加
+- **`app-01-core-characters.js`**: `SETTINGS_KEYS` に両キーを追加（サーバ保存対象）
+- **`admin.html`**: 「パラメータ位置」横→/上↑ スライダーを追加（`sendAgruText`）、受信stateからの入力欄反映も追加
+- **`index.html`**: マニュアルに位置調整が可能な旨を追記
+
+---
+
 ## v2.727.0 — 2026-06-16
 
 ### change: アゲルちゃん好感度パラメータを 0〜100（初期50）→ 0〜1000（初期500）に変更
