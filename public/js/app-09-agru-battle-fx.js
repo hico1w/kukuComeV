@@ -1103,14 +1103,14 @@ function endAgruBattle(result) {
   // バトル終了時は自動開始トリガー（好感度0 / 空腹0）を必ず解除する。
   // これをしないと、リスナー勝利等でパラメータが0のまま残り、次のコメントで
   // 即座に次バトルが起動してループしてしまう（ボス勝利時は下で改めて初期化）。
-  if (agruAffinity <= 0) { agruAffinity = 50; _agruUpdateAffinityDisplay(0); }
+  if (agruAffinity <= 0) { agruAffinity = 500; _agruUpdateAffinityDisplay(0); }
   if (agruHunger  <= 0)  { agruHunger  = 50; _agruUpdateHungerDisplay(0); }
   _agruDeadWakeCount  = 0;
   _agruSleepWakeCount = 0;
 
   // ボス勝利時: 好感度・空腹度を初期値にリセット
   if (result === 'ageru') {
-    agruAffinity = 50;
+    agruAffinity = 500;
     agruHunger   = 100;
     _agruUpdateAffinityDisplay(0);
     _agruUpdateHungerDisplay(0);

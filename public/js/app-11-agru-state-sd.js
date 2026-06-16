@@ -727,7 +727,7 @@ async function _agruSend(message, commenter) {
     _agruLog('raw: ' + raw);
 
     const { emotion, replyText, affinityDelta, libidoDelta } = _agruParseResponse(raw);
-    agruAffinity = Math.max(0, Math.min(100, agruAffinity + affinityDelta));
+    agruAffinity = Math.max(0, Math.min(1000, agruAffinity + affinityDelta));
     if (agruAffinity === 0 && agruActive && !agruBattleActive) startAgruBattle();
     agruLibido   = Math.max(0, Math.min(100, agruLibido   + libidoDelta));
     _agruUpdateAffinityDisplay(affinityDelta);
@@ -813,7 +813,7 @@ async function _agruDebug(message) {
     _agruLog('【デバッグ】raw: ' + raw);
 
     const { emotion, replyText, affinityDelta, libidoDelta } = _agruParseResponse(raw);
-    agruAffinity = Math.max(0, Math.min(100, agruAffinity + affinityDelta));
+    agruAffinity = Math.max(0, Math.min(1000, agruAffinity + affinityDelta));
     agruLibido   = Math.max(0, Math.min(100, agruLibido   + libidoDelta));
     _agruUpdateAffinityDisplay(affinityDelta);
     _agruUpdateLibidoDisplay(libidoDelta);
@@ -948,7 +948,7 @@ async function openAgruModal() {
   clearInterval(_agruTypeTimer);
   _agruConvHistory = [];
 
-  agruAffinity    = 50;
+  agruAffinity    = 500;
   agruHunger      = 100;
   agruSleepiness  = 0;
   agruLibido      = 30;

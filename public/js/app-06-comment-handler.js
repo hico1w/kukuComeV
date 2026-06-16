@@ -377,7 +377,7 @@ function handleComment(comment) {
     } else {
       user.mp -= 50;
       updateStatsDisplay(user);
-      agruAffinity = Math.min(100, agruAffinity + 20);
+      agruAffinity = Math.min(1000, agruAffinity + 20);
       _agruUpdateAffinityDisplay(20);
       _agruAddSystemMsg(`${user.name || '名無し'}がカフェオレをプレゼントした！好感度あがった！`);
     }

@@ -963,12 +963,12 @@ function _agruBattleShowSpeechBubble(text) {
 function _agruGetAffinityContext() {
   const lv = Math.round(agruAffinity);
   let desc;
-  if      (lv >= 90) desc = 'とても高い。甘えるように愛しさを込めて接してください。';
-  else if (lv >= 70) desc = '高い。好意的に、温かく笑顔で接してください。';
-  else if (lv >= 40) desc = '普通。自然に接してください。';
-  else if (lv >= 20) desc = 'やや低い。少し素っ気なく冷たく接してください。';
-  else               desc = 'とても低い。不機嫌に、短く冷たく、時に嫌悪感をにじませてください。';
-  return `現在のリスナーさんへの好感度: ${lv}/100（${desc}）`;
+  if      (lv >= 900) desc = 'とても高い。甘えるように愛しさを込めて接してください。';
+  else if (lv >= 700) desc = '高い。好意的に、温かく笑顔で接してください。';
+  else if (lv >= 400) desc = '普通。自然に接してください。';
+  else if (lv >= 200) desc = 'やや低い。少し素っ気なく冷たく接してください。';
+  else                desc = 'とても低い。不機嫌に、短く冷たく、時に嫌悪感をにじませてください。';
+  return `現在のリスナーさんへの好感度: ${lv}/1000（${desc}）`;
 }
 
 function _agruGetStateContext() {
@@ -1024,8 +1024,8 @@ function _agruShowParamPop(text, color, goUp = true) {
 function _agruUpdateAffinityDisplay(delta = 0) {
   const el = document.getElementById('agruAffinityDisplay');
   if (!el) return;
-  const filled     = Math.round(agruAffinity / 10);
-  const prevFilled = Math.round((agruAffinity - delta) / 10);
+  const filled     = Math.round(agruAffinity / 100); // 0〜1000 を 10ハートに対応
+  const prevFilled = Math.round((agruAffinity - delta) / 100);
   let html = '<span style="font-size:15px;margin-top:0">💕</span>';
   for (let i = 0; i < 10; i++) {
     const isOn    = i < filled;

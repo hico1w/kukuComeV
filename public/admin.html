@@ -1554,9 +1554,9 @@
               style="padding:2px 6px;font-size:10px;background:#4a044e;color:#f0abfc;border:1px solid #7e22ce;border-radius:3px;cursor:pointer">SET</button>
 
       <span style="font-size:11px;color:#94a3b8">好感度</span>
-      <input id="dbgAffinityRange" type="range" min="0" max="100" step="1" value="50" style="accent-color:#f43f5e"
+      <input id="dbgAffinityRange" type="range" min="0" max="1000" step="10" value="500" style="accent-color:#f43f5e"
              oninput="document.getElementById('dbgAffinityVal').textContent=this.value">
-      <span id="dbgAffinityVal" style="font-size:11px;color:#e2e8f0;text-align:right">50</span>
+      <span id="dbgAffinityVal" style="font-size:11px;color:#e2e8f0;text-align:right">500</span>
       <button onclick="adminSend({type:'agruSetParam',param:'affinity',value:document.getElementById('dbgAffinityRange').value})"
               style="padding:2px 6px;font-size:10px;background:#4c0519;color:#fda4af;border:1px solid #9f1239;border-radius:3px;cursor:pointer">SET</button>
     </div>

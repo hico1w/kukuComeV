@@ -20,7 +20,7 @@ const AGRU_DEFAULT_SYSTEM =
   '安心/愛しさ/感謝/性的興奮/興奮/感動/好奇心/驚き/尊敬/不安/恐怖/困惑/冷静/軽蔑/殺意/悲しみ/諦め/苦しみ/嫉妬/恥';
 
 let agruSystem    = localStorage.getItem('agruSystem') || '';
-let agruAffinity  = 50;
+let agruAffinity  = 500; // 0〜1000、初期500
 let agruHunger    = 100; // 0〜100、1時間で0になる速度で自然減少
 let agruSleepiness = 0;  // 0〜100、3時間で100になる速度で自然増加
 let agruLibido    = 30;  // 0〜100、チャットで増減

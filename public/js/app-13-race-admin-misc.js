@@ -1213,7 +1213,7 @@ function handleAdminMessage(d, replyFn) {
     if (d.param === 'hunger')     { const _ph = agruHunger;     agruHunger     = Math.max(0, Math.min(100, v)); _agruDeadWakeCount = 0; if (agruHunger > 0) _agruRevertStateImage(); _agruUpdateHungerDisplay(agruHunger - _ph); }
     if (d.param === 'sleepiness') { const _ps = agruSleepiness; agruSleepiness = Math.max(0, Math.min(100, v)); if (agruSleepiness < 100) { _agruSleepWakeCount = 0; _agruRevertStateImage(); } _agruUpdateSleepDisplay(agruSleepiness - _ps); }
     if (d.param === 'libido')     { const _pl = agruLibido;     agruLibido     = Math.max(0, Math.min(100, v)); _agruUpdateLibidoDisplay(agruLibido - _pl); }
-    if (d.param === 'affinity')   { const _pa = agruAffinity;   agruAffinity   = Math.max(0, Math.min(100, v)); _agruUpdateAffinityDisplay(agruAffinity - _pa); }
+    if (d.param === 'affinity')   { const _pa = agruAffinity;   agruAffinity   = Math.max(0, Math.min(1000, v)); _agruUpdateAffinityDisplay(agruAffinity - _pa); }
   } else if (d.type === 'agruDebugSend') {
     if (d.message) _agruDebug(d.message);
   } else if (d.type === 'agruText') {
