@@ -810,7 +810,15 @@ function _adminBtnDispatch(id) {
 }
 
 // ── 管理ウィンドウ（BroadcastChannel + WebSocket） ────────────────────
+const _adminSeenNonces = new Set();
 function handleAdminMessage(d, replyFn) {
+  // BroadcastChannel と WebSocket の両方から同一メッセージが届くため、nonce で二重処理を防ぐ
+  // （特に手動返答など「追記系」コマンドが2回実行されないように）
+  if (d && d._n) {
+    if (_adminSeenNonces.has(d._n)) return;
+    _adminSeenNonces.add(d._n);
+    setTimeout(() => _adminSeenNonces.delete(d._n), 5000);
+  }
   if (d.type === 'click' && d.id) {
     const _clickEl = document.getElementById(d.id);
     if (_clickEl) _clickEl.click(); else _adminBtnDispatch(d.id);

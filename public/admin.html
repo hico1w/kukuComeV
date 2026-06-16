@@ -1875,6 +1875,8 @@
   let connected = false;
 
   function adminSend(msg) {
+    // BroadcastChannel と WebSocket の両方で送るため、アプリ側で二重処理しないよう nonce を付与
+    msg._n = Date.now().toString(36) + '.' + Math.random().toString(36).slice(2, 8);
     channel.postMessage(msg);
     if (_ws?.readyState === WebSocket.OPEN) _ws.send(JSON.stringify(msg));
     _adminDirectSave(msg);

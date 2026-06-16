@@ -2,6 +2,17 @@
 
 ---
 
+## v2.732.0 — 2026-06-16
+
+### fix: 手動返答で空チャット＋本文の2個が表示される問題を修正（管理メッセージの二重処理）
+
+- **根本原因**: `adminSend` は BroadcastChannel と WebSocket の両方で送信し、アプリも両方で受信するため、同一ブラウザ＋WS接続時に `handleAdminMessage` が**1メッセージにつき2回実行**されていた。手動返答（`_agruManualReply`）が2回呼ばれ、`_agruAddBubble` の共有タイマー `_agruTypeTimer` を2回目が `clearInterval` するため、**1個目が空・2個目が本文**の2バブルになっていた（設定系コマンドは冪等のため無害だった）
+- **`admin.html`** `adminSend`: メッセージに重複除去用の `_n`（nonce）を付与
+- **`app-13-race-admin-misc.js`** `handleAdminMessage`: 冒頭で `_n` を見て、同一nonceの2回目以降を無視（5秒で自動失効）。BroadcastChannel + WebSocket の二重配信を一本化
+- これにより手動返答・デバッグ送信など「追記系」コマンドが正しく1回だけ実行される
+
+---
+
 ## v2.731.0 — 2026-06-16
 
 ### fix: アゲルちゃん吹き出しの点滅カーソル「▋」を廃止（入力待ちは「・・・」のみに）
