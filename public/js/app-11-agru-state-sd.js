@@ -135,6 +135,10 @@ function _applyAgruParamPos() {
   }
 }
 _applyAgruParamPos();
+
+// 手動返答モード: ON のときアゲルちゃんはコメントに自動返答（Ollama）せず、
+// admin.html から入力した文を発言する。
+let agruManualMode = localStorage.getItem('agruManualMode') === '1';
 let agruCharImgHeight    = parseInt(localStorage.getItem('agruCharImgHeight')  ?? '360');
 document.documentElement.style.setProperty('--agru-char-img-height', agruCharImgHeight + 'px');
 let agruCharImgScale     = parseFloat(localStorage.getItem('agruCharImgScale') ?? '1');
@@ -648,6 +652,15 @@ function _agruNotifyEmotion(emotion, replyText) {
 async function _agruSend(message, commenter) {
   if (!agruActive) return;
   if (_agruSelfieLocked) return;
+  // 手動返答モード: コメントはチャットに表示しパラメータも更新するが、自動返答（Ollama）はしない。
+  // アゲルちゃんの発言は admin.html の手動返答入力（_agruManualReply）から行う。
+  if (agruManualMode) {
+    _agruUpdateParams(message);
+    if (commenter) _agruAddBubble('right', commenter, message);
+    agruIdle = true; // 次のコメントも受け付ける
+    _agruSetStatus('手動返答モード（コメント待ち）');
+    return;
+  }
   agruIdle = false;
   clearTimeout(_agruIdleTimer);
 
@@ -803,6 +816,23 @@ async function _agruSend(message, commenter) {
     _agruSetStatus('エラー: ' + e.message);
     agruIdle = true;
   }
+}
+
+// 手動返答モード: admin.html から入力したアゲルちゃんのセリフを発言として表示する。
+function _agruManualReply(text) {
+  const replyText = (text || '').trim();
+  if (!replyText || !agruActive) return;
+  agruIdle = false;
+  clearTimeout(_agruIdleTimer);
+  _agruPlayVoicevox(replyText);
+  const _typingEl = document.getElementById('agruTypingIndicator');
+  if (_typingEl) _typingEl.remove();
+  _agruAddBubble('left', 'アゲルちゃん', replyText, () => {
+    _agruIdleTimer = setTimeout(() => {
+      if (agruActive) { agruIdle = true; _agruSetStatus('手動返答モード（コメント待ち）'); }
+    }, agruIdleDelay * 1000);
+  });
+  _agruScrollBottom?.();
 }
 
 async function _agruDebug(message) {

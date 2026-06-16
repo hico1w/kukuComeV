@@ -2,6 +2,19 @@
 
 ---
 
+## v2.729.0 — 2026-06-16
+
+### feat: アゲルちゃん会話モードに「手動返答モード」を追加
+
+- 管理パネルのトグルで **手動返答モード** に切り替え可能。ONのときアゲルちゃんは Ollama での自動返答をせず、**admin.html から入力した文を発言**する（VoiceVox再生あり）
+- **`app-11-agru-state-sd.js`**: フラグ `agruManualMode`（localStorage永続）を追加。`_agruSend` 冒頭に手動モード時の分岐を追加（コメントはチャット表示＋パラメータ更新するが Ollama を呼ばない）。手動発言用 `_agruManualReply(text)` を追加（吹き出し表示＋VoiceVox＋自動アイドル復帰）
+- **`app-13-race-admin-misc.js`**: `agruText` 受信に `agruManualMode` を追加、新メッセージ型 `agruManualReply` を追加（`_agruManualReply` 呼び出し）、管理パネルへの state 同期にも追加
+- **`app-01-core-characters.js`**: `SETTINGS_KEYS` に `agruManualMode` を追加
+- **`admin.html`**: 「手動返答モード」チェックボックス＋セリフ入力欄＋「発言」ボタンを追加（Enter送信対応）、受信stateからのチェックボックス反映も追加
+- **`index.html`**: マニュアルに手動返答モードの説明を追記
+
+---
+
 ## v2.728.0 — 2026-06-16
 
 ### feat: 会話モードのパラメータメーター表示位置を管理パネルから調整可能に

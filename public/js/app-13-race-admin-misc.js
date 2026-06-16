@@ -1066,6 +1066,7 @@ function handleAdminMessage(d, replyFn) {
     state.agruCharImgScale       = agruCharImgScale;
     state.agruParamPosX          = agruParamPosX;
     state.agruParamPosY          = agruParamPosY;
+    state.agruManualMode         = agruManualMode;
     state.autoDeleteMinutes   = autoDeleteMinutes;
     state.autoReplyWords    = JSON.stringify(autoReplyWords);
     state.autoReplyMessages = JSON.stringify(autoReplyMessages);
@@ -1216,6 +1217,8 @@ function handleAdminMessage(d, replyFn) {
     if (d.param === 'sleepiness') { const _ps = agruSleepiness; agruSleepiness = Math.max(0, Math.min(100, v)); if (agruSleepiness < 100) { _agruSleepWakeCount = 0; _agruRevertStateImage(); } _agruUpdateSleepDisplay(agruSleepiness - _ps); }
     if (d.param === 'libido')     { const _pl = agruLibido;     agruLibido     = Math.max(0, Math.min(100, v)); _agruUpdateLibidoDisplay(agruLibido - _pl); }
     if (d.param === 'affinity')   { const _pa = agruAffinity;   agruAffinity   = Math.max(0, Math.min(1000, v)); _agruUpdateAffinityDisplay(agruAffinity - _pa); }
+  } else if (d.type === 'agruManualReply') {
+    if (d.message) _agruManualReply(d.message);
   } else if (d.type === 'agruDebugSend') {
     if (d.message) _agruDebug(d.message);
   } else if (d.type === 'agruText') {
@@ -1269,6 +1272,7 @@ function handleAdminMessage(d, replyFn) {
     if (d.key === 'agruCharImgScale')       { agruCharImgScale = parseFloat(d.value) || 1; _agruApplyCharScale(); }
     if (d.key === 'agruParamPosX')          { agruParamPosX = parseInt(d.value) || 0; _applyAgruParamPos(); }
     if (d.key === 'agruParamPosY')          { agruParamPosY = parseInt(d.value) || 0; _applyAgruParamPos(); }
+    if (d.key === 'agruManualMode')         { agruManualMode = d.value === '1'; if (agruManualMode && agruActive) { agruIdle = true; _agruSetStatus('手動返答モード（コメント待ち）'); } }
     const elMap = { agruSystem: 'agruSystemInput' };
     const el = elMap[d.key] ? document.getElementById(elMap[d.key]) : null;
     if (el) el.value = d.value;
