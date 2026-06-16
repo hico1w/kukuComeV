@@ -1100,6 +1100,14 @@ function endAgruBattle(result) {
   // バトル終了時: Ollamaが停止していれば起動（勝敗問わず）
   fetch('/api/srv/start/ollama', { method: 'POST' }).catch(() => {});
 
+  // バトル終了時は自動開始トリガー（好感度0 / 空腹0）を必ず解除する。
+  // これをしないと、リスナー勝利等でパラメータが0のまま残り、次のコメントで
+  // 即座に次バトルが起動してループしてしまう（ボス勝利時は下で改めて初期化）。
+  if (agruAffinity <= 0) { agruAffinity = 50; _agruUpdateAffinityDisplay(0); }
+  if (agruHunger  <= 0)  { agruHunger  = 50; _agruUpdateHungerDisplay(0); }
+  _agruDeadWakeCount  = 0;
+  _agruSleepWakeCount = 0;
+
   // ボス勝利時: 好感度・空腹度を初期値にリセット
   if (result === 'ageru') {
     agruAffinity = 50;
@@ -1196,7 +1204,9 @@ function endAgruBattle(result) {
       _agruVictoryFadeTimer = null;
       const _bossEls = _bossFadeIds.map(id => document.getElementById(id)).filter(Boolean);
       _bossEls.forEach(el => { el.style.transition = 'opacity 1.5s ease'; el.style.opacity = '0'; });
-      setTimeout(() => {
+      // 次バトルが開始したら startAgruBattle の clearAll() でキャンセルされるよう
+      // agruBattleTimers 管理にする（フェード途中に次バトルが始まっても背景を壊さない）
+      agruBattleTimers.setTimeout(() => {
         _bossEls.forEach(el => { el.style.transition = ''; el.style.opacity = ''; el.classList.add('hidden'); });
         document.getElementById('agruBossFigureWrap')
           ?.querySelectorAll('.puru-canvas')

@@ -413,6 +413,10 @@ function startAgruBattle(maxHP) {
   // 前バトルで残った DOM 要素を除去
   document.getElementById('_agruWipeOverlay')?.remove();
   document.getElementById('_agruWinOverlay')?.remove();
+  // 前バトルのぷるぷるキャンバスが残っているとアニメループが多重化して重くなるため除去
+  document.getElementById('agruBossFigureWrap')
+    ?.querySelectorAll('.puru-canvas')
+    .forEach(c => { if (c._puruImg) c._puruImg.style.opacity = ''; c.remove(); });
 
   // オーバーレイの opacity/transition を初期化（前バトルがフェード途中だった場合に備えて）
   ['agruBattleOverlay', 'agruBossFigureWrap', 'agruBattleCharWrap'].forEach(id => {
