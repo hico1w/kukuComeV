@@ -1563,7 +1563,10 @@
              onchange="sendAgruText('agruAutoTalkMaxStreak', this.value)">
       <span style="font-size:11px;color:#94a3b8">回</span>
     </div>
-    <div style="font-size:10px;color:#64748b;margin-top:4px">アゲルちゃんから話題を振ります。連続上限に達すると視聴者コメントが来るまで停止。手動モード中は無効。</div>
+    <textarea id="agruAutoTalkTopicsInput" rows="4" placeholder="話題を1行ずつ（箇条書き可）&#10;例:&#10;・今日の天気の話&#10;・最近ハマってること&#10;・好きな食べ物"
+              style="width:100%;font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:4px 6px;margin-top:6px;resize:vertical;box-sizing:border-box"
+              onchange="sendAgruText('agruAutoTalkTopics', this.value)"></textarea>
+    <div style="font-size:10px;color:#64748b;margin-top:4px">アゲルちゃんから話題を振ります。話題リストから1つランダムに選びます（空欄なら自由な話題）。連続上限に達すると視聴者コメントが来るまで停止。手動モード中は無効。</div>
   </div>
   <!-- デバッグ -->
   <div style="margin-top:10px;padding:8px;background:rgba(15,23,42,0.6);border:1px solid #1e293b;border-radius:6px">
@@ -2006,7 +2009,7 @@
        'agruSdWidth','agruSdHeight','agruSdSteps','agruSdCfgScale','agruSdPositiveSuffix',
        'agruIdleDelay','agruIdleDelayImage','agruChatFontSize','agruChatBold','agruFontLeft','agruFontRight',
        'agruYtVolume','agruBgmVolume','agruYtWidth','agruYtHeight','agruYtOpacity','agruYtEnabled',
-       'agruImgCmdEnabled','agruUnloadEnabled','agruManualMode','agruAutoTalkEnabled','agruAutoTalkInterval','agruAutoTalkMaxStreak','agruModalZ','agruYtModalZ','agruModalWidth','agruModalHeight',
+       'agruImgCmdEnabled','agruUnloadEnabled','agruManualMode','agruAutoTalkEnabled','agruAutoTalkInterval','agruAutoTalkMaxStreak','agruAutoTalkTopics','agruModalZ','agruYtModalZ','agruModalWidth','agruModalHeight',
        'agruModalBgOpacity','agruChatImgSize','agruCharImgHeight','agruCharImgScale','agruParamPosX','agruParamPosY',
        'sdWidth','sdHeight','sdSteps','sdPopWidth','sdPositiveSuffix','sdNegative','sdDisplayTime',
        'sdMosaicKeywords','sdMosaicBlock','sdCfgScale','sdSampler',
@@ -2536,6 +2539,7 @@
     if (s.agruAutoTalkEnabled !== undefined) { const el = document.getElementById('agruAutoTalkChk'); if (el) el.checked = (s.agruAutoTalkEnabled === true || s.agruAutoTalkEnabled === '1'); }
     if (s.agruAutoTalkInterval !== undefined) { const el = document.getElementById('agruAutoTalkIntervalInput'); if (el) el.value = s.agruAutoTalkInterval; }
     if (s.agruAutoTalkMaxStreak !== undefined) { const el = document.getElementById('agruAutoTalkMaxStreakInput'); if (el) el.value = s.agruAutoTalkMaxStreak; }
+    if (s.agruAutoTalkTopics  !== undefined) { const el = document.getElementById('agruAutoTalkTopicsInput'); if (el) el.value = s.agruAutoTalkTopics; }
     if (s.agruCharImgScale    !== undefined) { const el = document.getElementById('agruCharImgScaleInput');  if (el) el.value = s.agruCharImgScale; }
     if (s.agruModalBgOpacity  !== undefined) { const el = document.getElementById('agruModalBgOpacityInput'); if (el) { el.value = s.agruModalBgOpacity; const v = document.getElementById('agruModalBgOpacityVal'); if (v) v.textContent = s.agruModalBgOpacity + '%'; } }
     if (s.agruChatImgSize     !== undefined) { const el = document.getElementById('agruChatImgSizeInput'); if (el) el.value = s.agruChatImgSize; }

@@ -1078,6 +1078,7 @@ function handleAdminMessage(d, replyFn) {
     state.agruAutoTalkEnabled    = agruAutoTalkEnabled;
     state.agruAutoTalkInterval   = agruAutoTalkInterval;
     state.agruAutoTalkMaxStreak  = agruAutoTalkMaxStreak;
+    state.agruAutoTalkTopics     = agruAutoTalkTopics;
     state.autoDeleteMinutes   = autoDeleteMinutes;
     state.autoReplyWords    = JSON.stringify(autoReplyWords);
     state.autoReplyMessages = JSON.stringify(autoReplyMessages);
@@ -1287,6 +1288,7 @@ function handleAdminMessage(d, replyFn) {
     if (d.key === 'agruAutoTalkEnabled')    { agruAutoTalkEnabled = d.value === '1'; _agruScheduleAutoTalk(); }
     if (d.key === 'agruAutoTalkInterval')   { agruAutoTalkInterval = parseInt(d.value) || 90; _agruScheduleAutoTalk(); }
     if (d.key === 'agruAutoTalkMaxStreak')  { agruAutoTalkMaxStreak = parseInt(d.value) || 3; }
+    if (d.key === 'agruAutoTalkTopics')     { agruAutoTalkTopics = d.value || ''; }
     const elMap = { agruSystem: 'agruSystemInput' };
     const el = elMap[d.key] ? document.getElementById(elMap[d.key]) : null;
     if (el) el.value = d.value;

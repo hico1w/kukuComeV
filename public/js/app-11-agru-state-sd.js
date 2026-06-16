@@ -158,6 +158,7 @@ let agruIdleDelayImage   = parseInt(localStorage.getItem('agruIdleDelayImage')) 
 let agruAutoTalkEnabled   = localStorage.getItem('agruAutoTalkEnabled') === '1';
 let agruAutoTalkInterval  = parseInt(localStorage.getItem('agruAutoTalkInterval'))  || 90; // 無言→発話までの秒数
 let agruAutoTalkMaxStreak = parseInt(localStorage.getItem('agruAutoTalkMaxStreak')) || 3;  // 連続自発トークの上限
+let agruAutoTalkTopics    = localStorage.getItem('agruAutoTalkTopics') || ''; // 話題リスト（1行1話題・箇条書き可）
 let _agruAutoTalkTimer    = null;
 let _agruAutoTalkStreak   = 0;
 let agruChatFontSize     = parseInt(localStorage.getItem('agruChatFontSize')) || 14;
@@ -858,8 +859,16 @@ function _agruScheduleAutoTalk() {
   _agruAutoTalkTimer = setTimeout(_agruAutoTalk, Math.max(10, agruAutoTalkInterval) * 1000);
 }
 
-// 自発トークは常に「話題振り」に統一
+// 自発トークの話題。管理パネルで設定された話題リスト（箇条書き）からランダムに1つ選んで振らせる。
 function _agruAutoTalkPrompt() {
+  const topics = (agruAutoTalkTopics || '')
+    .split(/\r?\n/)
+    .map(t => t.replace(/^[\s\-―‐・*●•‣◦・>＞]+/, '').trim()) // 行頭の箇条書き記号を除去
+    .filter(Boolean);
+  if (topics.length > 0) {
+    const topic = topics[Math.floor(Math.random() * topics.length)];
+    return `今、誰のコメントもない静かな時間です。次の話題について、あなたから視聴者に自然に話を振ってください: 「${topic}」。短く、あなたのキャラクターらしい口調で。`;
+  }
   return '今、誰のコメントもない静かな時間です。あなたから視聴者に短く話題を振ってください（今の気分・好きなこと・配信の感想など）。';
 }
 
