@@ -1081,4 +1081,5 @@ let _agruIdleTimer = null;
 let _agruTypeTimer = null;
 let _agruConvHistory = [];
 let _agruPoisonTurns = 0;
+let _agruAntidoteUntil = 0; // 解毒剤の効果終了時刻(ms)。この時刻まで毒投与を無効化
 

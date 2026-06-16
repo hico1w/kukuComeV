@@ -400,14 +400,30 @@ function handleComment(comment) {
     else if (/エナドリ/.test(message))   _sysText += 'エナドリを投与した！眠気が大幅に回復した！';
     else if (/起きろ/.test(message))    _sysText += '起こした！眠気が少し減った！';
     _agruAddSystemMsg(_sysText);
+  } else if (agruActive && trimmedMsg === '解毒剤投与') {
+    if ((user.mp ?? 0) < 20) {
+      showBubble(user, `MPが足りない… (${user.mp ?? 0}/20)`, {});
+    } else {
+      user.mp -= 20;
+      updateStatsDisplay(user);
+      _agruPoisonTurns = 0;                              // 現在の毒状態を解除
+      _agruAntidoteUntil = Date.now() + 5 * 60 * 1000;   // 5分間は毒投与を無効化
+      _agruRevertStateImage();
+      _agruAddSystemMsg(`💉 ${user.name || '名無し'}が解毒剤を投与した！5分間は毒が効かない！`);
+    }
   } else if (agruActive && /毒投与/.test(message)) {
-    const _prevHunger = agruHunger;
-    agruHunger = Math.max(0, agruHunger - 10);
-    _agruUpdateHungerDisplay(agruHunger - _prevHunger);
-    _agruPoisonTurns = 6;
-    _agruAddSystemMsg(`☠️ ${user.name || '名無し'}が毒を投与した！空腹度が減った…`);
-    _agruShowStateImage('毒');
-    if (agruIdle) _agruSend(message, user.name);
+    if (Date.now() < _agruAntidoteUntil) {
+      // 解毒剤の効果中は毒投与を無効化
+      _agruAddSystemMsg(`🛡️ ${user.name || '名無し'}が毒を投与したが…解毒剤の効果で無効化された！`);
+    } else {
+      const _prevHunger = agruHunger;
+      agruHunger = Math.max(0, agruHunger - 10);
+      _agruUpdateHungerDisplay(agruHunger - _prevHunger);
+      _agruPoisonTurns = 6;
+      _agruAddSystemMsg(`☠️ ${user.name || '名無し'}が毒を投与した！空腹度が減った…`);
+      _agruShowStateImage('毒');
+      if (agruIdle) _agruSend(message, user.name);
+    }
   } else if (!agruBattleActive && agruActive && agruIdle && trimmedMsg && !/^[ァ-ヶー]{5}$/.test(trimmedMsg) && !_isAgruSkipCmd(message)) {
     _agruSend(message, user.name);
   }
