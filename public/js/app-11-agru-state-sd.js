@@ -506,10 +506,6 @@ function _agruAddBubble(side, name, text, onDone) {
   }
 
   clearInterval(_agruTypeTimer);
-  const cursorEl = document.createElement('span');
-  cursorEl.className = 'agru-cursor';
-  cursorEl.textContent = '▋';
-  bubble.appendChild(cursorEl);
 
   let i = 0;
   const chars = [...text];
@@ -519,7 +515,6 @@ function _agruAddBubble(side, name, text, onDone) {
       log.scrollTop = log.scrollHeight;
     } else {
       clearInterval(_agruTypeTimer);
-      cursorEl.remove();
       onDone?.();
     }
   }, 45);
