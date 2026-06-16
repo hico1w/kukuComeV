@@ -1272,7 +1272,7 @@ function handleAdminMessage(d, replyFn) {
     if (d.key === 'agruCharImgScale')       { agruCharImgScale = parseFloat(d.value) || 1; _agruApplyCharScale(); }
     if (d.key === 'agruParamPosX')          { agruParamPosX = parseInt(d.value) || 0; _applyAgruParamPos(); }
     if (d.key === 'agruParamPosY')          { agruParamPosY = parseInt(d.value) || 0; _applyAgruParamPos(); }
-    if (d.key === 'agruManualMode')         { agruManualMode = d.value === '1'; if (agruManualMode && agruActive) { agruIdle = true; _agruSetStatus('手動返答モード（コメント待ち）'); } }
+    if (d.key === 'agruManualMode')         { agruManualMode = d.value === '1'; if (agruManualMode && agruActive) { agruIdle = true; _agruSetStatus('コメント待ち...'); } }
     const elMap = { agruSystem: 'agruSystemInput' };
     const el = elMap[d.key] ? document.getElementById(elMap[d.key]) : null;
     if (el) el.value = d.value;

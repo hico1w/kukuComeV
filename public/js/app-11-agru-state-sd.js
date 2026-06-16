@@ -226,6 +226,16 @@ function _agruSetImage(emotion) {
   _agruSlideImage(url);
 }
 
+// アゲル画像をランダムに切り替える（感情フォルダから無作為に1枚）。手動返答時などに使用。
+function _agruSetRandomImage() {
+  const emotions = Object.keys(agruFolderMap || {}).filter(e => (agruFolderMap[e] || []).length > 0);
+  if (emotions.length > 0) {
+    _agruSetImage(emotions[Math.floor(Math.random() * emotions.length)]);
+  } else if (agruDefaultImage) {
+    _agruSlideImage(`/ageru/${encodeURIComponent(agruDefaultImage)}`);
+  }
+}
+
 function _agruSetStatus(text) {
   const log = document.getElementById('agruChatLog');
 
@@ -658,7 +668,7 @@ async function _agruSend(message, commenter) {
     _agruUpdateParams(message);
     if (commenter) _agruAddBubble('right', commenter, message);
     agruIdle = true; // 次のコメントも受け付ける
-    _agruSetStatus('手動返答モード（コメント待ち）');
+    _agruSetStatus('返答中...'); // アゲルちゃんが入力中の「・・・」を表示（手動返答待ち）
     return;
   }
   agruIdle = false;
@@ -824,12 +834,13 @@ function _agruManualReply(text) {
   if (!replyText || !agruActive) return;
   agruIdle = false;
   clearTimeout(_agruIdleTimer);
+  _agruSetRandomImage(); // 手動返答時はアゲル画像をランダムに切り替える
   _agruPlayVoicevox(replyText);
   const _typingEl = document.getElementById('agruTypingIndicator');
   if (_typingEl) _typingEl.remove();
   _agruAddBubble('left', 'アゲルちゃん', replyText, () => {
     _agruIdleTimer = setTimeout(() => {
-      if (agruActive) { agruIdle = true; _agruSetStatus('手動返答モード（コメント待ち）'); }
+      if (agruActive) { agruIdle = true; _agruSetStatus('コメント待ち...'); }
     }, agruIdleDelay * 1000);
   });
   _agruScrollBottom?.();
