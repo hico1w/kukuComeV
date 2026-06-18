@@ -2,6 +2,16 @@
 
 ---
 
+## v2.738.0 — 2026-06-18
+
+### fix: ボスアゲルを複数回起動すると処理が多重化して異常に重くなる問題を修正
+
+- **根本原因**: 登場演出 `_agruBattleEntrance` は非同期（setTimeoutチェーン）で、中断は共有フラグ `_bossEntranceAborted` で判定していた。ところが**新しいバトル開始時にこのフラグを false にリセット**するため、前のバトルがバトル中に終了→すぐ次のバトルを開始した場合、**前バトルの登場演出が「中断解除」されて完走し、その onDone が発火**。`agruBattleTimerInterval`/`agruBattleCounterTimer` を**二重に setInterval** し、古い方のIDは上書きで失われてクリアされず、**カウンター攻撃・タイマー・背景処理が多重実行**されたまま蓄積していた
+- **`app-09-agru-battle-fx.js`**: バトル世代カウンタ `_agruBattleEpoch` を追加。`_agruBattleEntrance` は開始時の世代を記憶し、各フェーズと最終onDoneのガードを「`_bossEntranceAborted` または世代が変わったら無効」に変更。別バトルが始まった時点で古い登場演出が確実に停止する
+- **`app-08-agru-chat.js`** `startAgruBattle`: 開始時に世代を `++`、登場演出onDoneで世代不一致なら無視。さらに間隔タイマーは設定前に `clearInterval` してから張り直す（多重・リーク防止の二重対策）
+
+---
+
 ## v2.737.0 — 2026-06-18
 
 ### fix: コメントのURLでページが勝手に遷移し戻れなくなる問題を修正（フレームバスティング対策）

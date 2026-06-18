@@ -393,6 +393,7 @@ function _agruBattleLeaveUI() {
 
 function startAgruBattle(maxHP) {
   if (agruBattleActive) return;
+  const _epoch = ++_agruBattleEpoch; // このバトルの世代。古い登場演出のonDoneを無効化する
   agruBattleTimers.clearAll(); // 前バトルの積み残し演出タイマーを一掃（残留対策）
   const cfg = agruBattleConfig;
   agruBattleMaxHP = maxHP || cfg.maxHP || 1000;
@@ -487,7 +488,7 @@ function startAgruBattle(maxHP) {
 
   // 登場演出 → 完了後にHPバー・タイマー表示・カウンター開始
   _agruBattleEntrance(() => {
-    if (!agruBattleActive) return;
+    if (!agruBattleActive || _epoch !== _agruBattleEpoch) return; // 古いバトルの登場演出onDoneは無視（多重防止）
     _agruBattleEntranceDone = true;
     updateAgruBattleHpDisplay();
     document.getElementById('agruBattleOverlayBg')?.classList.add('boss-bg-shake');
@@ -505,6 +506,8 @@ function startAgruBattle(maxHP) {
     }
     _agruBattleLog('⚔️ バトル開始！アゲルちゃんを倒せ！');
     _agruBattleGetSpeech('battleStart');
+    clearInterval(agruBattleTimerInterval); // 既存の間隔タイマーを念のため解除（多重・リーク防止）
+    clearInterval(agruBattleCounterTimer);
     agruBattleTimerInterval = setInterval(_agruBattleUpdateTimer, 1000);
     agruBattleCounterTimer  = setInterval(_agruBattleDoCounter, agruBattleCounterInterval * 1000);
   });

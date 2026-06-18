@@ -628,8 +628,10 @@ function _bossEntranceGlassBreak(overlay) {
 }
 
 let _bossEntranceAborted = false;
+let _agruBattleEpoch = 0; // バトル世代。startAgruBattle で++。古い登場演出/コールバックを無効化する
 function _agruBattleEntrance(onDone) {
   _bossEntranceAborted = false;
+  const epoch = _agruBattleEpoch; // この登場演出が属する世代。別バトルが始まったら無効化
   const overlay = document.getElementById('bossEntranceOverlay');
   if (!overlay) { window._bossEfx?.start(); _bossStartBgm(); onDone(); return; }
 
@@ -650,7 +652,7 @@ function _agruBattleEntrance(onDone) {
 
   // Phase 1: 警告テキスト + フラッシュ + エッジグロー
   setTimeout(() => {
-    if (_bossEntranceAborted) return;
+    if (_bossEntranceAborted || epoch !== _agruBattleEpoch) return;
     document.getElementById('bossEntranceWarning')?.classList.add('bev-active');
     overlay.classList.add('bev-flash', 'bev-lit');
     setTimeout(() => overlay.classList.remove('bev-flash'), 1100);
@@ -658,14 +660,14 @@ function _agruBattleEntrance(onDone) {
 
   // Phase 2: ボス名表示
   setTimeout(() => {
-    if (_bossEntranceAborted) return;
+    if (_bossEntranceAborted || epoch !== _agruBattleEpoch) return;
     document.getElementById('bossEntranceName')?.classList.add('bev-active');
     document.getElementById('bossEntranceSub')?.classList.add('bev-active');
   }, 950);
 
   // Phase 3: ボス画像スケールイン + 拡大リング
   setTimeout(() => {
-    if (_bossEntranceAborted) return;
+    if (_bossEntranceAborted || epoch !== _agruBattleEpoch) return;
     if (eImg) eImg.classList.add('bev-img-active');
     // 拡大リングをcanvasに描画
     const rCanvas = document.getElementById('bossEntranceRings');
@@ -692,7 +694,7 @@ function _agruBattleEntrance(onDone) {
 
   // Phase 4: ガラス割れ + ボスキャラ表示 + エフェクト開始 + BGM開始 + オーバーレイフェードアウト
   setTimeout(() => {
-    if (_bossEntranceAborted) return;
+    if (_bossEntranceAborted || epoch !== _agruBattleEpoch) return;
     _bossEntranceGlassBreak(overlay);
     // ガラス音
     _bossEntranceGlassAudio = new Audio('/sound/boss/' + encodeURIComponent('ガラスが割れる1（旧バージョン）.mp3'));
@@ -703,7 +705,7 @@ function _agruBattleEntrance(onDone) {
     _bossStartBgm();
     // ガラス割れが少し見えてからフェード開始
     setTimeout(() => {
-      if (_bossEntranceAborted) return;
+      if (_bossEntranceAborted || epoch !== _agruBattleEpoch) return;
       overlay.style.transition = 'opacity 1.1s';
       overlay.style.opacity = '0';
     }, 180);
@@ -721,7 +723,7 @@ function _agruBattleEntrance(onDone) {
     if (eImg) eImg.classList.remove('bev-img-active');
   };
   setTimeout(() => {
-    if (_bossEntranceAborted) { _cleanEntrance(); return; }
+    if (_bossEntranceAborted || epoch !== _agruBattleEpoch) { _cleanEntrance(); return; }
     _cleanEntrance();
     onDone();
   }, 3800);
