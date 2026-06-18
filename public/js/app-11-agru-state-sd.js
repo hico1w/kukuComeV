@@ -1189,6 +1189,10 @@ function _tryKukuSuno(user, kukuUrl) {
   _kukuUserMap.set(kukuUrl, user);
   const iframe = document.createElement('iframe');
   iframe.dataset.kuku = kukuUrl;
+  // プロキシ経由のページ（kuku.lu→erinn等にリダイレクトしうる）が top.location でタブを
+  // 乗っ取る（フレームバスティング）のを防ぐため sandbox を付与。
+  // allow-scripts のみ＝スクリプト/ postMessage（suno抽出）は許可、トップ遷移は禁止。
+  iframe.setAttribute('sandbox', 'allow-scripts');
   iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
   iframe.src = `/api/kuku-proxy?url=${encodeURIComponent(kukuUrl)}`;
   document.body.appendChild(iframe);

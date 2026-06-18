@@ -2,6 +2,15 @@
 
 ---
 
+## v2.737.0 — 2026-06-18
+
+### fix: コメントのURLでページが勝手に遷移し戻れなくなる問題を修正（フレームバスティング対策）
+
+- **根本原因**: kuku.lu URL共有時、`_tryKukuSuno` が `/api/kuku-proxy`（kuku.luのページをサーバ側でリダイレクト追跡し**同一オリジンで配信**）を**サンドボックスなしのiframe**で読み込んでいた。kuku.lu が `live.erinn.biz/live.php?...` 等にリダイレクト／フレームバスティングすると、そのページのJSが `top.location` で **localhost:3000 のタブごと別サイトへ遷移**させ、戻れなくなっていた
+- **`app-11-agru-state-sd.js`** `_tryKukuSuno`: プロキシ用の隠しiframeに `sandbox="allow-scripts"` を付与。**トップ遷移（フレームバスティング）を禁止**しつつ、スクリプト実行と postMessage（suno リンク抽出）は維持。受信側は `e.source` で照合するため opaque origin でも動作する
+
+---
+
 ## v2.736.0 — 2026-06-16
 
 ### feat: 自発トークの話題を管理パネルから設定可能に（箇条書き）
