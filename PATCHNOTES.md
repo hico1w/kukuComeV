@@ -2,6 +2,19 @@
 
 ---
 
+## v2.739.0 — 2026-06-19
+
+### fix: SD生成設定の「表示サイズ」(sdPopWidth)が保存されても反映されない問題を修正
+
+- **根本原因**: `sdPopWidth` だけ**グローバル変数が宣言されておらず**、起動時ローダはローカル `const sdPopWidth` に読み込むだけ（adminスライダー設定用）。`sdText` 受信処理にも変数更新が無かった。そのため `_sdReadSettings()` のフォールバックが `|| 480`（ハードコード）となり、オーバーレイ（`sdPopWidthSlider` が存在しない）では**常に480px固定**で表示されていた。他のSD設定（`sdWidth` 等）はグローバル変数に読み込まれ反映されていた
+- **`app-03-boss-pets.js`**: グローバル `let sdPopWidth = 480;` を宣言
+- **`app-12-features-minigames.js`**: 起動時ローダを `const sdPopWidth` → グローバル `sdPopWidth` への代入に変更（localStorageから復元）
+- **`app-13-race-admin-misc.js`**: `sdText` 受信に `sdPopWidth` の変数更新を追加（管理パネルからの変更が即反映）
+- **`app-11-agru-state-sd.js`** `_sdReadSettings`: `popWidth` のフォールバックを `|| 480` → `|| sdPopWidth` に変更
+- これで表示サイズが「保存・起動時復元・ライブ反映」されるようになる
+
+---
+
 ## v2.738.0 — 2026-06-18
 
 ### fix: ボスアゲルを複数回起動すると処理が多重化して異常に重くなる問題を修正

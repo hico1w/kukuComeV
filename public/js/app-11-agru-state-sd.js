@@ -1344,7 +1344,7 @@ function _sdReadSettings() {
     width:          parseInt(document.getElementById('sdWidthInput')?.value)        || sdWidth,
     height:         parseInt(document.getElementById('sdHeightInput')?.value)       || sdHeight,
     steps:          parseInt(document.getElementById('sdStepsSlider')?.value)       || sdSteps,
-    popWidth:       parseInt(document.getElementById('sdPopWidthSlider')?.value)    || 480,
+    popWidth:       parseInt(document.getElementById('sdPopWidthSlider')?.value)    || sdPopWidth,
     positiveSuffix: document.getElementById('sdPositiveSuffixInput')?.value         ?? sdPositiveSuffix,
     negative:       document.getElementById('sdNegativeInput')?.value               ?? sdNegative,
     displayTime:    parseInt(document.getElementById('sdDisplayTimeSlider')?.value) || sdDisplayTime,

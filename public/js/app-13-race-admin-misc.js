@@ -1180,6 +1180,7 @@ function handleAdminMessage(d, replyFn) {
       if (d.key === 'sdWidth')          sdWidth          = parseInt(d.value)   || sdWidth;
       if (d.key === 'sdHeight')         sdHeight         = parseInt(d.value)   || sdHeight;
       if (d.key === 'sdSteps')          sdSteps          = parseInt(d.value)   || sdSteps;
+      if (d.key === 'sdPopWidth')       sdPopWidth       = parseInt(d.value)   || sdPopWidth;
       if (d.key === 'sdPositiveSuffix') sdPositiveSuffix = d.value;
       if (d.key === 'sdNegative')       sdNegative       = d.value;
       if (d.key === 'sdDisplayTime')    sdDisplayTime    = parseInt(d.value)   || sdDisplayTime;

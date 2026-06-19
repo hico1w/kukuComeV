@@ -1982,7 +1982,7 @@ _ttsListeners.forEach(([id, ev, fn]) => document.getElementById(id)?.addEventLis
   sdSampler        = load('sdSampler', 'Euler a');
   charExcludeIds   = new Set((localStorage.getItem('charExcludeIds') || '').split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0));
 
-  const sdPopWidth = parseInt(load('sdPopWidth', 480));
+  sdPopWidth       = parseInt(load('sdPopWidth', 480)); // グローバル変数に格納（_sdReadSettings が参照）
   const _sdSet = (id, prop, val) => { const e = document.getElementById(id); if (e) e[prop] = val; };
   _sdSet('sdWidthInput',           'value',       sdWidth);
   _sdSet('sdHeightInput',          'value',       sdHeight);

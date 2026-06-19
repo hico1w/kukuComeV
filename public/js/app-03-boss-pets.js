@@ -143,6 +143,7 @@ let ttsVolume     = 1.0;
 let sdWidth          = 1600;
 let sdHeight         = 1000;
 let sdSteps          = 20;
+let sdPopWidth       = 480; // SD画像の表示サイズ(px)
 let sdPositiveSuffix = 'masterpiece, best quality';
 let sdNegative       = '(worst quality:2),(low quality:2),(normal quality:2),lowres,extra fingers,fewer fingers,monochrome,grayscale,text,watermark,logo,';
 let sdDisplayTime    = 10;
