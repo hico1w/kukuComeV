@@ -996,7 +996,7 @@ function handleAdminMessage(d, replyFn) {
     state.sdWidth          = sdWidth;
     state.sdHeight         = sdHeight;
     state.sdSteps          = sdSteps;
-    state.sdPopWidth       = parseInt(document.getElementById('sdPopWidthSlider')?.value) || 480;
+    state.sdPopWidth       = sdPopWidth;
     state.sdPositiveSuffix = sdPositiveSuffix;
     state.sdNegative       = sdNegative;
     state.sdDisplayTime    = sdDisplayTime;
