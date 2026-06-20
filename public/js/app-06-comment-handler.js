@@ -1161,9 +1161,10 @@ function handleComment(comment) {
 
   ensureCharOnStage(user);
 
-  // ── >/＞先頭コメント：吹き出し4倍サイズ＋ガタガタ ── 20MP消費
+  // ── #/＃先頭コメント：吹き出し4倍サイズ＋ガタガタ ── 20MP消費
+  // 外部コメント元が半角 # を URLエンコード(%23)のまま送ってくるため、それも発動対象に含める
   let _gatagata = false;
-  if (/^[>＞]/.test(message)) {
+  if (/^(?:[#＃]|%23)/i.test(message)) {
     if ((user.mp ?? 0) < 20) {
       showBubble(user, `MPが足りない… (${user.mp ?? 0}/20)`, {});
       addToLog(user, message, user.textColor === '#111111' ? '#e2e8f0' : user.textColor);
@@ -1172,7 +1173,7 @@ function handleComment(comment) {
     user.mp -= 20;
     updateStatsDisplay(user);
     commentStyle.fontSize = (charFontSizes.bubble * 4) + 'px';
-    display = display.replace(/^[>＞]/, '').trim() || display;
+    display = display.replace(/^(?:[#＃]|%23)/i, '').trim() || display;
     _gatagata = true;
   }
 
