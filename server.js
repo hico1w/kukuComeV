@@ -931,6 +931,7 @@ let ollamaNumGpu    = _initSrvCfg.ollamaNumGpu    ?? -1;
 let ollamaNumThread = _initSrvCfg.ollamaNumThread ?? -1;
 let ollamaNumCtx    = _initSrvCfg.ollamaNumCtx    ?? -1;
 const OLLAMA_PORT = 11434;
+const OLLAMA_TIMEOUT_MS = 120000; // Ollama応答のタイムアウト(ms)。生成スタック時に無限待ちしないため
 
 function buildOllamaOptions() {
   const o = {};
@@ -1089,12 +1090,14 @@ app.post('/api/ai-reply', (req, res) => {
         try {
           const json = JSON.parse(raw);
           const reply = json.message?.content?.trim();
-          if (!reply) return res.status(500).json({ error: 'No response from Ollama' });
-          res.json({ reply });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+          if (!reply) { if (!res.headersSent) res.status(500).json({ error: 'No response from Ollama' }); return; }
+          if (!res.headersSent) res.json({ reply });
+        } catch (e) { if (!res.headersSent) res.status(500).json({ error: e.message }); }
       });
     });
-    req2.on('error', e => res.status(500).json({ error: e.message }));
+    req2.on('error', e => { if (!res.headersSent) res.status(500).json({ error: e.message }); });
+    // Ollamaが応答しない（生成スタック等）と無限に待つため、タイムアウトを設ける
+    req2.setTimeout(OLLAMA_TIMEOUT_MS, () => { req2.destroy(); if (!res.headersSent) res.status(504).json({ error: `Ollama応答タイムアウト(${OLLAMA_TIMEOUT_MS / 1000}秒)` }); });
     req2.write(body);
     req2.end();
   } else {
@@ -1115,12 +1118,13 @@ app.post('/api/ai-reply', (req, res) => {
       res2.on('end', () => {
         try {
           const json = JSON.parse(raw);
-          if (!json.response) return res.status(500).json({ error: 'No response from Ollama' });
-          res.json({ reply: json.response.trim() });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+          if (!json.response) { if (!res.headersSent) res.status(500).json({ error: 'No response from Ollama' }); return; }
+          if (!res.headersSent) res.json({ reply: json.response.trim() });
+        } catch (e) { if (!res.headersSent) res.status(500).json({ error: e.message }); }
       });
     });
-    req2.on('error', e => res.status(500).json({ error: e.message }));
+    req2.on('error', e => { if (!res.headersSent) res.status(500).json({ error: e.message }); });
+    req2.setTimeout(OLLAMA_TIMEOUT_MS, () => { req2.destroy(); if (!res.headersSent) res.status(504).json({ error: `Ollama応答タイムアウト(${OLLAMA_TIMEOUT_MS / 1000}秒)` }); });
     req2.write(body);
     req2.end();
   }
