@@ -5009,6 +5009,32 @@ body.compact-mode .title-tag         { display: none !important; }
   100% { transform: scale(1);   filter: brightness(1); }
 }
 
+/* 弾命中→消滅バーストエフェクト */
+.comment-phys-destroy {
+  animation: _cphysDestroy 0.35s ease-out forwards !important;
+  pointer-events: none;
+}
+@keyframes _cphysDestroy {
+  0%   { transform: scale(1);   opacity: 1;   filter: brightness(1.5); }
+  25%  { transform: scale(1.9); opacity: 0.9; filter: brightness(3.5); }
+  100% { transform: scale(3);   opacity: 0;   filter: brightness(1); }
+}
+
+/* 消滅パーティクル */
+.cphys-particle {
+  position: fixed;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 10001;
+  animation: _cphysParticle 0.5s ease-out forwards;
+  margin: -4.5px 0 0 -4.5px;
+}
+@keyframes _cphysParticle {
+  0%   { transform: translate(0, 0) scale(1);   opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+}
+
 /* ── 配信エンドカード（今日の数字まとめ） ── */
 .stream-end-card {
   position: fixed; inset: 0;

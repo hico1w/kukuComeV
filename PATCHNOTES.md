@@ -2,6 +2,21 @@
 
 ---
 
+## v2.765.0 — 2026-06-22
+
+### feat: 射撃弾がコメント物理オブジェクトに当たると消滅 +1MP + バーストSE
+
+- 射コマンドの弾（`kaiBullets`）がコメント物理オブジェクトに衝突すると、跳ね返しではなくオブジェクトを**消滅**させるよう変更
+- 消滅時の演出：
+  - バーストアニメ（クローンが scale3倍+フェードアウト）
+  - 7方向カラーパーティクルが飛び散る
+  - **+1MP** を弾の射撃者に付与、`+1MP` テキストが水色でフロート表示
+  - 効果音 `nc77822_びっくり０３－１.mp3` を再生（重複再生可）
+- **`app-14-stream-physics.js`**：`_playCommentPhysBurstSound()` / `_commentPhysDestroy()` 追加、`_cphysStep` 内の衝突ブロックを消滅マーク方式に変更（レンダリング後に一括処理）
+- **`style.css`**：`.comment-phys-destroy` / `@keyframes _cphysDestroy` / `.cphys-particle` / `@keyframes _cphysParticle` 追加
+
+---
+
 ## v2.764.0 — 2026-06-22
 
 ### feat: コメントログパネルの位置・サイズ・背景透明度を admin から設定可能に

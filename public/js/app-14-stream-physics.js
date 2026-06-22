@@ -68,6 +68,47 @@ let commentPhysZ           = parseInt(localStorage.getItem('commentPhysZ')      
 let _cphysObjs  = [];   // { el, x, y, vx, vy, w, h, born }
 let _cphysAnim  = null;
 
+const _CPHYS_BURST_SND = '/sound/syageki/' + encodeURIComponent('nc77822_びっくり０３－１.mp3');
+function _playCommentPhysBurstSound() {
+  try { const a = new Audio(_CPHYS_BURST_SND); a.volume = 0.7; a.play().catch(() => {}); } catch (e) {}
+}
+
+function _commentPhysDestroy(o, bulletUser) {
+  // バーストエフェクト（クローンで爆発アニメ）
+  const clone = o.el.cloneNode(true);
+  clone.style.pointerEvents = 'none';
+  clone.style.zIndex = '10001';
+  clone.classList.add('comment-phys-destroy');
+  document.body.appendChild(clone);
+  clone.addEventListener('animationend', () => clone.remove(), { once: true });
+
+  // パーティクル（7方向に飛び散る）
+  const _pColors = ['#ff4444','#ff8c00','#ffd700','#44dd55','#4499ff','#cc44ff','#ff44bb'];
+  const vpx = parseFloat(o.el.style.left) + o.w / 2;
+  const vpy = parseFloat(o.el.style.top)  + o.h / 2;
+  for (let p = 0; p < 7; p++) {
+    const pt = document.createElement('div');
+    pt.className = 'cphys-particle';
+    const ang = (p / 7) * Math.PI * 2;
+    const spd = 45 + Math.random() * 50;
+    pt.style.cssText = `left:${vpx}px;top:${vpy}px;background:${_pColors[p % _pColors.length]};--tx:${(Math.cos(ang) * spd).toFixed(1)}px;--ty:${(Math.sin(ang) * spd).toFixed(1)}px`;
+    document.body.appendChild(pt);
+    pt.addEventListener('animationend', () => pt.remove(), { once: true });
+  }
+
+  o.el.remove();
+
+  // +1 MP & 表示
+  if (bulletUser) {
+    bulletUser.mp = (bulletUser.mp ?? 0) + 1;
+    if (typeof updateStatsDisplay === 'function') updateStatsDisplay(bulletUser);
+    if (typeof showDamageNumber === 'function')
+      showDamageNumber(o.x + o.w / 2, o.y + o.h / 2, '+1MP', false, null, '#7dd3fc');
+  }
+
+  _playCommentPhysBurstSound();
+}
+
 function spawnCommentPhys(text, user) {
   if (!commentPhysEnabled) return;
   const stageEl = document.getElementById('stage');
@@ -143,19 +184,15 @@ function _cphysStep() {
       if (Math.abs(o.vy) < 1.2) { o.vy = 0; o.vx *= 0.6; } // 着地して静止
     }
 
-    // 射コマンドの弾と衝突 → 弾ける
-    if (typeof kaiBullets !== 'undefined' && kaiBullets.length) {
-      const cx = o.x + o.w / 2, cy = o.y + o.h / 2;
+    // 射コマンドの弾と衝突 → 消滅（+1MP・バーストエフェクト）
+    if (!o._destroyBy && typeof kaiBullets !== 'undefined' && kaiBullets.length) {
       for (const b of kaiBullets) {
         const nx = Math.max(o.x, Math.min(b.x, o.x + o.w));
         const ny = Math.max(o.y, Math.min(b.y, o.y + o.h));
         const dx = b.x - nx, dy = b.y - ny;
         if (dx * dx + dy * dy < b.r * b.r) {
-          o.vx += (cx - b.x) * 0.06 + b.vx * 0.4;
-          o.vy += -Math.abs(b.vy) * 0.5 - 3;
-          o.el.classList.remove('comment-phys-pop');
-          void o.el.offsetWidth;
-          o.el.classList.add('comment-phys-pop');
+          o._destroyBy = b.user ?? null;
+          break;
         }
       }
     }
@@ -188,6 +225,13 @@ function _cphysStep() {
   for (const o of _cphysObjs) {
     o.el.style.left = (rect.left + o.x) + 'px';
     o.el.style.top  = (rect.top + o.y) + 'px';
+  }
+
+  // 弾が命中したオブジェクトの消滅処理（レンダリング後に実行してクローンの座標を正確にする）
+  if (_cphysObjs.some(o => o._destroyBy !== undefined)) {
+    const _hit = _cphysObjs.filter(o => o._destroyBy !== undefined);
+    _cphysObjs = _cphysObjs.filter(o => o._destroyBy === undefined);
+    for (const o of _hit) _commentPhysDestroy(o, o._destroyBy);
   }
 
   _cphysAnim = _cphysObjs.length > 0 ? requestAnimationFrame(_cphysStep) : null;
