@@ -100,6 +100,19 @@ let agruVoicevoxSpeaker = parseInt(localStorage.getItem('agruVoicevoxSpeaker') |
 let agruVoicevoxSpeed   = parseFloat(localStorage.getItem('agruVoicevoxSpeed') || '1.0');
 let agruVoicevoxVolume  = parseFloat(localStorage.getItem('agruVoicevoxVolume') || '1.0');
 let _agruVvAudio = null;
+// 声色エモート: 感情バケット → VoiceVox スタイルID。-1 は「未設定（既定の agruVoicevoxSpeaker にフォールバック）」
+let agruVoiceEmoteEnabled = localStorage.getItem('agruVoiceEmoteEnabled') === '1';
+let agruVoiceStyleJoy     = parseInt(localStorage.getItem('agruVoiceStyleJoy')    ?? '-1');
+let agruVoiceStyleAnger   = parseInt(localStorage.getItem('agruVoiceStyleAnger')  ?? '-1');
+let agruVoiceStyleSorrow  = parseInt(localStorage.getItem('agruVoiceStyleSorrow') ?? '-1');
+let agruVoiceStyleFun     = parseInt(localStorage.getItem('agruVoiceStyleFun')    ?? '-1');
+let agruVoiceStyleNormal  = parseInt(localStorage.getItem('agruVoiceStyleNormal') ?? '-1');
+function _agruResolveVoiceSpeaker(emotion) {
+  if (!agruVoiceEmoteEnabled || !emotion) return agruVoicevoxSpeaker;
+  const bucket = AGRU_EMOTION_VOICE_BUCKET[emotion] || 'normal';
+  const id = ({ joy: agruVoiceStyleJoy, anger: agruVoiceStyleAnger, sorrow: agruVoiceStyleSorrow, fun: agruVoiceStyleFun, normal: agruVoiceStyleNormal })[bucket];
+  return (Number.isFinite(id) && id >= 0) ? id : agruVoicevoxSpeaker;
+}
 if (!localStorage.getItem('_agruSdSizeReset')) { localStorage.removeItem('agruSdWidth'); localStorage.removeItem('agruSdHeight'); localStorage.setItem('_agruSdSizeReset','1'); }
 let agruSdWidth          = parseInt(localStorage.getItem('agruSdWidth'))  || 0;
 let agruSdHeight         = parseInt(localStorage.getItem('agruSdHeight')) || 0;
@@ -391,10 +404,22 @@ function _agruScrollBottom() {
   if (log) requestAnimationFrame(() => { log.scrollTop = log.scrollHeight; });
 }
 
-const _agruBgm = new Audio('/ageru/oto/bgm.mp3');
+const _agruBgm = new Audio('/ageru/oto/bgm.mp3'); // 一覧未取得時のフォールバック
 _agruBgm.volume = 0;
+// 会話モードBGMは ageru/oto/bgm フォルダ内からランダム再生する
+let _agruBgmTracks = [];
+fetch('/api/ageru-bgm')
+  .then(r => r.json())
+  .then(d => { _agruBgmTracks = (d.files || []).map(f => '/ageru/oto/bgm/' + encodeURIComponent(f)); })
+  .catch(() => {});
+function _agruBgmPickRandom() {
+  if (!_agruBgmTracks.length) return; // 一覧が無ければ現在のsrc（bgm.mp3）を維持
+  _agruBgm.src = _agruBgmTracks[Math.floor(Math.random() * _agruBgmTracks.length)];
+  _agruBgm.currentTime = 0;
+}
 _agruBgm.addEventListener('ended', () => {
   if (!_agruBgm.paused) return;
+  _agruBgmPickRandom(); // ループ時は次の曲をランダムに選ぶ
   _agruBgm.currentTime = 0;
   _agruBgm.play().catch(() => {});
 });
@@ -405,6 +430,7 @@ const _AGRU_BGM_STEP_MS = 30;
 
 function _agruBgmFadeIn() {
   clearInterval(_agruBgmFadeTimer);
+  if (_agruBgm.currentTime === 0) _agruBgmPickRandom(); // 新規再生時はランダム選曲（pauseからの再開は同じ曲を継続）
   _agruBgm.volume = 0;
   _agruBgm.play().catch(() => {});
   const target = agruBgmVolume / 100;
@@ -527,15 +553,16 @@ function _agruAddBubble(side, name, text, onDone) {
   }, 45);
 }
 
-async function _agruPlayVoicevox(text) {
+async function _agruPlayVoicevox(text, emotion) {
   if (!agruVoicevoxEnabled || !text) return;
   text = text.replace(/[（(][^）)]*[）)]/g, '').trim();
   if (!text) return;
+  const speaker = _agruResolveVoiceSpeaker(emotion);
   try {
     const res = await fetch('/api/voicevox', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, speaker: agruVoicevoxSpeaker, speedScale: agruVoicevoxSpeed }),
+      body: JSON.stringify({ text, speaker, speedScale: agruVoicevoxSpeed }),
     });
     const data = await res.json();
     if (data.error) { return; }
@@ -719,7 +746,7 @@ async function _agruSend(message, commenter) {
   _agruSetStatus('返答中...');
 
   const stateCtx = _agruGetStateContext();
-  const systemPrompt = AGRU_DEFAULT_SYSTEM + '\n\n' + _agruGetAffinityContext() + (stateCtx ? '\n\n' + stateCtx : '') + (agruSystem.trim() ? '\n\n' + agruSystem.trim() : '');
+  const systemPrompt = AGRU_DEFAULT_SYSTEM + '\n\n' + _agruGetAffinityContext() + (stateCtx ? '\n\n' + stateCtx : '') + (_agruDiaryRecall ? '\n\n' + _agruDiaryRecall : '') + (agruSystem.trim() ? '\n\n' + agruSystem.trim() : '');
   _agruLog('送信: ' + message + ' (履歴' + (_agruConvHistory.length / 2) + '往復) 好感度' + agruAffinity);
 
   // 画像生成キーワード検出（会話モード中は自撮り/写真も対象）
@@ -774,7 +801,7 @@ async function _agruSend(message, commenter) {
     _agruUpdateLibidoDisplay(libidoDelta);
     _agruLog('emotion: ' + emotion + ' / reply: ' + replyText + ' / 好感度Δ' + affinityDelta + ' / 性欲Δ' + libidoDelta, 'ok');
     _agruNotifyEmotion(emotion, replyText);
-    _agruPlayVoicevox(replyText);
+    _agruPlayVoicevox(replyText, emotion);
     if (_needsImage && agruUnloadEnabled) {
       // 返答取得後にOllamaモデルをアンロード（完了を待ってからSD生成でVRAM競合を防ぐ）
       await fetch('/api/ai-unload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: aiModel }) }).catch(() => {});
@@ -886,7 +913,7 @@ async function _agruAutoTalk() {
   _agruSetStatus('返答中...');
   try {
     const stateCtx = _agruGetStateContext();
-    const systemPrompt = AGRU_DEFAULT_SYSTEM + '\n\n' + _agruGetAffinityContext() + (stateCtx ? '\n\n' + stateCtx : '') + (agruSystem.trim() ? '\n\n' + agruSystem.trim() : '');
+    const systemPrompt = AGRU_DEFAULT_SYSTEM + '\n\n' + _agruGetAffinityContext() + (stateCtx ? '\n\n' + stateCtx : '') + (_agruDiaryRecall ? '\n\n' + _agruDiaryRecall : '') + (agruSystem.trim() ? '\n\n' + agruSystem.trim() : '');
     const messages = [..._agruConvHistory, { role: 'user', content: _agruAutoTalkPrompt() }];
     const res = await fetch('/api/ai-reply', {
       method: 'POST',
@@ -899,7 +926,7 @@ async function _agruAutoTalk() {
     // 自発トークは好感度を変えない（視聴者の入力ではないため）。会話履歴にも積まない
     const { emotion, replyText } = _agruParseResponse(raw);
     _agruNotifyEmotion(emotion, replyText);
-    _agruPlayVoicevox(replyText);
+    _agruPlayVoicevox(replyText, emotion);
     if (_agruPoisonTurns > 0) _agruShowStateImage('毒'); else _agruSetImage(emotion);
     const _t = document.getElementById('agruTypingIndicator'); if (_t) _t.remove();
     _agruAddBubble('left', 'アゲルちゃん', replyText, () => {
@@ -1112,6 +1139,9 @@ async function openAgruModal() {
       }
     } else { _cm.style.left = ''; _cm.style.top = ''; _cm.style.transform = ''; }
   }
+
+  // 記憶日記の回想を読み込んでから起動挨拶（前回の配信を振り返れるように）
+  await _agruLoadDiaryRecall();
 
   // 起動挨拶
   _agruSend('配信が始まりました。視聴者に向けて元気よく挨拶してください。', null);

@@ -1176,6 +1176,11 @@ function defeatBoss() {
   }
   bossState.defeated = true;
   bossCount++;
+  if (typeof recordStreamHighlight === 'function') {
+    let _top = null;
+    Object.values(bossDamageMap || {}).forEach(d => { if (!_top || (d.totalDmg || 0) > (_top.totalDmg || 0)) _top = d; });
+    recordStreamHighlight(`ボスを討伐！${_top ? `（トドメ級の活躍: ${_top.name}）` : ''}`);
+  }
   const bossMaxHp = bossState.maxHp;
   const el = bossState.el;
 

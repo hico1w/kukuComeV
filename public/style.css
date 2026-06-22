@@ -1716,6 +1716,21 @@ body {
 .bubble.hidden { display: none; }
 
 /* 形のバリエーション */
+/* コメント物理オブジェクトの吹き出し見た目のベース。
+   この後に続く .bubble-* / .bubble-deco-* が padding・背景・角丸・clip-path を上書きできるよう、
+   shape ルールより前に宣言している（文字色/フォント/サイズは JS でインライン適用）。 */
+.comment-phys-bubble {
+  display: inline-block;
+  padding: 6px 13px;
+  border-radius: 14px;
+  background: var(--bubble-bg, rgba(255,255,255,0.96));
+  color: #222;
+  font-weight: bold;
+  line-height: 1.4;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
 .bubble-round  { border-radius: 18px; }
 .bubble-square { border-radius: 5px; }
 
@@ -4975,3 +4990,276 @@ body.compact-mode .title-tag         { display: none !important; }
     _agruVicGrow   0.5s cubic-bezier(.34,1.56,.64,1) forwards,
     _agruVicBounce 0.65s ease-in-out 0.5s 15 forwards;
 }
+
+/* ── コメント物理オブジェクト（流れてきたコメントが落下・積み上がり・弾ける） ── */
+/* 外側：物理位置のみ。body直下に置くため fixed（z-index は JS でインライン設定）。
+   こうすることで commentPhysZ が YouTube/会話モーダルと同じルート文脈で重なり順を決められる */
+.comment-phys {
+  position: fixed;
+  left: 0; top: 0;
+  pointer-events: none;
+  will-change: left, top;
+}
+.comment-phys-pop {
+  animation: _cphysPop 0.25s ease-out;
+}
+@keyframes _cphysPop {
+  0%   { transform: scale(1);   filter: brightness(1); }
+  40%  { transform: scale(1.35); filter: brightness(1.6); }
+  100% { transform: scale(1);   filter: brightness(1); }
+}
+
+/* ── 配信エンドカード（今日の数字まとめ） ── */
+.stream-end-card {
+  position: fixed; inset: 0;
+  z-index: 99999;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(10,4,16,0.66);
+  backdrop-filter: blur(3px);
+}
+/* 落ち着いた横長フレーム（虹色の点滅はやめて静的な淡いグラデーション） */
+.stream-end-card .ec-frame {
+  position: relative;
+  width: min(880px, 96vw);   /* admin 指定値があれば JS のインライン style(width/height) が上書き */
+  height: 640px;             /* admin の「カード縦幅」を JS が inline で上書き */
+  max-width: 98vw;
+  max-height: 96vh;          /* 画面より大きくならない */
+  box-sizing: border-box;
+  display: flex;
+  padding: 3px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #ffcfe2, #ffe7b8);
+  box-shadow: 0 16px 50px rgba(0,0,0,0.5);
+  animation: _ecPopIn 0.4s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes _ecPopIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.stream-end-card .ec-inner {
+  position: relative;
+  flex: 1; min-height: 0;
+  box-sizing: border-box;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  background:
+    radial-gradient(130% 100% at 50% -10%, #fff7fd 0%, #ffe2f3 32%, #f4d6ff 64%, #e3c8ff 100%);
+  border-radius: 20px;
+  padding: 18px 22px;
+  color: #4a2436;
+  font-family: inherit;
+}
+/* きらめく星空：瞬く星（::before）＋ 漂うキラキラ粒子（::after） */
+.stream-end-card .ec-inner::before {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    radial-gradient(2px 2px   at 20% 28%, #ffffff, transparent),
+    radial-gradient(2px 2px   at 72% 18%, #ffe9f7, transparent),
+    radial-gradient(1.5px 1.5px at 42% 66%, #ffffff, transparent),
+    radial-gradient(2px 2px   at 86% 58%, #fff3ad, transparent),
+    radial-gradient(1.5px 1.5px at 56% 40%, #ffffff, transparent),
+    radial-gradient(2px 2px   at 12% 78%, #ffe9f7, transparent),
+    radial-gradient(1.5px 1.5px at 90% 84%, #ffffff, transparent),
+    radial-gradient(2px 2px   at 32% 12%, #fff3ad, transparent),
+    radial-gradient(1.5px 1.5px at 64% 80%, #ffffff, transparent),
+    radial-gradient(2px 2px   at 48% 90%, #ffe9f7, transparent);
+  background-repeat: no-repeat;
+  animation: _ecTwinkle 2.6s ease-in-out infinite alternate;
+}
+@keyframes _ecTwinkle { from { opacity: 0.35; } to { opacity: 1; } }
+.stream-end-card .ec-inner::after {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    radial-gradient(3px 3px at 18% 100%, rgba(255,255,255,0.95), transparent),
+    radial-gradient(2.5px 2.5px at 50% 100%, rgba(255,238,170,0.95), transparent),
+    radial-gradient(3px 3px at 82% 100%, rgba(255,205,235,0.95), transparent),
+    radial-gradient(2px 2px at 35% 100%, rgba(255,255,255,0.9), transparent),
+    radial-gradient(2.5px 2.5px at 66% 100%, rgba(210,225,255,0.95), transparent);
+  background-repeat: no-repeat;
+  animation: _ecSparkleUp 5.5s linear infinite;
+}
+@keyframes _ecSparkleUp {
+  0%   { transform: translateY(0);     opacity: 0; }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { transform: translateY(-78%);  opacity: 0; }
+}
+/* 本文は星空の上に重ねる */
+.stream-end-card .ec-inner > * { position: relative; z-index: 1; }
+
+.stream-end-card .ec-title,
+.stream-end-card .ec-date,
+.stream-end-card .ec-grid,
+.stream-end-card .ec-close { flex: 0 0 auto; }
+.stream-end-card .ec-title {
+  font-size: 25px; font-weight: 900; text-align: center;
+  background: linear-gradient(90deg, #e8447f, #c558d6, #f59e0b);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+}
+.stream-end-card .ec-date  { text-align: center; opacity: 0.65; margin: 2px 0 12px; font-size: 13px; }
+.stream-end-card .ec-grid  { display: flex; gap: 10px; margin-bottom: 14px; }
+.stream-end-card .ec-cell  { flex: 1; background: rgba(255,255,255,0.85); border-radius: 12px; padding: 9px 4px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+.stream-end-card .ec-num   { font-size: 24px; font-weight: 900; color: #e8447f; }
+.stream-end-card .ec-lbl   { font-size: 11px; opacity: 0.7; }
+
+/* 本文：左にスライドショー、右に常時表示のランキング。残り高さを body と lists で分け合う */
+.stream-end-card .ec-body { flex: 2 1 0; min-height: 0; display: flex; gap: 14px; align-items: stretch; }
+.stream-end-card .ec-slide {
+  flex: 0 0 360px;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 0;
+  background: linear-gradient(160deg, #2a1830, #43204d);
+  border-radius: 16px;
+  box-shadow: inset 0 0 24px rgba(0,0,0,0.45);
+  overflow: hidden;
+}
+.stream-end-card .ec-slide.ec-anim .ec-slide-card { animation: _ecSlideIn 0.5s cubic-bezier(.22,1,.36,1); }
+@keyframes _ecSlideIn { from { transform: translateY(14px) scale(0.92); opacity: 0; } to { transform: none; opacity: 1; } }
+/* 立ち絵をスライド全面に表示し、アイコン(右上)・名前(左下)を重ねる */
+.stream-end-card .ec-slide-card {
+  position: relative; width: 100%; height: 100%; color: #fff;
+}
+.stream-end-card .ec-portrait {
+  position: absolute; inset: 0; margin: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.stream-end-card .ec-portrait-glow {
+  position: absolute; top: 50%; left: 50%; width: 70%; height: 70%; transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,216,107,0.6), transparent 65%);
+  animation: _ecGlow 1.8s ease-in-out infinite;
+}
+@keyframes _ecGlow { 0%,100% { transform: translate(-50%, -50%) scale(0.92); opacity: 0.65; } 50% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; } }
+.stream-end-card .ec-portrait img {
+  position: relative; z-index: 1;
+  max-width: 100%; max-height: 100%;   /* スライド枠いっぱいまで拡大（フレームサイズは不変） */
+  object-fit: contain;
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,0.55));
+}
+.stream-end-card .ec-medal {
+  position: absolute; top: 8px; right: 10px; z-index: 2;
+  font-size: 34px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.7));
+}
+.stream-end-card .ec-slide-info {
+  position: absolute; left: 12px; bottom: 12px; z-index: 2;
+  text-align: left; max-width: 88%;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.85), 0 0 8px rgba(0,0,0,0.6);
+}
+.stream-end-card .ec-slide-lbl  { font-size: 13px; font-weight: bold; color: #ffd86b; }
+.stream-end-card .ec-slide-name { font-size: 20px; font-weight: 900; margin: 1px 0; }
+.stream-end-card .ec-slide-val  { font-size: 15px; color: #8be9fd; font-weight: bold; }
+
+/* 各部門MVPは1行2個の2列グリッド（縦のはみ出し・重なりを防ぐ） */
+.stream-end-card .ec-ranklist {
+  flex: 1; min-height: 0; list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+  align-content: center; overflow: hidden;
+}
+.stream-end-card .ec-rank-item {
+  display: grid; grid-template-columns: 20px 1fr auto; align-items: center; gap: 1px 6px;
+  padding: 5px 8px; border-radius: 10px;
+  background: rgba(255,255,255,0.6);
+  font-size: 12px; cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  min-width: 0;                       /* グリッドセル内で省略が効くように */
+}
+.stream-end-card .ec-rank-item .ec-rk-ico  { grid-column: 1; grid-row: 1 / span 2; font-size: 15px; text-align: center; }
+.stream-end-card .ec-rank-item .ec-rk-lbl  { grid-column: 2; grid-row: 1; font-size: 10px; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stream-end-card .ec-rank-item .ec-rk-name { grid-column: 2; grid-row: 2; font-weight: 800; font-size: 13px; color: #6d2a47; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stream-end-card .ec-rank-item .ec-rk-val  { grid-column: 3; grid-row: 1 / span 2; font-weight: 900; color: #e8447f; white-space: nowrap; }
+.stream-end-card .ec-rank-item.active {
+  background: linear-gradient(90deg, #fff3d6, #ffe3ef);
+  border-color: #ffd86b;
+  box-shadow: 0 2px 10px rgba(255,158,196,0.5);
+  transform: translateX(2px);
+}
+.stream-end-card .ec-rank-item.ec-dim { opacity: 0.6; cursor: default; }
+
+/* コメント一覧＆名場面（残り高さを body と分け合い、内部を自動スクロール） */
+.stream-end-card .ec-lists { flex: 1 1 0; min-height: 0; display: flex; gap: 14px; margin-top: 12px; }
+.stream-end-card .ec-list-col { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.stream-end-card .ec-hi-title { font-weight: bold; margin: 0 0 4px; font-size: 13px; flex: 0 0 auto; }
+.stream-end-card .ec-comments,
+.stream-end-card .ec-hi {
+  flex: 1 1 auto; min-height: 0;
+  margin: 0; padding: 6px 10px;
+  list-style: none;
+  font-size: 12px; line-height: 1.55;
+  overflow: hidden;                 /* スクロールバーは出さず JS で自動スクロール */
+  background: rgba(255,255,255,0.55);
+  border-radius: 10px;
+}
+.stream-end-card .ec-hi { padding-left: 22px; list-style: disc; }
+.stream-end-card .ec-comments li { padding: 2px 0; border-bottom: 1px dashed rgba(180,120,150,0.25); }
+.stream-end-card .ec-cm-name { font-weight: 800; color: #c2407c; margin-right: 6px; }
+.stream-end-card .ec-cm-text { color: #4a2436; word-break: break-word; }
+.stream-end-card .ec-hi .ec-dim, .stream-end-card .ec-comments .ec-dim { opacity: 0.6; }
+.stream-end-card .ec-close {
+  display: block; margin: 12px auto 0;
+  padding: 8px 30px; border: none; border-radius: 20px;
+  background: linear-gradient(90deg, #e8447f, #c558d6);
+  color: #fff; font-weight: bold; cursor: pointer;
+  box-shadow: 0 4px 12px rgba(232,68,127,0.5);
+}
+.stream-end-card .ec-close:hover { filter: brightness(1.1); }
+@media (max-width: 520px) {
+  .stream-end-card .ec-body  { flex-direction: column; }
+  .stream-end-card .ec-slide { flex-basis: auto; min-height: 200px; }
+  .stream-end-card .ec-lists { flex-direction: column; }
+}
+
+/* ── 配信総評モーダル（黒板風・白チョーク文字・右下に講師キャラ） ── */
+.stream-review-modal {
+  position: fixed; inset: 0; z-index: 99999;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(2px);
+}
+.stream-review-modal .sr-board {
+  position: relative;
+  width: min(760px, 94vw);
+  max-height: 88vh;
+  box-sizing: border-box;
+  padding: 26px 30px 30px;
+  /* 黒板：濃い緑〜黒のチョーク質感 */
+  background:
+    radial-gradient(120% 90% at 30% 20%, rgba(255,255,255,0.04), transparent 60%),
+    linear-gradient(160deg, #2c3e34 0%, #243029 60%, #1c2620 100%);
+  border: 14px solid #6b4a2b;                 /* 木枠 */
+  border-radius: 10px;
+  box-shadow: 0 18px 60px rgba(0,0,0,0.6), inset 0 0 60px rgba(0,0,0,0.45);
+  color: #f3f7f2;
+  animation: _ecPopIn 0.35s cubic-bezier(.34,1.56,.64,1);
+}
+.stream-review-modal .sr-title {
+  font-size: 22px; font-weight: 900; text-align: center;
+  color: #fdfdfb;
+  text-shadow: 0 0 6px rgba(255,255,255,0.35);
+  letter-spacing: 0.08em;
+  margin-bottom: 14px;
+  border-bottom: 2px dashed rgba(255,255,255,0.35);
+  padding-bottom: 10px;
+}
+.stream-review-modal .sr-text {
+  font-size: 16px; line-height: 1.9;
+  white-space: pre-wrap; word-break: break-word;
+  color: #f3f7f2;
+  text-shadow: 0 0 4px rgba(255,255,255,0.25);   /* チョークのにじみ */
+  max-height: 62vh; overflow-y: auto;
+  min-height: 120px;                             /* 文字はキャラに重なってOK（全幅使用） */
+}
+.stream-review-modal .sr-text.sr-loading { opacity: 0.7; font-style: italic; }
+.stream-review-modal .sr-char {
+  position: absolute; right: 14px; bottom: 12px;
+  width: clamp(120px, 22vw, 190px);
+  height: auto;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.6));
+  pointer-events: none;
+}
+.stream-review-modal .sr-close {
+  position: absolute; top: 8px; right: 12px;
+  width: 30px; height: 30px;
+  background: rgba(255,255,255,0.12); color: #fff;
+  border: 1px solid rgba(255,255,255,0.3); border-radius: 50%;
+  cursor: pointer; font-size: 13px; line-height: 1;
+}
+.stream-review-modal .sr-close:hover { background: rgba(255,255,255,0.25); }

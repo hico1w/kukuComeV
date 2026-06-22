@@ -34,6 +34,7 @@ function showMythDrop(user) {
   }
 
   playLocalSound(SOUND_MYTH_DROP);
+  if (typeof recordStreamHighlight === 'function') recordStreamHighlight(`${user.name || '誰か'}が神話級レアをドロップ！`);
   setTimeout(() => panel.remove(), 3800);
 }
 
@@ -155,6 +156,7 @@ function handleComment(comment) {
   if (type !== 'comment') return;
   user.commentCount = (user.commentCount || 0) + 1;
   user.lastCommentAt = Date.now();
+  if (!_streamStartAt) _streamStartAt = Date.now(); // 配信サマリー用の起点
   if (user.el) user.el.style.zIndex = ++charZCounter;
 
   // コメント毎に基礎 EXP +1（ボス有無・コンパクトモード問わず）
@@ -188,6 +190,8 @@ function handleComment(comment) {
     if (!user.recentComments) user.recentComments = [];
     user.recentComments.push(message);
     if (user.recentComments.length > 150) user.recentComments.shift();
+    spawnCommentPhys(message, user); // コメント物理オブジェクト（commentPhysEnabled 時のみ、吹き出しスタイル反映）
+    recordStreamComment(user.name, message); // エンドカードのコメント一覧用に蓄積
   }
 
   // ── 馬券ベット ──

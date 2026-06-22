@@ -213,6 +213,19 @@ app.get('/api/raw', async (req, res) => {
   }
 });
 
+// ageru/oto/bgm フォルダの会話モードBGM一覧（ランダム再生用）
+app.get('/api/ageru-bgm', (req, res) => {
+  const dir = path.join(__dirname, 'public', 'ageru', 'oto', 'bgm');
+  try {
+    const files = fs.readdirSync(dir)
+      .filter(f => /\.(mp3|ogg|m4a|aac|flac|wav)$/i.test(f))
+      .sort();
+    res.json({ files });
+  } catch {
+    res.json({ files: [] });
+  }
+});
+
 // sound/sentou フォルダの音声一覧
 app.get('/api/sounds/sentou', (req, res) => {
   const dir = path.join(__dirname, 'public', 'sound', 'sentou');
@@ -314,6 +327,33 @@ app.delete('/api/char-save/:ipid', (req, res) => {
     delete data[req.params.ipid];
     fs.writeFileSync(file, JSON.stringify(data));
     res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── 記憶日記（配信ごとの「今日あったこと」を日付キーで保存／回想） ──
+// 形式: { "YYYY-MM-DD": { date, text, stats } } を新しい順で最大60件保持
+app.get('/api/agru-diary', (req, res) => {
+  try {
+    const file = DATA('agruDiary.json');
+    const all = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : {};
+    const entries = Object.values(all).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    // ?latest=1 で直近1件だけ返す（回想用）
+    if (req.query.latest) return res.json({ latest: entries[0] || null });
+    res.json({ entries });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/api/agru-diary', (req, res) => {
+  try {
+    const file = DATA('agruDiary.json');
+    const all = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : {};
+    const body = req.body || {};
+    const date = body.date || new Date().toISOString().slice(0, 10);
+    all[date] = { date, text: String(body.text || ''), stats: body.stats || {}, savedAt: Date.now() };
+    // 60件を超えたら古い日付から削除
+    const keys = Object.keys(all).sort((a, b) => b.localeCompare(a));
+    keys.slice(60).forEach(k => delete all[k]);
+    fs.writeFileSync(file, JSON.stringify(all));
+    res.json({ ok: true, date });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

@@ -2,6 +2,252 @@
 
 ---
 
+## v2.763.0 — 2026-06-22
+
+### feat: 配信サマリー設定改修（admin.html）
+
+- **コメント総評を閉じるボタン**を admin.html に追加（ボタン名「✖ 総評を閉じる」、`cmd('streamReviewClose')` → `#streamReviewModal` を削除）
+- モーダル内の閉じるボタン（`.sr-close`）を削除。背景クリックによる閉じる動作は引き続き有効
+- **黒板の幅・高さ・位置**を admin から調整できるスライダーを追加
+  - `reviewBoardWidth`（300〜1400px、デフォルト760）
+  - `reviewBoardMaxHeight`（20〜98vh、デフォルト88）
+  - `reviewBoardOffsetX` 左右オフセット（-800〜800px、デフォルト0）
+  - `reviewBoardOffsetY` 上下オフセット（-500〜500px、デフォルト0）
+- **`app-14-stream-physics.js`**：`reviewBoardWidth/MaxHeight/OffsetX/Y` グローバル変数追加、`_applyReviewBoardStyle()` 関数追加、`_showReviewModal` で呼び出し
+- **`app-13-race-admin-misc.js`**：`streamReviewClose` ボタンディスパッチ追加、黒板設定の state 同期・`handleAdminMessage` ハンドラー追加
+- **`admin.html`**：黒板スライダー UI 追加、設定復元コード追加
+
+---
+
+## v2.762.0 — 2026-06-22
+
+### feat: コメント総評のシステムプロンプトを admin から編集可能に
+
+- 設定 `reviewSystem` を追加。admin の配信サマリーに総評プロンプトのテキストエリアを追加（空欄ならデフォルトを使用）
+- デフォルトプロンプトを定数 `REVIEW_DEFAULT_SYSTEM` として明示（先生口調・300文字程度の講評）。プレースホルダにもデフォルト文を表示
+- **`app-14-stream-physics.js`**（`reviewSystem`／`REVIEW_DEFAULT_SYSTEM`、`_streamReview` で使用）／**`app-13-race-admin-misc.js`**（受信＋state同期）／**`app-01-core-characters.js`**（SETTINGS_KEYS）／**`admin.html`**（テキストエリア・復元）を更新
+
+---
+
+## v2.761.0 — 2026-06-22
+
+### change: 総評モーダル — 文字とキャラの重なりを許可＋位置調整幅を3倍に
+
+- 本文の右パディング（キャラ回避）を撤去し、**文字がキャラに重なってもOK**（本文は全幅使用）。キャラは `pointer-events:none` で前面に重なる
+- 講師キャラの位置スライダー（右/下）の範囲を約3倍に拡大：`-50〜400px` → **`-150〜1200px`**
+- **`app-14-stream-physics.js`**（パディング処理撤去）／**`style.css`**（`.sr-text` の padding-right 削除）／**`admin.html`**（スライダー範囲拡大）を更新
+
+---
+
+## v2.760.0 — 2026-06-22
+
+### feat: 総評モーダルの講師キャラの大きさ・位置を admin から調整可能に
+
+- 設定 `reviewCharSize`（大きさ、既定160px）/`reviewCharRight`（右からの位置、既定14px）/`reviewCharBottom`（下からの位置、既定12px）を追加。admin の配信サマリーにスライダーを3本追加（負の値も可で画面外寄せも可能）
+- **モーダル表示中はスライダー操作でリアルタイム反映**（`_applyReviewCharStyle()`）。キャラ幅に合わせて本文の右パディングも自動調整
+- **`app-14-stream-physics.js`**（設定＋`_applyReviewCharStyle`）／**`app-13-race-admin-misc.js`**（受信＋ライブ反映＋state同期）／**`app-01-core-characters.js`**（SETTINGS_KEYS）／**`admin.html`**（UI・復元）を更新
+
+---
+
+## v2.759.0 — 2026-06-22
+
+### feat: コメント総評ボタンを追加（Ollamaで配信を総評、黒板モーダル表示）
+
+- admin の配信サマリーに「📋 コメント総評」ボタンを追加。現在の全コメント（直近を上限4000文字まで）＋集計を Ollama に送り、先生（講師）口調で**今日の配信を総評**する
+- 総評は**黒板風モーダル**（濃緑〜黒のチョーク質感＋木枠、白チョーク文字）で表示。**右下に講師キャラ画像**（`/souhyou/kousi.png`）を配置。✖ボタン／背景クリックで閉じる
+- **`app-14-stream-physics.js`**: `_streamReview()`（コメント収集→Ollama送信→表示）と `_showReviewModal()` を追加
+- **`app-13-race-admin-misc.js`**: `streamReviewBtn` のディスパッチを追加
+- **`admin.html`**: 「📋 コメント総評」ボタンを追加
+- **`style.css`**: `.stream-review-modal`（黒板風）一式を追加
+
+---
+
+## v2.758.0 — 2026-06-22
+
+### fix: エンドカードの自動スクロールが動かない/止まって見える問題を修正
+
+- 自動スクロールが `el.scrollTop += 0.5` だったため、ブラウザによっては scrollTop が整数に丸められて加算が消え、**まったく動かない**ことがあった。**浮動小数のアキュムレータ**で位置を累積し `el.scrollTop = pos` で反映するよう変更（丸めで止まらない）。速度も 0.5→0.7px/フレームに微増して視認しやすくした
+- ※コメント/名場面が枠の高さを超えていないとき（件数が少ないとき）はスクロールしない（仕様）
+- **`app-14-stream-physics.js`** を更新
+
+---
+
+## v2.757.0 — 2026-06-22
+
+### change: エンドカードの背景を「きらめく星空」にリッチ化
+
+- 背景を淡いピンク→紫の多段グラデーションに変更し、**瞬く星**（`::before`、opacityパルス）と**下から漂い上がるキラキラ粒子**（`::after`、ゆっくり上昇）のレイヤーを重ねた
+- 本文は `.ec-inner > * { z-index:1 }` で星空レイヤーの上に表示。CSSのみ（JSなし）で実装
+- **`style.css`**: `.ec-inner` の背景グラデ更新、`::before`/`::after` の星・粒子レイヤーと `_ecTwinkle`/`_ecSparkleUp` アニメーションを追加
+
+---
+
+## v2.756.0 — 2026-06-22
+
+### change: エンドカードの立ち絵をオーバーレイ表示で最大化＋効果音音量をadminから調整
+
+- 部門MVPのスライドを、**立ち絵をスライド全面に大きく表示**し、その上に情報を重ねるレイアウトに変更：
+  - 部門アイコン（絵文字）を**右上**に配置
+  - 名前・部門名・記録を**左下**に配置（半透明の影付きで視認性確保）
+  - 立ち絵は枠いっぱいまで拡大（フレームサイズは不変）
+- **効果音音量**: 設定 `endCardVolume`（0〜100、既定80）を追加。admin の配信サマリーに「効果音 音量」スライダーを追加し、「ジャン！」の音量を調整可能に
+- **`app-14-stream-physics.js`**（スライド構造・音量適用）／**`style.css`**（オーバーレイ配置）／**`app-13-race-admin-misc.js`**・**`app-01-core-characters.js`**・**`admin.html`**（音量設定の配線・UI）を更新
+
+---
+
+## v2.755.0 — 2026-06-22
+
+### change: エンドカードの閉じるボタンを廃止＋立ち絵をスライド枠いっぱいに拡大
+
+- カード内の「閉じる」ボタンを削除（閉じるのは admin の「✖ エンドカードを閉じる」から）
+- 部門MVPの立ち絵を、フレームサイズは変えずに**スライド枠いっぱいまで拡大**。スライドカードを縦フレックスにして立ち絵を `flex:1` で残り高さいっぱいに広げ、画像は `max-width/height:100%` でスケール
+- **`app-14-stream-physics.js`**（閉じるボタン削除）／**`style.css`**（立ち絵拡大）を更新
+
+---
+
+## v2.754.0 — 2026-06-22
+
+### fix: エンドカードの各部門MVPを1行2個に（縦のはみ出し・重なりを解消）
+
+- 各部門MVPランキングを縦1列（6行）→ **1行2個の2列グリッド**（3行）に変更し、本文の高さをはみ出して要素が重なる問題を解消
+- **`style.css`**: `.ec-ranklist` を `display:grid; grid-template-columns:1fr 1fr; align-content:center; overflow:hidden` に変更。`.ec-rank-item` はアイコンを2行ぶち抜き＋ラベル/名前を `text-overflow:ellipsis` にして狭いセルでも崩れないよう調整
+
+---
+
+## v2.753.0 — 2026-06-22
+
+### fix: エンドカードの「カード縦幅」設定が効くように修正＋下部の見切れ解消
+
+- **カード縦幅設定を復活**: 前版で自動サイズ化した際に縦幅設定が反映されなくなっていたのを修正。admin の「カード縦幅」(`endCardHeight`、既定640px・360〜1200px）でカード全体の高さを指定できるようにした（画面より大きい場合は `min(指定px, 96vh)` で自動縮小し、画面外にはみ出さない）
+- **見切れ解消**: 本文（スライド）とコメント/名場面リストを `flex` で残り高さを分け合う伸縮レイアウトに変更（body:lists = 2:1）。スライドの固定 `min-height` を撤去し、**閉じるボタンが常に見える**ようにした
+- **コメント/名場面は枠内で自動スクロール**: リスト枠の高さが確定するため、コメントが多いと枠内を自動スクロール（末尾で少し待って先頭へループ）する挙動が正しく働く
+- **`app-14-stream-physics.js`** / **`style.css`** / **`app-13-race-admin-misc.js`** / **`admin.html`** を更新
+
+---
+
+## v2.752.0 — 2026-06-22
+
+### fix: エンドカードの下部が見切れる問題を修正（中身に合わせて自動サイズ化）
+
+- **原因**: カードを固定縦幅にして内側を `overflow:hidden` でクリップしていたため、高さが足りないとコメント欄・閉じるボタンなど下部が見切れていた
+- **対応**: カード全体を**中身に合わせて自動サイズ**（`height:auto` ＋ `max-height:96vh` で画面内に必ず収まる）に変更。スライド領域とコメント/名場面リストの高さをビューポート連動（`min(指定px, 38〜40vh)`）にして、スクロールしなくても全体が表示されるようにした
+- **設定変更**: 「カード縦幅」を「**リスト高さ**」に変更（コメント/名場面欄の高さを指定。既定240px・100〜600px）。カード全体の高さは自動。横幅 `endCardWidth` は従来どおり
+- **`app-14-stream-physics.js`** / **`style.css`** / **`app-13-race-admin-misc.js`** / **`admin.html`** を更新
+
+---
+
+## v2.751.0 — 2026-06-22
+
+### change: 会話モードBGMを bgm フォルダ内からランダム再生に変更
+
+- 会話モードのBGMを固定の `ageru/oto/bgm.mp3` から、**`ageru/oto/bgm/` フォルダ内のファイルをランダム再生**に変更。再生開始時とループ（曲の終了）時に次の曲をランダムに選ぶ。**再生/一時停止/停止のフェード制御ロジックは従来のまま**（一時停止からの再開は同じ曲を継続）
+- **`server.js`**: `GET /api/ageru-bgm`（`public/ageru/oto/bgm/` 内の音声ファイル一覧）を追加
+- **`app-11-agru-state-sd.js`**: 起動時に一覧を取得して `_agruBgmTracks` に保持。`_agruBgmPickRandom()` を追加し、`_agruBgmFadeIn`（新規再生時 `currentTime===0` のみ）と `ended`（ループ時）で選曲。一覧未取得時は従来の `bgm.mp3` にフォールバック
+
+---
+
+## v2.750.0 — 2026-06-22
+
+### feat: エンドカードにサイズ指定・今日のコメント一覧・自動スクロールを追加
+
+- **サイズ指定**: admin の配信サマリーに「カード横幅（400〜1600px）」「カード縦幅（300〜1200px）」スライダーを追加。設定 `endCardWidth`/`endCardHeight`（既定880/600）でエンドカードの表示サイズを変更できる
+- **今日のコメント一覧**: 配信中の全コメントを `recordStreamComment` で蓄積（最大3000件、名前付き）し、エンドカードに「💬 今日のコメント」一覧として表示。**上から下へ自動スクロール**し、末尾まで行くと少し待って先頭へループ
+- **名場面も自動スクロール**: 名場面リストも全件表示＋自動スクロールに変更（従来は8件表示・固定）。コメント一覧と名場面を左右2カラムで並べ、カードの残り高さいっぱいに広げて内部スクロール
+- **`app-14-stream-physics.js`**: `_streamComments`/`recordStreamComment`、`endCardWidth`/`endCardHeight`、自動スクロール `_ecAutoScroll`（停止関数を `_ecScrollers` で管理し閉じる時に解除）を追加。`_showEndCard` を2カラム＋サイズ反映に刷新
+- **`app-06-comment-handler.js`**: 通常コメントで `recordStreamComment` を呼ぶ
+- **`style.css`**: `.ec-frame`/`.ec-inner` を可変サイズのフレックス縦並びにし、`.ec-lists`/`.ec-comments` 等の2カラム・自動スクロール用スタイルを追加
+- **`app-13-race-admin-misc.js`** / **`app-01-core-characters.js`** / **`admin.html`**: 設定の受信・state同期・`SETTINGS_KEYS`・UI を追加
+
+---
+
+## v2.749.0 — 2026-06-22
+
+### fix: コメント物理オブジェクトの z-index がモーダルより背面に行かない問題を修正
+
+- **原因**: コメント物理オブジェクトを `#stage` 内に追加していたが、`#stage` は `position: fixed` で**独自のスタッキングコンテキスト**を作るため、子要素の z-index は `#stage` 内でしか比較されず、body直下にある YouTube再生モーダル・会話モーダルとは重なり順を比較できなかった（マイナス指定しても背面に回らない）
+- **対応**: コメント物理オブジェクトを **`document.body` 直下**に配置（`position: fixed`）するよう変更。物理演算の座標は従来どおり stage 基準のまま、描画時に `stage.getBoundingClientRect()` のオフセットを加えてビューポート配置する。これで `commentPhysZ` がモーダルと同じルート文脈で評価され、**値を下げればモーダルの背面、上げれば前面**に出せるようになった
+- **`app-14-stream-physics.js`**: `spawnCommentPhys`／`_cphysStep` の配置先と座標変換を変更。**`style.css`**: `.comment-phys` を `position: absolute` → `fixed` に変更
+
+---
+
+## v2.748.0 — 2026-06-22
+
+### change: コメント物理オブジェクトの z-index をマイナス指定可能に
+
+- admin の「重なり順 z」スライダーの下限を 0 → **-1000** に拡張（マイナスにするとキャラクター等より背面に表示できる）
+- **`app-13-race-admin-misc.js`**: 受信処理を `parseInt(d.value) || 65` から `Number.isFinite` 判定に変更し、**0 やマイナス値がフォールバック(65)で潰れない**よう修正
+
+---
+
+## v2.747.0 — 2026-06-22
+
+### change: エンドカードの見た目調整（虹色廃止・横長化・立ち絵拡大）＋効果音＋admin閉じるボタン
+
+- **虹色の点滅を廃止**: フレームの回転コニックグラデーション＋`hue-rotate` アニメ（全体が7色に変化して目が痛い）をやめ、淡い静的グラデーション縁取りに変更
+- **横長化＆立ち絵拡大**: カード幅を `min(560px)` → `min(880px)`、スライド領域を 200→360px・最小高 230→340px、立ち絵枠 130→240px・画像最大 120→230px に拡大
+- **効果音**: 部門MVPキャラが表示されるたびに `/sound/endcard/nc201523_【効果音】ジャン！（短）.mp3` を再生（`_ecPlayJan`、Audioを使い回し）
+- **admin に閉じるボタン**: 「✖ エンドカードを閉じる」を追加。グローバル `closeEndCard()`（タイマー解除＋カード除去）を新設し、カード内の閉じるボタンと `cmd('streamEndCardClose')` の両方から利用
+- **`app-14-stream-physics.js`** / **`style.css`** / **`app-13-race-admin-misc.js`** / **`admin.html`** を更新
+
+---
+
+## v2.746.0 — 2026-06-22
+
+### change: コメント物理オブジェクトを吹き出しスタイル反映＋最大500＋z-index設定対応
+
+- **吹き出しスタイル反映**: 物理オブジェクトを「外側＝物理位置／内側＝吹き出し見た目」の2層構造に変更。内側にコメント主の**吹き出し形状（`bubble-*`）・装飾（`bubble-deco-*`）・文字色・フォント・背景色**を反映して落下させるようにした
+  - **`app-14-stream-physics.js`** `spawnCommentPhys(text, user)`: 第2引数 `user` を追加し、`bubbleShape`/`bubbleDeco`/`textColor`/`font`/`bubbleBgColor` を内側要素へ適用
+  - **`app-06-comment-handler.js`**: 呼び出しを `spawnCommentPhys(message, user)` に変更
+  - **`style.css`**: `.comment-phys` を位置専用にし、見た目用の `.comment-phys-bubble` を **shape ルールより前**に追加（shape/deco が padding・背景・角丸・clip-path を上書きできるようにするため）
+- **最大数を500まで**: admin の「最大数」スライダー上限を 80 → **500** に拡張。高密度でも軽量に保つため、積み上がり判定をx方向バケットによる近傍比較に変更（O(n²)を回避）
+- **z-index設定**: 設定 `commentPhysZ`（既定65）を追加。admin の「重なり順 z」スライダー（0〜9999）で重なり順を調整可能。受信・state同期・`SETTINGS_KEYS` にも登録
+
+---
+
+## v2.745.0 — 2026-06-22
+
+### feat: 配信エンドカードをリッチ化（部門別1位のスライドショー＋常時ランキング＋おしゃれフレーム）
+
+- エンドカードを刷新。**部門別の1位キャラを大きな立ち絵付きでスライドショー表示**（約2.8秒ごとに自動切替）しつつ、**全部門のテキスト順位は右側に常時表示**（現在表示中の部門をハイライト、クリックでその部門へジャンプ）
+- 部門を拡充: 🏆MVP（最多コメント）／⚔️ダメージ王／📈レベル王／💥攻撃力王／❤️タフネス王／🛡️歴戦の勇者（ボス参加数）。各部門は参加者（コメントしたキャラ）の中から1位を選出し、規定値未満の部門は非表示
+- **`app-14-stream-physics.js`**: `_collectStreamStats` が `departments`（部門・1位名・値・キャラ画像URL）を返すよう拡張、`_userImgUrl`（ステージのアバターと同じ画像解決）を追加。`_showEndCard` をスライドショー化（`_ecTimer` で自動送り、リストクリックで手動切替、閉じる時にタイマー解除）。日記生成用のスカラー項目は後方互換で維持
+- **`style.css`**: 回転グラデーションの縁取りフレーム、立ち絵のグロー演出、スライドイン、常時ランキングのアクティブ表示、狭幅時の縦並びレスポンシブを追加
+
+---
+
+## v2.744.0 — 2026-06-22
+
+### feat: 4機能追加（声色エモート／記憶日記／配信エンドカード／コメント物理オブジェクト）
+
+#### ① 声色エモート（感情でVoiceVoxスタイル自動切替）
+- アゲルちゃんの返答感情（既存の20種 `AGRU_EMOTIONS`）を **喜・怒・哀・楽・通常** の5バケットに分類し、バケットごとに割り当てたVoiceVoxスタイルで読み上げるようにした
+- **`app-08-agru-chat.js`**: `AGRU_EMOTION_VOICE_BUCKET`（20感情→5バケットの対応表）を追加
+- **`app-11-agru-state-sd.js`**: 設定 `agruVoiceEmoteEnabled`/`agruVoiceStyle{Joy,Anger,Sorrow,Fun,Normal}`（-1=既定スピーカーにフォールバック）と `_agruResolveVoiceSpeaker(emotion)` を追加。`_agruPlayVoicevox(text, emotion)` に感情引数を追加し、返答・自発トークの2箇所で感情を渡すよう変更
+- **`app-13-race-admin-misc.js`** / **`app-01-core-characters.js`** / **`admin.html`**: 設定の受信・state同期・`SETTINGS_KEYS`・UI（有効トグル＋5バケットのスタイル選択ドロップダウン、`loadVoicevoxSpeakers` で一括populate）を追加
+
+#### ② 記憶日記（配信終わりに日記化→翌日回想）
+- 配信終了時に「今日あったこと」をOllamaでアゲルちゃん視点の日記に変換し保存。次回起動時に前回の日記を読み込み、システムプロンプトに回想文脈として注入（「前は〜だったね」と自然に振り返れる）
+- **`server.js`**: `GET/POST /api/agru-diary`（`data/agruDiary.json` に日付キーで最大60件保持。`?latest=1` で直近1件）を追加
+- **`app-14-stream-physics.js`**（新規）: `_saveStreamDiary`（Ollama日記化＋保存、失敗時は集計フォールバック）/`_agruLoadDiaryRecall`（回想読込）/`_agruDiaryRecall` を追加
+- **`app-11-agru-state-sd.js`** `openAgruModal`: 起動挨拶の前に `await _agruLoadDiaryRecall()` を実行。システムプロンプト構築2箇所に回想文脈を注入
+
+#### ③ 配信エンドカード（今日の数字まとめ）
+- 配信終了ボタンで、コメント総数・参加者数・配信時間・MVP（最多コメント）・ダメージ王・最高レベル・名場面をまとめたカードをオーバーレイ表示。集計は日記にも添付保存
+- **`app-14-stream-physics.js`**: `_collectStreamStats`（`users`/`bossDamageMap`/`bossCount` から集計）・`_showEndCard`・`_streamEndSummary` を追加。名場面は `recordStreamHighlight` で収集
+- **`app-06-comment-handler.js`**: 最初のコメントで `_streamStartAt` をセット（配信時間起点）、神話ドロップ時に名場面記録
+- **`app-05-taiman-boss.js`** `defeatBoss`: ボス討伐を名場面として記録
+- **`style.css`**: `.stream-end-card` 一式のCSSを追加
+
+#### ④ コメント物理オブジェクト化
+- 流れてきたコメントがステージ上に物理オブジェクトとして落下し、床や壁で跳ねて積み上がる。`射`コマンドの弾が当たると弾ける。admin から ON/OFF と重力・反発・最大数・文字サイズを設定可能
+- **`app-14-stream-physics.js`**: 独立物理ループ `spawnCommentPhys`/`_cphysStep`/`clearCommentPhys` と設定 `commentPhysEnabled`/`commentPhysGravity`/`commentPhysRestitution`/`commentPhysMax`/`commentPhysFontSize` を追加。既存 `kaiBullets` と衝突判定
+- **`app-06-comment-handler.js`**: 通常コメント処理で `spawnCommentPhys(message)` を呼ぶ
+- **`app-13-race-admin-misc.js`** / **`app-01-core-characters.js`** / **`admin.html`**: 設定の受信（OFF時 `clearCommentPhys`）・state同期・`SETTINGS_KEYS`・UI（トグル＋4スライダー）と配信サマリーの「配信終了」「回想を再読込」ボタンを追加
+- **`style.css`**: `.comment-phys` / `.comment-phys-pop` のCSSを追加
+- **`public/index.html`**: `app-14-stream-physics.js` を読み込みリスト末尾に追加
+
+---
+
 ## v2.743.0 — 2026-06-21
 
 ### fix: Ollamaが応答しない時にアプリが無言で固まる問題を改善（タイムアウト追加）

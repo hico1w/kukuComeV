@@ -804,6 +804,11 @@ function _adminBtnDispatch(id) {
     equipHidden = !equipHidden;
     stage.classList.toggle('equip-hidden', equipHidden);
   } else if (id === 'openImgModal') { openModal(); }
+  else if (id === 'streamEndBtn')      { _streamEndSummary(); }
+  else if (id === 'streamEndCardClose'){ closeEndCard(); }
+  else if (id === 'streamReviewBtn')   { _streamReview(); }
+  else if (id === 'streamReviewClose') { document.getElementById('streamReviewModal')?.remove(); }
+  else if (id === 'streamRecallBtn')   { _agruLoadDiaryRecall(); }
   else if (id === 'copyObsUrl') {
     navigator.clipboard.writeText(`${location.origin}/?obs=1`).catch(() => {});
   }
@@ -1041,6 +1046,29 @@ function handleAdminMessage(d, replyFn) {
     state.agruVoicevoxSpeaker    = agruVoicevoxSpeaker;
     state.agruVoicevoxSpeed      = agruVoicevoxSpeed;
     state.agruVoicevoxVolume     = agruVoicevoxVolume;
+    state.agruVoiceEmoteEnabled  = agruVoiceEmoteEnabled ? '1' : '0';
+    state.agruVoiceStyleJoy      = agruVoiceStyleJoy;
+    state.agruVoiceStyleAnger    = agruVoiceStyleAnger;
+    state.agruVoiceStyleSorrow   = agruVoiceStyleSorrow;
+    state.agruVoiceStyleFun      = agruVoiceStyleFun;
+    state.agruVoiceStyleNormal   = agruVoiceStyleNormal;
+    state.commentPhysEnabled     = commentPhysEnabled ? '1' : '0';
+    state.commentPhysGravity     = Math.round(commentPhysGravity * 100);
+    state.commentPhysRestitution = Math.round(commentPhysRestitution * 100);
+    state.commentPhysMax         = commentPhysMax;
+    state.commentPhysFontSize    = commentPhysFontSize;
+    state.commentPhysZ           = commentPhysZ;
+    state.endCardWidth           = endCardWidth;
+    state.endCardHeight          = endCardHeight;
+    state.endCardVolume          = endCardVolume;
+    state.reviewSystem           = reviewSystem;
+    state.reviewCharSize         = reviewCharSize;
+    state.reviewCharRight        = reviewCharRight;
+    state.reviewCharBottom       = reviewCharBottom;
+    state.reviewBoardWidth       = reviewBoardWidth;
+    state.reviewBoardMaxHeight   = reviewBoardMaxHeight;
+    state.reviewBoardOffsetX     = reviewBoardOffsetX;
+    state.reviewBoardOffsetY     = reviewBoardOffsetY;
     state.agruSdWidth            = agruSdWidth;
     state.agruSdHeight           = agruSdHeight;
     state.agruSdSteps            = agruSdSteps;
@@ -1242,6 +1270,29 @@ function handleAdminMessage(d, replyFn) {
     if (d.key === 'agruVoicevoxSpeaker')    agruVoicevoxSpeaker    = parseInt(d.value) || 0;
     if (d.key === 'agruVoicevoxSpeed')      agruVoicevoxSpeed      = parseFloat(d.value) || 1.0;
     if (d.key === 'agruVoicevoxVolume')     agruVoicevoxVolume     = parseFloat(d.value) || 1.0;
+    if (d.key === 'agruVoiceEmoteEnabled')  agruVoiceEmoteEnabled  = d.value === '1';
+    if (d.key === 'agruVoiceStyleJoy')      agruVoiceStyleJoy      = parseInt(d.value);
+    if (d.key === 'agruVoiceStyleAnger')    agruVoiceStyleAnger    = parseInt(d.value);
+    if (d.key === 'agruVoiceStyleSorrow')   agruVoiceStyleSorrow   = parseInt(d.value);
+    if (d.key === 'agruVoiceStyleFun')      agruVoiceStyleFun      = parseInt(d.value);
+    if (d.key === 'agruVoiceStyleNormal')   agruVoiceStyleNormal   = parseInt(d.value);
+    if (d.key === 'commentPhysEnabled')     { commentPhysEnabled = d.value === '1'; if (!commentPhysEnabled) clearCommentPhys(); }
+    if (d.key === 'commentPhysGravity')     commentPhysGravity     = (parseFloat(d.value) || 40) / 100;
+    if (d.key === 'commentPhysRestitution') commentPhysRestitution = (parseFloat(d.value) || 45) / 100;
+    if (d.key === 'commentPhysMax')         commentPhysMax         = parseInt(d.value) || 25;
+    if (d.key === 'commentPhysFontSize')    commentPhysFontSize    = parseInt(d.value) || 18;
+    if (d.key === 'commentPhysZ')           { commentPhysZ = parseInt(d.value); if (!Number.isFinite(commentPhysZ)) commentPhysZ = 65; }
+    if (d.key === 'endCardWidth')           endCardWidth           = parseInt(d.value) || 880;
+    if (d.key === 'endCardHeight')          endCardHeight          = parseInt(d.value) || 640;
+    if (d.key === 'endCardVolume')          { endCardVolume = parseInt(d.value); if (!Number.isFinite(endCardVolume)) endCardVolume = 80; }
+    if (d.key === 'reviewSystem')           reviewSystem           = d.value;
+    if (d.key === 'reviewCharSize')         { reviewCharSize   = parseInt(d.value) || 160; _applyReviewCharStyle(); }
+    if (d.key === 'reviewCharRight')        { reviewCharRight  = parseInt(d.value); if (!Number.isFinite(reviewCharRight))  reviewCharRight  = 14; _applyReviewCharStyle(); }
+    if (d.key === 'reviewCharBottom')       { reviewCharBottom = parseInt(d.value); if (!Number.isFinite(reviewCharBottom)) reviewCharBottom = 12; _applyReviewCharStyle(); }
+    if (d.key === 'reviewBoardWidth')       { reviewBoardWidth     = parseInt(d.value) || 760; _applyReviewBoardStyle(); }
+    if (d.key === 'reviewBoardMaxHeight')   { reviewBoardMaxHeight = parseInt(d.value) || 88;  _applyReviewBoardStyle(); }
+    if (d.key === 'reviewBoardOffsetX')     { reviewBoardOffsetX   = parseInt(d.value); if (!Number.isFinite(reviewBoardOffsetX)) reviewBoardOffsetX = 0; _applyReviewBoardStyle(); }
+    if (d.key === 'reviewBoardOffsetY')     { reviewBoardOffsetY   = parseInt(d.value); if (!Number.isFinite(reviewBoardOffsetY)) reviewBoardOffsetY = 0; _applyReviewBoardStyle(); }
     if (d.key === 'agruSdWidth')            agruSdWidth            = parseInt(d.value) || 0;
     if (d.key === 'agruSdHeight')           agruSdHeight           = parseInt(d.value) || 0;
     if (d.key === 'agruSdSteps')            agruSdSteps            = parseInt(d.value)   || 0;

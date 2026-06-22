@@ -208,6 +208,139 @@
   </div>
 </div>
 
+<!-- コメント物理 ＆ 配信サマリー -->
+<div class="section">
+  <div class="section-title">💬 コメント物理オブジェクト</div>
+  <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#e2e8f0;cursor:pointer;margin-bottom:6px">
+    <input type="checkbox" id="commentPhysEnabled"
+           onchange="sendAgruText('commentPhysEnabled', this.checked ? '1' : '0')">
+    有効（コメントが落下して積み上がり、射コマンドの弾で弾ける）
+  </label>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+    <label style="font-size:11px;color:#94a3b8;min-width:72px">重力</label>
+    <input type="range" id="commentPhysGravity" min="5" max="150" step="5" value="40"
+           style="flex:1;accent-color:#38bdf8"
+           oninput="document.getElementById('commentPhysGravityVal').textContent=this.value;sendAgruText('commentPhysGravity',this.value)">
+    <span id="commentPhysGravityVal" style="font-size:11px;color:#e2e8f0;min-width:30px;text-align:right">40</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+    <label style="font-size:11px;color:#94a3b8;min-width:72px">反発</label>
+    <input type="range" id="commentPhysRestitution" min="0" max="95" step="5" value="45"
+           style="flex:1;accent-color:#38bdf8"
+           oninput="document.getElementById('commentPhysRestitutionVal').textContent=this.value;sendAgruText('commentPhysRestitution',this.value)">
+    <span id="commentPhysRestitutionVal" style="font-size:11px;color:#e2e8f0;min-width:30px;text-align:right">45</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+    <label style="font-size:11px;color:#94a3b8;min-width:72px">最大数</label>
+    <input type="range" id="commentPhysMax" min="5" max="500" step="5" value="25"
+           style="flex:1;accent-color:#38bdf8"
+           oninput="document.getElementById('commentPhysMaxVal').textContent=this.value;sendAgruText('commentPhysMax',this.value)">
+    <span id="commentPhysMaxVal" style="font-size:11px;color:#e2e8f0;min-width:30px;text-align:right">25</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+    <label style="font-size:11px;color:#94a3b8;min-width:72px">文字サイズ</label>
+    <input type="range" id="commentPhysFontSize" min="10" max="40" step="1" value="18"
+           style="flex:1;accent-color:#38bdf8"
+           oninput="document.getElementById('commentPhysFontSizeVal').textContent=this.value;sendAgruText('commentPhysFontSize',this.value)">
+    <span id="commentPhysFontSizeVal" style="font-size:11px;color:#e2e8f0;min-width:30px;text-align:right">18</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <label style="font-size:11px;color:#94a3b8;min-width:72px">重なり順 z</label>
+    <input type="range" id="commentPhysZ" min="-1000" max="9999" step="1" value="65"
+           style="flex:1;accent-color:#38bdf8"
+           oninput="document.getElementById('commentPhysZVal').textContent=this.value;sendAgruText('commentPhysZ',this.value)">
+    <span id="commentPhysZVal" style="font-size:11px;color:#e2e8f0;min-width:36px;text-align:right">65</span>
+  </div>
+
+  <div class="section-title" style="margin-top:14px">📊 配信サマリー</div>
+  <div style="font-size:10px;color:#64748b;margin-bottom:6px">「配信終了」でエンドカード表示＋今日の出来事を記憶日記に保存。次回アゲルちゃん起動時に自動で前回を回想します。</div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+    <label style="font-size:11px;color:#94a3b8;min-width:84px">カード横幅</label>
+    <input type="range" id="endCardWidth" min="400" max="1600" step="10" value="880"
+           style="flex:1;accent-color:#fb923c"
+           oninput="document.getElementById('endCardWidthVal').textContent=this.value+'px';sendAgruText('endCardWidth',this.value)">
+    <span id="endCardWidthVal" style="font-size:11px;color:#e2e8f0;min-width:48px;text-align:right">880px</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+    <label style="font-size:11px;color:#94a3b8;min-width:84px">カード縦幅</label>
+    <input type="range" id="endCardHeight" min="360" max="1200" step="10" value="640"
+           style="flex:1;accent-color:#fb923c"
+           oninput="document.getElementById('endCardHeightVal').textContent=this.value+'px';sendAgruText('endCardHeight',this.value)">
+    <span id="endCardHeightVal" style="font-size:11px;color:#e2e8f0;min-width:48px;text-align:right">640px</span>
+  </div>
+  <div style="font-size:10px;color:#64748b;margin-bottom:8px">カードはこの高さ（画面より大きい場合は画面内に自動縮小）。コメント/名場面は枠内で自動スクロールします。</div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+    <label style="font-size:11px;color:#94a3b8;min-width:84px">効果音 音量</label>
+    <input type="range" id="endCardVolume" min="0" max="100" step="5" value="80"
+           style="flex:1;accent-color:#fb923c"
+           oninput="document.getElementById('endCardVolumeVal').textContent=this.value+'%';sendAgruText('endCardVolume',this.value)">
+    <span id="endCardVolumeVal" style="font-size:11px;color:#e2e8f0;min-width:48px;text-align:right">80%</span>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button onclick="cmd('streamEndBtn')" style="padding:6px 14px;font-size:12px;background:#7c2d12;color:#fdba74;border:1px solid #c2410c;border-radius:4px;cursor:pointer">🏁 配信終了（カード＋日記）</button>
+    <button onclick="cmd('streamEndCardClose')" style="padding:6px 14px;font-size:12px;background:#3f3f46;color:#e4e4e7;border:1px solid #52525b;border-radius:4px;cursor:pointer">✖ エンドカードを閉じる</button>
+    <button onclick="cmd('streamReviewBtn')" style="padding:6px 14px;font-size:12px;background:#14532d;color:#bbf7d0;border:1px solid #166534;border-radius:4px;cursor:pointer">📋 コメント総評</button>
+    <button onclick="cmd('streamReviewClose')" style="padding:6px 14px;font-size:12px;background:#3f3f46;color:#e4e4e7;border:1px solid #52525b;border-radius:4px;cursor:pointer">✖ 総評を閉じる</button>
+    <button onclick="cmd('streamRecallBtn')" style="padding:6px 14px;font-size:12px;background:#1e3a5f;color:#93c5fd;border:1px solid #1e40af;border-radius:4px;cursor:pointer">🔄 回想を再読込</button>
+  </div>
+  <div style="font-size:10px;color:#64748b;margin:10px 0 4px">📋 コメント総評のシステムプロンプト（空欄ならデフォルトを使用）</div>
+  <textarea id="reviewSystemInput" rows="5" class="admin-text-input"
+            style="width:100%;box-sizing:border-box;resize:vertical;font-size:11px;line-height:1.4"
+            oninput="sendAgruText('reviewSystem',this.value)"
+            placeholder="（デフォルト）あなたは配信を見守る先生（講師）です。視聴者コメントをもとに、今日の配信の雰囲気・盛り上がり・視聴者の様子を黒板に書く講評のように総評してください。日本語のみ。300文字程度。良かった点・特徴・ひとことアドバイスを、親しみやすく前向きな先生口調でまとめてください。箇条書きでも文章でも構いません。"></textarea>
+  <div style="font-size:10px;color:#64748b;margin:10px 0 4px">総評モーダルの講師キャラ（右下）の大きさ・位置（モーダル表示中はリアルタイム反映）</div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+    <label style="font-size:11px;color:#94a3b8;min-width:84px">キャラ大きさ</label>
+    <input type="range" id="reviewCharSize" min="60" max="400" step="10" value="160"
+           style="flex:1;accent-color:#22c55e"
+           oninput="document.getElementById('reviewCharSizeVal').textContent=this.value+'px';sendAgruText('reviewCharSize',this.value)">
+    <span id="reviewCharSizeVal" style="font-size:11px;color:#e2e8f0;min-width:48px;text-align:right">160px</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+    <label style="font-size:11px;color:#94a3b8;min-width:84px">右からの位置</label>
+    <input type="range" id="reviewCharRight" min="-150" max="1200" step="2" value="14"
+           style="flex:1;accent-color:#22c55e"
+           oninput="document.getElementById('reviewCharRightVal').textContent=this.value+'px';sendAgruText('reviewCharRight',this.value)">
+    <span id="reviewCharRightVal" style="font-size:11px;color:#e2e8f0;min-width:48px;text-align:right">14px</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <label style="font-size:11px;color:#94a3b8;min-width:84px">下からの位置</label>
+    <input type="range" id="reviewCharBottom" min="-150" max="1200" step="2" value="12"
+           style="flex:1;accent-color:#22c55e"
+           oninput="document.getElementById('reviewCharBottomVal').textContent=this.value+'px';sendAgruText('reviewCharBottom',this.value)">
+    <span id="reviewCharBottomVal" style="font-size:11px;color:#e2e8f0;min-width:48px;text-align:right">12px</span>
+  </div>
+  <div style="font-size:10px;color:#64748b;margin:10px 0 4px">🖊 黒板の大きさ・位置（モーダル表示中はリアルタイム反映）</div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+    <label style="font-size:11px;color:#94a3b8;min-width:84px">黒板 幅</label>
+    <input type="range" id="reviewBoardWidth" min="300" max="1400" step="10" value="760"
+           style="flex:1;accent-color:#a78bfa"
+           oninput="document.getElementById('reviewBoardWidthVal').textContent=this.value+'px';sendAgruText('reviewBoardWidth',this.value)">
+    <span id="reviewBoardWidthVal" style="font-size:11px;color:#e2e8f0;min-width:48px;text-align:right">760px</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+    <label style="font-size:11px;color:#94a3b8;min-width:84px">黒板 高さ</label>
+    <input type="range" id="reviewBoardMaxHeight" min="20" max="98" step="1" value="88"
+           style="flex:1;accent-color:#a78bfa"
+           oninput="document.getElementById('reviewBoardMaxHeightVal').textContent=this.value+'vh';sendAgruText('reviewBoardMaxHeight',this.value)">
+    <span id="reviewBoardMaxHeightVal" style="font-size:11px;color:#e2e8f0;min-width:48px;text-align:right">88vh</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+    <label style="font-size:11px;color:#94a3b8;min-width:84px">左右オフセット</label>
+    <input type="range" id="reviewBoardOffsetX" min="-800" max="800" step="4" value="0"
+           style="flex:1;accent-color:#a78bfa"
+           oninput="document.getElementById('reviewBoardOffsetXVal').textContent=this.value+'px';sendAgruText('reviewBoardOffsetX',this.value)">
+    <span id="reviewBoardOffsetXVal" style="font-size:11px;color:#e2e8f0;min-width:48px;text-align:right">0px</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <label style="font-size:11px;color:#94a3b8;min-width:84px">上下オフセット</label>
+    <input type="range" id="reviewBoardOffsetY" min="-500" max="500" step="4" value="0"
+           style="flex:1;accent-color:#a78bfa"
+           oninput="document.getElementById('reviewBoardOffsetYVal').textContent=this.value+'px';sendAgruText('reviewBoardOffsetY',this.value)">
+    <span id="reviewBoardOffsetYVal" style="font-size:11px;color:#e2e8f0;min-width:48px;text-align:right">0px</span>
+  </div>
+</div>
+
 <!-- ニューステッカー設定 -->
 <div class="section">
   <div class="section-title">📰 ニューステッカー設定</div>
@@ -1123,6 +1256,27 @@
              oninput="document.getElementById('agruVoicevoxVolumeVal').textContent=Math.round(this.value*100)+'%';sendAgruText('agruVoicevoxVolume',this.value)">
       <span id="agruVoicevoxVolumeVal" style="font-size:11px;color:#e2e8f0;min-width:36px;text-align:right">100%</span>
     </div>
+    <!-- 声色エモート（感情でスタイル自動切替） -->
+    <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #334155">
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#e2e8f0;cursor:pointer;margin-bottom:5px">
+        <input type="checkbox" id="agruVoiceEmoteEnabled"
+               onchange="sendAgruText('agruVoiceEmoteEnabled', this.checked ? '1' : '0')">
+        声色エモート（喜怒哀楽でスタイル自動切替）
+      </label>
+      <div style="font-size:10px;color:#64748b;margin-bottom:6px">各感情のVoiceVoxスタイルを割当。「既定」のままなら上のスピーカーを使用。「一覧取得」後に選べます。</div>
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 6px;align-items:center">
+        <label style="font-size:11px;color:#fbbf24">😊 喜</label>
+        <select id="agruVoiceStyleJoy"    onchange="sendAgruText('agruVoiceStyleJoy', this.value)"    style="font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"><option value="-1">既定</option></select>
+        <label style="font-size:11px;color:#f87171">😠 怒</label>
+        <select id="agruVoiceStyleAnger"  onchange="sendAgruText('agruVoiceStyleAnger', this.value)"  style="font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"><option value="-1">既定</option></select>
+        <label style="font-size:11px;color:#93c5fd">😢 哀</label>
+        <select id="agruVoiceStyleSorrow" onchange="sendAgruText('agruVoiceStyleSorrow', this.value)" style="font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"><option value="-1">既定</option></select>
+        <label style="font-size:11px;color:#86efac">😆 楽</label>
+        <select id="agruVoiceStyleFun"    onchange="sendAgruText('agruVoiceStyleFun', this.value)"    style="font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"><option value="-1">既定</option></select>
+        <label style="font-size:11px;color:#cbd5e1">😐 通常</label>
+        <select id="agruVoiceStyleNormal" onchange="sendAgruText('agruVoiceStyleNormal', this.value)" style="font-size:11px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#e2e8f0;padding:2px 5px"><option value="-1">既定</option></select>
+      </div>
+    </div>
   </div>
   <!-- BGM・YouTube音量 -->
   <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
@@ -2006,6 +2160,9 @@
       const s = {};
       ['aiModel','aiSystem','ollamaReviewPrompt','agruSystem','agruDefaultImage','agruEmotionMap',
        'agruCharTags','agruVoicevoxEnabled','agruVoicevoxSpeaker','agruVoicevoxSpeed','agruVoicevoxVolume',
+       'agruVoiceEmoteEnabled','agruVoiceStyleJoy','agruVoiceStyleAnger','agruVoiceStyleSorrow','agruVoiceStyleFun','agruVoiceStyleNormal',
+       'commentPhysEnabled','commentPhysGravity','commentPhysRestitution','commentPhysMax','commentPhysFontSize','commentPhysZ',
+       'endCardWidth','endCardHeight','endCardVolume','reviewSystem','reviewCharSize','reviewCharRight','reviewCharBottom',
        'agruSdWidth','agruSdHeight','agruSdSteps','agruSdCfgScale','agruSdPositiveSuffix',
        'agruIdleDelay','agruIdleDelayImage','agruChatFontSize','agruChatBold','agruFontLeft','agruFontRight',
        'agruYtVolume','agruBgmVolume','agruYtWidth','agruYtHeight','agruYtOpacity','agruYtEnabled',
@@ -2507,6 +2664,22 @@
     if (s.agruVoicevoxSpeaker !== undefined) { _agruVvSavedSpeaker = String(s.agruVoicevoxSpeaker); const el = document.getElementById('agruVoicevoxSpeaker'); if (el) { el.value = s.agruVoicevoxSpeaker; if (!el.value) el.options[0] && (el.options[0].value = s.agruVoicevoxSpeaker, el.options[0].textContent = s.agruVoicevoxSpeaker + '（未ロード）'); } }
     if (s.agruVoicevoxSpeed   !== undefined) { const el = document.getElementById('agruVoicevoxSpeed');   if (el) el.value = s.agruVoicevoxSpeed; }
     if (s.agruVoicevoxVolume  !== undefined) { const el = document.getElementById('agruVoicevoxVolume'); if (el) { el.value = s.agruVoicevoxVolume; const v = document.getElementById('agruVoicevoxVolumeVal'); if (v) v.textContent = Math.round(s.agruVoicevoxVolume * 100) + '%'; } }
+    if (s.agruVoiceEmoteEnabled !== undefined) { const el = document.getElementById('agruVoiceEmoteEnabled'); if (el) el.checked = s.agruVoiceEmoteEnabled === '1'; }
+    ['agruVoiceStyleJoy','agruVoiceStyleAnger','agruVoiceStyleSorrow','agruVoiceStyleFun','agruVoiceStyleNormal'].forEach(k => {
+      if (s[k] !== undefined) { localStorage.setItem(k, s[k]); const el = document.getElementById(k); if (el) { if (![...el.options].some(o => o.value === String(s[k]))) { const o = document.createElement('option'); o.value = s[k]; o.textContent = s[k] + '（未ロード）'; el.appendChild(o); } el.value = s[k]; } }
+    });
+    if (s.commentPhysEnabled !== undefined) { const el = document.getElementById('commentPhysEnabled'); if (el) el.checked = s.commentPhysEnabled === '1'; }
+    { const _cp = { commentPhysGravity:'commentPhysGravityVal', commentPhysRestitution:'commentPhysRestitutionVal', commentPhysMax:'commentPhysMaxVal', commentPhysFontSize:'commentPhysFontSizeVal', commentPhysZ:'commentPhysZVal' };
+      Object.keys(_cp).forEach(k => { if (s[k] !== undefined) { const el = document.getElementById(k); if (el) el.value = s[k]; const v = document.getElementById(_cp[k]); if (v) v.textContent = s[k]; } }); }
+    { const _ec = { endCardWidth:'endCardWidthVal', endCardHeight:'endCardHeightVal' };
+      Object.keys(_ec).forEach(k => { if (s[k] !== undefined) { const el = document.getElementById(k); if (el) el.value = s[k]; const v = document.getElementById(_ec[k]); if (v) v.textContent = s[k] + 'px'; } }); }
+    if (s.endCardVolume !== undefined) { const el = document.getElementById('endCardVolume'); if (el) el.value = s.endCardVolume; const v = document.getElementById('endCardVolumeVal'); if (v) v.textContent = s.endCardVolume + '%'; }
+    if (s.reviewSystem !== undefined) { const el = document.getElementById('reviewSystemInput'); if (el) el.value = s.reviewSystem; localStorage.setItem('reviewSystem', s.reviewSystem); }
+    { const _rc = { reviewCharSize:'reviewCharSizeVal', reviewCharRight:'reviewCharRightVal', reviewCharBottom:'reviewCharBottomVal' };
+      Object.keys(_rc).forEach(k => { if (s[k] !== undefined) { const el = document.getElementById(k); if (el) el.value = s[k]; const v = document.getElementById(_rc[k]); if (v) v.textContent = s[k] + 'px'; } }); }
+    { const _rb = { reviewBoardWidth:'reviewBoardWidthVal', reviewBoardOffsetX:'reviewBoardOffsetXVal', reviewBoardOffsetY:'reviewBoardOffsetYVal' };
+      Object.keys(_rb).forEach(k => { if (s[k] !== undefined) { const el = document.getElementById(k); if (el) el.value = s[k]; const v = document.getElementById(_rb[k]); if (v) v.textContent = s[k] + 'px'; } }); }
+    if (s.reviewBoardMaxHeight !== undefined) { const el = document.getElementById('reviewBoardMaxHeight'); if (el) el.value = s.reviewBoardMaxHeight; const v = document.getElementById('reviewBoardMaxHeightVal'); if (v) v.textContent = s.reviewBoardMaxHeight + 'vh'; }
     if (s.agruSdWidth          !== undefined) { const el = document.getElementById('agruSdWidthInput');          if (el) el.value = s.agruSdWidth  || ''; }
     if (s.agruSdHeight         !== undefined) { const el = document.getElementById('agruSdHeightInput');         if (el) el.value = s.agruSdHeight || ''; }
     if (s.agruSdSteps          !== undefined) { const el = document.getElementById('agruSdStepsInput');          if (el) el.value = s.agruSdSteps    || ''; }
@@ -3644,6 +3817,19 @@
         sel.appendChild(opt);
       });
       if (!sel.value && d.speakers.length) sel.value = d.speakers[0].id;
+      // 声色エモートの各ドロップダウンにも同じ一覧を流し込む（先頭の「既定(-1)」は残す）
+      ['agruVoiceStyleJoy','agruVoiceStyleAnger','agruVoiceStyleSorrow','agruVoiceStyleFun','agruVoiceStyleNormal'].forEach(eid => {
+        const es = document.getElementById(eid);
+        if (!es) return;
+        const saved = localStorage.getItem(eid) || '-1';
+        es.innerHTML = '<option value="-1">既定</option>';
+        d.speakers.forEach(sp => {
+          const o = document.createElement('option');
+          o.value = sp.id; o.textContent = `${sp.id}：${sp.label}`;
+          es.appendChild(o);
+        });
+        es.value = saved;
+      });
     } catch (e) {
       sel.options[0] && (sel.options[0].textContent = 'VoiceVox未起動');
     }
