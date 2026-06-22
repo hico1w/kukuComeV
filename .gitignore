@@ -4,6 +4,9 @@ node_modules/
 public/chara/*
 !public/chara/.gitkeep
 
+# BGM音楽ファイル（ローカルのみ、GitHubには送らない）
+public/ageru/oto/bgm/
+
 # OS
 .DS_Store
 Thumbs.db
