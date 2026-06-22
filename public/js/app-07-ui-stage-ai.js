@@ -1,4 +1,24 @@
 // ──────────────────────────────────────────────────────────────────
+// コメントログ スタイル設定
+// ──────────────────────────────────────────────────────────────────
+let logWidth     = parseInt(localStorage.getItem('logWidth')     ?? '300');
+let logHeight    = parseInt(localStorage.getItem('logHeight')    ?? '265');
+let logPosRight  = parseInt(localStorage.getItem('logPosRight')  ?? '10');
+let logPosBottom = parseInt(localStorage.getItem('logPosBottom') ?? '10');
+let logBgOpacity = parseInt(localStorage.getItem('logBgOpacity') ?? '92');
+
+function _applyCommentLogStyle() {
+  const el = document.getElementById('commentLog');
+  if (!el) return;
+  el.style.width      = logWidth + 'px';
+  el.style.height     = logHeight + 'px';
+  el.style.right      = logPosRight + 'px';
+  el.style.bottom     = logPosBottom + 'px';
+  el.style.background = `rgba(10,14,20,${Math.max(0, Math.min(100, logBgOpacity)) / 100})`;
+}
+_applyCommentLogStyle();
+
+// ──────────────────────────────────────────────────────────────────
 // ログ
 // ──────────────────────────────────────────────────────────────────
 function addToLog(user, text, color) {

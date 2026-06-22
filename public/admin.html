@@ -206,6 +206,42 @@
     <button onclick="cmd('toggleCharNameBtn')">👤 名前</button>
     <a href="/help.html" target="_blank" class="btn">❓ コマンド</a>
   </div>
+  <div style="font-size:10px;color:#64748b;margin:10px 0 4px">💬 コメントログの位置・サイズ・背景（「ログ」ボタンで表示したパネル）</div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+    <label style="font-size:11px;color:#94a3b8;min-width:84px">横幅</label>
+    <input type="range" id="logWidth" min="100" max="600" step="5" value="300"
+           style="flex:1;accent-color:#38bdf8"
+           oninput="document.getElementById('logWidthVal').textContent=this.value+'px';sendAgruText('logWidth',this.value)">
+    <span id="logWidthVal" style="font-size:11px;color:#e2e8f0;min-width:48px;text-align:right">300px</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+    <label style="font-size:11px;color:#94a3b8;min-width:84px">縦幅</label>
+    <input type="range" id="logHeight" min="100" max="800" step="5" value="265"
+           style="flex:1;accent-color:#38bdf8"
+           oninput="document.getElementById('logHeightVal').textContent=this.value+'px';sendAgruText('logHeight',this.value)">
+    <span id="logHeightVal" style="font-size:11px;color:#e2e8f0;min-width:48px;text-align:right">265px</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+    <label style="font-size:11px;color:#94a3b8;min-width:84px">右端からの位置</label>
+    <input type="range" id="logPosRight" min="-500" max="1200" step="2" value="10"
+           style="flex:1;accent-color:#38bdf8"
+           oninput="document.getElementById('logPosRightVal').textContent=this.value+'px';sendAgruText('logPosRight',this.value)">
+    <span id="logPosRightVal" style="font-size:11px;color:#e2e8f0;min-width:48px;text-align:right">10px</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+    <label style="font-size:11px;color:#94a3b8;min-width:84px">下端からの位置</label>
+    <input type="range" id="logPosBottom" min="-500" max="1200" step="2" value="10"
+           style="flex:1;accent-color:#38bdf8"
+           oninput="document.getElementById('logPosBottomVal').textContent=this.value+'px';sendAgruText('logPosBottom',this.value)">
+    <span id="logPosBottomVal" style="font-size:11px;color:#e2e8f0;min-width:48px;text-align:right">10px</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <label style="font-size:11px;color:#94a3b8;min-width:84px">背景透明度</label>
+    <input type="range" id="logBgOpacity" min="0" max="100" step="1" value="92"
+           style="flex:1;accent-color:#38bdf8"
+           oninput="document.getElementById('logBgOpacityVal').textContent=this.value+'%';sendAgruText('logBgOpacity',this.value)">
+    <span id="logBgOpacityVal" style="font-size:11px;color:#e2e8f0;min-width:48px;text-align:right">92%</span>
+  </div>
 </div>
 
 <!-- コメント物理 ＆ 配信サマリー -->
@@ -2680,6 +2716,9 @@
     { const _rb = { reviewBoardWidth:'reviewBoardWidthVal', reviewBoardOffsetX:'reviewBoardOffsetXVal', reviewBoardOffsetY:'reviewBoardOffsetYVal' };
       Object.keys(_rb).forEach(k => { if (s[k] !== undefined) { const el = document.getElementById(k); if (el) el.value = s[k]; const v = document.getElementById(_rb[k]); if (v) v.textContent = s[k] + 'px'; } }); }
     if (s.reviewBoardMaxHeight !== undefined) { const el = document.getElementById('reviewBoardMaxHeight'); if (el) el.value = s.reviewBoardMaxHeight; const v = document.getElementById('reviewBoardMaxHeightVal'); if (v) v.textContent = s.reviewBoardMaxHeight + 'vh'; }
+    { const _lg = { logWidth:'logWidthVal', logHeight:'logHeightVal', logPosRight:'logPosRightVal', logPosBottom:'logPosBottomVal' };
+      Object.keys(_lg).forEach(k => { if (s[k] !== undefined) { const el = document.getElementById(k); if (el) el.value = s[k]; const v = document.getElementById(_lg[k]); if (v) v.textContent = s[k] + 'px'; } }); }
+    if (s.logBgOpacity !== undefined) { const el = document.getElementById('logBgOpacity'); if (el) el.value = s.logBgOpacity; const v = document.getElementById('logBgOpacityVal'); if (v) v.textContent = s.logBgOpacity + '%'; }
     if (s.agruSdWidth          !== undefined) { const el = document.getElementById('agruSdWidthInput');          if (el) el.value = s.agruSdWidth  || ''; }
     if (s.agruSdHeight         !== undefined) { const el = document.getElementById('agruSdHeightInput');         if (el) el.value = s.agruSdHeight || ''; }
     if (s.agruSdSteps          !== undefined) { const el = document.getElementById('agruSdStepsInput');          if (el) el.value = s.agruSdSteps    || ''; }

@@ -2,6 +2,22 @@
 
 ---
 
+## v2.764.0 — 2026-06-22
+
+### feat: コメントログパネルの位置・サイズ・背景透明度を admin から設定可能に
+
+- **admin.html** 表示セクション内にコメントログ設定スライダーを追加
+  - 横幅（100〜600px、デフォルト300）
+  - 縦幅（100〜800px、デフォルト265）
+  - 右端からの位置（-500〜1200px、デフォルト10）
+  - 下端からの位置（-500〜1200px、デフォルト10）
+  - 背景透明度（0〜100%、デフォルト92）
+- **`app-07-ui-stage-ai.js`**：`logWidth/Height/PosRight/PosBottom/BgOpacity` 変数（localStorage初期化）と `_applyCommentLogStyle()` 追加、起動時に即適用
+- **`app-13-race-admin-misc.js`**：各キーの handleAdminMessage ハンドラー追加、state スナップショットに追加
+- **`admin.html`**：設定復元コードに logWidth/Height/PosRight/PosBottom/BgOpacity を追加
+
+---
+
 ## v2.763.0 — 2026-06-22
 
 ### feat: 配信サマリー設定改修（admin.html）

@@ -1069,6 +1069,11 @@ function handleAdminMessage(d, replyFn) {
     state.reviewBoardMaxHeight   = reviewBoardMaxHeight;
     state.reviewBoardOffsetX     = reviewBoardOffsetX;
     state.reviewBoardOffsetY     = reviewBoardOffsetY;
+    state.logWidth               = logWidth;
+    state.logHeight              = logHeight;
+    state.logPosRight            = logPosRight;
+    state.logPosBottom           = logPosBottom;
+    state.logBgOpacity           = logBgOpacity;
     state.agruSdWidth            = agruSdWidth;
     state.agruSdHeight           = agruSdHeight;
     state.agruSdSteps            = agruSdSteps;
@@ -1293,6 +1298,11 @@ function handleAdminMessage(d, replyFn) {
     if (d.key === 'reviewBoardMaxHeight')   { reviewBoardMaxHeight = parseInt(d.value) || 88;  _applyReviewBoardStyle(); }
     if (d.key === 'reviewBoardOffsetX')     { reviewBoardOffsetX   = parseInt(d.value); if (!Number.isFinite(reviewBoardOffsetX)) reviewBoardOffsetX = 0; _applyReviewBoardStyle(); }
     if (d.key === 'reviewBoardOffsetY')     { reviewBoardOffsetY   = parseInt(d.value); if (!Number.isFinite(reviewBoardOffsetY)) reviewBoardOffsetY = 0; _applyReviewBoardStyle(); }
+    if (d.key === 'logWidth')     { logWidth     = parseInt(d.value) || 300; _applyCommentLogStyle(); }
+    if (d.key === 'logHeight')    { logHeight    = parseInt(d.value) || 265; _applyCommentLogStyle(); }
+    if (d.key === 'logPosRight')  { logPosRight  = parseInt(d.value); if (!Number.isFinite(logPosRight))  logPosRight  = 10; _applyCommentLogStyle(); }
+    if (d.key === 'logPosBottom') { logPosBottom = parseInt(d.value); if (!Number.isFinite(logPosBottom)) logPosBottom = 10; _applyCommentLogStyle(); }
+    if (d.key === 'logBgOpacity') { logBgOpacity = parseInt(d.value); if (!Number.isFinite(logBgOpacity)) logBgOpacity = 92; _applyCommentLogStyle(); }
     if (d.key === 'agruSdWidth')            agruSdWidth            = parseInt(d.value) || 0;
     if (d.key === 'agruSdHeight')           agruSdHeight           = parseInt(d.value) || 0;
     if (d.key === 'agruSdSteps')            agruSdSteps            = parseInt(d.value)   || 0;
