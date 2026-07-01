@@ -364,7 +364,7 @@ const SETTINGS_KEYS = [
   'gatherMarginLeft','gatherMarginRight','gatherMarginBottom','gatherRowMax',
   'contentModeGatherMarginBottom','contentModeGatherMarginLeft','contentModeGatherMarginRight',
   'contentModeCharSizePct','contentModeBossSizePct',
-  'sdWidth','sdHeight','sdSteps','sdPopWidth','sdPositiveSuffix','sdNegative','sdDisplayTime',
+  'sdWidth','sdHeight','sdSteps','sdPopWidth','sdPositiveSuffix','sdDotPositiveSuffix','sdRealPositiveSuffix','sdNegative','sdDisplayTime',
   'sdMosaicKeywords','sdMosaicBlock','sdCfgScale','sdSampler',
   'ollamaReviewPrompt',
   'agruSystem','agruDefaultImage','agruEmotionMap',
@@ -529,15 +529,18 @@ function stopRaceFanfare() {
   }
 }
 
-let charImages   = loadCharImages();
-let charAliases  = loadCharAliases();
-let slotPage     = 0;
-const SLOT_SIZE  = 20;
+let charImages      = loadCharImages();
+let charAliases     = loadCharAliases();
+let charImageSizes  = loadCharImageSizes();
+let slotPage        = 0;
+const SLOT_SIZE     = 20;
 
-function loadCharImages()  { return _loadServerSync('/api/char-images');  }
-function saveCharImages()  { _saveServer('/api/char-images', charImages);  }
-function loadCharAliases() { return _loadServerSync('/api/char-aliases'); }
-function saveCharAliases() { _saveServer('/api/char-aliases', charAliases); }
+function loadCharImages()      { return _loadServerSync('/api/char-images');      }
+function saveCharImages()      { _saveServer('/api/char-images', charImages);      }
+function loadCharAliases()     { return _loadServerSync('/api/char-aliases');     }
+function saveCharAliases()     { _saveServer('/api/char-aliases', charAliases);     }
+function loadCharImageSizes()  { return _loadServerSync('/api/char-image-sizes'); }
+function saveCharImageSizes()  { _saveServer('/api/char-image-sizes', charImageSizes); }
 function getAliasForId(id) {
   return Object.keys(charAliases).find(k => charAliases[k] === id) || '';
 }
@@ -795,11 +798,12 @@ function createCharacter(user) {
 function applyAvatarStyle(user) {
   const a = document.getElementById('a-' + user.ipid);
   if (!a || !user.charDef) return;
-  const px = Math.round(user.size * 1.5 * charSizeScale * (user.sizeScale || 1) * (user.brWinnerScale || 1));
+  const imgFile    = user.charImage || charImages[user.charDef.id] || 'kisyokeee.png';
+  const imgScale   = charImageSizes[imgFile] || 1.0;
+  const px = Math.round(user.size * 1.5 * charSizeScale * (user.sizeScale || 1) * imgScale * (user.brWinnerScale || 1));
   a.style.width  = px + 'px';
   a.style.height = px + 'px';
   a.style.transform = '';
-  const imgFile = user.charImage || charImages[user.charDef.id] || 'kisyokeee.png';
   a.innerHTML      = `<img src="/chara-s/${encodeURIComponent(imgFile)}" alt="${escapeHtml(user.name)}">`;
   a.style.fontSize = '0';
   const img = a.querySelector('img');
@@ -1310,7 +1314,9 @@ function applyFacingFlip(user) {
 }
 
 function renderPetBadge(user) {
-  const px   = Math.max(20, Math.round(user.size * 0.75 * charSizeScale * petSizeScale * (user.sizeScale || 1) * (user.brWinnerScale || 1)));
+  const _pImgFile = user.charImage || (user.charDef && charImages[user.charDef.id]);
+  const _pImgScale = (_pImgFile && charImageSizes[_pImgFile]) || 1.0;
+  const px   = Math.max(20, Math.round(user.size * 0.75 * charSizeScale * petSizeScale * (user.sizeScale || 1) * _pImgScale * (user.brWinnerScale || 1)));
   const flip = isUserFlipped(user);
 
   function setSlot(slotId, petObj, baseCls) {

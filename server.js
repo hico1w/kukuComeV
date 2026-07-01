@@ -196,6 +196,19 @@ app.get('/api/comments', async (req, res) => {
   }
 });
 
+app.get('/api/emotions', async (req, res) => {
+  const { apikey, hash } = req.query;
+  if (!apikey) return res.status(400).json({ error: 'apikey が必要です' });
+  let url = `https://live.erinn.biz/api/?category=comment&type=emotions&apikey=${encodeURIComponent(apikey)}`;
+  if (hash) url += `&hash=${encodeURIComponent(hash)}`;
+  try {
+    const data = await fetchJSON(url);
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 生レスポンス確認用
 app.get('/api/raw', async (req, res) => {
   const { apikey, hash } = req.query;
@@ -280,9 +293,10 @@ function makeDataEndpoints(route, file) {
 }
 
 const DATA = p => path.join(__dirname, 'data', p);
-makeDataEndpoints('/api/char-images',  DATA('charImages.json'));
-makeDataEndpoints('/api/char-aliases', DATA('charAliases.json'));
-makeDataEndpoints('/api/settings',     DATA('settings.json'));
+makeDataEndpoints('/api/char-images',      DATA('charImages.json'));
+makeDataEndpoints('/api/char-aliases',     DATA('charAliases.json'));
+makeDataEndpoints('/api/char-image-sizes', DATA('charImageSizes.json'));
+makeDataEndpoints('/api/settings',         DATA('settings.json'));
 
 // ageru.html 専用システムプロンプト（settings.json に agruPageSystem キーで保存）
 app.get('/api/ageru-page-system', (req, res) => {

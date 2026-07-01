@@ -183,6 +183,47 @@
   }
   .agru-img-none:hover { border-color:#475569;color:#94a3b8; }
   .agru-img-none.agru-selected { border-color:#475569;color:#94a3b8;background:#1e293b; }
+
+  /* ── キャラ画像設定モーダル ── */
+  .modal-overlay { position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center; }
+  .modal-overlay.hidden { display:none; }
+  .modal { background:#161b22;border:1px solid rgba(255,255,255,0.12);border-radius:12px;width:780px;max-width:95vw;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.6); }
+  .modal-header { display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0;font-weight:600;font-size:14px; }
+  .modal-header-sub { font-size:11px;color:#64748b;font-weight:400; }
+  .modal-header-sub code { background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:3px;font-family:monospace; }
+  .modal-close { margin-left:auto;background:none;border:none;color:#94a3b8;font-size:16px;cursor:pointer;padding:2px 6px;border-radius:4px; }
+  .modal-close:hover { background:rgba(255,255,255,0.08);color:#fff; }
+  .modal-body { display:flex;gap:0;flex:1;overflow:hidden; }
+  .modal-images-section { width:340px;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;overflow:hidden; }
+  .modal-chars-section { flex:1;display:flex;flex-direction:column;overflow:hidden; }
+  .modal-section-title { padding:10px 14px 8px;font-size:11px;color:#7dd3fc;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;display:flex;align-items:center;gap:8px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.06); }
+  .btn-reload { background:none;border:1px solid rgba(255,255,255,0.15);color:#94a3b8;font-size:11px;padding:2px 7px;border-radius:4px;cursor:pointer; }
+  .btn-reload:hover { background:rgba(255,255,255,0.08);color:#fff; }
+  .image-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:10px;overflow-y:auto;flex:1;align-content:start;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.12) transparent; }
+  .image-thumb { aspect-ratio:1;border-radius:6px;overflow:hidden;border:2px solid transparent;cursor:pointer;background:rgba(255,255,255,0.04);transition:border-color 0.15s,transform 0.1s;position:relative; }
+  .image-thumb:hover { border-color:#7dd3fc;transform:scale(1.04); }
+  .image-thumb img { width:100%;height:100%;object-fit:contain;display:block; }
+  .image-thumb-name { position:absolute;bottom:0;left:0;right:0;font-size:9px;color:rgba(255,255,255,0.7);background:rgba(0,0,0,0.6);padding:2px 4px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+  .image-grid-empty { grid-column:1/-1;color:#475569;font-size:12px;text-align:center;padding:24px 0; }
+  .char-slots { flex:1;overflow-y:auto;padding:4px 12px 8px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.12) transparent; }
+  .slot-pager { display:flex;align-items:center;gap:8px;padding:6px 0 8px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:4px;font-size:12px;color:#94a3b8; }
+  .slot-pager button { background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#94a3b8;padding:3px 8px;border-radius:5px;cursor:pointer;font-size:12px; }
+  .slot-pager button:hover:not(:disabled) { background:rgba(255,255,255,0.12);color:#fff; }
+  .slot-pager button:disabled { opacity:0.3;cursor:default; }
+  .slot-pager-info { flex:1;text-align:center; }
+  .char-slot-row { display:flex;align-items:center;gap:10px;padding:7px 6px;border-radius:7px;border:1px solid transparent;transition:background 0.15s; }
+  .char-slot-row:hover { background:rgba(255,255,255,0.04); }
+  .slot-preview { width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;border:2px solid rgba(255,255,255,0.15);overflow:hidden; }
+  .slot-preview img { width:100%;height:100%;object-fit:contain; }
+  .slot-label { font-size:13px;font-weight:600;flex-shrink:0;width:64px; }
+  .slot-select { flex:1;background:#1a2233;border:1px solid rgba(255,255,255,0.15);color:#fff;padding:5px 8px;border-radius:6px;font-size:12px;outline:none;cursor:pointer; }
+  .slot-select:focus { border-color:#7dd3fc; }
+  .slot-select option { background:#1a2233;color:#e2e8f0; }
+  .slot-alias { width:80px;flex-shrink:0;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:5px 8px;border-radius:6px;font-size:12px;outline:none; }
+  .slot-alias:focus { border-color:#f59e0b; }
+  .slot-alias::placeholder { color:#475569; }
+  .slot-clear { background:none;border:1px solid rgba(255,255,255,0.12);color:#64748b;font-size:11px;padding:4px 8px;border-radius:5px;cursor:pointer;flex-shrink:0; }
+  .slot-clear:hover { background:rgba(255,0,0,0.15);color:#f87171;border-color:#f87171; }
   </style>
 </head>
 <body>
@@ -194,7 +235,7 @@
   <div class="section-title">📺 表示</div>
   <div class="btn-row">
     <button onclick="cmd('toggleLog')">💬 ログ</button>
-    <button onclick="cmd('openImgModal')">🖼 キャラ画像</button>
+    <button onclick="openAdminImgModal()">🖼 キャラ画像</button>
     <button onclick="cmd('copyObsUrl')">📋 OBS URL</button>
     <button onclick="cmd('hideEquipBtn')">⚔️ 装備表示</button>
     <button onclick="cmd('toggleBombBtn')">💣 爆弾</button>
@@ -1983,6 +2024,18 @@
            onchange="sendSDText('sdPositiveSuffix',this.value)">
   </div>
   <div class="size-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+    <span class="size-label">ポジティブ（ドット絵）<span style="font-size:10px;color:#64748b;margin-left:6px">プロンプトに「ドット」が含まれるとき使用</span></span>
+    <input id="sdDotPositiveSuffixInput" type="text"
+           style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:4px 8px;box-sizing:border-box;font-size:12px"
+           onchange="sendSDText('sdDotPositiveSuffix',this.value)">
+  </div>
+  <div class="size-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+    <span class="size-label">ポジティブ（リアル）<span style="font-size:10px;color:#64748b;margin-left:6px">プロンプトに「リアル」が含まれるとき使用</span></span>
+    <input id="sdRealPositiveSuffixInput" type="text"
+           style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:4px 8px;box-sizing:border-box;font-size:12px"
+           onchange="sendSDText('sdRealPositiveSuffix',this.value)">
+  </div>
+  <div class="size-row" style="flex-direction:column;align-items:flex-start;gap:4px">
     <span class="size-label">ネガティブ</span>
     <textarea id="sdNegativeInput" rows="3"
            style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:4px 8px;box-sizing:border-box;font-size:11px;resize:vertical"
@@ -2077,6 +2130,27 @@
   </div>
 
   <div class="dbg-log" id="dbgLog"></div>
+</div>
+
+<!-- キャラ画像設定モーダル（admin内） -->
+<div id="adminImageModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <span>🖼 キャラ画像設定</span>
+      <div class="modal-header-sub">画像は <code>public/chara/</code> フォルダに入れてください</div>
+      <button id="adminCloseModal" class="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-images-section">
+        <div class="modal-section-title">利用可能な画像 <button id="adminReloadImages" class="btn-reload">↺ 再読込</button></div>
+        <div id="adminImageGrid" class="image-grid"></div>
+      </div>
+      <div class="modal-chars-section">
+        <div class="modal-section-title">キャラ割り当て <button id="adminBatchAssign" class="btn-reload">🖼 未割当のみ一括割り当て</button> <button id="adminBatchAssignAll" class="btn-reload">🔄 全リセット&amp;一括割り当て</button></div>
+        <div id="adminCharSlots" class="char-slots"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -2668,10 +2742,13 @@
         if (ttsValMap[key]) { const v = document.getElementById(ttsValMap[key]); if (v) v.textContent = key === 'ttsVolume' ? Math.round(s[key] * 100) + '%' : s[key]; }
       }
     });
-    const sdFields = ['sdWidth','sdHeight','sdSteps','sdPopWidth','sdPositiveSuffix','sdNegative','sdDisplayTime','sdMosaicKeywords','sdMosaicBlock','sdCfgScale','sdSampler'];
+    const sdFields = ['sdWidth','sdHeight','sdSteps','sdPopWidth','sdPositiveSuffix','sdDotPositiveSuffix','sdRealPositiveSuffix','sdNegative','sdDisplayTime','sdMosaicKeywords','sdMosaicBlock','sdCfgScale','sdSampler'];
     const sdElMap = { sdWidth:'sdWidthInput', sdHeight:'sdHeightInput', sdSteps:'sdStepsSlider',
                       sdPopWidth:'sdPopWidthSlider',
-                      sdPositiveSuffix:'sdPositiveSuffixInput', sdNegative:'sdNegativeInput',
+                      sdPositiveSuffix:'sdPositiveSuffixInput',
+                      sdDotPositiveSuffix:'sdDotPositiveSuffixInput',
+                      sdRealPositiveSuffix:'sdRealPositiveSuffixInput',
+                      sdNegative:'sdNegativeInput',
                       sdDisplayTime:'sdDisplayTimeSlider', sdMosaicKeywords:'sdMosaicKeywordsInput',
                       sdMosaicBlock:'sdMosaicBlockSlider',
                       sdCfgScale:'sdCfgScaleInput', sdSampler:'sdSamplerInput' };
@@ -3916,6 +3993,200 @@
   }
 
 
+
+  // ── キャラ画像設定モーダル（admin内） ───────────────────────────────
+  const _ADMIN_CHAR_EMOJIS = [
+    '🐱','🐶','🐸','🐻','🦊','🐰','🐼','🐯','🦁','🐨',
+    '🦆','🐧','🐺','🦋','🐝','🐢','🦀','🐙','🦑','🐠',
+    '🐬','🐳','🦈','🐊','🦎','🦕','🦜','🦩','🦚','🌸',
+    '⭐','🌈','🌙','☀️','🔥','💎','🌊','🍀','🎵','🎮',
+    '🏆','🎭','🎨','🎪','🌺','🍭','🦄','🐲','🌻','🎯',
+  ];
+  const _ADMIN_CHAR_BGS = [
+    '#FFB6C1','#ADD8E6','#90EE90','#DEB887','#FFA07A',
+    '#F8BBD0','#D3D3D3','#FFD700','#DAA520','#B0C4DE',
+    '#E6E6FA','#98FB98','#FFDAB9','#E0FFFF','#FFFACD',
+    '#F0FFF0','#FFE4E1','#FFF5EE','#F5F5DC','#E8F4F8',
+  ];
+  const _ADMIN_SLOT_SIZE = 20;
+
+  let _adminAvailImages = [];
+  let _adminCharImages  = {};
+  let _adminCharAliases = {};
+  let _adminSlotPage    = 0;
+
+  function _adminGetCharDef(id) {
+    return {
+      id,
+      name:  `キャラ${id}`,
+      emoji: _ADMIN_CHAR_EMOJIS[(id - 1) % _ADMIN_CHAR_EMOJIS.length],
+      bg:    _ADMIN_CHAR_BGS[(id - 1) % _ADMIN_CHAR_BGS.length],
+    };
+  }
+
+  function _adminGetAliasForId(id) {
+    return Object.keys(_adminCharAliases).find(k => _adminCharAliases[k] === id) || '';
+  }
+
+  function _adminSaveCharImages() {
+    fetch('/api/char-images', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(_adminCharImages) }).catch(() => {});
+    channel.postMessage({ type:'reloadCharImages', _n: Date.now().toString(36) + '.' + Math.random().toString(36).slice(2,8) });
+  }
+
+  function _adminSaveCharAliases() {
+    fetch('/api/char-aliases', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(_adminCharAliases) }).catch(() => {});
+  }
+
+  async function _adminLoadImages() {
+    try { const d = await fetch('/api/images').then(r => r.json()); _adminAvailImages = d.images || []; }
+    catch { _adminAvailImages = []; }
+  }
+
+  function _adminRenderGrid() {
+    const grid = document.getElementById('adminImageGrid');
+    grid.innerHTML = '';
+    if (!_adminAvailImages.length) {
+      grid.innerHTML = '<div class="image-grid-empty">public/chara/ に画像を入れてください<br>（PNG/JPG/GIF/WebP/SVG）</div>';
+      return;
+    }
+    _adminAvailImages.forEach(fname => {
+      const div = document.createElement('div');
+      div.className = 'image-thumb';
+      div.title = fname;
+      div.innerHTML = `<img src="/chara/${encodeURIComponent(fname)}" loading="lazy"><div class="image-thumb-name">${fname}</div>`;
+      grid.appendChild(div);
+    });
+  }
+
+  function _adminRenderSlots() {
+    const slots = document.getElementById('adminCharSlots');
+    const start = _adminSlotPage * _ADMIN_SLOT_SIZE + 1;
+    const end   = Math.min(start + _ADMIN_SLOT_SIZE - 1, 500);
+    slots.innerHTML = '';
+
+    const pager = document.createElement('div');
+    pager.className = 'slot-pager';
+    pager.innerHTML = `
+      <button id="adminSlotPrev" ${_adminSlotPage === 0 ? 'disabled' : ''}>◀</button>
+      <span class="slot-pager-info">キャラ${start}〜${end} / 500</span>
+      <button id="adminSlotNext" ${end >= 500 ? 'disabled' : ''}>▶</button>
+    `;
+    slots.appendChild(pager);
+    pager.querySelector('#adminSlotPrev').addEventListener('click', () => { _adminSlotPage--; _adminRenderSlots(); });
+    pager.querySelector('#adminSlotNext').addEventListener('click', () => { _adminSlotPage++; _adminRenderSlots(); });
+
+    for (let id = start; id <= end; id++) {
+      const charDef  = _adminGetCharDef(id);
+      const assigned = _adminCharImages[id] || '';
+
+      const row = document.createElement('div');
+      row.className = 'char-slot-row';
+
+      const preview = document.createElement('div');
+      preview.className = 'slot-preview';
+      preview.style.backgroundColor = assigned ? 'transparent' : charDef.bg;
+      preview.innerHTML = assigned
+        ? `<img src="/chara/${encodeURIComponent(assigned)}" alt="${charDef.name}">`
+        : charDef.emoji;
+
+      const label = document.createElement('div');
+      label.className   = 'slot-label';
+      label.textContent = charDef.name;
+
+      const select = document.createElement('select');
+      select.className = 'slot-select';
+      const noneOpt = document.createElement('option');
+      noneOpt.value = ''; noneOpt.textContent = '— 絵文字';
+      select.appendChild(noneOpt);
+      _adminAvailImages.forEach(fname => {
+        const opt = document.createElement('option');
+        opt.value = fname; opt.textContent = fname;
+        if (fname === assigned) opt.selected = true;
+        select.appendChild(opt);
+      });
+      select.addEventListener('change', () => {
+        const val = select.value;
+        if (val) {
+          _adminCharImages[id] = val;
+          preview.innerHTML = `<img src="/chara/${encodeURIComponent(val)}">`;
+          preview.style.backgroundColor = 'transparent';
+        } else {
+          delete _adminCharImages[id];
+          preview.textContent = charDef.emoji;
+          preview.style.backgroundColor = charDef.bg;
+        }
+        _adminSaveCharImages();
+      });
+
+      const aliasInput = document.createElement('input');
+      aliasInput.className   = 'slot-alias';
+      aliasInput.type        = 'text';
+      aliasInput.placeholder = 'エイリアス';
+      aliasInput.value       = _adminGetAliasForId(id);
+      aliasInput.title       = 'このキャラを呼ぶ文字列（コメントで入力するとキャラ変更）';
+      aliasInput.addEventListener('change', () => {
+        const val = aliasInput.value.trim();
+        Object.keys(_adminCharAliases).forEach(k => { if (_adminCharAliases[k] === id) delete _adminCharAliases[k]; });
+        if (val) _adminCharAliases[val] = id;
+        _adminSaveCharAliases();
+      });
+
+      const clearBtn = document.createElement('button');
+      clearBtn.className   = 'slot-clear';
+      clearBtn.textContent = '解除';
+      clearBtn.addEventListener('click', () => {
+        delete _adminCharImages[id]; select.value = '';
+        preview.textContent = charDef.emoji; preview.style.backgroundColor = charDef.bg;
+        _adminSaveCharImages();
+      });
+
+      row.append(preview, label, aliasInput, select, clearBtn);
+      slots.appendChild(row);
+    }
+  }
+
+  async function openAdminImgModal() {
+    document.getElementById('adminImageModal').classList.remove('hidden');
+    try { _adminCharImages  = await fetch('/api/char-images').then(r => r.json());  } catch { _adminCharImages  = {}; }
+    try { _adminCharAliases = await fetch('/api/char-aliases').then(r => r.json()); } catch { _adminCharAliases = {}; }
+    await _adminLoadImages();
+    _adminRenderGrid();
+    _adminRenderSlots();
+  }
+
+  document.getElementById('adminCloseModal').addEventListener('click', () => {
+    document.getElementById('adminImageModal').classList.add('hidden');
+  });
+  document.getElementById('adminImageModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('adminImageModal')) document.getElementById('adminImageModal').classList.add('hidden');
+  });
+  document.getElementById('adminReloadImages').addEventListener('click', async () => {
+    await _adminLoadImages(); _adminRenderGrid(); _adminRenderSlots();
+  });
+  document.getElementById('adminBatchAssign').addEventListener('click', () => {
+    const assigned = new Set(Object.values(_adminCharImages));
+    const unassigned = _adminAvailImages.filter(f => !assigned.has(f));
+    if (!unassigned.length) { alert('未割当の画像はありません'); return; }
+    const usedIds = new Set(Object.keys(_adminCharImages).map(Number));
+    let nextId = 1;
+    unassigned.forEach(fname => {
+      while (usedIds.has(nextId)) nextId++;
+      _adminCharImages[nextId] = fname;
+      usedIds.add(nextId);
+      nextId++;
+    });
+    _adminSaveCharImages();
+    _adminRenderSlots();
+  });
+  document.getElementById('adminBatchAssignAll').addEventListener('click', () => {
+    if (!confirm('全キャラの画像割り当てをリセットして一括再割り当てしますか？\n既存の割り当てはすべて上書きされます。')) return;
+    _adminCharImages = {};
+    _adminAvailImages.forEach((fname, i) => { _adminCharImages[i + 1] = fname; });
+    _adminSaveCharImages();
+    _adminRenderSlots();
+  });
+
 </script>
+
 </body>
 </html>

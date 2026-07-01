@@ -1002,8 +1002,10 @@ function handleAdminMessage(d, replyFn) {
     state.sdHeight         = sdHeight;
     state.sdSteps          = sdSteps;
     state.sdPopWidth       = sdPopWidth;
-    state.sdPositiveSuffix = sdPositiveSuffix;
-    state.sdNegative       = sdNegative;
+    state.sdPositiveSuffix    = sdPositiveSuffix;
+    state.sdDotPositiveSuffix  = sdDotPositiveSuffix;
+    state.sdRealPositiveSuffix = sdRealPositiveSuffix;
+    state.sdNegative           = sdNegative;
     state.sdDisplayTime    = sdDisplayTime;
     state.sdMosaicKeywords = sdMosaicKeywords;
     state.sdMosaicBlock    = sdMosaicBlock;
@@ -1203,7 +1205,10 @@ function handleAdminMessage(d, replyFn) {
   } else if (d.type === 'sdText') {
     const elMap = { sdWidth:'sdWidthInput', sdHeight:'sdHeightInput', sdSteps:'sdStepsSlider',
                     sdPopWidth:'sdPopWidthSlider',
-                    sdPositiveSuffix:'sdPositiveSuffixInput', sdNegative:'sdNegativeInput',
+                    sdPositiveSuffix:'sdPositiveSuffixInput',
+                    sdDotPositiveSuffix:'sdDotPositiveSuffixInput',
+                    sdRealPositiveSuffix:'sdRealPositiveSuffixInput',
+                    sdNegative:'sdNegativeInput',
                     sdDisplayTime:'sdDisplayTimeSlider', sdMosaicKeywords:'sdMosaicKeywordsInput',
                     sdMosaicBlock:'sdMosaicBlockSlider',
                     sdCfgScale:'sdCfgScaleInput', sdSampler:'sdSamplerInput' };
@@ -1214,8 +1219,10 @@ function handleAdminMessage(d, replyFn) {
       if (d.key === 'sdHeight')         sdHeight         = parseInt(d.value)   || sdHeight;
       if (d.key === 'sdSteps')          sdSteps          = parseInt(d.value)   || sdSteps;
       if (d.key === 'sdPopWidth')       sdPopWidth       = parseInt(d.value)   || sdPopWidth;
-      if (d.key === 'sdPositiveSuffix') sdPositiveSuffix = d.value;
-      if (d.key === 'sdNegative')       sdNegative       = d.value;
+      if (d.key === 'sdPositiveSuffix')    sdPositiveSuffix    = d.value;
+      if (d.key === 'sdDotPositiveSuffix')  sdDotPositiveSuffix  = d.value;
+      if (d.key === 'sdRealPositiveSuffix') sdRealPositiveSuffix = d.value;
+      if (d.key === 'sdNegative')           sdNegative           = d.value;
       if (d.key === 'sdDisplayTime')    sdDisplayTime    = parseInt(d.value)   || sdDisplayTime;
       if (d.key === 'sdMosaicKeywords') sdMosaicKeywords = d.value;
       if (d.key === 'sdMosaicBlock')    sdMosaicBlock    = parseInt(d.value)   || sdMosaicBlock;
@@ -1360,7 +1367,10 @@ function handleAdminMessage(d, replyFn) {
     localStorage.setItem('agruEmotionMap', JSON.stringify(agruEmotionMap));
     saveSettingsToServer();
   } else if (d.type === 'getUsers') {
-    const list = Object.values(users).filter(u => u.el).map(u => ({ ipid: u.ipid, name: u.name || '名無し', sizeScale: u.sizeScale || 1.0, taimanDmgMult: u.taimanDmgMult ?? 1.0, charImage: u.charImage || (u.charDef && charImages[u.charDef.id]) || null }));
+    const list = Object.values(users).filter(u => u.el).map(u => {
+      const _img = u.charImage || (u.charDef && charImages[u.charDef.id]) || null;
+      return { ipid: u.ipid, name: u.name || '名無し', sizeScale: (_img && charImageSizes[_img]) || 1.0, taimanDmgMult: u.taimanDmgMult ?? 1.0, charImage: _img };
+    });
     replyFn({ type: 'users', data: list, bossImgFile: bossState?.imgFile || null });
   } else if (d.type === 'addAtkAll') {
     const val = parseInt(d.value) || 0;
@@ -1390,6 +1400,8 @@ function handleAdminMessage(d, replyFn) {
     if (d.url) { localStorage.setItem('bgImageUrl', d.url); applyBgImage(d.url); }
   } else if (d.type === 'bgClear') {
     localStorage.removeItem('bgImageUrl'); applyBgImage(null);
+  } else if (d.type === 'reloadCharImages') {
+    charImages = loadCharImages(); refreshAllAvatars();
   } else if (d.type === 'allWalk') {
     Object.values(users).filter(u => u.el).forEach(u => startWalk(u));
   } else if (d.type === 'allMoveNormal') {
@@ -1411,13 +1423,16 @@ function handleAdminMessage(d, replyFn) {
   } else if (d.type === 'charIndivSize') {
     const u = users[d.ipid];
     if (u) {
-      u.sizeScale = u.sizeScaleBase = parseFloat(d.scale) || 1.0;
-      applyAvatarStyle(u); renderPetBadge(u);
-      // 即時 charSave（60秒インターバルを待たずに保存）
-      const _obj = {}; CHAR_SAVE_FIELDS.forEach(k => { if (u[k] !== undefined) _obj[k] = u[k]; });
-      _charSaveData[u.saveKey || u.ipid] = _obj;
-      const _sd = {}; Object.values(users).forEach(uu => { const o = {}; CHAR_SAVE_FIELDS.forEach(k => { if (uu[k] !== undefined) o[k] = uu[k]; }); _sd[uu.saveKey || uu.ipid] = o; });
-      _saveServer('/api/char-save', _sd);
+      const _imgFile = u.charImage || charImages[u.charDef?.id];
+      if (_imgFile) {
+        charImageSizes[_imgFile] = parseFloat(d.scale) || 1.0;
+        saveCharImageSizes();
+        Object.values(users).filter(uu => uu.el).forEach(uu => {
+          if ((uu.charImage || charImages[uu.charDef?.id]) === _imgFile) {
+            applyAvatarStyle(uu); renderPetBadge(uu);
+          }
+        });
+      }
     }
   } else if (d.type === 'slotMp') {
     const keyMap = { slotMpJackpot: 0, slotMpDiamond: 1, slotMpStar: 2, slotMpBell: 3, slotMpCherry: 4 };

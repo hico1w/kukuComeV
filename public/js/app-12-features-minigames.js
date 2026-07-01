@@ -1973,7 +1973,9 @@ _ttsListeners.forEach(([id, ev, fn]) => document.getElementById(id)?.addEventLis
   sdWidth          = parseInt(load('sdWidth',  1600));
   sdHeight         = parseInt(load('sdHeight', 1000));
   sdSteps          = parseInt(load('sdSteps',  20));
-  sdPositiveSuffix = load('sdPositiveSuffix', 'masterpiece, best quality');
+  sdPositiveSuffix    = load('sdPositiveSuffix', 'masterpiece, best quality');
+  sdDotPositiveSuffix  = load('sdDotPositiveSuffix',  sdDotPositiveSuffix);
+  sdRealPositiveSuffix = load('sdRealPositiveSuffix', sdRealPositiveSuffix);
   sdNegative       = load('sdNegative', sdNegative);
   sdDisplayTime    = parseInt(load('sdDisplayTime', 10));
   sdMosaicKeywords = load('sdMosaicKeywords', '');
@@ -1990,8 +1992,10 @@ _ttsListeners.forEach(([id, ev, fn]) => document.getElementById(id)?.addEventLis
   _sdSet('sdStepsVal',             'textContent', sdSteps);
   _sdSet('sdPopWidthSlider',       'value',       sdPopWidth);
   _sdSet('sdPopWidthVal',          'textContent', sdPopWidth + 'px');
-  _sdSet('sdPositiveSuffixInput',  'value',       sdPositiveSuffix);
-  _sdSet('sdNegativeInput',        'value',       sdNegative);
+  _sdSet('sdPositiveSuffixInput',     'value', sdPositiveSuffix);
+  _sdSet('sdDotPositiveSuffixInput',  'value', sdDotPositiveSuffix);
+  _sdSet('sdRealPositiveSuffixInput', 'value', sdRealPositiveSuffix);
+  _sdSet('sdNegativeInput',           'value', sdNegative);
   _sdSet('sdDisplayTimeSlider',    'value',       sdDisplayTime);
   _sdSet('sdDisplayTimeVal',       'textContent', sdDisplayTime + '秒');
   _sdSet('sdMosaicKeywordsInput',  'value',       sdMosaicKeywords);
@@ -2017,8 +2021,10 @@ document.getElementById('sdDisplayTimeSlider')?.addEventListener('input', e => {
   document.getElementById('sdDisplayTimeVal').textContent = e.target.value + '秒';
   _sdSave('sdDisplayTime', e.target.value);
 });
-document.getElementById('sdPositiveSuffixInput')?.addEventListener('change', e => _sdSave('sdPositiveSuffix', e.target.value));
-document.getElementById('sdNegativeInput')?.addEventListener('change',       e => _sdSave('sdNegative', e.target.value));
+document.getElementById('sdPositiveSuffixInput')?.addEventListener('change',     e => _sdSave('sdPositiveSuffix',    e.target.value));
+document.getElementById('sdDotPositiveSuffixInput')?.addEventListener('change',  e => _sdSave('sdDotPositiveSuffix',  e.target.value));
+document.getElementById('sdRealPositiveSuffixInput')?.addEventListener('change', e => _sdSave('sdRealPositiveSuffix', e.target.value));
+document.getElementById('sdNegativeInput')?.addEventListener('change',           e => _sdSave('sdNegative',           e.target.value));
 document.getElementById('sdMosaicKeywordsInput')?.addEventListener('change', e => _sdSave('sdMosaicKeywords', e.target.value));
 document.getElementById('sdMosaicBlockSlider')?.addEventListener('input', e => {
   document.getElementById('sdMosaicBlockVal').textContent = e.target.value + 'px';

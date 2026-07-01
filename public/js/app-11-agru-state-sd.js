@@ -501,9 +501,11 @@ function _agruAddSystemMsg(text) {
   _agruScrollBottom();
 }
 
-function _agruAddBubble(side, name, text, onDone) {
+function _agruAddBubble(side, name, text, onDone, imgUrls) {
   const log = document.getElementById('agruChatLog');
   if (!log) { onDone?.(); return; }
+
+  const hasImages = Array.isArray(imgUrls) && imgUrls.length > 0;
 
   const row = document.createElement('div');
   row.className = `agru-bubble-row agru-bubble-row-${side}`;
@@ -524,6 +526,19 @@ function _agruAddBubble(side, name, text, onDone) {
   const _font = side === 'left' ? agruFontLeft : agruFontRight;
   if (_font) bubble.style.fontFamily = _font;
 
+  if (hasImages) {
+    const imgRow = document.createElement('div');
+    imgRow.style.cssText = 'display:flex;flex-direction:row;gap:6px;flex-wrap:wrap;margin-bottom:4px';
+    for (const url of imgUrls) {
+      const img = document.createElement('img');
+      img.src = url;
+      img.className = 'agru-bubble-emo-img';
+      img.onerror = () => { img.style.display = 'none'; };
+      imgRow.appendChild(img);
+    }
+    bubble.appendChild(imgRow);
+  }
+
   const textEl = document.createElement('span');
   bubble.appendChild(textEl);
   wrapper.appendChild(bubble);
@@ -533,15 +548,17 @@ function _agruAddBubble(side, name, text, onDone) {
   _agruScrollBottom();
   _agruPlayPopSound();
 
+  const displayText = hasImages ? text.replace(/\([^)]*\)/g, '').trim() : text;
+
   if (onDone === undefined) {
-    textEl.textContent = text;
+    textEl.textContent = displayText;
     return;
   }
 
   clearInterval(_agruTypeTimer);
 
   let i = 0;
-  const chars = [...text];
+  const chars = [...displayText];
   _agruTypeTimer = setInterval(() => {
     if (i < chars.length) {
       textEl.textContent += chars[i++];
@@ -688,7 +705,7 @@ function _agruNotifyEmotion(emotion, replyText) {
   else _adminBC.postMessage(_m);
 }
 
-async function _agruSend(message, commenter) {
+async function _agruSend(message, commenter, imgUrls) {
   if (!agruActive) return;
   if (_agruSelfieLocked) return;
   _agruAutoTalkStreak = 0;   // 視聴者の交流があったので自発トークの連続カウントをリセット
@@ -697,7 +714,7 @@ async function _agruSend(message, commenter) {
   // アゲルちゃんの発言は admin.html の手動返答入力（_agruManualReply）から行う。
   if (agruManualMode) {
     _agruUpdateParams(message);
-    if (commenter) _agruAddBubble('right', commenter, message);
+    if (commenter) _agruAddBubble('right', commenter, message, undefined, imgUrls);
     agruIdle = true; // 次のコメントも受け付ける
     _agruSetStatus('返答中...'); // アゲルちゃんが入力中の「・・・」を表示（手動返答待ち）
     return;
@@ -707,7 +724,7 @@ async function _agruSend(message, commenter) {
 
   _agruUpdateParams(message);
 
-  if (commenter) _agruAddBubble('right', commenter, message);
+  if (commenter) _agruAddBubble('right', commenter, message, undefined, imgUrls);
 
   // 死亡状態（空腹度0）
   if (agruHunger <= 0) {
@@ -1333,7 +1350,10 @@ async function _sdProcessQueue() {
 
 async function _sdGenerateOne(user, prompt) {
   const cfg = _sdReadSettings();
-  const fullPrompt = prompt + (cfg.positiveSuffix ? ', ' + cfg.positiveSuffix : '');
+  let positiveSuffix = cfg.positiveSuffix;
+  if (prompt.includes('ドット'))  positiveSuffix = cfg.dotPositiveSuffix;
+  else if (prompt.includes('リアル')) positiveSuffix = cfg.realPositiveSuffix;
+  const fullPrompt = prompt + (positiveSuffix ? ', ' + positiveSuffix : '');
   showBubble(user, '🎨 生成中…', { color: '#a855f7' });
   addToLog(user,
     `🎨SD prompt: ${fullPrompt} | ${cfg.width}x${cfg.height} steps:${cfg.steps} popW:${cfg.popWidth}`,
@@ -1350,7 +1370,7 @@ async function _sdGenerateOne(user, prompt) {
         steps:          cfg.steps,
         cfgScale:       cfg.cfgScale,
         sampler:        cfg.sampler,
-        positiveSuffix: cfg.positiveSuffix,
+        positiveSuffix: positiveSuffix,
         negative:       cfg.negative,
       }),
     });
@@ -1375,8 +1395,10 @@ function _sdReadSettings() {
     height:         parseInt(document.getElementById('sdHeightInput')?.value)       || sdHeight,
     steps:          parseInt(document.getElementById('sdStepsSlider')?.value)       || sdSteps,
     popWidth:       parseInt(document.getElementById('sdPopWidthSlider')?.value)    || sdPopWidth,
-    positiveSuffix: document.getElementById('sdPositiveSuffixInput')?.value         ?? sdPositiveSuffix,
-    negative:       document.getElementById('sdNegativeInput')?.value               ?? sdNegative,
+    positiveSuffix:    document.getElementById('sdPositiveSuffixInput')?.value        ?? sdPositiveSuffix,
+    dotPositiveSuffix: document.getElementById('sdDotPositiveSuffixInput')?.value    ?? sdDotPositiveSuffix,
+    realPositiveSuffix:document.getElementById('sdRealPositiveSuffixInput')?.value   ?? sdRealPositiveSuffix,
+    negative:          document.getElementById('sdNegativeInput')?.value             ?? sdNegative,
     displayTime:    parseInt(document.getElementById('sdDisplayTimeSlider')?.value) || sdDisplayTime,
     mosaicKeywords: document.getElementById('sdMosaicKeywordsInput')?.value         ?? sdMosaicKeywords,
     mosaicBlock:    parseInt(document.getElementById('sdMosaicBlockSlider')?.value) || sdMosaicBlock,

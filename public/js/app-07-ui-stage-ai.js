@@ -47,6 +47,29 @@ function escapeAttr(s) {
 }
 
 // ──────────────────────────────────────────────────────────────────
+// 登録済みエモーション
+// ──────────────────────────────────────────────────────────────────
+let registeredEmotions = {};
+
+async function fetchRegisteredEmotions() {
+  if (!apikey) return;
+  try {
+    let url = `/api/emotions?apikey=${encodeURIComponent(apikey)}`;
+    if (hash) url += `&hash=${encodeURIComponent(hash)}`;
+    const res  = await fetch(url);
+    const data = await res.json();
+    if (data.success && data.emotions && typeof data.emotions === 'object') {
+      registeredEmotions = data.emotions;
+      console.log('[kukuCome] 登録済みエモーション取得:', Object.keys(data.emotions).length, '件', data.emotions);
+    } else if (data.error) {
+      console.warn('[kukuCome] エモーション一覧取得エラー:', data.error, data.error_display);
+    }
+  } catch (err) {
+    console.warn('[kukuCome] エモーション一覧取得失敗:', err);
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────
 // API ポーリング
 // ──────────────────────────────────────────────────────────────────
 async function fetchComments() {
@@ -66,7 +89,11 @@ async function fetchComments() {
         lastCnum = lastInBatch;
       } else {
         const newOnes = comments.filter(c => Number(c.cnum) > Number(lastCnum));
-        if (newOnes.length > 0) { newOnes.forEach(handleComment); lastCnum = lastInBatch; }
+        if (newOnes.length > 0) {
+          console.log('[kukuCome] コメント受信:', newOnes);
+          newOnes.forEach(handleComment);
+          lastCnum = lastInBatch;
+        }
       }
     }
 
@@ -92,6 +119,7 @@ document.getElementById('startBtn').addEventListener('click', () => {
   document.getElementById('startBtn').disabled = true;
   document.getElementById('stopBtn').disabled  = false;
   setStatus('running', '● 接続中…');
+  fetchRegisteredEmotions();
   fetchComments();
   pollTimer = setInterval(fetchComments, 2000);
   // 宝箱自動出現（5分ごと）

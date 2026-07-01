@@ -186,11 +186,29 @@ function handleComment(comment) {
   const rawMessage = decodeHtml(comment.message ?? '');
   const message    = stripPrefix(rawMessage);
   const trimmedMsg = message.trim(); // message は const のため一度だけ算出して再利用
+
+  // エモーションURLを早期解決（物理オブジェクト・アゲルちゃんチャット共用）— 複数対応
+  const _emoUrls = [];
+  {
+    const _re = comment.emotions && typeof comment.emotions === 'object' && !Array.isArray(comment.emotions) ? comment.emotions : null;
+    if (_re) {
+      for (const val of Object.values(_re)) {
+        if (val && val.url && isSafeUrl(val.url)) _emoUrls.push(val.url);
+      }
+    }
+    if (_emoUrls.length === 0) {
+      for (const m of message.matchAll(/\(([^)]+)\)/g)) {
+        const _r = registeredEmotions[m[1]];
+        if (_r && _r.url && isSafeUrl(_r.url)) _emoUrls.push(_r.url);
+      }
+    }
+  }
+
   if (message) {
     if (!user.recentComments) user.recentComments = [];
     user.recentComments.push(message);
     if (user.recentComments.length > 150) user.recentComments.shift();
-    spawnCommentPhys(message, user); // コメント物理オブジェクト（commentPhysEnabled 時のみ、吹き出しスタイル反映）
+    spawnCommentPhys(message, user, _emoUrls); // コメント物理オブジェクト（commentPhysEnabled 時のみ、吹き出しスタイル反映）
     recordStreamComment(user.name, message); // エンドカードのコメント一覧用に蓄積
   }
 
@@ -426,10 +444,10 @@ function handleComment(comment) {
       _agruPoisonTurns = 6;
       _agruAddSystemMsg(`☠️ ${user.name || '名無し'}が毒を投与した！空腹度が減った…`);
       _agruShowStateImage('毒');
-      if (agruIdle) _agruSend(message, user.name);
+      if (agruIdle) _agruSend(message, user.name, _emoUrls);
     }
   } else if (!agruBattleActive && agruActive && agruIdle && trimmedMsg && !/^[ァ-ヶー]{5}$/.test(trimmedMsg) && !_isAgruSkipCmd(message)) {
-    _agruSend(message, user.name);
+    _agruSend(message, user.name, _emoUrls);
   }
 
   // ── ボスアゲルバトル中：射・回復 以外のコマンドを全て無効化 ──
@@ -1093,12 +1111,36 @@ function handleComment(comment) {
     return;
   }
 
-  // emotions（エモーション）
-  const emotions = Array.isArray(comment.emotions) ? comment.emotions.filter(e => findEmotionUrl(e)) : [];
-  if (emotions.length > 0) {
+  // 持ち込みエモーション — comment.emotions がオブジェクト形式 { key: {url, message} }
+  const rawEmotions = comment.emotions && typeof comment.emotions === 'object' && !Array.isArray(comment.emotions)
+    ? comment.emotions : null;
+  if (rawEmotions && Object.keys(rawEmotions).length > 0) {
+    const emotionList = [];
+    for (const [key, val] of Object.entries(rawEmotions)) {
+      const url = (val && val.url && isSafeUrl(val.url)) ? val.url : null;
+      const emoMsg = (val && val.message) || '';
+      if (url) emotionList.push({ url, message: emoMsg });
+    }
+    if (emotionList.length > 0) {
+      ensureCharOnStage(user);
+      showEmotionBubble(user, emotionList, display || '', commentStyle);
+      addToLog(user, display ? `[エモ] ${display}` : '[エモーション]', '#a78bfa');
+      return;
+    }
+  }
+
+  // 登録済みエモーション — message 内の "(エモーションキー)" をすべて検索
+  const regEmoList = [];
+  for (const m of message.matchAll(/\(([^)]+)\)/g)) {
+    const emo = registeredEmotions[m[1]];
+    if (emo && emo.url && isSafeUrl(emo.url)) regEmoList.push(emo);
+  }
+  if (regEmoList.length > 0) {
+    const caption = message.replace(/\([^)]*\)/g, '').trim();
+    const emotionList = regEmoList.map(emo => ({ url: emo.url, message: emo.message || '' }));
     ensureCharOnStage(user);
-    showEmotionBubble(user, emotions, display || '', commentStyle);
-    addToLog(user, display ? `[エモ] ${display}` : '[エモーション]', '#a78bfa');
+    showEmotionBubble(user, emotionList, caption, commentStyle);
+    addToLog(user, caption ? `[エモ] ${caption}` : `[エモ] ${regEmoList.map(e => e.message).filter(Boolean).join('/')}`, '#a78bfa');
     return;
   }
 

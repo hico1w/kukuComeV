@@ -2,6 +2,135 @@
 
 ---
 
+## v2.776.0 — 2026-06-29
+
+### feat: 画像生成コマンドのキーワード別ポジティブプロンプト対応
+
+- **ドット・リアル検出**: プロンプトに「ドット」「リアル」が含まれると専用のポジティブを自動付与（含まれない場合は既存の「常時付加」を使用）
+- **`app-03-boss-pets.js`**: `sdDotPositiveSuffix` / `sdRealPositiveSuffix` グローバル変数追加（デフォルト値あり）
+- **`app-11-agru-state-sd.js`**: `_sdGenerateOne` にキーワード判定を追加・`_sdReadSettings` に2つの新フィールドを追加
+- **`app-12-features-minigames.js`**: `initSDSettings` でのロード・DOM反映・onChange リスナー追加
+- **`app-13-race-admin-misc.js`**: `sdText` ハンドラと `getState` に `sdDotPositiveSuffix` / `sdRealPositiveSuffix` を追加
+- **`app-01-core-characters.js`**: `SETTINGS_KEYS` に2キーを追加（サーバー保存対象）
+- **`admin.html`**: SD設定セクションに「ポジティブ（ドット絵）」「ポジティブ（リアル）」入力欄を追加
+
+---
+
+## v2.775.0 — 2026-06-29
+
+### feat: キャラ個別サイズをキャラ画像ごとの永続設定に変更
+
+- **管理単位を変更**: ユーザー（ipid）ごと → キャラ画像ファイルごと
+  - 同じ画像を使う全ユーザーに即時適用
+  - charSave ではなく `data/charImageSizes.json` に保存（`/api/char-image-sizes` エンドポイント新設）
+- **`server.js`**: `makeDataEndpoints('/api/char-image-sizes', ...)` 追加
+- **`app-01-core-characters.js`**:
+  - `charImageSizes` グローバル追加・`loadCharImageSizes` / `saveCharImageSizes` 追加
+  - `applyAvatarStyle` / `renderPetBadge` で `charImageSizes[imgFile]` を乗算（`sizeScale` はタイマン等の一時変形用として維持）
+- **`app-13-race-admin-misc.js`**:
+  - `charIndivSize` ハンドラ: charSave 保存を廃止 → `charImageSizes[imgFile]` を更新 + 同画像の全ステージユーザーに即時反映
+  - `getUsers` 返答: `sizeScale` フィールドに `charImageSizes[charImage]` の値を返すよう変更（admin.html 側変更不要）
+
+---
+
+## v2.774.0 — 2026-06-29
+
+### feat: キャラ画像設定モーダルを admin.html 内で直接開けるように
+
+- **`public/admin.html`**：「🖼 キャラ画像」ボタンを `cmd('openImgModal')`（BC 経由で index.html に開く）から `openAdminImgModal()`（admin 内モーダル）に変更
+  - モーダル HTML・CSS・JS をすべて admin.html 内に自己完結実装
+  - サーバー API（`/api/char-images`・`/api/char-aliases`・`/api/images`）を直接 fetch して動作
+  - 保存時に BroadcastChannel で `reloadCharImages` を送信し index.html 側のアバターも即時更新
+- **`public/js/app-13-race-admin-misc.js`**：`handleAdminMessage` に `reloadCharImages` ハンドラを追加（`charImages = loadCharImages(); refreshAllAvatars()`）
+
+---
+
+## v2.773.0 — 2026-06-26
+
+### fix: ボスアゲルバトルを複数回/時間経過後に呼び出すと重くなる問題を修正
+
+- **原因**: `_bossStopBgm()` が AudioContext を close せず `_bossAnalyserNode = null` で参照を捨てるだけだったため、バトルごとに `createMediaElementSource + createAnalyser` チェーンが AudioContext 内に蓄積。AudioContext は全ての接続済みノードを 345回/秒でレンダリングし続けるため、バトル回数に比例して負荷が増加していた
+- **修正**: `_bossStopBgm()` に `_bossAudioCtx.close()` を追加。close 後に null を代入することで次バトルの `_bossGetAudioCtx()` が新規 AudioContext を作成するよう変更
+- **`app-09-agru-battle-fx.js`**：`onAttack()` の `getElementById('stage')` も昨日追加したキャッシュ `this._stageEl` を使用するよう修正
+
+---
+
+## v2.772.0 — 2026-06-25
+
+### perf: ボスアゲルバトルのエフェクト処理を最適化（ガクガク軽減）
+
+- **`app-09-agru-battle-fx.js`**：
+  - `init()` 時に `bossEfxBg`, `bossEfxFg`, `stage`, `bossTimerDigits`, `bossTimerWrap`, `bossTimerBgDark` をキャッシュ。`tick()` / `renderBg()` / `renderFg()` / `updateTimer()` の毎フレーム `getElementById` 呼び出しを排除
+  - `updateTimer()` に `_lastTimerLeft` キャッシュを追加。残り秒数が変わった時のみ DOM スタイル変更（color / filter / fontSize / background）を実行。60FPS での毎フレーム DOM 書き込みを約1FPS相当に削減
+  - ウェブ描画のバッチ化：ラインを `beginPath()` 1回→全 `lineTo` をまとめて `stroke()` 1回に（従来 36 回 → 1 回）。ノード描画も同様に `fill()` 1回に
+
+---
+
+## v2.771.0 — 2026-06-25
+
+### feat: 複数エモーションの横並び表示
+
+- `(key1)(key2)...` のように複数エモーションキーを含むコメントに対応
+- **`app-06-comment-handler.js`**：
+  - 早期解決を `_emoUrl`（単一）→ `_emoUrls`（配列）に変更。`matchAll` で全キーを収集
+  - 吹き出し用の登録済みエモ検出も `matchAll` で全件取得し `emotionList` を構築
+- **`app-14-stream-physics.js`**：`spawnCommentPhys` の第3引数を `imgUrls` 配列化。横並び `imgRow`（flex-row）に複数画像を並べる
+- **`app-11-agru-state-sd.js`**：`_agruSend` / `_agruAddBubble` の imgUrls を配列化。チャットバブル内で複数画像を flex-row で横並び表示
+
+---
+
+## v2.770.0 — 2026-06-25
+
+### feat: エモーションをコメント物理オブジェクト・アゲルちゃんチャットにも表示
+
+#### コメント物理オブジェクト
+- **`app-06-comment-handler.js`**：`message` 算出直後にエモーションURLを早期解決（`_emoUrl`）し、`spawnCommentPhys` と `_agruSend` の両方に渡す
+- **`app-14-stream-physics.js`**：`spawnCommentPhys(text, user, imgUrl)` に第3引数追加。`imgUrl` があれば画像＋キャプション（`(key)` 除去済み）を flex レイアウトで表示
+- **`style.css`**：`.comment-phys-emo-img`（64px）追加
+
+#### アゲルちゃん会話モード リスナー側チャット
+- **`app-11-agru-state-sd.js`**：`_agruSend(message, commenter, imgUrl)` に第3引数追加
+- **`app-11-agru-state-sd.js`**：`_agruAddBubble(side, name, text, onDone, imgUrl)` に第5引数追加。`imgUrl` があればバブル内上部に画像を挿入し、テキストから `(key)` を除去して下部に表示
+- **`style.css`**：`.agru-bubble-emo-img`（80px）追加
+
+---
+
+## v2.768.0 — 2026-06-25
+
+### feat: コメント＋エモーション混在パターンに対応
+
+- `aiueo(key)` のようにテキストと `(key)` が混在する場合も検出できるよう正規表現を `^\(([^)]+)\)$` → `\(([^)]+)\)` に変更
+- `(key)` 部分を除いた残りテキストをキャプションとして `showEmotionBubble` の第3引数に渡す（エモ上・テキスト下の配置）
+- **`app-06-comment-handler.js`**：登録済みエモーション検出ロジック修正
+
+---
+
+## v2.767.0 — 2026-06-25
+
+### feat: エモーション画像サイズを2倍に拡大
+
+- **`public/style.css`** `.bubble-emotion-img`：`width`/`height` を 52px → 104px に変更
+
+---
+
+## v2.766.0 — 2026-06-25
+
+### feat: エモーションコメントを吹き出しで表示 + コメントAPIレスポンスのコンソールログ
+
+#### エモーション表示
+- コメントに `emotions` フィールドがある場合、エモーション画像をキャラの吹き出しに表示するよう対応
+- **持ち込みエモーション**：`comment.emotions` がオブジェクト形式 `{ key: {url, message} }` → `url` をそのまま使用
+- **登録済みエモーション**：`comment.emotions` は空配列 `[]`、`message` に `(エモーションキー)` 形式でキーが埋め込まれる → `/api/emotions` で取得した `registeredEmotions[key]` で画像を解決
+- **`server.js`**：`/api/emotions` プロキシエンドポイント追加（`https://live.erinn.biz/api/?category=comment&type=emotions`）
+- **`app-07-ui-stage-ai.js`**：`registeredEmotions` グローバル変数 + `fetchRegisteredEmotions()` 関数追加。配信開始時に自動取得
+- **`app-06-comment-handler.js`**：エモーション処理を2系統に分離。持ち込みエモは `comment.emotions` オブジェクトから、登録済みエモは `message.match(/^\(([^)]+)\)$/)` でキーを抽出して `registeredEmotions` から解決
+
+#### コンソールログ
+- **`app-07-ui-stage-ai.js`** `fetchComments()`：新着コメント受信時に `console.log('[kukuCome] コメント受信:', newOnes)` を出力
+- **`app-07-ui-stage-ai.js`** `fetchRegisteredEmotions()`：取得成功時に登録件数と内容をログ出力
+
+---
+
 ## v2.765.0 — 2026-06-22
 
 ### feat: 射撃弾がコメント物理オブジェクトに当たると消滅 +1MP + バーストSE

@@ -43,6 +43,14 @@
       for (let i = 0; i < this.TRI_COUNT_BG + this.TRI_COUNT_FG; i++) {
         this.tris.push(this.mkTri(this.W, this.H, true));
       }
+      // DOM要素キャッシュ（毎フレームの getElementById を排除）
+      this._bgCanvas    = document.getElementById('bossEfxBg');
+      this._fgCanvas    = document.getElementById('bossEfxFg');
+      this._stageEl     = document.getElementById('stage');
+      this._timerEl     = document.getElementById('bossTimerDigits');
+      this._timerWrap   = document.getElementById('bossTimerWrap');
+      this._timerDarkEl = document.getElementById('bossTimerBgDark');
+      this._lastTimerLeft = -1; // updateTimer スキップ判定用
     },
 
     start() {
@@ -88,7 +96,7 @@
 
     onAttack() {
       this.attackT = this.t;
-      const stage_ = document.getElementById('stage');
+      const stage_ = this._stageEl;
       const W = stage_?.clientWidth || this.W;
       const H = stage_?.clientHeight || this.H;
       const cx = W * 0.5, cy = H * 0.5;
@@ -123,7 +131,7 @@
     },
 
     tick(dt) {
-      const stage_ = document.getElementById('stage');
+      const stage_ = this._stageEl;
       const W = stage_?.clientWidth || window.innerWidth;
       const H = stage_?.clientHeight || window.innerHeight;
       this.W = W; this.H = H;
@@ -224,7 +232,7 @@
     },
 
     renderBg(W, H, aLv) {
-      const canvas = document.getElementById('bossEfxBg');
+      const canvas = this._bgCanvas;
       if (!canvas) return;
       const ctx = this._resizeCanvas(canvas, W, H);
       ctx.clearRect(0, 0, W, H);
@@ -280,15 +288,21 @@
       ctx.globalAlpha = 0.10 + atkF * 0.15 + aLv * 0.06;
       ctx.strokeStyle = '#800020';
       ctx.lineWidth = geo.lineWidthWeb ?? 1.2;
+      // 全ラインを1パスにまとめて1回のstrokeに削減（36回→1回）
+      ctx.beginPath();
       netPts.forEach((p, i) => {
         netPts.forEach((q, j) => {
           if (j <= i) return;
-          ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+          ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y);
         });
       });
+      ctx.stroke();
       ctx.fillStyle = '#800020';
       ctx.globalAlpha = 0.35 + aLv * 0.12;
-      netPts.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2); ctx.fill(); });
+      // ノードも1パスにまとめて1回のfillに削減
+      ctx.beginPath();
+      netPts.forEach(p => { ctx.moveTo(p.x + 3.5, p.y); ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2); });
+      ctx.fill();
       ctx.restore();
 
       // リサジュー曲線（大型）
@@ -337,7 +351,7 @@
     },
 
     renderFg(W, H, atkFactor, aLv) {
-      const canvas = document.getElementById('bossEfxFg');
+      const canvas = this._fgCanvas;
       if (!canvas) return;
       const ctx = this._resizeCanvas(canvas, W, H);
       ctx.clearRect(0, 0, W, H);
@@ -366,12 +380,16 @@
     updateTimer() {
       if (!agruBattleActive) return;
       const left = Math.max(0, Math.ceil((agruBattleEndTime - Date.now()) / 1000));
-      const el = document.getElementById('bossTimerDigits');
+      // 秒が変わっていなければDOMを触らずスキップ（60FPS→1FPS相当に削減）
+      if (left === this._lastTimerLeft) return;
+      this._lastTimerLeft = left;
+
+      const el = this._timerEl;
       if (!el) return;
       _updateTimerReels(el, _timerReelStr(left));
 
       // 文字サイズ・色・グロー
-      const tw = document.getElementById('bossTimerWrap');
+      const tw = this._timerWrap;
       if (!tw) return;
       const baseSize = agruBattleConfig?.timer?.size ?? 88;
       tw.classList.remove('boss-timer-warning', 'boss-timer-critical');
@@ -400,7 +418,7 @@
       const totalSec = agruBattleConfig?.timeLimit || 300;
       const progress = 1 - (left / totalSec);
       const darkOp   = Math.pow(Math.max(0, progress), 1.5) * 0.55;
-      const darkEl = document.getElementById('bossTimerBgDark');
+      const darkEl = this._timerDarkEl;
       if (darkEl) darkEl.style.background = `rgba(80, 0, 0, ${darkOp.toFixed(3)})`;
     },
   };
@@ -491,6 +509,13 @@ function _bossStopBgm() {
     _bossBattleBgm.pause();
     _bossBattleBgm.currentTime = 0;
     _bossBattleBgm = null;
+  }
+  // AudioContext を close して全 Web Audio ノードを破棄する。
+  // close しないと createMediaElementSource + createAnalyser がバトルごとに蓄積し、
+  // AudioContext が古いノードチェーンを全て 345回/秒でレンダリングし続けて重くなる。
+  if (_bossAudioCtx) {
+    _bossAudioCtx.close().catch(() => {});
+    _bossAudioCtx = null; // _bossGetAudioCtx が次バトルで新規作成する
   }
   _bossAnalyserNode = null;
   _bossAnalyserData = null;

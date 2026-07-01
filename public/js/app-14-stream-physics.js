@@ -109,12 +109,11 @@ function _commentPhysDestroy(o, bulletUser) {
   _playCommentPhysBurstSound();
 }
 
-function spawnCommentPhys(text, user) {
+function spawnCommentPhys(text, user, imgUrls) {
   if (!commentPhysEnabled) return;
   const stageEl = document.getElementById('stage');
-  if (!stageEl || !text) return;
-  const msg = String(text).trim().slice(0, 24);
-  if (!msg) return;
+  const hasImages = Array.isArray(imgUrls) && imgUrls.length > 0;
+  if (!stageEl || (!text && !hasImages)) return;
 
   // 外側 = 物理位置のみ。内側 = 吹き出しの見た目（形状・装飾・文字色・フォント・背景）を反映
   const el = document.createElement('div');
@@ -125,8 +124,37 @@ function spawnCommentPhys(text, user) {
   const shape = (user && user.bubbleShape) || 'round';
   const deco  = (user && user.bubbleDeco)  || '';
   inner.className = 'comment-phys-bubble bubble-' + shape + (deco ? ' bubble-deco-' + deco : '');
-  inner.textContent = msg;
-  inner.style.fontSize = commentPhysFontSize + 'px';
+
+  if (hasImages) {
+    inner.style.display = 'flex';
+    inner.style.flexDirection = 'column';
+    inner.style.alignItems = 'center';
+    inner.style.gap = '4px';
+    inner.style.padding = '6px';
+    const imgRow = document.createElement('div');
+    imgRow.style.cssText = 'display:flex;flex-direction:row;gap:4px;flex-wrap:wrap;justify-content:center';
+    for (const url of imgUrls) {
+      const img = document.createElement('img');
+      img.src = url;
+      img.className = 'comment-phys-emo-img';
+      img.onerror = () => { img.style.display = 'none'; };
+      imgRow.appendChild(img);
+    }
+    inner.appendChild(imgRow);
+    const caption = String(text || '').trim().replace(/\([^)]*\)/g, '').trim().slice(0, 24);
+    if (caption) {
+      const cap = document.createElement('div');
+      cap.textContent = caption;
+      cap.style.fontSize = commentPhysFontSize + 'px';
+      inner.appendChild(cap);
+    }
+  } else {
+    const msg = String(text).trim().slice(0, 24);
+    if (!msg) return;
+    inner.textContent = msg;
+    inner.style.fontSize = commentPhysFontSize + 'px';
+  }
+
   if (user) {
     if (user.textColor)     inner.style.color = user.textColor;
     if (user.font)          inner.style.fontFamily = user.font;
