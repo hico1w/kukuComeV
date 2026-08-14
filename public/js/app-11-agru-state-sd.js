@@ -1351,8 +1351,15 @@ async function _sdProcessQueue() {
 async function _sdGenerateOne(user, prompt) {
   const cfg = _sdReadSettings();
   let positiveSuffix = cfg.positiveSuffix;
-  if (prompt.includes('ドット'))  positiveSuffix = cfg.dotPositiveSuffix;
-  else if (prompt.includes('リアル')) positiveSuffix = cfg.realPositiveSuffix;
+  const _extras = [];
+  if (prompt.includes('ドット'))                                _extras.push(cfg.dotPositiveSuffix);
+  if (prompt.includes('リアル'))                               _extras.push(cfg.realPositiveSuffix);
+  if (prompt.includes('もいちゃん') || /moi/i.test(prompt))   _extras.push(cfg.moiPositiveSuffix);
+  sdKeywordPrompts.forEach(({keyword, positive}) => {
+    if (keyword && positive && prompt.includes(keyword)) _extras.push(positive);
+  });
+  const _valid = _extras.filter(Boolean);
+  if (_valid.length) positiveSuffix = _valid.join(', ');
   const fullPrompt = prompt + (positiveSuffix ? ', ' + positiveSuffix : '');
   showBubble(user, '🎨 生成中…', { color: '#a855f7' });
   addToLog(user,
@@ -1398,6 +1405,7 @@ function _sdReadSettings() {
     positiveSuffix:    document.getElementById('sdPositiveSuffixInput')?.value        ?? sdPositiveSuffix,
     dotPositiveSuffix: document.getElementById('sdDotPositiveSuffixInput')?.value    ?? sdDotPositiveSuffix,
     realPositiveSuffix:document.getElementById('sdRealPositiveSuffixInput')?.value   ?? sdRealPositiveSuffix,
+    moiPositiveSuffix: document.getElementById('sdMoiPositiveSuffixInput')?.value    ?? sdMoiPositiveSuffix,
     negative:          document.getElementById('sdNegativeInput')?.value             ?? sdNegative,
     displayTime:    parseInt(document.getElementById('sdDisplayTimeSlider')?.value) || sdDisplayTime,
     mosaicKeywords: document.getElementById('sdMosaicKeywordsInput')?.value         ?? sdMosaicKeywords,

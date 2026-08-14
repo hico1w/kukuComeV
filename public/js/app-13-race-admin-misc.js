@@ -1005,6 +1005,8 @@ function handleAdminMessage(d, replyFn) {
     state.sdPositiveSuffix    = sdPositiveSuffix;
     state.sdDotPositiveSuffix  = sdDotPositiveSuffix;
     state.sdRealPositiveSuffix = sdRealPositiveSuffix;
+    state.sdMoiPositiveSuffix  = sdMoiPositiveSuffix;
+    state.sdKeywordPrompts     = sdKeywordPrompts;
     state.sdNegative           = sdNegative;
     state.sdDisplayTime    = sdDisplayTime;
     state.sdMosaicKeywords = sdMosaicKeywords;
@@ -1064,6 +1066,7 @@ function handleAdminMessage(d, replyFn) {
     state.endCardHeight          = endCardHeight;
     state.endCardVolume          = endCardVolume;
     state.reviewSystem           = reviewSystem;
+    state.reviewNumCtx           = reviewNumCtx;
     state.reviewCharSize         = reviewCharSize;
     state.reviewCharRight        = reviewCharRight;
     state.reviewCharBottom       = reviewCharBottom;
@@ -1208,6 +1211,7 @@ function handleAdminMessage(d, replyFn) {
                     sdPositiveSuffix:'sdPositiveSuffixInput',
                     sdDotPositiveSuffix:'sdDotPositiveSuffixInput',
                     sdRealPositiveSuffix:'sdRealPositiveSuffixInput',
+                    sdMoiPositiveSuffix:'sdMoiPositiveSuffixInput',
                     sdNegative:'sdNegativeInput',
                     sdDisplayTime:'sdDisplayTimeSlider', sdMosaicKeywords:'sdMosaicKeywordsInput',
                     sdMosaicBlock:'sdMosaicBlockSlider',
@@ -1222,6 +1226,7 @@ function handleAdminMessage(d, replyFn) {
       if (d.key === 'sdPositiveSuffix')    sdPositiveSuffix    = d.value;
       if (d.key === 'sdDotPositiveSuffix')  sdDotPositiveSuffix  = d.value;
       if (d.key === 'sdRealPositiveSuffix') sdRealPositiveSuffix = d.value;
+      if (d.key === 'sdMoiPositiveSuffix')  sdMoiPositiveSuffix  = d.value;
       if (d.key === 'sdNegative')           sdNegative           = d.value;
       if (d.key === 'sdDisplayTime')    sdDisplayTime    = parseInt(d.value)   || sdDisplayTime;
       if (d.key === 'sdMosaicKeywords') sdMosaicKeywords = d.value;
@@ -1238,6 +1243,10 @@ function handleAdminMessage(d, replyFn) {
       }
       saveSettingsToServer();
     }
+  } else if (d.type === 'sdKwpUpdate') {
+    sdKeywordPrompts = d.list || [];
+    localStorage.setItem('sdKeywordPrompts', JSON.stringify(sdKeywordPrompts));
+    saveSettingsToServer();
   } else if (d.type === 'processComment') {
     if (d.comment) handleComment(d.comment);
   } else if (d.type === 'openNovel') {
@@ -1298,6 +1307,7 @@ function handleAdminMessage(d, replyFn) {
     if (d.key === 'endCardHeight')          endCardHeight          = parseInt(d.value) || 640;
     if (d.key === 'endCardVolume')          { endCardVolume = parseInt(d.value); if (!Number.isFinite(endCardVolume)) endCardVolume = 80; }
     if (d.key === 'reviewSystem')           reviewSystem           = d.value;
+    if (d.key === 'reviewNumCtx')           reviewNumCtx           = parseInt(d.value) || 131072;
     if (d.key === 'reviewCharSize')         { reviewCharSize   = parseInt(d.value) || 160; _applyReviewCharStyle(); }
     if (d.key === 'reviewCharRight')        { reviewCharRight  = parseInt(d.value); if (!Number.isFinite(reviewCharRight))  reviewCharRight  = 14; _applyReviewCharStyle(); }
     if (d.key === 'reviewCharBottom')       { reviewCharBottom = parseInt(d.value); if (!Number.isFinite(reviewCharBottom)) reviewCharBottom = 12; _applyReviewCharStyle(); }

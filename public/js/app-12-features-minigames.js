@@ -711,6 +711,7 @@ function resetRankingPanelPos() {
 function showDamageRanking(dmgMap) {
   if (compactMode) return;
   if (!Object.keys(dmgMap).length) return;
+  if (localStorage.getItem('rankingVisible') === '0') return;
   if (rankingState) {
     rankingState.dmgMap = dmgMap;
   } else {
@@ -726,6 +727,7 @@ function showDamageRanking(dmgMap) {
 
 function showMpRanking() {
   if (compactMode) return;
+  if (rankingState) { closeRankingPanel(); return; }
   if (!Object.values(users).filter(u => u.el).length) return;
   if (!rankingState) {
     rankingState = {
@@ -1976,6 +1978,8 @@ _ttsListeners.forEach(([id, ev, fn]) => document.getElementById(id)?.addEventLis
   sdPositiveSuffix    = load('sdPositiveSuffix', 'masterpiece, best quality');
   sdDotPositiveSuffix  = load('sdDotPositiveSuffix',  sdDotPositiveSuffix);
   sdRealPositiveSuffix = load('sdRealPositiveSuffix', sdRealPositiveSuffix);
+  sdMoiPositiveSuffix  = load('sdMoiPositiveSuffix',  sdMoiPositiveSuffix);
+  try { sdKeywordPrompts = JSON.parse(load('sdKeywordPrompts', '[]')); } catch(e) { sdKeywordPrompts = []; }
   sdNegative       = load('sdNegative', sdNegative);
   sdDisplayTime    = parseInt(load('sdDisplayTime', 10));
   sdMosaicKeywords = load('sdMosaicKeywords', '');
@@ -1995,6 +1999,7 @@ _ttsListeners.forEach(([id, ev, fn]) => document.getElementById(id)?.addEventLis
   _sdSet('sdPositiveSuffixInput',     'value', sdPositiveSuffix);
   _sdSet('sdDotPositiveSuffixInput',  'value', sdDotPositiveSuffix);
   _sdSet('sdRealPositiveSuffixInput', 'value', sdRealPositiveSuffix);
+  _sdSet('sdMoiPositiveSuffixInput',  'value', sdMoiPositiveSuffix);
   _sdSet('sdNegativeInput',           'value', sdNegative);
   _sdSet('sdDisplayTimeSlider',    'value',       sdDisplayTime);
   _sdSet('sdDisplayTimeVal',       'textContent', sdDisplayTime + '秒');
@@ -2024,6 +2029,7 @@ document.getElementById('sdDisplayTimeSlider')?.addEventListener('input', e => {
 document.getElementById('sdPositiveSuffixInput')?.addEventListener('change',     e => _sdSave('sdPositiveSuffix',    e.target.value));
 document.getElementById('sdDotPositiveSuffixInput')?.addEventListener('change',  e => _sdSave('sdDotPositiveSuffix',  e.target.value));
 document.getElementById('sdRealPositiveSuffixInput')?.addEventListener('change', e => _sdSave('sdRealPositiveSuffix', e.target.value));
+document.getElementById('sdMoiPositiveSuffixInput')?.addEventListener('change',  e => _sdSave('sdMoiPositiveSuffix',  e.target.value));
 document.getElementById('sdNegativeInput')?.addEventListener('change',           e => _sdSave('sdNegative',           e.target.value));
 document.getElementById('sdMosaicKeywordsInput')?.addEventListener('change', e => _sdSave('sdMosaicKeywords', e.target.value));
 document.getElementById('sdMosaicBlockSlider')?.addEventListener('input', e => {

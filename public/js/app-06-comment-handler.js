@@ -209,7 +209,7 @@ function handleComment(comment) {
     user.recentComments.push(message);
     if (user.recentComments.length > 150) user.recentComments.shift();
     spawnCommentPhys(message, user, _emoUrls); // コメント物理オブジェクト（commentPhysEnabled 時のみ、吹き出しスタイル反映）
-    recordStreamComment(user.name, message); // エンドカードのコメント一覧用に蓄積
+    if (!user.isMaster) recordStreamComment(user.name, message); // エンドカードのコメント一覧用に蓄積
   }
 
   // ── 馬券ベット ──
@@ -293,7 +293,6 @@ function handleComment(comment) {
       const videoId = ytMatch[1];
       const ytTimeMatch = searchTarget.match(/[?&]t=(\d+)/);
       const startTime = ytTimeMatch ? parseInt(ytTimeMatch[1]) : 0;
-      if (agruYtEnabled) _agruPlayYouTube(videoId, startTime);
       if (seenYoutubeUrls.has(videoId)) {
         postAIReply('もうみた');
       } else {
@@ -302,6 +301,7 @@ function handleComment(comment) {
           ensureCharOnStage(user);
           showBubble(user, `MPが足りない… (${user.mp ?? 0}/30)`, {});
         } else {
+          if (agruYtEnabled) _agruPlayYouTube(videoId, startTime);
           user.mp = (user.mp ?? 0) - 30;
           updateStatsDisplay(user);
           ensureCharOnStage(user);

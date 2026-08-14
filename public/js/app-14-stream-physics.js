@@ -28,7 +28,8 @@ const REVIEW_DEFAULT_SYSTEM =
   'あなたは配信を見守る先生（講師）です。視聴者コメントをもとに、今日の配信の雰囲気・盛り上がり・視聴者の様子を' +
   '黒板に書く講評のように総評してください。日本語のみ。300文字程度。' +
   '良かった点・特徴・ひとことアドバイスを、親しみやすく前向きな先生口調でまとめてください。箇条書きでも文章でも構いません。';
-let reviewSystem = localStorage.getItem('reviewSystem') || '';
+let reviewSystem   = localStorage.getItem('reviewSystem') || '';
+let reviewNumCtx   = parseInt(localStorage.getItem('reviewNumCtx') ?? '131072');
 
 // 総評モーダルの講師キャラ（大きさ・右/下オフセット）。admin から調整可能
 let reviewCharSize   = parseInt(localStorage.getItem('reviewCharSize')   ?? '160');
@@ -282,8 +283,8 @@ function _userImgUrl(u) {
 
 function _collectStreamStats() {
   const us = Object.values(typeof users !== 'undefined' ? users : {});
-  // 参加者＝コメントしたキャラ。各部門の1位は参加者の中から選ぶ
-  const participants = us.filter(u => (u.commentCount || 0) > 0);
+  // 参加者＝コメントしたキャラ（masterは除外）。各部門の1位は参加者の中から選ぶ
+  const participants = us.filter(u => (u.commentCount || 0) > 0 && !u.isMaster);
   let totalComments = 0;
   participants.forEach(u => { totalComments += (u.commentCount || 0); });
 
@@ -358,19 +359,29 @@ function _showReviewModal(text, loading) {
 }
 
 async function _streamReview() {
-  const comments = _streamComments;
-  if (!comments.length) { _showReviewModal('まだコメントがありません。配信が始まってから総評できます。'); return; }
   _showReviewModal('黒板に総評を書いています…', true);
 
-  // プロンプトが大きくなりすぎないよう、直近を上限文字数まで使う
-  let lines = [];
-  let chars = 0;
-  for (let i = comments.length - 1; i >= 0; i--) {
-    const line = `${comments[i].name}: ${comments[i].text}`;
-    if (chars + line.length > 4000) break;
-    lines.unshift(line);
-    chars += line.length + 1;
+  // cnum=0 で全件を1回取得（サーバー起動前のコメントも含む）
+  let comments = null;
+  if (apikey) {
+    try {
+      let url = `/api/comments?apikey=${encodeURIComponent(apikey)}&cnum=0`;
+      if (hash) url += `&hash=${encodeURIComponent(hash)}`;
+      const res  = await fetch(url);
+      const data = await res.json();
+      const raw  = Array.isArray(data.comments) ? data.comments : [];
+      comments = raw
+        .filter(c => c.message && String(c.message).replace(/<[^>]+>/g, '').trim())
+        .map(c => ({ name: c.icon_name || '名無し', text: String(c.message).replace(/<[^>]+>/g, '').trim() }));
+    } catch(e) { comments = null; }
   }
+  // API未設定・失敗時はメモリ上のコメントにフォールバック
+  if (!comments) comments = _streamComments;
+
+  if (!comments.length) { _showReviewModal('まだコメントがありません。配信が始まってから総評できます。'); return; }
+
+  // 全コメントをそのまま使用（qwen2.5-1m 等コンテキスト100万トークンのモデルを前提）
+  const lines = comments.map(c => c.text);
   const stats = _collectStreamStats();
   const sys = (reviewSystem && reviewSystem.trim()) ? reviewSystem.trim() : REVIEW_DEFAULT_SYSTEM;
   const user =
@@ -381,7 +392,7 @@ async function _streamReview() {
     const res = await fetch('/api/ai-reply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: [{ role: 'user', content: user }], model: (typeof aiModel !== 'undefined' ? aiModel : undefined), system: sys }),
+      body: JSON.stringify({ messages: [{ role: 'user', content: user }], model: (typeof aiModel !== 'undefined' ? aiModel : undefined), system: sys, numCtx: reviewNumCtx }),
     });
     const data = await res.json();
     const txt = (!data.error && data.reply) ? data.reply.trim().replace(/^\[[^\]]*\]\s*/gm, '').trim() : '';

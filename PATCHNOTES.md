@@ -2,6 +2,86 @@
 
 ---
 
+## v2.784.0 — 2026-08-14
+
+### feat: 配信終了（エンドカード・日記）でmasterユーザーを除外
+
+- **`app-14-stream-physics.js`**: `_collectStreamStats` の参加者フィルターに `!u.isMaster` を追加（MVP・各部門ランキング・コメント総数・参加者数から除外）
+- **`app-06-comment-handler.js`**: `recordStreamComment` の呼び出しを `!user.isMaster` 条件で囲み、エンドカードのコメント一覧・総評用コメントからも除外
+
+---
+
+## v2.783.0 — 2026-08-14
+
+### feat: 総評のコンテキスト長をadminから設定可能に
+
+- **`app-14-stream-physics.js`**: `reviewNumCtx` グローバル変数追加・`_streamReview` で固定値の代わりに使用
+- **`app-01-core-characters.js`**: `SETTINGS_KEYS` に `reviewNumCtx` 追加
+- **`app-13-race-admin-misc.js`**: `getState`・`agruText` ハンドラに `reviewNumCtx` 追加
+- **`admin.html`**: 総評セクションに「総評コンテキスト長」入力欄追加（デフォルト131072）
+
+---
+
+## v2.782.0 — 2026-08-14
+
+### fix: コメント総評でOllamaのコンテキスト長が短く先頭コメントが無視される問題を修正
+
+- **`server.js`**: `/api/ai-reply` に `numCtx` パラメータを追加。リクエスト単位でコンテキスト長をオーバーライド可能に（通常呼び出しはadmin設定値のまま）
+- **`app-14-stream-physics.js`**: 総評呼び出し時に `numCtx: 131072` を渡すことで、Ollamaのデフォルト2048トークン制限を回避
+
+---
+
+## v2.781.0 — 2026-08-14
+
+### fix: コメント総評が直近コメントしか拾わない問題を修正
+
+- **`app-14-stream-physics.js`**: `_streamReview` のコメント収集を「サーバー起動後の在メモリ分のみ」から「`cnum=0` からページネーションで全件取得（サーバー起動前も含む、最大100ページ）」に変更。API未設定・失敗時はメモリ上のコメントにフォールバック。文字数・件数制限を撤廃（qwen2.5-1m 等100万トークンコンテキストモデル前提）
+
+---
+
+## v2.780.0 — 2026-08-13
+
+### feat: 汎用キーワード別ポジティブプロンプト機能を追加 / もいちゃん保存バグ修正
+
+- **`app-03-boss-pets.js`**: `sdKeywordPrompts` グローバル配列追加
+- **`app-01-core-characters.js`**: `SETTINGS_KEYS` に `sdKeywordPrompts` を追加
+- **`app-12-features-minigames.js`**: `initSDSettings` で `sdKeywordPrompts` をlocalStorageからロード
+- **`app-11-agru-state-sd.js`**: `_sdGenerateOne` で `sdKeywordPrompts` を走査し、キーワード一致時にポジティブを追加（複数同時適用可）
+- **`app-13-race-admin-misc.js`**: `sdKwpUpdate` BCメッセージハンドラ追加・`getState` に `sdKeywordPrompts` を含める
+- **`admin.html`**: 「キーワード別ポジティブ（汎用）」UI追加（追加/削除可）、`sdFields` に `sdMoiPositiveSuffix` が抜けていたバグを修正（admin再接続時に値が復元されない問題）
+
+---
+
+## v2.779.0 — 2026-08-13
+
+### feat: 画像生成「もいちゃん」キーワード別ポジティブプロンプト追加
+
+- **`app-03-boss-pets.js`**: `sdMoiPositiveSuffix` グローバル変数追加（デフォルト空文字）
+- **`app-11-agru-state-sd.js`**: `_sdGenerateOne` にプロンプトに「もいちゃん」が含まれる場合の判定追加・`_sdReadSettings` に `moiPositiveSuffix` フィールド追加
+- **`app-12-features-minigames.js`**: `initSDSettings` でのロード・DOM反映・onChange リスナー追加
+- **`app-13-race-admin-misc.js`**: `getState` / `elMap` / 変数更新ハンドラに `sdMoiPositiveSuffix` を追加
+- **`app-01-core-characters.js`**: `SETTINGS_KEYS` に `sdMoiPositiveSuffix` を追加
+- **`admin.html`**: SD設定セクションに「ポジティブ（もいちゃん）」入力欄を追加
+
+---
+
+## v2.778.0 — 2026-08-02
+
+### fix: MP不足でもYouTube動画が再生されてしまう問題を修正
+
+- **`app-06-comment-handler.js`**: `_agruPlayYouTube()` の呼び出しをMPチェックより前に行っていたため、MP0でも動画が再生されていた。再生処理をMP十分な `else` ブロック内に移動し、MPが足りない場合は動画再生しないよう修正
+
+---
+
+## v2.777.0 — 2026-07-01
+
+### fix: MPランキングボタンが表示・非表示をトグルしない問題を修正 / ボス撃破時に非表示状態を維持
+
+- **`app-12-features-minigames.js`**: `showMpRanking()` にトグル処理を追加
+- **`app-12-features-minigames.js`**: `showDamageRanking()` でユーザーが手動で閉じた状態（`rankingVisible=0`）の場合はボス撃破後も再表示しないよう修正
+
+---
+
 ## v2.776.0 — 2026-06-29
 
 ### feat: 画像生成コマンドのキーワード別ポジティブプロンプト対応

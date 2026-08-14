@@ -361,6 +361,13 @@
     <button onclick="cmd('streamRecallBtn')" style="padding:6px 14px;font-size:12px;background:#1e3a5f;color:#93c5fd;border:1px solid #1e40af;border-radius:4px;cursor:pointer">🔄 回想を再読込</button>
   </div>
   <div style="font-size:10px;color:#64748b;margin:10px 0 4px">📋 コメント総評のシステムプロンプト（空欄ならデフォルトを使用）</div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+    <span style="font-size:11px;color:#94a3b8;min-width:100px">総評コンテキスト長</span>
+    <input type="number" id="reviewNumCtxInput" min="2048" max="1048576" step="1024" value="131072"
+           style="width:100px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:2px 6px;font-size:12px"
+           onchange="sendAgruText('reviewNumCtx',this.value)">
+    <span style="font-size:10px;color:#64748b">トークン（qwen2.5-1m: 最大1048576）</span>
+  </div>
   <textarea id="reviewSystemInput" rows="5" class="admin-text-input"
             style="width:100%;box-sizing:border-box;resize:vertical;font-size:11px;line-height:1.4"
             oninput="sendAgruText('reviewSystem',this.value)"
@@ -2036,6 +2043,23 @@
            onchange="sendSDText('sdRealPositiveSuffix',this.value)">
   </div>
   <div class="size-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+    <span class="size-label">ポジティブ（もいちゃん）<span style="font-size:10px;color:#64748b;margin-left:6px">プロンプトに「もいちゃん」または「moi」が含まれるとき使用</span></span>
+    <input id="sdMoiPositiveSuffixInput" type="text"
+           style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:4px 8px;box-sizing:border-box;font-size:12px"
+           onchange="sendSDText('sdMoiPositiveSuffix',this.value)">
+  </div>
+  <div class="size-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+    <span class="size-label">キーワード別ポジティブ（汎用）<span style="font-size:10px;color:#64748b;margin-left:6px">プロンプトにキーワードが含まれると自動追加（複数同時適用可）</span></span>
+    <div id="sdKwpList" style="width:100%;display:flex;flex-direction:column;gap:3px"></div>
+    <div style="display:flex;gap:4px;margin-top:2px;width:100%">
+      <input id="sdKwpKeyInput" type="text" placeholder="キーワード"
+             style="width:110px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:4px 8px;font-size:12px;box-sizing:border-box">
+      <input id="sdKwpPosInput" type="text" placeholder="追加するポジティブプロンプト"
+             style="flex:1;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:4px 8px;font-size:12px;box-sizing:border-box">
+      <button onclick="_sdKwpAdd()" style="background:#3b82f6;border:none;border-radius:4px;color:#fff;padding:4px 10px;cursor:pointer;font-size:12px;white-space:nowrap">追加</button>
+    </div>
+  </div>
+  <div class="size-row" style="flex-direction:column;align-items:flex-start;gap:4px">
     <span class="size-label">ネガティブ</span>
     <textarea id="sdNegativeInput" rows="3"
            style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:4px 8px;box-sizing:border-box;font-size:11px;resize:vertical"
@@ -2742,12 +2766,13 @@
         if (ttsValMap[key]) { const v = document.getElementById(ttsValMap[key]); if (v) v.textContent = key === 'ttsVolume' ? Math.round(s[key] * 100) + '%' : s[key]; }
       }
     });
-    const sdFields = ['sdWidth','sdHeight','sdSteps','sdPopWidth','sdPositiveSuffix','sdDotPositiveSuffix','sdRealPositiveSuffix','sdNegative','sdDisplayTime','sdMosaicKeywords','sdMosaicBlock','sdCfgScale','sdSampler'];
+    const sdFields = ['sdWidth','sdHeight','sdSteps','sdPopWidth','sdPositiveSuffix','sdDotPositiveSuffix','sdRealPositiveSuffix','sdMoiPositiveSuffix','sdNegative','sdDisplayTime','sdMosaicKeywords','sdMosaicBlock','sdCfgScale','sdSampler'];
     const sdElMap = { sdWidth:'sdWidthInput', sdHeight:'sdHeightInput', sdSteps:'sdStepsSlider',
                       sdPopWidth:'sdPopWidthSlider',
                       sdPositiveSuffix:'sdPositiveSuffixInput',
                       sdDotPositiveSuffix:'sdDotPositiveSuffixInput',
                       sdRealPositiveSuffix:'sdRealPositiveSuffixInput',
+                      sdMoiPositiveSuffix:'sdMoiPositiveSuffixInput',
                       sdNegative:'sdNegativeInput',
                       sdDisplayTime:'sdDisplayTimeSlider', sdMosaicKeywords:'sdMosaicKeywordsInput',
                       sdMosaicBlock:'sdMosaicBlockSlider',
@@ -2758,6 +2783,9 @@
         if (el) el.value = s[key];
       }
     });
+    if (s.sdKeywordPrompts !== undefined) {
+      try { _sdKwpRender(Array.isArray(s.sdKeywordPrompts) ? s.sdKeywordPrompts : JSON.parse(s.sdKeywordPrompts)); } catch(e) {}
+    }
     if (s.sdSteps !== undefined)       document.getElementById('sdStepsVal').textContent       = s.sdSteps;
     if (s.sdDisplayTime !== undefined) document.getElementById('sdDisplayTimeVal').textContent = s.sdDisplayTime + '秒';
     if (s.sdMosaicBlock !== undefined) document.getElementById('sdMosaicBlockVal').textContent = s.sdMosaicBlock + 'px';
@@ -2787,7 +2815,8 @@
     { const _ec = { endCardWidth:'endCardWidthVal', endCardHeight:'endCardHeightVal' };
       Object.keys(_ec).forEach(k => { if (s[k] !== undefined) { const el = document.getElementById(k); if (el) el.value = s[k]; const v = document.getElementById(_ec[k]); if (v) v.textContent = s[k] + 'px'; } }); }
     if (s.endCardVolume !== undefined) { const el = document.getElementById('endCardVolume'); if (el) el.value = s.endCardVolume; const v = document.getElementById('endCardVolumeVal'); if (v) v.textContent = s.endCardVolume + '%'; }
-    if (s.reviewSystem !== undefined) { const el = document.getElementById('reviewSystemInput'); if (el) el.value = s.reviewSystem; localStorage.setItem('reviewSystem', s.reviewSystem); }
+    if (s.reviewSystem  !== undefined) { const el = document.getElementById('reviewSystemInput');  if (el) el.value = s.reviewSystem;  localStorage.setItem('reviewSystem',  s.reviewSystem); }
+    if (s.reviewNumCtx  !== undefined) { const el = document.getElementById('reviewNumCtxInput');  if (el) el.value = s.reviewNumCtx; }
     { const _rc = { reviewCharSize:'reviewCharSizeVal', reviewCharRight:'reviewCharRightVal', reviewCharBottom:'reviewCharBottomVal' };
       Object.keys(_rc).forEach(k => { if (s[k] !== undefined) { const el = document.getElementById(k); if (el) el.value = s[k]; const v = document.getElementById(_rc[k]); if (v) v.textContent = s[k] + 'px'; } }); }
     { const _rb = { reviewBoardWidth:'reviewBoardWidthVal', reviewBoardOffsetX:'reviewBoardOffsetXVal', reviewBoardOffsetY:'reviewBoardOffsetYVal' };
@@ -3636,6 +3665,41 @@
   function sendSDText(key, value) {
     localStorage.setItem(key, value);
     adminSend({ type: 'sdText', key, value });
+  }
+
+  let _sdKwpList = [];
+  function _sdKwpRender(list) {
+    _sdKwpList = list || [];
+    const container = document.getElementById('sdKwpList');
+    if (!container) return;
+    container.innerHTML = '';
+    _sdKwpList.forEach((item, i) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:4px;align-items:center;background:#0f172a;border-radius:4px;padding:3px 6px';
+      row.innerHTML = `<span style="color:#94a3b8;font-size:11px;min-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${item.keyword}">${item.keyword}</span>`
+        + `<span style="color:#e2e8f0;font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${item.positive || ''}">${item.positive || '（なし）'}</span>`
+        + `<button onclick="_sdKwpDelete(${i})" style="background:#ef4444;border:none;border-radius:3px;color:#fff;padding:1px 6px;cursor:pointer;font-size:11px">×</button>`;
+      container.appendChild(row);
+    });
+  }
+  function _sdKwpAdd() {
+    const kw  = document.getElementById('sdKwpKeyInput')?.value?.trim();
+    const pos = document.getElementById('sdKwpPosInput')?.value?.trim();
+    if (!kw) return;
+    _sdKwpList.push({ keyword: kw, positive: pos || '' });
+    document.getElementById('sdKwpKeyInput').value = '';
+    document.getElementById('sdKwpPosInput').value = '';
+    _sdKwpRender(_sdKwpList);
+    _sdKwpSend();
+  }
+  function _sdKwpDelete(i) {
+    _sdKwpList.splice(i, 1);
+    _sdKwpRender(_sdKwpList);
+    _sdKwpSend();
+  }
+  function _sdKwpSend() {
+    localStorage.setItem('sdKeywordPrompts', JSON.stringify(_sdKwpList));
+    adminSend({ type: 'sdKwpUpdate', list: _sdKwpList });
   }
 
   function sendTTSText(key, value) {
