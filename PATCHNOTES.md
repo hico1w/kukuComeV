@@ -2,6 +2,14 @@
 
 ---
 
+## v2.788.0 — 2026-08-17
+
+### fix: sdCharOutdir・sdCharPositiveSuffix の永続化
+
+- **`app-12-features-minigames.js`**: 起動時に `sdCharOutdir`・`sdCharPositiveSuffix` を localStorage から読み込むよう追加（他のSD設定と同じパターン）
+
+---
+
 ## v2.787.0 — 2026-08-17
 
 ### feat: キャラ作成専用ポジティブプロンプト設定

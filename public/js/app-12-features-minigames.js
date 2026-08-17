@@ -1979,6 +1979,8 @@ _ttsListeners.forEach(([id, ev, fn]) => document.getElementById(id)?.addEventLis
   sdDotPositiveSuffix  = load('sdDotPositiveSuffix',  sdDotPositiveSuffix);
   sdRealPositiveSuffix = load('sdRealPositiveSuffix', sdRealPositiveSuffix);
   sdMoiPositiveSuffix  = load('sdMoiPositiveSuffix',  sdMoiPositiveSuffix);
+  sdCharOutdir         = load('sdCharOutdir',         sdCharOutdir);
+  sdCharPositiveSuffix = load('sdCharPositiveSuffix', sdCharPositiveSuffix);
   try { sdKeywordPrompts = JSON.parse(load('sdKeywordPrompts', '[]')); } catch(e) { sdKeywordPrompts = []; }
   sdNegative       = load('sdNegative', sdNegative);
   sdDisplayTime    = parseInt(load('sdDisplayTime', 10));
