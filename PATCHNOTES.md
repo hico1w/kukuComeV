@@ -2,6 +2,43 @@
 
 ---
 
+## v2.792.0 — 2026-08-17
+
+### chore: キャラ一覧同期・新規キャラ登録（sync-chars）
+
+- `data/charImages.json`: 存在しないファイル2件を削除（`247448 - コピー.png`・`ChatGPT Image 2026年1月4日 01_37_38.png`）→ 275→273エントリ
+- `data/charImages.json`: 未登録ファイル2件を新規登録（キャラ371=`01_37_38.png`・キャラ372=`247448.png`）→ 277エントリ
+- `ChatGPT Image 2026年1月4日 01_37_38.png` を `chara/`・`public/chara/` から完全削除
+- `index.html` `STANDALONE_CHARS`: charImages.json と完全一致させて更新（277エントリ）
+
+## v2.791.0 — 2026-08-17
+
+### docs: index.html コマンドマニュアル最新化（update-index）
+
+- **sec-features MP消費リスト**: 10連ペットガチャ(-200)・キャラ作成(-50)・字幕(-20)・止めて(-50)・大きさ:大(-200) を追加
+- **sec-cmdref 大きさ**: 大きさ:大 が MP200消費である旨を追記
+- **sec-cmdref モーション**: 浮く・揺れる・伸縮/縮む・スキップ・酔う の5種を追加（計10種）
+- **sec-cmdref 吹き出し**: 全12種に拡張（星・六角・爆裂・楕円・横長を追加）
+- **sec-cmdref 飾り**: 全9種に拡張（炎・金・二重・点滅・緑を追加）
+- **sec-cmdref ゲーム**: 10連ペットガチャ/ペットガチャ10連（MP200）を追加
+- **sec-cmdref 特殊**: キャラ作成・字幕:テキスト・止めて の3コマンドを追加
+
+## v2.790.0 — 2026-08-17
+
+### feat: キャラ作成でディスク保存を完全廃止・その場かぎり適用に変更
+
+- **`server.js`** `/api/sd-create-char`: `public/chara/` への `fs.writeFile` を削除。dataUrl のみレスポンスで返す。
+- **`app-11-agru-state-sd.js`**: `user.charImage = data.filename` を廃止。`user.charImageData = data.image`（data URL、非保存）に変更。
+- **`app-01-core-characters.js`** `applyAvatarStyle`: `user.charImageData` が存在する場合は data URL を直接 `<img src>` に使用するよう対応。
+
+## v2.789.0 — 2026-08-17
+
+### fix: キャラ作成で root chara/ へのコピーを廃止
+
+- **`server.js`** `/api/sd-create-char`: 生成画像を `public/chara/` にのみ保存するよう変更。root `chara/` への `copyFile` を削除。
+
+---
+
 ## v2.788.0 — 2026-08-17
 
 ### fix: sdCharOutdir・sdCharPositiveSuffix の永続化

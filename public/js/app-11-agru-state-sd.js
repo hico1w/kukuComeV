@@ -1364,11 +1364,11 @@ async function createCharImage(user, prompt) {
       addToLog(user, `❌ キャラ作成失敗: ${data.error}`, '#f87171');
       return;
     }
-    // アバター設定
-    user.charImage = data.filename;
+    // アバター設定（その場かぎり・ファイル保存なし）
+    user.charImageData = data.image;
     applyAvatarStyle(user);
     showBubble(user, '✨ キャラ画像を設定しました！', { color: '#f59e0b' });
-    addToLog(user, `✨ キャラ画像設定: ${data.filename}`, '#f59e0b');
+    addToLog(user, '✨ キャラ画像生成（一時適用）', '#f59e0b');
     // ポップアップ表示（既存 SD と同じ仕組み）
     if (data.image) {
       const pop = document.getElementById('sdPopup') || (() => {

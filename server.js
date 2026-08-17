@@ -857,7 +857,7 @@ app.post('/api/sd-generate', async (req, res) => {
   sdReq.end();
 });
 
-// キャラ作成：SD生成＋ABG Remover で背景透過→chara/ に保存
+// キャラ作成：SD生成＋ABG Remover で背景透過→ディスク保存せず dataUrl をそのまま返す
 app.post('/api/sd-create-char', async (req, res) => {
   const { prompt, ipid, positiveSuffix, negative, steps, cfgScale, sampler, sdCharOutdir } = req.body || {};
   console.log('[SD-CHAR] request received, prompt:', prompt, 'ipid:', ipid, 'outdir:', sdCharOutdir || '(未設定)');
@@ -959,15 +959,8 @@ app.post('/api/sd-create-char', async (req, res) => {
 
         const b64 = buf.toString('base64');
         const dataUrl = 'data:image/png;base64,' + b64;
-        const filename = `gen_${(ipid || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_')}_${Date.now()}.png`;
-        const publicPath = path.join(__dirname, 'public', 'chara', filename);
-        const rootPath   = path.join(__dirname, 'chara', filename);
-        fs.writeFile(publicPath, buf, err1 => {
-          if (err1) return res.status(500).json({ error: 'ファイル保存失敗: ' + err1.message });
-          fs.copyFile(publicPath, rootPath, () => {});
-          sendToDiscord(dataUrl, prompt, translatedPrompt, ipid || 'キャラ作成').catch(() => {});
-          res.json({ filename, image: dataUrl, translatedPrompt });
-        });
+        sendToDiscord(dataUrl, prompt, translatedPrompt, ipid || 'キャラ作成').catch(() => {});
+        res.json({ image: dataUrl, translatedPrompt });
       } catch(e) {
         if (!res.headersSent) res.status(500).json({ error: 'レスポンス解析失敗: ' + e.message });
       }

@@ -804,7 +804,8 @@ function applyAvatarStyle(user) {
   a.style.width  = px + 'px';
   a.style.height = px + 'px';
   a.style.transform = '';
-  a.innerHTML      = `<img src="/chara-s/${encodeURIComponent(imgFile)}" alt="${escapeHtml(user.name)}">`;
+  const imgSrc = user.charImageData || `/chara-s/${encodeURIComponent(imgFile)}`;
+  a.innerHTML      = `<img src="${imgSrc}" alt="${escapeHtml(user.name)}">`;
   a.style.fontSize = '0';
   const img = a.querySelector('img');
   if (img) {

@@ -2,11 +2,44 @@
 
 `data/charImages.json` を正として、以下を一括実行する。
 
+> **重要**: `public/chara/` に存在しないファイルは、ユーザーが意図的に削除した可能性がある。手順1.5 でそれらを charImages.json から削除してから以降の手順を実行する。
+
 ## 手順
 
 ### 1. charImages.json を読み込む
 
 `E:\claude\kukuCome\data\charImages.json` を読み込み、キャラN→ファイル名マップを取得する。
+
+### 1.5. public/chara/ に存在しないエントリを charImages.json から削除
+
+`public/chara/` に実ファイルが存在しないエントリを charImages.json から取り除く（ユーザーが手動削除した場合などに対応）：
+
+```powershell
+cd E:\claude\kukuCome
+node -e "
+const fs = require('fs');
+const path = require('path');
+const charaDir = path.join(__dirname, 'public', 'chara');
+const json = JSON.parse(fs.readFileSync('data/charImages.json', 'utf8'));
+const existing = new Set(fs.readdirSync(charaDir));
+const removed = [];
+const newJson = {};
+Object.entries(json).forEach(([k, v]) => {
+  if (existing.has(v)) {
+    newJson[k] = v;
+  } else {
+    removed.push(k + ': ' + v);
+  }
+});
+fs.writeFileSync('data/charImages.json', JSON.stringify(newJson));
+console.log('Removed entries:', removed.length);
+removed.forEach(r => console.log('  ' + r));
+console.log('Remaining entries:', Object.keys(newJson).length);
+"
+```
+
+- 削除されたエントリはユーザーに報告する
+- 削除があった場合は **charImages.json を再読み込みしてから** 手順2以降を実行する
 
 ### 2. root chara/ への不足ファイルを補完
 
