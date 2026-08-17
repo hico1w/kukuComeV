@@ -1007,6 +1007,7 @@ function handleAdminMessage(d, replyFn) {
     state.sdRealPositiveSuffix = sdRealPositiveSuffix;
     state.sdMoiPositiveSuffix  = sdMoiPositiveSuffix;
     state.sdKeywordPrompts     = sdKeywordPrompts;
+    state.sdCharOutdir         = sdCharOutdir;
     state.sdNegative           = sdNegative;
     state.sdDisplayTime    = sdDisplayTime;
     state.sdMosaicKeywords = sdMosaicKeywords;
@@ -1212,6 +1213,7 @@ function handleAdminMessage(d, replyFn) {
                     sdDotPositiveSuffix:'sdDotPositiveSuffixInput',
                     sdRealPositiveSuffix:'sdRealPositiveSuffixInput',
                     sdMoiPositiveSuffix:'sdMoiPositiveSuffixInput',
+                    sdCharOutdir:'sdCharOutdirInput',
                     sdNegative:'sdNegativeInput',
                     sdDisplayTime:'sdDisplayTimeSlider', sdMosaicKeywords:'sdMosaicKeywordsInput',
                     sdMosaicBlock:'sdMosaicBlockSlider',
@@ -1227,6 +1229,7 @@ function handleAdminMessage(d, replyFn) {
       if (d.key === 'sdDotPositiveSuffix')  sdDotPositiveSuffix  = d.value;
       if (d.key === 'sdRealPositiveSuffix') sdRealPositiveSuffix = d.value;
       if (d.key === 'sdMoiPositiveSuffix')  sdMoiPositiveSuffix  = d.value;
+      if (d.key === 'sdCharOutdir')         sdCharOutdir         = d.value;
       if (d.key === 'sdNegative')           sdNegative           = d.value;
       if (d.key === 'sdDisplayTime')    sdDisplayTime    = parseInt(d.value)   || sdDisplayTime;
       if (d.key === 'sdMosaicKeywords') sdMosaicKeywords = d.value;

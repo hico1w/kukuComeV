@@ -2,6 +2,23 @@
 
 ---
 
+## v2.786.0 — 2026-08-17
+
+### fix: キャラ作成の背景透過・Discord連携・outputs設定
+
+- **`server.js`**: `/api/sd-create-char` を全面改修
+  - `alwayson_scripts` → `script_name: 'ABG Remover'` + `script_args` に変更（正式な呼び出し方式）
+  - SD REST API レスポンスが JPEG のため透過不可と判明 → 生成後に SD outputs フォルダを直接スキャンして RGBA PNG を取得する方式に変更
+  - `sendToDiscord()` 呼び出しを追加（既存処理を利用してDiscord連携）
+  - `sdCharOutdir` をリクエストボディで受け取り、フロントから指定したパスを優先使用
+- **`public/js/app-11-agru-state-sd.js`**: `createCharImage` に `sdCharOutdir` を追加
+- **`public/js/app-13-race-admin-misc.js`**: `sdCharOutdir` を getState・elMap・BCハンドラに追加
+- **`public/js/app-03-boss-pets.js`**: `let sdCharOutdir = ''` を追加
+- **`public/js/app-01-core-characters.js`**: `'sdCharOutdir'` を SETTINGS_KEYS に追加
+- **`public/admin.html`**: 「キャラ作成 outputs フォルダ」入力欄を追加（SD の txt2img 出力フォルダの絶対パスを設定）
+
+---
+
 ## v2.785.0 — 2026-08-15
 
 ### feat: 「キャラ作成」コマンドでSD生成＋背景透過＋アバター自動設定

@@ -859,7 +859,8 @@ app.post('/api/sd-generate', async (req, res) => {
 
 // キャラ作成：SD生成＋ABG Remover で背景透過→chara/ に保存
 app.post('/api/sd-create-char', async (req, res) => {
-  const { prompt, ipid, positiveSuffix, negative, steps, cfgScale, sampler } = req.body || {};
+  const { prompt, ipid, positiveSuffix, negative, steps, cfgScale, sampler, sdCharOutdir } = req.body || {};
+  console.log('[SD-CHAR] request received, prompt:', prompt, 'ipid:', ipid, 'outdir:', sdCharOutdir || '(未設定)');
   if (!prompt) return res.status(400).json({ error: 'prompt is required' });
 
   let translatedPrompt = prompt;
@@ -867,6 +868,11 @@ app.post('/api/sd-create-char', async (req, res) => {
     try { translatedPrompt = await translateToEnglish(prompt); } catch(e) {}
   }
   const fullPrompt = translatedPrompt + (positiveSuffix ? ', ' + positiveSuffix : '');
+
+  // only_save=true で ABG Remover が透過 PNG をディスク保存する。
+  // API レスポンスは JPEG なので使わず、生成前の timestamp を基に SD の outputs フォルダから
+  // 新しく作られた RGBA PNG を探して使う。
+  const startTime = Date.now();
 
   const sdBody = JSON.stringify({
     prompt: fullPrompt,
@@ -876,7 +882,8 @@ app.post('/api/sd-create-char', async (req, res) => {
     cfg_scale: parseFloat(cfgScale) || 7,
     sampler_name: sampler || 'Euler a',
     batch_size: 1, n_iter: 1,
-    alwayson_scripts: { 'ABG Remover': { args: [true, false] } },
+    script_name: 'ABG Remover',
+    script_args: [true, false, false, '#ffffff', false],  // only_save=true → 透過PNGのみディスク保存
   });
 
   const opts = {
@@ -885,23 +892,81 @@ app.post('/api/sd-create-char', async (req, res) => {
     headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(sdBody) },
   };
 
+  // SD の outputs ディレクトリを options API から取得（キャッシュあり）
+  const getSDOutdir = () => new Promise(resolve => {
+    http.get({ hostname: '127.0.0.1', port: 7860, path: '/sdapi/v1/options' }, r => {
+      const cs = []; r.on('data', c => cs.push(c));
+      r.on('end', () => {
+        try {
+          const o = JSON.parse(Buffer.concat(cs).toString());
+          const d = o.outdir_txt2img_samples || 'outputs/txt2img-images';
+          resolve(path.isAbsolute(d) ? d : path.resolve(d));
+        } catch(e) { resolve(null); }
+      });
+    }).on('error', () => resolve(null));
+  });
+
+  // 指定ディレクトリを再帰スキャンして minTime 以降の RGBA PNG を返す
+  const findRGBA = (dir, minTime) => {
+    let found = null;
+    const scan = (d) => {
+      try {
+        for (const f of fs.readdirSync(d)) {
+          if (found) break;
+          const fp = path.join(d, f);
+          const st = fs.statSync(fp);
+          if (st.isDirectory()) { scan(fp); continue; }
+          if (!f.endsWith('.png') || st.mtimeMs < minTime) continue;
+          const fbuf = fs.readFileSync(fp);
+          const ct = fbuf.length > 25 ? fbuf[25] : -1;
+          console.log(`[SD-CHAR] new PNG: ${f} colorType=${ct}`);
+          if (ct === 6 || ct === 4) found = { path: fp, buf: fbuf };
+        }
+      } catch(e) { console.log('[SD-CHAR] scan error:', e.message); }
+    };
+    scan(dir);
+    return found;
+  };
+
   const sdReq = http.request(opts, sdRes => {
     const chunks = [];
     sdRes.on('data', c => chunks.push(c));
-    sdRes.on('end', () => {
+    sdRes.on('end', async () => {
       try {
         const result = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-        if (!result.images?.length) return res.status(500).json({ error: 'SD: 画像なし' });
-        // ABG Remover は最後の画像が背景透過版
-        const b64 = result.images[result.images.length - 1];
-        const buf = Buffer.from(b64, 'base64');
+        console.log('[SD-CHAR] images count:', result.images?.length, '| detail:', result.detail?.slice?.(0,100));
+        if (result.detail) return res.status(500).json({ error: 'SD error: ' + result.detail });
+
+        // SD outputs フォルダから生成後の透過 PNG を探す
+        // フロントから渡された絶対パスを優先し、なければ options API で取得
+        const outdir = (sdCharOutdir && sdCharOutdir.trim())
+          ? sdCharOutdir.trim()
+          : await getSDOutdir();
+        console.log('[SD-CHAR] SD outdir:', outdir);
+        let buf = null;
+        if (outdir) {
+          const found = findRGBA(outdir, startTime);
+          if (found) {
+            console.log('[SD-CHAR] using RGBA file:', path.basename(found.path));
+            buf = found.buf;
+          }
+        }
+        if (!buf && result.images?.length) {
+          console.log('[SD-CHAR] fallback: using API response image');
+          buf = Buffer.from(result.images[result.images.length - 1], 'base64');
+        }
+        if (!buf) return res.status(500).json({ error: 'SD: 画像なし' });
+
+        const b64 = buf.toString('base64');
+        const dataUrl = 'data:image/png;base64,' + b64;
         const filename = `gen_${(ipid || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_')}_${Date.now()}.png`;
         const publicPath = path.join(__dirname, 'public', 'chara', filename);
         const rootPath   = path.join(__dirname, 'chara', filename);
         fs.writeFile(publicPath, buf, err1 => {
           if (err1) return res.status(500).json({ error: 'ファイル保存失敗: ' + err1.message });
-          fs.copyFile(publicPath, rootPath, () => {}); // root/chara にも保存（エラーは無視）
-          res.json({ filename, image: 'data:image/png;base64,' + b64, translatedPrompt });
+          fs.copyFile(publicPath, rootPath, () => {});
+          sendToDiscord(dataUrl, prompt, translatedPrompt, ipid || 'キャラ作成').catch(() => {});
+          res.json({ filename, image: dataUrl, translatedPrompt });
         });
       } catch(e) {
         if (!res.headersSent) res.status(500).json({ error: 'レスポンス解析失敗: ' + e.message });

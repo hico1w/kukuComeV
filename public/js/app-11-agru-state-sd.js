@@ -1349,11 +1349,12 @@ async function createCharImage(user, prompt) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         prompt, positiveSuffix,
-        ipid:      user.ipid || user.from || 'unknown',
-        negative:  cfg.negative,
-        steps:     cfg.steps,
-        cfgScale:  cfg.cfgScale,
-        sampler:   cfg.sampler,
+        ipid:         user.ipid || user.from || 'unknown',
+        negative:     cfg.negative,
+        steps:        cfg.steps,
+        cfgScale:     cfg.cfgScale,
+        sampler:      cfg.sampler,
+        sdCharOutdir: cfg.sdCharOutdir || '',
       }),
     });
     const data = await res.json();
@@ -1469,6 +1470,7 @@ function _sdReadSettings() {
     realPositiveSuffix:document.getElementById('sdRealPositiveSuffixInput')?.value   ?? sdRealPositiveSuffix,
     moiPositiveSuffix: document.getElementById('sdMoiPositiveSuffixInput')?.value    ?? sdMoiPositiveSuffix,
     negative:          document.getElementById('sdNegativeInput')?.value             ?? sdNegative,
+    sdCharOutdir:      document.getElementById('sdCharOutdirInput')?.value           ?? sdCharOutdir,
     displayTime:    parseInt(document.getElementById('sdDisplayTimeSlider')?.value) || sdDisplayTime,
     mosaicKeywords: document.getElementById('sdMosaicKeywordsInput')?.value         ?? sdMosaicKeywords,
     mosaicBlock:    parseInt(document.getElementById('sdMosaicBlockSlider')?.value) || sdMosaicBlock,

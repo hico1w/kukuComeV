@@ -149,6 +149,7 @@ let sdDotPositiveSuffix  = 'pixel art, pixelated, 8bit, dot art, retro game spri
 let sdRealPositiveSuffix = 'photorealistic, photography, ultra realistic, 8k, RAW photo, hyperdetailed, sharp focus';
 let sdMoiPositiveSuffix  = '';
 let sdKeywordPrompts     = [];
+let sdCharOutdir         = '';
 let sdNegative       = '(worst quality:2),(low quality:2),(normal quality:2),lowres,extra fingers,fewer fingers,monochrome,grayscale,text,watermark,logo,';
 let sdDisplayTime    = 10;
 let sdMosaicKeywords = '';
