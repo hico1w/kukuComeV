@@ -2,6 +2,16 @@
 
 ---
 
+## v2.787.0 — 2026-08-17
+
+### feat: キャラ作成専用ポジティブプロンプト設定
+
+- **`public/admin.html`**: 「ポジティブ（キャラ作成専用）」入力欄を追加
+- **`app-11-agru-state-sd.js`**: `createCharImage` でキャラ作成専用ポジティブをベースポジティブに追加
+- **`app-03-boss-pets.js`**, **`app-01-core-characters.js`**, **`app-13-race-admin-misc.js`**: `sdCharPositiveSuffix` を各所に追加
+
+---
+
 ## v2.786.0 — 2026-08-17
 
 ### fix: キャラ作成の背景透過・Discord連携・outputs設定

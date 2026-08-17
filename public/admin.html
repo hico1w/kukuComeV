@@ -2055,6 +2055,12 @@
            onchange="sendSDText('sdCharOutdir',this.value)">
   </div>
   <div class="size-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+    <span class="size-label">ポジティブ（キャラ作成専用）<span style="font-size:10px;color:#64748b;margin-left:6px">「キャラ作成」コマンド時のみ追加されるポジティブプロンプト</span></span>
+    <input id="sdCharPositiveSuffixInput" type="text"
+           style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:4px 8px;box-sizing:border-box;font-size:12px"
+           onchange="sendSDText('sdCharPositiveSuffix',this.value)">
+  </div>
+  <div class="size-row" style="flex-direction:column;align-items:flex-start;gap:4px">
     <span class="size-label">キーワード別ポジティブ（汎用）<span style="font-size:10px;color:#64748b;margin-left:6px">プロンプトにキーワードが含まれると自動追加（複数同時適用可）</span></span>
     <div id="sdKwpList" style="width:100%;display:flex;flex-direction:column;gap:3px"></div>
     <div style="display:flex;gap:4px;margin-top:2px;width:100%">
@@ -2780,6 +2786,7 @@
                       sdRealPositiveSuffix:'sdRealPositiveSuffixInput',
                       sdMoiPositiveSuffix:'sdMoiPositiveSuffixInput',
                       sdCharOutdir:'sdCharOutdirInput',
+                      sdCharPositiveSuffix:'sdCharPositiveSuffixInput',
                       sdNegative:'sdNegativeInput',
                       sdDisplayTime:'sdDisplayTimeSlider', sdMosaicKeywords:'sdMosaicKeywordsInput',
                       sdMosaicBlock:'sdMosaicBlockSlider',

@@ -1342,7 +1342,8 @@ async function createCharImage(user, prompt) {
   sdKeywordPrompts.forEach(({keyword, positive}) => {
     if (keyword && positive && prompt.includes(keyword)) extras.push(positive);
   });
-  const positiveSuffix = extras.filter(Boolean).join(', ') || cfg.positiveSuffix;
+  const _base = extras.filter(Boolean).join(', ') || cfg.positiveSuffix;
+  const positiveSuffix = [_base, cfg.sdCharPositiveSuffix].filter(Boolean).join(', ');
   try {
     const res  = await fetch('/api/sd-create-char', {
       method: 'POST',
@@ -1470,7 +1471,8 @@ function _sdReadSettings() {
     realPositiveSuffix:document.getElementById('sdRealPositiveSuffixInput')?.value   ?? sdRealPositiveSuffix,
     moiPositiveSuffix: document.getElementById('sdMoiPositiveSuffixInput')?.value    ?? sdMoiPositiveSuffix,
     negative:          document.getElementById('sdNegativeInput')?.value             ?? sdNegative,
-    sdCharOutdir:      document.getElementById('sdCharOutdirInput')?.value           ?? sdCharOutdir,
+    sdCharOutdir:         document.getElementById('sdCharOutdirInput')?.value          ?? sdCharOutdir,
+    sdCharPositiveSuffix: document.getElementById('sdCharPositiveSuffixInput')?.value ?? sdCharPositiveSuffix,
     displayTime:    parseInt(document.getElementById('sdDisplayTimeSlider')?.value) || sdDisplayTime,
     mosaicKeywords: document.getElementById('sdMosaicKeywordsInput')?.value         ?? sdMosaicKeywords,
     mosaicBlock:    parseInt(document.getElementById('sdMosaicBlockSlider')?.value) || sdMosaicBlock,

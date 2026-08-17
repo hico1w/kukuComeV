@@ -150,6 +150,7 @@ let sdRealPositiveSuffix = 'photorealistic, photography, ultra realistic, 8k, RA
 let sdMoiPositiveSuffix  = '';
 let sdKeywordPrompts     = [];
 let sdCharOutdir         = '';
+let sdCharPositiveSuffix = '';
 let sdNegative       = '(worst quality:2),(low quality:2),(normal quality:2),lowres,extra fingers,fewer fingers,monochrome,grayscale,text,watermark,logo,';
 let sdDisplayTime    = 10;
 let sdMosaicKeywords = '';

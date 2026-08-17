@@ -365,7 +365,7 @@ const SETTINGS_KEYS = [
   'contentModeGatherMarginBottom','contentModeGatherMarginLeft','contentModeGatherMarginRight',
   'contentModeCharSizePct','contentModeBossSizePct',
   'sdWidth','sdHeight','sdSteps','sdPopWidth','sdPositiveSuffix','sdDotPositiveSuffix','sdRealPositiveSuffix','sdMoiPositiveSuffix','sdNegative','sdDisplayTime',
-  'sdMosaicKeywords','sdMosaicBlock','sdCfgScale','sdSampler','sdKeywordPrompts','sdCharOutdir',
+  'sdMosaicKeywords','sdMosaicBlock','sdCfgScale','sdSampler','sdKeywordPrompts','sdCharOutdir','sdCharPositiveSuffix',
   'ollamaReviewPrompt',
   'agruSystem','agruDefaultImage','agruEmotionMap',
   'agruVoicevoxEnabled','agruVoicevoxSpeaker','agruVoicevoxSpeed','agruVoicevoxVolume',
