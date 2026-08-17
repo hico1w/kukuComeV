@@ -55,6 +55,21 @@
 - `PATCHNOTES.md` に変更を追記（CLAUDE.md の必須ルール）。
 - 反映したセクションと主な追加／削除／変更点を報告する。
 
+### 7. GitHub Pages への反映
+`index.html` と `chara/` の変更は **GitHub Actions 経由で自動デプロイ**される（`.github/workflows/pages.yml`）。
+
+push したあと以下で確認できる：
+
+```powershell
+& "C:\Program Files\GitHub CLI\gh.exe" run list --repo hico1w/kukuComeV --workflow=pages.yml --limit 1
+```
+
+- ワークフローが起動しない場合（`paths` フィルターに該当ファイルがなかったとき）は手動トリガー：
+  ```powershell
+  & "C:\Program Files\GitHub CLI\gh.exe" workflow run pages.yml --repo hico1w/kukuComeV
+  ```
+- 公開 URL：**https://hico1w.github.io/kukuComeV/**
+
 ## 注意
 - index.html は app.js を読み込まない静的ページ。記述は**実装の写し**であり、ここを直してもアプリ挙動は変わらない（逆に、アプリ側のコマンド追加時にこのページが取り残されやすい→このスキルで追従する）。
 - 色（200色）など大量項目は、`COLOR_NAMES` のキー集合と index.html の集合を集合比較し、差分だけ提示する。
