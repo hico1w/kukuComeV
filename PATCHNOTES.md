@@ -2,6 +2,16 @@
 
 ---
 
+## v2.785.0 — 2026-08-15
+
+### feat: 「キャラ作成」コマンドでSD生成＋背景透過＋アバター自動設定
+
+- **`server.js`**: `/api/sd-create-char` エンドポイント追加。SD REST API（`/sdapi/v1/txt2img`）でABG Removerを使用して背景透過PNG生成→`public/chara/`と`chara/`の両方に保存
+- **`app-06-comment-handler.js`**: 「キャラ作成＋プロンプト」コメントを検知（MP50消費）し`createCharImage`を呼び出す
+- **`app-11-agru-state-sd.js`**: `createCharImage(user, prompt)` 関数追加。キーワード別ポジティブも適用。生成後にアバター画像を設定し、ポップアップ表示
+
+---
+
 ## v2.784.0 — 2026-08-14
 
 ### feat: 配信終了（エンドカード・日記）でmasterユーザーを除外

@@ -632,6 +632,22 @@ function handleComment(comment) {
     return;
   }
 
+  // ── キャラ作成コマンド：SD生成＋背景透過＋アバター設定 ──
+  if (message.includes('キャラ作成')) {
+    if (!agruImgCmdEnabled) return;
+    if (agruBattleActive) return;
+    ensureCharOnStage(user);
+    if ((user.mp ?? 0) < 50) {
+      showBubble(user, `MPが足りない… (${user.mp ?? 0}/50)`, {});
+      return;
+    }
+    user.mp -= 50;
+    updateStatsDisplay(user);
+    const charPrompt = message.replace(/キャラ作成/g, '').trim();
+    createCharImage(user, charPrompt || 'cute character');
+    return;
+  }
+
   // ── 出ろ/出して/生成コマンド：SD画像生成 ──────
   if (/出ろ|出して|生成|gen/i.test(message)) {
     if (!agruImgCmdEnabled) return; // 画像コマンド無視設定

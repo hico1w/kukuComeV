@@ -1328,6 +1328,68 @@ async function askAI(user, question) {
   } catch (e) {}
 }
 
+// ── キャラ作成：SD生成＋ABG Remover＋アバター設定 ───────────────────
+async function createCharImage(user, prompt) {
+  ensureCharOnStage(user);
+  showBubble(user, '🎨 キャラ作成中…', { color: '#a855f7' });
+  addToLog(user, `🎨 キャラ作成: ${prompt}`, '#a855f7');
+  const cfg = _sdReadSettings();
+  // キーワード別ポジティブを適用
+  const extras = [];
+  if (prompt.includes('ドット'))                                extras.push(cfg.dotPositiveSuffix);
+  if (prompt.includes('リアル'))                               extras.push(cfg.realPositiveSuffix);
+  if (prompt.includes('もいちゃん') || /moi/i.test(prompt))   extras.push(cfg.moiPositiveSuffix);
+  sdKeywordPrompts.forEach(({keyword, positive}) => {
+    if (keyword && positive && prompt.includes(keyword)) extras.push(positive);
+  });
+  const positiveSuffix = extras.filter(Boolean).join(', ') || cfg.positiveSuffix;
+  try {
+    const res  = await fetch('/api/sd-create-char', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt, positiveSuffix,
+        ipid:      user.ipid || user.from || 'unknown',
+        negative:  cfg.negative,
+        steps:     cfg.steps,
+        cfgScale:  cfg.cfgScale,
+        sampler:   cfg.sampler,
+      }),
+    });
+    const data = await res.json();
+    if (data.error) {
+      showBubble(user, `キャラ作成失敗: ${data.error}`, {});
+      addToLog(user, `❌ キャラ作成失敗: ${data.error}`, '#f87171');
+      return;
+    }
+    // アバター設定
+    user.charImage = data.filename;
+    applyAvatarStyle(user);
+    showBubble(user, '✨ キャラ画像を設定しました！', { color: '#f59e0b' });
+    addToLog(user, `✨ キャラ画像設定: ${data.filename}`, '#f59e0b');
+    // ポップアップ表示（既存 SD と同じ仕組み）
+    if (data.image) {
+      const pop = document.getElementById('sdPopup') || (() => {
+        const el = document.createElement('div');
+        el.id = 'sdPopup';
+        el.style.cssText = `position:fixed;z-index:9999;pointer-events:none;transition:opacity 0.5s`;
+        document.body.appendChild(el);
+        return el;
+      })();
+      const { x, y } = getCharCenter(user);
+      pop.style.left    = (x - cfg.popWidth / 2) + 'px';
+      pop.style.top     = Math.max(0, y - cfg.popWidth * 1.5) + 'px';
+      pop.style.width   = cfg.popWidth + 'px';
+      pop.style.opacity = '1';
+      pop.innerHTML     = `<img src="${data.image}" style="width:100%;border-radius:8px;box-shadow:0 4px 24px #0008">`;
+      clearTimeout(pop._timer);
+      pop._timer = setTimeout(() => { pop.style.opacity = '0'; }, (cfg.displayTime || 10) * 1000);
+    }
+  } catch(e) {
+    showBubble(user, 'キャラ作成エラー: ' + e.message, {});
+  }
+}
+
 // ── Stable Diffusion 画像生成 ────────────────────────────────────
 const _sdQueue = [];
 let _sdBusy = false;

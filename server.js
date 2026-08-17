@@ -857,6 +857,63 @@ app.post('/api/sd-generate', async (req, res) => {
   sdReq.end();
 });
 
+// キャラ作成：SD生成＋ABG Remover で背景透過→chara/ に保存
+app.post('/api/sd-create-char', async (req, res) => {
+  const { prompt, ipid, positiveSuffix, negative, steps, cfgScale, sampler } = req.body || {};
+  if (!prompt) return res.status(400).json({ error: 'prompt is required' });
+
+  let translatedPrompt = prompt;
+  if (hasJapanese(prompt)) {
+    try { translatedPrompt = await translateToEnglish(prompt); } catch(e) {}
+  }
+  const fullPrompt = translatedPrompt + (positiveSuffix ? ', ' + positiveSuffix : '');
+
+  const sdBody = JSON.stringify({
+    prompt: fullPrompt,
+    negative_prompt: negative || SD_NEGATIVE,
+    width: 512, height: 768,
+    steps: parseInt(steps) || 20,
+    cfg_scale: parseFloat(cfgScale) || 7,
+    sampler_name: sampler || 'Euler a',
+    batch_size: 1, n_iter: 1,
+    alwayson_scripts: { 'ABG Remover': { args: [true, false] } },
+  });
+
+  const opts = {
+    hostname: '127.0.0.1', port: 7860,
+    path: '/sdapi/v1/txt2img', method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(sdBody) },
+  };
+
+  const sdReq = http.request(opts, sdRes => {
+    const chunks = [];
+    sdRes.on('data', c => chunks.push(c));
+    sdRes.on('end', () => {
+      try {
+        const result = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+        if (!result.images?.length) return res.status(500).json({ error: 'SD: 画像なし' });
+        // ABG Remover は最後の画像が背景透過版
+        const b64 = result.images[result.images.length - 1];
+        const buf = Buffer.from(b64, 'base64');
+        const filename = `gen_${(ipid || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_')}_${Date.now()}.png`;
+        const publicPath = path.join(__dirname, 'public', 'chara', filename);
+        const rootPath   = path.join(__dirname, 'chara', filename);
+        fs.writeFile(publicPath, buf, err1 => {
+          if (err1) return res.status(500).json({ error: 'ファイル保存失敗: ' + err1.message });
+          fs.copyFile(publicPath, rootPath, () => {}); // root/chara にも保存（エラーは無視）
+          res.json({ filename, image: 'data:image/png;base64,' + b64, translatedPrompt });
+        });
+      } catch(e) {
+        if (!res.headersSent) res.status(500).json({ error: 'レスポンス解析失敗: ' + e.message });
+      }
+    });
+  });
+  sdReq.setTimeout(120000, () => { sdReq.destroy(); if (!res.headersSent) res.status(504).json({ error: 'SD timeout' }); });
+  sdReq.on('error', e => { if (!res.headersSent) res.status(500).json({ error: e.message }); });
+  sdReq.write(sdBody);
+  sdReq.end();
+});
+
 // TTS（RVC 7870）
 app.post('/api/tts', (req, res) => {
   const {
