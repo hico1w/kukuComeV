@@ -1329,7 +1329,7 @@ async function askAI(user, question) {
 }
 
 // ── キャラ作成：SD生成＋ABG Remover＋アバター設定 ───────────────────
-async function createCharImage(user, prompt) {
+async function createCharImage(user, prompt, commentNo) {
   ensureCharOnStage(user);
   showBubble(user, '🎨 キャラ作成中…', { color: '#a855f7' });
   addToLog(user, `🎨 キャラ作成: ${prompt}`, '#a855f7');
@@ -1374,16 +1374,22 @@ async function createCharImage(user, prompt) {
       const pop = document.getElementById('sdPopup') || (() => {
         const el = document.createElement('div');
         el.id = 'sdPopup';
-        el.style.cssText = `position:fixed;z-index:9999;pointer-events:none;transition:opacity 0.5s`;
         document.body.appendChild(el);
         return el;
       })();
+      pop.style.cssText = `position:fixed;z-index:9999;pointer-events:none;transition:opacity 0.5s;background:rgba(10,10,20,0.92);border:2px solid #7c3aed;border-radius:12px;padding:8px;box-shadow:0 4px 24px rgba(124,58,237,0.5)`;
       const { x, y } = getCharCenter(user);
       pop.style.left    = (x - cfg.popWidth / 2) + 'px';
       pop.style.top     = Math.max(0, y - cfg.popWidth * 1.5) + 'px';
       pop.style.width   = cfg.popWidth + 'px';
       pop.style.opacity = '1';
-      pop.innerHTML     = `<img src="${data.image}" style="width:100%;border-radius:8px;box-shadow:0 4px 24px #0008">`;
+      const _disp = escapeHtml((data.translatedPrompt || prompt).slice(0, 120));
+      pop.innerHTML =
+        `<div class="sd-image-header">` +
+          `<span class="sd-image-user">#${commentNo ?? '?'} ${escapeHtml(user.name || '')}</span>` +
+        `</div>` +
+        `<div class="sd-image-prompt">${_disp}</div>` +
+        `<img src="${data.image}" class="sd-image-img">`;
       clearTimeout(pop._timer);
       pop._timer = setTimeout(() => { pop.style.opacity = '0'; }, (cfg.displayTime || 10) * 1000);
     }
@@ -1396,24 +1402,62 @@ async function createCharImage(user, prompt) {
 const _sdQueue = [];
 let _sdBusy = false;
 
-function generateSDImage(user, prompt) {
+function generateSDImage(user, prompt, commentNo) {
   ensureCharOnStage(user);
-  showBubble(user, '⏳ 順番待ち…', { color: '#a855f7' });
-  _sdQueue.push({ user, prompt });
+  _sdQueue.push({ user, prompt, commentNo });
+  const waitMsg = (_sdBusy && _sdQueue.length > 1)
+    ? `⏳ 順番待ち (${_sdQueue.length}件待ち)…`
+    : '⏳ 順番待ち…';
+  showBubble(user, waitMsg, { color: '#a855f7' });
   if (!_sdBusy) _sdProcessQueue();
 }
 
 async function _sdProcessQueue() {
   if (_sdBusy || _sdQueue.length === 0) return;
   _sdBusy = true;
-  const { user, prompt } = _sdQueue.shift();
-  await _sdGenerateOne(user, prompt);
-  _sdBusy = false;
-  _sdProcessQueue();
+  const { user, prompt, commentNo, settingsOverride } = _sdQueue.shift();
+  try {
+    await _sdGenerateOne(user, prompt, commentNo, settingsOverride);
+  } finally {
+    _sdBusy = false;
+    _sdProcessQueue();
+  }
 }
 
-async function _sdGenerateOne(user, prompt) {
+// ゴミ生成コマンド（5MP）用エントリポイント
+function generateSDImageGomi(user, prompt, commentNo) {
+  ensureCharOnStage(user);
+  _sdQueue.push({ user, prompt, commentNo, settingsOverride: { width: sdGomiWidth, height: sdGomiHeight, steps: sdGomiSteps, popWidth: sdGomiPopWidth } });
+  const waitMsg = (_sdBusy && _sdQueue.length > 1)
+    ? `⏳ エコ生成 順番待ち (${_sdQueue.length}件)…`
+    : '⏳ エコ生成中…';
+  showBubble(user, waitMsg, { color: '#78716c' });
+  if (!_sdBusy) _sdProcessQueue();
+}
+
+// 超生成コマンド（500MP）用エントリポイント — width/height/steps だけ別設定を使う
+function generateSDImageCho(user, prompt, commentNo) {
+  ensureCharOnStage(user);
+  _sdQueue.push({ user, prompt, commentNo, settingsOverride: { width: sdChoWidth, height: sdChoHeight, steps: sdChoSteps, popWidth: sdChoPopWidth } });
+  const waitMsg = (_sdBusy && _sdQueue.length > 1)
+    ? `⏳ 超生成 順番待ち (${_sdQueue.length}件)…`
+    : '⏳ 超生成 生成中…';
+  showBubble(user, waitMsg, { color: '#f97316' });
+  if (!_sdBusy) _sdProcessQueue();
+}
+
+async function _sdGenerateOne(user, prompt, commentNo, settingsOverride = null) {
   const cfg = _sdReadSettings();
+  // 超生成など呼び出し元が幅・高さ・Steps・表示サイズを上書きできる
+  const width    = settingsOverride?.width    || cfg.width;
+  const height   = settingsOverride?.height   || cfg.height;
+  const steps    = settingsOverride?.steps    || cfg.steps;
+  const popWidth = settingsOverride?.popWidth || cfg.popWidth;
+  // 特定キーワード組み合わせでプロンプトを強制上書き
+  const _pl = prompt.toLowerCase();
+  if ((/大谷|otani/i.test(prompt)) && /usada pekora|usada|pekora|tekora|sada|usa|kora|peko/.test(_pl)) {
+    prompt = '1girl,anime coloring,sakura miko,sumg,chibi,rolling eyes,crazy_smile,grin,laughing,double v,saliva,spoken musical text,spoken www,(emphasis lines:1.3),';
+  }
   let positiveSuffix = cfg.positiveSuffix;
   const _extras = [];
   if (prompt.includes('ドット'))                                _extras.push(cfg.dotPositiveSuffix);
@@ -1423,12 +1467,14 @@ async function _sdGenerateOne(user, prompt) {
     if (keyword && positive && prompt.includes(keyword)) _extras.push(positive);
   });
   const _valid = _extras.filter(Boolean);
-  if (_valid.length) positiveSuffix = _valid.join(', ');
+  if (_valid.length) positiveSuffix = [cfg.positiveSuffix, ..._valid].filter(Boolean).join(', ');
   const fullPrompt = prompt + (positiveSuffix ? ', ' + positiveSuffix : '');
   showBubble(user, '🎨 生成中…', { color: '#a855f7' });
   addToLog(user,
-    `🎨SD prompt: ${fullPrompt} | ${cfg.width}x${cfg.height} steps:${cfg.steps} popW:${cfg.popWidth}`,
+    `🎨SD prompt: ${fullPrompt} | ${width}x${height} steps:${steps} popW:${cfg.popWidth}`,
     '#a855f7');
+  const _ctrl = new AbortController();
+  const _fetchTimeout = setTimeout(() => _ctrl.abort(), 35000); // 35s client-side safety net
   try {
     const res  = await fetch('/api/sd-generate', {
       method:  'POST',
@@ -1436,15 +1482,17 @@ async function _sdGenerateOne(user, prompt) {
       body:    JSON.stringify({
         prompt,
         charName:       user.name || '',
-        width:          cfg.width,
-        height:         cfg.height,
-        steps:          cfg.steps,
+        width,
+        height,
+        steps,
         cfgScale:       cfg.cfgScale,
         sampler:        cfg.sampler,
         positiveSuffix: positiveSuffix,
         negative:       cfg.negative,
       }),
+      signal: _ctrl.signal,
     });
+    clearTimeout(_fetchTimeout);
     const data = await res.json();
     if (data.error) {
       showBubble(user, '❌ ' + data.error.slice(0, 40), {});
@@ -1454,9 +1502,16 @@ async function _sdGenerateOne(user, prompt) {
     if (data.translatedPrompt && data.translatedPrompt !== prompt) {
       addToLog(user, `🎨SD 翻訳: ${prompt} → ${data.translatedPrompt}`, '#c084fc');
     }
-    showSDImage(user, data.image, prompt, data.translatedPrompt || prompt, cfg);
+    // cfg を override 値で上書きして渡す（アスペクト比・表示サイズを実際の生成値に合わせる）
+    showSDImage(user, data.image, prompt, data.translatedPrompt || prompt, { ...cfg, width, height, popWidth }, commentNo);
   } catch (e) {
-    showBubble(user, '❌ 通信エラー', {});
+    clearTimeout(_fetchTimeout);
+    if (e.name === 'AbortError') {
+      showBubble(user, '⏱ SDタイムアウト', { color: '#ef4444' });
+      addToLog(user, '🎨SD ⏱ クライアントタイムアウト (200s)', '#ef4444');
+    } else {
+      showBubble(user, '❌ 通信エラー', {});
+    }
   }
 }
 
@@ -1515,14 +1570,14 @@ function closeNovelModal() {
   document.getElementById('novelModal').classList.add('hidden');
 }
 
-function showSDImage(user, dataUrl, prompt, translatedPrompt, cfg) {
+function showSDImage(user, dataUrl, prompt, translatedPrompt, cfg, commentNo) {
   const el = document.createElement('div');
   el.className = 'sd-image-popup';
   const { x: cx, y: cy } = getCharCenter(user);
   const sw = stage.clientWidth, sh = stage.clientHeight;
   const popW = Math.min(cfg.popWidth, sw - 16);
   const imgH = Math.round(popW * (cfg.height / cfg.width));
-  const popH = imgH + 40;
+  const popH = imgH + 56; // header + prompt line
   const left = Math.min(Math.max(8, cx - popW / 2), sw - popW - 8);
   const top  = Math.min(Math.max(8, cy - popH - 10), sh - popH - 8);
   el.style.left  = left + 'px';
@@ -1530,9 +1585,10 @@ function showSDImage(user, dataUrl, prompt, translatedPrompt, cfg) {
   el.style.width = popW + 'px';
   el.innerHTML =
     `<div class="sd-image-header">` +
-      `<span class="sd-image-user">${escapeHtml(user.name || '名無し')}</span>` +
+      `<span class="sd-image-user">#${commentNo ?? '?'} ${escapeHtml(user.name || '名無し')}</span>` +
       `<button class="sd-image-close">✕</button>` +
     `</div>` +
+    `<div class="sd-image-prompt">${escapeHtml(translatedPrompt)}</div>` +
     `<img src="${dataUrl}" alt="${escapeHtml(prompt)}" class="sd-image-img">`;
   el.querySelector('.sd-image-close').addEventListener('click', () => el.remove());
   if (_sdNeedsMosaic(prompt, translatedPrompt, cfg.mosaicKeywords)) _applyMosaic(el.querySelector('.sd-image-img'), cfg.mosaicBlock); // null→falsy で動作変わらず
@@ -1566,7 +1622,7 @@ function launchBullets(user, text) {
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         life: 0,
-        maxLife: 300 + Math.floor(Math.random() * 120),
+        maxLife: 180 + Math.floor(Math.random() * 60),
       });
       startKaiPhysics();
     }, i * 70);

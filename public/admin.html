@@ -237,7 +237,8 @@
     <button onclick="cmd('toggleLog')">💬 ログ</button>
     <button onclick="openAdminImgModal()">🖼 キャラ画像</button>
     <button onclick="cmd('copyObsUrl')">📋 OBS URL</button>
-    <button onclick="cmd('hideEquipBtn')">⚔️ 装備表示</button>
+    <button id="hideEquipBtn" onclick="cmd('hideEquipBtn')">⚔️ 装備表示</button>
+    <button id="hidePetBtn" onclick="cmd('hidePetBtn')">🐾 ペット表示</button>
     <button onclick="cmd('toggleBombBtn')">💣 爆弾</button>
     <button onclick="cmd('toggleTrashBtn')">🗑 ゴミ箱</button>
     <button id="toggleStatsBtn" onclick="cmd('toggleStatsBtn')">📊 ステータス</button>
@@ -619,6 +620,34 @@
            onchange="adminSend({type:'taimanDefeatCmd', value:this.value})">
   </div>
   <div style="font-size:10px;color:#64748b;margin-top:3px">タイマンで負けたキャラが発言するコマンド（空欄で無効）</div>
+  <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+    <label style="font-size:11px;color:#94a3b8;min-width:72px">タイマン</label>
+    <button id="taimanDisabledBtn"
+            style="padding:2px 12px;font-size:11px;border-radius:4px;border:1px solid #334155;cursor:pointer;background:#166534;color:#86efac"
+            onclick="
+              const disabled = this.dataset.disabled==='1' ? '0' : '1';
+              this.dataset.disabled = disabled;
+              this.textContent = disabled==='1' ? '無効' : '有効';
+              this.style.background   = disabled==='1' ? '#7f1d1d' : '#166534';
+              this.style.color        = disabled==='1' ? '#fca5a5' : '#86efac';
+              this.style.borderColor  = disabled==='1' ? '#991b1b' : '#16a34a';
+              adminSend({type:'taimanDisabled', value:disabled});"
+            data-disabled="0">有効</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+    <label style="font-size:11px;color:#94a3b8;min-width:72px">解説（AI）</label>
+    <button id="taimanCommentaryBtn"
+            style="padding:2px 12px;font-size:11px;border-radius:4px;border:1px solid #991b1b;cursor:pointer;background:#7f1d1d;color:#fca5a5"
+            onclick="
+              const on = this.dataset.on==='1' ? '0' : '1';
+              this.dataset.on = on;
+              this.textContent = on==='1' ? 'ON' : 'OFF';
+              this.style.background  = on==='1' ? '#166534' : '#7f1d1d';
+              this.style.color       = on==='1' ? '#86efac' : '#fca5a5';
+              this.style.borderColor = on==='1' ? '#16a34a' : '#991b1b';
+              adminSend({type:'taimanCommentaryEnabled', value:on});"
+            data-on="0">OFF</button>
+  </div>
 </div>
 
 <!-- 不在返答設定 -->
@@ -1986,6 +2015,52 @@
            oninput="document.getElementById('sdStepsVal').textContent=this.value;sendSDText('sdSteps',this.value)">
     <span id="sdStepsVal" class="size-val">20</span>
   </div>
+  <div style="margin:10px 0 4px;font-size:11px;color:#78716c;border-top:1px solid #334155;padding-top:8px;font-weight:700">🗑️ ゴミ生成設定（5MP消費）</div>
+  <div class="size-row">
+    <span class="size-label">幅</span>
+    <input id="sdGomiWidthInput" type="number" min="64" max="1024" step="64" value="512"
+           style="width:70px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:2px 6px"
+           onchange="sendSDText('sdGomiWidth',this.value)">
+    <span class="size-label" style="margin-left:8px">高さ</span>
+    <input id="sdGomiHeightInput" type="number" min="64" max="1024" step="64" value="512"
+           style="width:70px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:2px 6px"
+           onchange="sendSDText('sdGomiHeight',this.value)">
+  </div>
+  <div class="size-row">
+    <span class="size-label">Steps</span>
+    <input type="range" id="sdGomiStepsSlider" min="1" max="30" value="5" class="size-slider"
+           oninput="document.getElementById('sdGomiStepsVal').textContent=this.value;sendSDText('sdGomiSteps',this.value)">
+    <span id="sdGomiStepsVal" class="size-val">5</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">表示サイズ</span>
+    <input type="range" id="sdGomiPopWidthSlider" min="100" max="600" step="10" value="240" class="size-slider"
+           oninput="document.getElementById('sdGomiPopWidthVal').textContent=this.value+'px';sendSDText('sdGomiPopWidth',this.value)">
+    <span id="sdGomiPopWidthVal" class="size-val">240px</span>
+  </div>
+  <div style="margin:10px 0 4px;font-size:11px;color:#f97316;border-top:1px solid #334155;padding-top:8px;font-weight:700">⚡ 超生成設定（500MP消費）</div>
+  <div class="size-row">
+    <span class="size-label">幅</span>
+    <input id="sdChoWidthInput" type="number" min="256" max="4096" step="64" value="1920"
+           style="width:70px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:2px 6px"
+           onchange="sendSDText('sdChoWidth',this.value)">
+    <span class="size-label" style="margin-left:8px">高さ</span>
+    <input id="sdChoHeightInput" type="number" min="256" max="4096" step="64" value="1080"
+           style="width:70px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:2px 6px"
+           onchange="sendSDText('sdChoHeight',this.value)">
+  </div>
+  <div class="size-row">
+    <span class="size-label">Steps</span>
+    <input type="range" id="sdChoStepsSlider" min="1" max="150" value="40" class="size-slider"
+           oninput="document.getElementById('sdChoStepsVal').textContent=this.value;sendSDText('sdChoSteps',this.value)">
+    <span id="sdChoStepsVal" class="size-val">40</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">表示サイズ</span>
+    <input type="range" id="sdChoPopWidthSlider" min="100" max="1200" step="10" value="700" class="size-slider"
+           oninput="document.getElementById('sdChoPopWidthVal').textContent=this.value+'px';sendSDText('sdChoPopWidth',this.value)">
+    <span id="sdChoPopWidthVal" class="size-val">700px</span>
+  </div>
   <div class="size-row">
     <span class="size-label">CFG Scale</span>
     <input type="number" id="sdCfgScaleInput" min="1" max="30" step="0.5" value="3"
@@ -2101,6 +2176,76 @@
            onchange="saveDiscordWebhook(this.value)">
   </div>
   <div style="font-size:10px;color:#64748b;margin-top:3px">SD生成画像を自動送信。空欄で無効。</div>
+</div>
+
+<!-- AutoGen 自動生成 -->
+<div class="section">
+  <div class="section-title">🤖 AutoGen 自動生成</div>
+  <div style="font-size:11px;color:#94a3b8;margin-bottom:8px;line-height:1.6">
+    開始を押すと <code style="color:#67e8f9;font-size:10px">E:\claude\AutoGen\sourceImage</code> 内の全画像のSD infoを読み取り、Ollamaでプロンプトを生成して一括処理します。<br>
+    出力先: <code style="color:#67e8f9;font-size:10px">E:\claude\AutoGen\output\YYYY-MM-DD\</code>
+  </div>
+  <div class="btn-row" style="margin-bottom:8px">
+    <button id="autogenStartBtn" onclick="autogenStart()" style="background:#065f46;color:#6ee7b7;border:none;border-radius:4px;padding:4px 12px;cursor:pointer;font-size:12px">▶ 開始</button>
+    <button id="autogenStopBtn" onclick="autogenStop()" style="background:#7f1d1d;color:#fca5a5;border:none;border-radius:4px;padding:4px 12px;cursor:pointer;font-size:12px">■ 停止</button>
+    <button onclick="autogenRefresh()" style="background:#1e293b;color:#94a3b8;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px">↺</button>
+  </div>
+  <div class="size-row">
+    <span class="size-label">Ollamaモデル</span>
+    <select id="autogenModelInput"
+            style="flex:1;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:3px 6px;font-size:12px"
+            onchange="autogenSaveConfig()">
+      <option value="gemma3:12b">gemma3:12b</option>
+    </select>
+    <button onclick="autogenLoadModels()" style="margin-left:4px;background:#1e293b;border:1px solid #334155;color:#94a3b8;border-radius:4px;padding:3px 8px;font-size:12px;cursor:pointer">↺</button>
+  </div>
+  <div class="size-row">
+    <span class="size-label">コンテキスト長 (num_ctx)</span>
+    <input id="autogenNumCtxInput" type="number" min="-1" max="131072" step="512" value="-1"
+           style="width:90px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:3px 6px;font-size:12px"
+           onchange="autogenSaveConfig()">
+    <span style="font-size:10px;color:#64748b;margin-left:6px">-1=グローバル設定に従う</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">生成枚数</span>
+    <input id="autogenCountInput" type="number" min="0" max="9999" value="0"
+           style="width:70px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:3px 6px;font-size:12px"
+           onchange="autogenSaveConfig()">
+    <span style="font-size:10px;color:#64748b;margin-left:6px">0=ソースファイル数と同数</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">解像度</span>
+    <input id="autogenWidthInput" type="number" min="0" max="4096" step="64" value="0"
+           style="width:70px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:3px 6px;font-size:12px"
+           onchange="autogenSaveConfig()">
+    <span style="font-size:10px;color:#94a3b8;margin:0 4px">×</span>
+    <input id="autogenHeightInput" type="number" min="0" max="4096" step="64" value="0"
+           style="width:70px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:3px 6px;font-size:12px"
+           onchange="autogenSaveConfig()">
+    <span style="font-size:10px;color:#64748b;margin-left:6px">0=ソース画像から引き継ぐ</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">プロンプト更新間隔</span>
+    <input id="autogenIntervalInput" type="number" min="1" max="100" value="5"
+           style="width:60px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:3px 6px;font-size:12px"
+           onchange="autogenSaveConfig()">
+    <span style="font-size:10px;color:#64748b;margin-left:6px">枚ごとにOllamaで再生成</span>
+  </div>
+  <div class="size-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+    <span class="size-label">固定ポジティブ（常時付加）</span>
+    <input id="autogenFixedPosInput" type="text" placeholder="例: masterpiece, best quality"
+           style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:4px 8px;box-sizing:border-box;font-size:12px"
+           onchange="autogenSaveConfig()">
+  </div>
+  <div class="size-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+    <span class="size-label">固定ネガティブ<span style="font-size:10px;color:#64748b;margin-left:6px">空欄=ソース画像のネガティブ</span></span>
+    <textarea id="autogenFixedNegInput" rows="2"
+           style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:4px 8px;box-sizing:border-box;font-size:11px;resize:vertical"
+           onchange="autogenSaveConfig()"></textarea>
+  </div>
+  <div id="autogenStatus" style="font-size:12px;color:#94a3b8;background:#0f172a;border-radius:6px;padding:8px 10px;line-height:1.7;margin-top:6px">
+    読み込み中...
+  </div>
 </div>
 
 <!-- サーバー管理 -->
@@ -2314,7 +2459,9 @@
        'agruYtVolume','agruBgmVolume','agruYtWidth','agruYtHeight','agruYtOpacity','agruYtEnabled',
        'agruImgCmdEnabled','agruUnloadEnabled','agruManualMode','agruAutoTalkEnabled','agruAutoTalkInterval','agruAutoTalkMaxStreak','agruAutoTalkTopics','agruModalZ','agruYtModalZ','agruModalWidth','agruModalHeight',
        'agruModalBgOpacity','agruChatImgSize','agruCharImgHeight','agruCharImgScale','agruParamPosX','agruParamPosY',
-       'sdWidth','sdHeight','sdSteps','sdPopWidth','sdPositiveSuffix','sdNegative','sdDisplayTime',
+       'sdWidth','sdHeight','sdSteps','sdPopWidth','sdPositiveSuffix','sdDotPositiveSuffix',
+       'sdRealPositiveSuffix','sdMoiPositiveSuffix','sdCharOutdir','sdCharPositiveSuffix',
+       'sdKeywordPrompts','sdNegative','sdDisplayTime',
        'sdMosaicKeywords','sdMosaicBlock','sdCfgScale','sdSampler',
        'taimanDefeatCommand','charExcludeIds','autoDeleteMinutes','wordleDisplayRows',
        'seVolume','voiceVolume','bgColor','moveArea',
@@ -2778,8 +2925,10 @@
         if (ttsValMap[key]) { const v = document.getElementById(ttsValMap[key]); if (v) v.textContent = key === 'ttsVolume' ? Math.round(s[key] * 100) + '%' : s[key]; }
       }
     });
-    const sdFields = ['sdWidth','sdHeight','sdSteps','sdPopWidth','sdPositiveSuffix','sdDotPositiveSuffix','sdRealPositiveSuffix','sdMoiPositiveSuffix','sdCharOutdir','sdCharPositiveSuffix','sdNegative','sdDisplayTime','sdMosaicKeywords','sdMosaicBlock','sdCfgScale','sdSampler'];
+    const sdFields = ['sdWidth','sdHeight','sdSteps','sdGomiWidth','sdGomiHeight','sdGomiSteps','sdGomiPopWidth','sdChoWidth','sdChoHeight','sdChoSteps','sdChoPopWidth','sdPopWidth','sdPositiveSuffix','sdDotPositiveSuffix','sdRealPositiveSuffix','sdMoiPositiveSuffix','sdCharOutdir','sdCharPositiveSuffix','sdNegative','sdDisplayTime','sdMosaicKeywords','sdMosaicBlock','sdCfgScale','sdSampler'];
     const sdElMap = { sdWidth:'sdWidthInput', sdHeight:'sdHeightInput', sdSteps:'sdStepsSlider',
+                      sdGomiWidth:'sdGomiWidthInput', sdGomiHeight:'sdGomiHeightInput', sdGomiSteps:'sdGomiStepsSlider', sdGomiPopWidth:'sdGomiPopWidthSlider',
+                      sdChoWidth:'sdChoWidthInput', sdChoHeight:'sdChoHeightInput', sdChoSteps:'sdChoStepsSlider', sdChoPopWidth:'sdChoPopWidthSlider',
                       sdPopWidth:'sdPopWidthSlider',
                       sdPositiveSuffix:'sdPositiveSuffixInput',
                       sdDotPositiveSuffix:'sdDotPositiveSuffixInput',
@@ -2801,6 +2950,10 @@
       try { _sdKwpRender(Array.isArray(s.sdKeywordPrompts) ? s.sdKeywordPrompts : JSON.parse(s.sdKeywordPrompts)); } catch(e) {}
     }
     if (s.sdSteps !== undefined)       document.getElementById('sdStepsVal').textContent       = s.sdSteps;
+    if (s.sdGomiSteps !== undefined)    document.getElementById('sdGomiStepsVal').textContent    = s.sdGomiSteps;
+    if (s.sdGomiPopWidth !== undefined) document.getElementById('sdGomiPopWidthVal').textContent = s.sdGomiPopWidth + 'px';
+    if (s.sdChoSteps !== undefined)    document.getElementById('sdChoStepsVal').textContent    = s.sdChoSteps;
+    if (s.sdChoPopWidth !== undefined) document.getElementById('sdChoPopWidthVal').textContent = s.sdChoPopWidth + 'px';
     if (s.sdDisplayTime !== undefined) document.getElementById('sdDisplayTimeVal').textContent = s.sdDisplayTime + '秒';
     if (s.sdMosaicBlock !== undefined) document.getElementById('sdMosaicBlockVal').textContent = s.sdMosaicBlock + 'px';
     const setVol = (key, sliderId, valId) => {
@@ -2890,6 +3043,8 @@
     if (s.autoReplyMessages !== undefined) { try { const el = document.getElementById('autoReplyMessagesInput'); if (el) el.value = JSON.parse(s.autoReplyMessages).join('\n'); } catch {} }
     if (s.taimanCharScale !== undefined) { const sl = document.getElementById('taimanCharScaleSlider'); if (sl) { sl.value = s.taimanCharScale; document.getElementById('taimanCharScaleVal').textContent = s.taimanCharScale + 'x'; } }
     if (s.taimanCooldown !== undefined) { const sl = document.getElementById('taimanCooldownSlider'); if (sl) { const sec = Math.round(s.taimanCooldown / 1000); sl.value = sec; document.getElementById('taimanCooldownVal').textContent = sec + '秒'; } }
+    if (s.taimanDisabled !== undefined) { const btn = document.getElementById('taimanDisabledBtn'); if (btn) { const d = s.taimanDisabled ? '1' : '0'; btn.dataset.disabled = d; btn.textContent = d==='1' ? '無効' : '有効'; btn.style.background = d==='1' ? '#7f1d1d' : '#166534'; btn.style.color = d==='1' ? '#fca5a5' : '#86efac'; btn.style.borderColor = d==='1' ? '#991b1b' : '#16a34a'; } }
+    if (s.taimanCommentaryEnabled !== undefined) { const btn = document.getElementById('taimanCommentaryBtn'); if (btn) { const on = s.taimanCommentaryEnabled ? '1' : '0'; btn.dataset.on = on; btn.textContent = on==='1' ? 'ON' : 'OFF'; btn.style.background = on==='1' ? '#166534' : '#7f1d1d'; btn.style.color = on==='1' ? '#86efac' : '#fca5a5'; btn.style.borderColor = on==='1' ? '#16a34a' : '#991b1b'; } }
     if (s.autoDeleteMinutes !== undefined) { const sl = document.getElementById('autoDeleteMinutesSlider'); if (sl) { sl.value = s.autoDeleteMinutes; document.getElementById('autoDeleteMinutesVal').textContent = s.autoDeleteMinutes + '分'; } }
     if (s.charAspectExp !== undefined) { const sl = document.getElementById('charAspectExpSlider'); if (sl) { sl.value = s.charAspectExp; document.getElementById('charAspectExpVal').textContent = parseFloat(s.charAspectExp).toFixed(2); } }
     if (s.charPortraitBoost !== undefined) { const sl = document.getElementById('charPortraitBoostSlider'); if (sl) { sl.value = s.charPortraitBoost; document.getElementById('charPortraitBoostVal').textContent = parseFloat(s.charPortraitBoost).toFixed(2); } }
@@ -3675,6 +3830,90 @@
     const el = document.getElementById('discordWebhookInput');
     if (el && cfg.webhookUrl) el.value = cfg.webhookUrl;
   }).catch(() => {});
+
+  // AutoGen
+  async function autogenLoadModels(selectValue) {
+    const sel = document.getElementById('autogenModelInput');
+    if (!sel) return;
+    try {
+      const d = await fetch('/api/ollama-models').then(r => r.json());
+      const current = selectValue || sel.value;
+      sel.innerHTML = '';
+      const models = d.models && d.models.length ? d.models : [current || 'gemma3:12b'];
+      // 現在値がリストになければ先頭に追加
+      if (current && !models.includes(current)) models.unshift(current);
+      models.forEach(m => {
+        const o = document.createElement('option');
+        o.value = m; o.textContent = m;
+        if (m === current) o.selected = true;
+        sel.appendChild(o);
+      });
+    } catch (e) {}
+  }
+
+  async function autogenStart() {
+    await fetch('/api/autogen/start', { method: 'POST' }).catch(() => {});
+    autogenRefresh();
+  }
+  async function autogenStop() {
+    await fetch('/api/autogen/stop', { method: 'POST' }).catch(() => {});
+    autogenRefresh();
+  }
+  async function autogenSaveConfig() {
+    const model         = document.getElementById('autogenModelInput')?.value || '';
+    const numCtx        = parseInt(document.getElementById('autogenNumCtxInput')?.value) || -1;
+    const interval      = parseInt(document.getElementById('autogenIntervalInput')?.value) || 5;
+    const fixedPositive = document.getElementById('autogenFixedPosInput')?.value || '';
+    const fixedNegative = document.getElementById('autogenFixedNegInput')?.value || '';
+    const width         = parseInt(document.getElementById('autogenWidthInput')?.value)  || 0;
+    const height        = parseInt(document.getElementById('autogenHeightInput')?.value) || 0;
+    const count         = parseInt(document.getElementById('autogenCountInput')?.value)  || 0;
+    await fetch('/api/autogen/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, numCtx, interval, fixedPositive, fixedNegative, width, height, count }),
+    }).catch(() => {});
+    autogenRefresh();
+  }
+  async function autogenRefresh() {
+    try {
+      const d = await fetch('/api/autogen/status').then(r => r.json());
+      const el = document.getElementById('autogenStatus');
+      if (!el) return;
+      const nextIn = Math.max(0, d.promptInterval - d.sinceLastPrompt);
+      const stateLabel = d.stopping ? '⏹ 停止中...' : d.running ? '● 実行中' : '○ 待機中';
+      const stateColor = d.stopping ? '#fbbf24' : d.running ? '#34d399' : '#64748b';
+      const progress   = d.total > 0 ? ` (${d.processed}/${d.total})` : '';
+      el.innerHTML =
+        `<div>状態: <span style="color:${stateColor};font-weight:bold">${stateLabel}</span></div>` +
+        `<div>生成: <span style="color:#e2e8f0">${d.processed}${d.total > 0 ? '/' + d.total : ''}</span>枚　エラー: <span style="color:${d.errors ? '#f87171' : '#64748b'}">${d.errors}</span>件</div>` +
+        `<div>プロンプト更新: あと<span style="color:#a78bfa">${nextIn}</span>枚</div>` +
+        (d.current ? `<div>処理中: <span style="color:#fbbf24">${d.current}</span></div>` : '') +
+        (d.lastOllamaPrompt ? `<div style="margin-top:4px;font-size:11px;color:#64748b">最新プロンプト:</div><div style="font-size:11px;color:#93c5fd;word-break:break-all;white-space:pre-wrap;background:#0a0f1a;border-radius:4px;padding:4px 8px;margin-top:2px">${d.lastOllamaPrompt}</div>` : '');
+      // 入力欄に現在値を反映（初回のみ）
+      const mi = document.getElementById('autogenModelInput');
+      const ci = document.getElementById('autogenNumCtxInput');
+      const ii = document.getElementById('autogenIntervalInput');
+      const pi = document.getElementById('autogenFixedPosInput');
+      const ni = document.getElementById('autogenFixedNegInput');
+      if (mi && !mi.dataset.loaded) { mi.dataset.loaded = '1'; autogenLoadModels(d.model || 'gemma3:12b'); }
+      if (ci && !ci.dataset.loaded) { ci.value = d.numCtx ?? -1; ci.dataset.loaded = '1'; }
+      if (ii && !ii.dataset.loaded) { ii.value = d.promptInterval || 5; ii.dataset.loaded = '1'; }
+      if (pi && !pi.dataset.loaded) { pi.value = d.fixedPositive || ''; pi.dataset.loaded = '1'; }
+      if (ni && !ni.dataset.loaded) { ni.value = d.fixedNegative || ''; ni.dataset.loaded = '1'; }
+      const wi = document.getElementById('autogenWidthInput');
+      const hi = document.getElementById('autogenHeightInput');
+      const ki = document.getElementById('autogenCountInput');
+      if (wi && !wi.dataset.loaded) { wi.value = d.width  || 0; wi.dataset.loaded = '1'; }
+      if (hi && !hi.dataset.loaded) { hi.value = d.height || 0; hi.dataset.loaded = '1'; }
+      if (ki && !ki.dataset.loaded) { ki.value = d.count  || 0; ki.dataset.loaded = '1'; }
+      const sb = document.getElementById('autogenStartBtn');
+      const st = document.getElementById('autogenStopBtn');
+      if (sb) sb.disabled = d.running;
+      if (st) st.disabled = !d.running;
+    } catch (e) {}
+  }
+  autogenRefresh();
 
   function sendSDText(key, value) {
     localStorage.setItem(key, value);

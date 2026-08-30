@@ -88,7 +88,7 @@ function startTaiman(challenger, target) {
       [target.ipid]:     target.hp ?? 30,
     },
     attackTimer: null,
-    interval: 1200,
+    interval: 2400,
     bets: {},
     betPhase: true,
     betTimer: null,
@@ -305,12 +305,13 @@ function taimanDoAttack() {
       defender.el.classList.add('trembling');
       setTimeout(() => defender.el?.classList.remove('trembling'), 700);
     }
+    const skillName = '攻撃';
     // ダメージトースト
     const container = document.getElementById('brToastContainer');
     if (container) {
       const toast = document.createElement('div');
       toast.className = 'br-toast' + (isCrit ? ' br-toast-crit' : '');
-      toast.innerHTML = `<span class="br-atk">${escapeHtml(attacker.name)}</span> ⚔️ <span class="br-tgt">${escapeHtml(defender.name)}</span> <span class="br-dmg">${isCrit ? '💥' : '−'}${dmg.toLocaleString()}</span>`;
+      toast.innerHTML = `<span class="br-atk">${escapeHtml(attacker.name)}</span>「<span class="br-skill">${escapeHtml(skillName)}</span>」⚔️ <span class="br-tgt">${escapeHtml(defender.name)}</span> <span class="br-dmg">${isCrit ? '💥' : '−'}${dmg.toLocaleString()}</span>`;
       container.prepend(toast);
       while (container.children.length > 8) container.lastChild.remove();
       setTimeout(() => toast.remove(), 2800);
@@ -320,7 +321,7 @@ function taimanDoAttack() {
       if (!tryTaimanRevive(defender, defenderId)) { endTaiman(attacker, defender); return; }
     }
     taimanState.turn = taimanState.turn === 'challenger' ? 'target' : 'challenger';
-    taimanState.interval = Math.max(200, taimanState.interval - 40);
+    taimanState.interval = Math.max(400, taimanState.interval - 80);
     taimanState.attackTimer = setTimeout(() => taimanDoAttack(), taimanState.interval);
   }, 240);
 }
@@ -349,6 +350,7 @@ function endTaiman(winner, loser) {
   taimanState = null;
 
   document.getElementById('taimanHpBars')?.remove();
+  document.getElementById('taimanCommentary')?.remove();
 
   // 全キャラのサイズをリセット
   Object.values(users).forEach(u => {

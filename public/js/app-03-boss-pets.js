@@ -56,6 +56,8 @@ let taimanHpMult   = parseInt(localStorage.getItem('taimanHpMult')   ?? '10');
 let taimanDefeatCommand = localStorage.getItem('taimanDefeatCommand') || '';
 let taimanCharScale     = parseFloat(localStorage.getItem('taimanCharScale') || '4');
 let taimanCooldown      = parseInt(localStorage.getItem('taimanCooldown')) || 5 * 60 * 1000;
+let taimanDisabled           = (localStorage.getItem('taimanDisabled')           ?? '0') === '1';
+let taimanCommentaryEnabled  = (localStorage.getItem('taimanCommentaryEnabled')  ?? '0') === '1';
 let autoReplyWords    = JSON.parse(localStorage.getItem('autoReplyWords')    || 'null') || ['これ放置','mumyou','無明','いない','いにゃい','寝た？','ねた？','ほうち','ホウチ','houti','houchi','abandoned','いる？','iru?','ねてる'];
 let autoReplyMessages = JSON.parse(localStorage.getItem('autoReplyMessages') || 'null') || ['いますよ'];
 let autoDeleteMinutes   = parseInt(localStorage.getItem('autoDeleteMinutes')) || 30;
@@ -81,7 +83,8 @@ let moveLocked = false;          // 移動制限モード（方向移動・移�
 let debugMode  = false;          // デバッグモード（全キャラATK=50）
 let compactMode  = false;        // コンパクトモード
 let fiveMinMode  = false;        // 5分モード（AI自動返答）
-let equipHidden        = false;   // 装備アイコン非表示
+let equipHidden        = localStorage.getItem('equipHidden') === 'true';
+let petHidden          = localStorage.getItem('petHidden')   === 'true';
 let gatherMarginLeft   = parseInt(localStorage.getItem('gatherMarginLeft')  || '50');
 let gatherMarginRight  = parseInt(localStorage.getItem('gatherMarginRight') || '50');
 let gatherMarginBottom = parseInt(localStorage.getItem('gatherMarginBottom') || '10');
@@ -91,7 +94,7 @@ let contentModeGatherMarginLeft   = parseInt(localStorage.getItem('contentModeGa
 let contentModeGatherMarginRight  = parseInt(localStorage.getItem('contentModeGatherMarginRight')  || '0');
 let contentModeCharSizePct  = parseInt(localStorage.getItem('contentModeCharSizePct')  || '70');
 let contentModeBossSizePct  = parseInt(localStorage.getItem('contentModeBossSizePct')  || '10');
-let brAutoEnabled = true;        // 自動バトルロイヤル有効フラグ
+let brAutoEnabled = (localStorage.getItem('brAutoEnabled') ?? '1') === '1';
 let bombHidden      = localStorage.getItem('bombHidden')      === 'true';
 let trashHidden     = localStorage.getItem('trashHidden')     === 'true';
 let charStatsHidden = localStorage.getItem('charStatsHidden') === 'true';
@@ -143,6 +146,16 @@ let ttsVolume     = 1.0;
 let sdWidth          = 1600;
 let sdHeight         = 1000;
 let sdSteps          = 20;
+// 超生成コマンド（500MP）専用の幅・高さ・Steps・表示サイズ
+let sdChoWidth    = 1920;
+let sdChoHeight   = 1080;
+let sdChoSteps    = 40;
+let sdChoPopWidth = 700;
+// ゴミ生成コマンド（5MP）専用の幅・高さ・Steps・表示サイズ
+let sdGomiWidth    = 512;
+let sdGomiHeight   = 512;
+let sdGomiSteps    = 5;
+let sdGomiPopWidth = 240;
 let sdPopWidth       = 480; // SD画像の表示サイズ(px)
 let sdPositiveSuffix    = 'masterpiece, best quality';
 let sdDotPositiveSuffix  = 'pixel art, pixelated, 8bit, dot art, retro game sprite, pixel icons, crisp pixels';

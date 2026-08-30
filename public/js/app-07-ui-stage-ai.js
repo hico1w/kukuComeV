@@ -551,22 +551,43 @@ document.getElementById('moveAreaSelect')?.addEventListener('change', e => {
 
 // ── AFK表示スライダー（透明度・グレースケール・明るさ） ──────────
 // ── 射コマンド：物理演算ループ ────────────────────────────────────
+// charTargets の offsetWidth/offsetHeight は変わらないのでキャッシュする
+let _kaiCharCache = [];
+let _kaiCharCacheTs = 0;
 function startKaiPhysics() {
   if (kaiAnimId) return;
   function step() {
     const stageW = stage.clientWidth;
     const stageH = stage.clientHeight;
-    const charTargets = Object.values(users)
-      .filter(u => u.el)
-      .map(u => {
+    const now = performance.now();
+    // offsetWidth/offsetHeight は 200ms ごとにのみ読み直す（レイアウト強制リフローを削減）
+    if (now - _kaiCharCacheTs > 200) {
+      _kaiCharCache = Object.values(users).filter(u => u.el).map(u => {
         const w = u.el.offsetWidth  || 60;
         const h = u.el.offsetHeight || 80;
-        return { cx: u.x + w * 0.5, cy: u.y + h * 0.45, r: Math.min(w, h) * 0.4 };
+        return { u, w, h, r: Math.min(w, h) * 0.4 };
       });
+      _kaiCharCacheTs = now;
+    }
+    // cx/cy はキャラが動くので毎フレーム u.x/y から算出
+    const charTargets = _kaiCharCache.map(c => ({
+      cx: c.u.x + c.w * 0.5, cy: c.u.y + c.h * 0.45, r: c.r,
+    }));
     const bossTarget = _kaiBossTarget();
     const agruBossTarget = _kaiAgruBossTarget();
     for (let i = kaiBullets.length - 1; i >= 0; i--) {
       const b = kaiBullets[i];
+      // 停止した弾（床に着地・静止）は物理計算をスキップして寿命だけ進める
+      const sleeping = b.vy === 0 && Math.abs(b.vx) < 0.3;
+      if (sleeping) {
+        b.life++;
+        const fadeStart = b.maxLife * 0.7;
+        if (b.life > fadeStart) {
+          b.el.style.opacity = Math.max(0, 1 - (b.life - fadeStart) / (b.maxLife - fadeStart)).toFixed(2);
+        }
+        if (b.life >= b.maxLife) { b.el.remove(); kaiBullets.splice(i, 1); }
+        continue;
+      }
       b.vy += kaiGravity;
       b.x  += b.vx;
       b.y  += b.vy;
@@ -644,10 +665,9 @@ function startKaiPhysics() {
       // フェードアウト（寿命後半30%）
       const fadeStart = b.maxLife * 0.7;
       const alpha = b.life > fadeStart ? 1 - (b.life - fadeStart) / (b.maxLife - fadeStart) : 1;
-      b.el.style.left      = (b.x - b.r) + 'px';
-      b.el.style.top       = (b.y - b.r) + 'px';
-      b.el.style.opacity   = Math.max(0, alpha).toFixed(3);
-      b.el.style.transform = 'rotate(' + (Math.atan2(b.vy, b.vx) * 180 / Math.PI) + 'deg)';
+      // left/top の代わりに translate() でGPUコンポジットのみに処理させる
+      b.el.style.transform = `translate(${(b.x - b.r).toFixed(1)}px,${(b.y - b.r).toFixed(1)}px) rotate(${(Math.atan2(b.vy, b.vx) * 180 / Math.PI).toFixed(1)}deg)`;
+      b.el.style.opacity   = Math.max(0, alpha).toFixed(2);
       b.life++;
       if (b.life >= b.maxLife) { b.el.remove(); kaiBullets.splice(i, 1); }
     }
@@ -655,23 +675,40 @@ function startKaiPhysics() {
   }
   kaiAnimId = requestAnimationFrame(step);
 }
-// ボス当たり判定rect（step内で毎フレーム1回だけ取得）
+// ボス当たり判定rect — 150ms キャッシュで毎フレームの getBoundingClientRect を削減
+let _kaiBossRectCache = null, _kaiBossRectTs = 0;
 function _kaiBossTarget() {
-  if (!bossState?.el || bossState.defeated) return null;
-  const br = bossState.el.getBoundingClientRect();
-  const sr = stage.getBoundingClientRect();
-  const bx = br.left - sr.left, by = br.top - sr.top;
-  return { cx: bx + br.width * 0.5, cy: by + br.height * 0.45, r: Math.min(br.width, br.height) * 0.45, by, bx };
+  const now = performance.now();
+  if (now - _kaiBossRectTs > 150) {
+    _kaiBossRectTs = now;
+    if (!bossState?.el || bossState.defeated) { _kaiBossRectCache = null; }
+    else {
+      const br = bossState.el.getBoundingClientRect();
+      const sr = stage.getBoundingClientRect();
+      const bx = br.left - sr.left, by = br.top - sr.top;
+      _kaiBossRectCache = { cx: bx + br.width * 0.5, cy: by + br.height * 0.45, r: Math.min(br.width, br.height) * 0.45, by, bx };
+    }
+  }
+  return _kaiBossRectCache;
 }
-// ボスアゲル当たり判定
+let _kaiAgruBossRectCache = null, _kaiAgruBossRectTs = 0;
 function _kaiAgruBossTarget() {
-  if (!agruBattleActive) return null;
-  const imgEl = document.getElementById('agruBattleCharImg') || document.getElementById('agruCharImg');
-  if (!imgEl || !imgEl.isConnected) return null;
-  const br = imgEl.getBoundingClientRect();
-  const sr = stage.getBoundingClientRect();
-  const bx = br.left - sr.left, by = br.top - sr.top;
-  return { cx: bx + br.width * 0.5, cy: by + br.height * 0.4, r: Math.min(br.width, br.height) * 0.4 };
+  const now = performance.now();
+  if (now - _kaiAgruBossRectTs > 150) {
+    _kaiAgruBossRectTs = now;
+    if (!agruBattleActive) { _kaiAgruBossRectCache = null; }
+    else {
+      const imgEl = document.getElementById('agruBattleCharImg') || document.getElementById('agruCharImg');
+      if (!imgEl || !imgEl.isConnected) { _kaiAgruBossRectCache = null; }
+      else {
+        const br = imgEl.getBoundingClientRect();
+        const sr = stage.getBoundingClientRect();
+        const bx = br.left - sr.left, by = br.top - sr.top;
+        _kaiAgruBossRectCache = { cx: bx + br.width * 0.5, cy: by + br.height * 0.4, r: Math.min(br.width, br.height) * 0.4 };
+      }
+    }
+  }
+  return _kaiAgruBossRectCache;
 }
 
 // ── TTS（RVC音声合成） ────────────────────────────────────────────

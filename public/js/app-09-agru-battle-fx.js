@@ -1317,8 +1317,8 @@ function _launchAtkBubble(user, text) {
 
   const fly = document.createElement('div');
   fly.style.cssText = [
-    'position:absolute', `left:${sx}px`, `top:${sy}px`,
-    'transform:translate(-50%,-100%) scale(1)',
+    'position:absolute', 'left:0', 'top:0',
+    `transform:translate(${sx}px,${sy}px) translate(-50%,-100%) scale(1)`,
     'background:rgba(255,255,255,0.96)',
     'color:#111',
     'border-radius:14px',
@@ -1333,7 +1333,7 @@ function _launchAtkBubble(user, text) {
     'pointer-events:none',
     'z-index:9000',
     'opacity:1',
-    'will-change:left,top,transform,opacity',
+    'will-change:transform,opacity',
   ].join(';');
   fly.textContent = label;
 
@@ -1359,9 +1359,7 @@ function _launchAtkBubble(user, text) {
     const by = (1-ease)*(1-ease)*sy + 2*(1-ease)*ease*midY + ease*ease*ey;
     const scale = 1 - ease * 0.45;
     const opacity = t > 0.75 ? 1 - (t - 0.75) / 0.25 : 1;
-    fly.style.left    = bx + 'px';
-    fly.style.top     = by + 'px';
-    fly.style.transform = `translate(-50%,-100%) scale(${scale})`;
+    fly.style.transform = `translate(${bx}px,${by}px) translate(-50%,-100%) scale(${scale})`;
     fly.style.opacity = opacity;
     if (t < 1) requestAnimationFrame(step);
     else fly.remove();

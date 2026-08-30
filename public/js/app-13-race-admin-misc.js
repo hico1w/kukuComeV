@@ -758,6 +758,7 @@ function _adminBtnDispatch(id) {
     renderBRTimerPanel();
   } else if (id === 'brAutoBtn') {
     brAutoEnabled = !brAutoEnabled;
+    localStorage.setItem('brAutoEnabled', brAutoEnabled ? '1' : '0');
   } else if (id === 'slotSoundBtn') {
     slotSoundEnabled = !slotSoundEnabled;
     localStorage.setItem('slotSoundEnabled', slotSoundEnabled ? '1' : '0');
@@ -803,6 +804,11 @@ function _adminBtnDispatch(id) {
   } else if (id === 'hideEquipBtn') {
     equipHidden = !equipHidden;
     stage.classList.toggle('equip-hidden', equipHidden);
+    localStorage.setItem('equipHidden', equipHidden);
+  } else if (id === 'hidePetBtn') {
+    petHidden = !petHidden;
+    stage.classList.toggle('pet-hidden', petHidden);
+    localStorage.setItem('petHidden', petHidden);
   } else if (id === 'openImgModal') { openModal(); }
   else if (id === 'streamEndBtn')      { _streamEndSummary(); }
   else if (id === 'streamEndCardClose'){ closeEndCard(); }
@@ -1001,6 +1007,14 @@ function handleAdminMessage(d, replyFn) {
     state.sdWidth          = sdWidth;
     state.sdHeight         = sdHeight;
     state.sdSteps          = sdSteps;
+    state.sdChoWidth    = sdChoWidth;
+    state.sdChoHeight   = sdChoHeight;
+    state.sdChoSteps    = sdChoSteps;
+    state.sdChoPopWidth = sdChoPopWidth;
+    state.sdGomiWidth    = sdGomiWidth;
+    state.sdGomiHeight   = sdGomiHeight;
+    state.sdGomiSteps    = sdGomiSteps;
+    state.sdGomiPopWidth = sdGomiPopWidth;
     state.sdPopWidth       = sdPopWidth;
     state.sdPositiveSuffix    = sdPositiveSuffix;
     state.sdDotPositiveSuffix  = sdDotPositiveSuffix;
@@ -1017,6 +1031,8 @@ function handleAdminMessage(d, replyFn) {
     state.taimanDefeatCommand   = taimanDefeatCommand;
     state.taimanCharScale       = taimanCharScale;
     state.taimanCooldown        = taimanCooldown;
+    state.taimanDisabled        = taimanDisabled ? 1 : 0;
+    state.taimanCommentaryEnabled = taimanCommentaryEnabled ? 1 : 0;
     state.charAspectExp         = charAspectExp;
     state.charPortraitBoost     = charPortraitBoost;
     state.charStatsBottom       = charStatsBottom;
@@ -1209,6 +1225,8 @@ function handleAdminMessage(d, replyFn) {
     saveSettingsToServer();
   } else if (d.type === 'sdText') {
     const elMap = { sdWidth:'sdWidthInput', sdHeight:'sdHeightInput', sdSteps:'sdStepsSlider',
+                    sdChoWidth:'sdChoWidthInput', sdChoHeight:'sdChoHeightInput', sdChoSteps:'sdChoStepsSlider', sdChoPopWidth:'sdChoPopWidthSlider',
+                    sdGomiWidth:'sdGomiWidthInput', sdGomiHeight:'sdGomiHeightInput', sdGomiSteps:'sdGomiStepsSlider', sdGomiPopWidth:'sdGomiPopWidthSlider',
                     sdPopWidth:'sdPopWidthSlider',
                     sdPositiveSuffix:'sdPositiveSuffixInput',
                     sdDotPositiveSuffix:'sdDotPositiveSuffixInput',
@@ -1226,6 +1244,14 @@ function handleAdminMessage(d, replyFn) {
       if (d.key === 'sdWidth')          sdWidth          = parseInt(d.value)   || sdWidth;
       if (d.key === 'sdHeight')         sdHeight         = parseInt(d.value)   || sdHeight;
       if (d.key === 'sdSteps')          sdSteps          = parseInt(d.value)   || sdSteps;
+      if (d.key === 'sdChoWidth')    sdChoWidth    = parseInt(d.value) || sdChoWidth;
+      if (d.key === 'sdChoHeight')   sdChoHeight   = parseInt(d.value) || sdChoHeight;
+      if (d.key === 'sdChoSteps')    sdChoSteps    = parseInt(d.value) || sdChoSteps;
+      if (d.key === 'sdChoPopWidth') sdChoPopWidth = parseInt(d.value) || sdChoPopWidth;
+      if (d.key === 'sdGomiWidth')    sdGomiWidth    = parseInt(d.value) || sdGomiWidth;
+      if (d.key === 'sdGomiHeight')   sdGomiHeight   = parseInt(d.value) || sdGomiHeight;
+      if (d.key === 'sdGomiSteps')    sdGomiSteps    = parseInt(d.value) || sdGomiSteps;
+      if (d.key === 'sdGomiPopWidth') sdGomiPopWidth = parseInt(d.value) || sdGomiPopWidth;
       if (d.key === 'sdPopWidth')       sdPopWidth       = parseInt(d.value)   || sdPopWidth;
       if (d.key === 'sdPositiveSuffix')    sdPositiveSuffix    = d.value;
       if (d.key === 'sdDotPositiveSuffix')  sdDotPositiveSuffix  = d.value;
@@ -1243,6 +1269,10 @@ function handleAdminMessage(d, replyFn) {
       if (el) {
         el.value = d.value;
         if (d.key === 'sdSteps')       document.getElementById('sdStepsVal').textContent       = d.value;
+        if (d.key === 'sdChoSteps')    document.getElementById('sdChoStepsVal').textContent    = d.value;
+        if (d.key === 'sdChoPopWidth') document.getElementById('sdChoPopWidthVal').textContent = d.value + 'px';
+        if (d.key === 'sdGomiSteps')    document.getElementById('sdGomiStepsVal').textContent    = d.value;
+        if (d.key === 'sdGomiPopWidth') document.getElementById('sdGomiPopWidthVal').textContent = d.value + 'px';
         if (d.key === 'sdDisplayTime') document.getElementById('sdDisplayTimeVal').textContent = d.value + '秒';
         if (d.key === 'sdPopWidth')    document.getElementById('sdPopWidthVal').textContent    = d.value + 'px';
         if (d.key === 'sdMosaicBlock') document.getElementById('sdMosaicBlockVal').textContent = d.value + 'px';
@@ -1490,6 +1520,14 @@ function handleAdminMessage(d, replyFn) {
     _charSaveData = {};
   } else if (d.type === 'deleteCharSave') {
     delete _charSaveData[d.key];
+  } else if (d.type === 'taimanDisabled') {
+    taimanDisabled = d.value === '1';
+    localStorage.setItem('taimanDisabled', taimanDisabled ? '1' : '0');
+    saveSettingsToServer();
+  } else if (d.type === 'taimanCommentaryEnabled') {
+    taimanCommentaryEnabled = d.value === '1';
+    localStorage.setItem('taimanCommentaryEnabled', taimanCommentaryEnabled ? '1' : '0');
+    saveSettingsToServer();
   } else if (d.type === 'taimanCharScale') {
     taimanCharScale = parseFloat(d.value) || 4;
     localStorage.setItem('taimanCharScale', taimanCharScale);
@@ -1923,13 +1961,15 @@ function raceAnimFrame(ts) {
   let allDone = true;
   raceState.horses.forEach(h => {
     const x = getHorseX(h, t, raceState.trackW);
+    h._x = x; // xMap の z-index ソートで使う
     const el = document.getElementById('rh-' + h.no);
-    if (el) el.style.left = x + 'px';
+    // translateX で GPU コンポジットのみに処理させる（translateY(-50%) は CSS class 分を JS で引き継ぐ）
+    if (el) el.style.transform = `translateX(${x.toFixed(1)}px) translateY(-50%)`;
     if (x < raceState.trackW * 0.98) allDone = false;
   });
   // z-index: leading horse (rightmost) on top so it visually overtakes others
   const xMap = {};
-  raceState.horses.forEach(h => { xMap[h.no] = parseFloat(document.getElementById('rh-' + h.no)?.style.left) || 0; });
+  raceState.horses.forEach(h => { xMap[h.no] = h._x ?? 0; });
   [...raceState.horses].sort((a, b) => xMap[a.no] - xMap[b.no]).forEach((h, i) => {
     const el = document.getElementById('rh-' + h.no);
     if (el) el.style.zIndex = i + 2;

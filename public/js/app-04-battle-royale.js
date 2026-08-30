@@ -189,7 +189,7 @@ function startBattleRoyale() {
     showBRToast(null, { name: 'ボス戦中はBR不可' }, 0, false, true, 0);
     return;
   }
-  const eligible = Object.values(users).filter(u => u.el && !u.ko && !u.afk);
+  const eligible = Object.values(users).filter(u => u.el && !u.ko && !u.afk && !u.isMaster);
   if (eligible.length < 2) {
     showBRToast(null, { name: '参加者2人以上必要です' }, 0, false, true, 0);
     return;

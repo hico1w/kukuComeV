@@ -68,11 +68,35 @@ function hasJapanese(text) {
   return /[　-鿿＀-￯]/.test(text);
 }
 
-async function translateToEnglish(text) {
+async function _translateGoogle(text) {
   const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(text)}`;
   const data = await fetchJSON(url);
   // data[0] is array of [translated, original] pairs
   return data[0].map(seg => seg[0]).join('');
+}
+
+// MyMemoryの無料枠を5,000→50,000文字/日に上げるダミー識別子（実在不要・他利用者との衝突回避のためランダム生成）
+const MYMEMORY_DUMMY_EMAIL = 'kukucome-835470f510a742fd@example.com';
+
+async function _translateMyMemory(text) {
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ja|en&de=${encodeURIComponent(MYMEMORY_DUMMY_EMAIL)}`;
+  const data = await fetchJSON(url);
+  const translated = data?.responseData?.translatedText;
+  // クォータ超過時は responseStatus!=200 か、本文に警告文言が入る
+  if (!translated || Number(data.responseStatus) !== 200 || /MYMEMORY WARNING/i.test(translated)) {
+    throw new Error('MyMemory translate failed');
+  }
+  return translated;
+}
+
+// Google翻訳（非公式）が429等で失敗した場合はMyMemoryにフォールバック
+async function translateToEnglish(text) {
+  try {
+    return await _translateGoogle(text);
+  } catch (e) {
+    console.warn('[translate] Google失敗、MyMemoryにフォールバック:', e.message);
+    return await _translateMyMemory(text);
+  }
 }
 
 app.post('/api/translate', async (req, res) => {
@@ -749,13 +773,6 @@ app.post('/api/sd-generate', async (req, res) => {
   const { prompt, charName, width, height, steps, cfgScale, sampler, positiveSuffix, negative } = req.body || {};
   if (!prompt) return res.status(400).json({ error: 'prompt is required' });
 
-  let fn_index, defaults;
-  try {
-    ({ fn_index, defaults } = await _sdGetDefaults());
-  } catch (e) {
-    return res.status(500).json({ error: 'SD defaults 取得失敗: ' + e.message });
-  }
-
   let translatedPrompt = prompt;
   if (hasJapanese(prompt)) {
     try {
@@ -768,109 +785,95 @@ app.post('/api/sd-generate', async (req, res) => {
 
   const _w = parseInt(width)  || 1600;
   const _h = parseInt(height) || 1000;
-  const data = [...defaults];
-  if (data[0] === null || (typeof data[0] === 'object' && !Array.isArray(data[0]) && data[0] !== null && Object.keys(data[0]).length === 0)) data[0] = {};
-  data[SD_IDX.PROMPT]      = translatedPrompt + (positiveSuffix ? ', ' + positiveSuffix : '');
-  data[SD_IDX.NEGATIVE]    = negative || SD_NEGATIVE;
-  data[SD_IDX.WIDTH]       = _w;
-  data[SD_IDX.HEIGHT]      = _h;
-  data[SD_IDX.STEPS]       = parseInt(steps)      || 20;
-  data[SD_IDX.CFG]         = parseFloat(cfgScale) || 3;
-  data[SD_IDX.SAMPLER]     = sampler || 'Euler a';
-  data[SD_IDX.BATCH_COUNT] = 1;
-  data[SD_IDX.BATCH_SIZE]  = 1;
-  data[SD_IDX.HIRES_FIX]   = false;
-  data[SD_IDX.OVERRIDE]    = [];
-  data[SD_IDX.SCRIPT]      = 'None';
+  const fullPrompt = translatedPrompt + (positiveSuffix ? ', ' + positiveSuffix : '');
 
-  console.log(`[SD] generating via /api/predict: "${prompt}" ${_w}x${_h} fn_index=${fn_index} WIDTH_idx=${SD_IDX.WIDTH}(default=${defaults[SD_IDX.WIDTH]}) HEIGHT_idx=${SD_IDX.HEIGHT}(default=${defaults[SD_IDX.HEIGHT]}) data[0]=${JSON.stringify(data[0]).slice(0,80)}`);
+  _sdQueue = _sdQueue.then(() => new Promise((resolveQueue) => {
+  console.log(`[SD] queue start, generating via /sdapi/v1/txt2img: "${prompt}" ${_w}x${_h}`);
 
-  const body = JSON.stringify({ fn_index, data, session_hash: Math.random().toString(36).slice(2, 12) });
-  const options = {
-    hostname: '127.0.0.1', port: 7860, path: '/api/predict',
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+  const sdBody = JSON.stringify({
+    prompt: fullPrompt,
+    negative_prompt: negative || SD_NEGATIVE,
+    width: _w, height: _h,
+    steps: parseInt(steps) || 20,
+    cfg_scale: parseFloat(cfgScale) || 3,
+    sampler_name: sampler || 'Euler a',
+    scheduler: 'Automatic',
+    batch_size: 1, n_iter: 1,
+  });
+
+  const opts = {
+    hostname: '127.0.0.1', port: 7860,
+    path: '/sdapi/v1/txt2img', method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(sdBody) },
   };
 
-  const sdReq = http.request(options, sdRes => {
+  const sdReq = http.request(opts, sdRes => {
     const chunks = [];
     sdRes.on('data', c => chunks.push(c));
     sdRes.on('end', () => {
       try {
         const result = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-        console.log('[SD] predict response:', JSON.stringify(result).slice(0, 300));
-        if (result.error) return res.status(500).json({ error: 'SD error: ' + result.error });
-
-        const gallery = result.data?.[0];
-        let imageInfo = null;
-        if (Array.isArray(gallery) && gallery.length > 0) {
-          imageInfo = gallery[gallery.length - 1];
-        } else if (gallery && typeof gallery === 'object') {
-          imageInfo = gallery;
-        }
-        if (!imageInfo) return res.status(500).json({ error: 'SD: 画像情報が取得できませんでした' });
-
-        console.log('[SD] imageInfo:', JSON.stringify(imageInfo).slice(0, 150));
-
-        function resolveAndSend(info) {
-          if (info.url) {
-            const fileUrl = info.url.startsWith('http') ? info.url : `http://127.0.0.1:7860${info.url}`;
-            http.get(fileUrl, r => {
-              const cs = [];
-              r.on('data', c => cs.push(c));
-              r.on('end', () => {
-                const img = 'data:image/png;base64,' + Buffer.concat(cs).toString('base64');
-                console.log('[SD] success (url)');
-                sendToDiscord(img, prompt, translatedPrompt, charName).catch(() => {});
-                res.json({ image: img, translatedPrompt });
-              });
-            }).on('error', e => res.status(500).json({ error: 'SD 画像DL失敗: ' + e.message }));
-          } else if (info.data && info.data.startsWith('data:')) {
-            console.log('[SD] success (base64)');
-            sendToDiscord(info.data, prompt, translatedPrompt, charName).catch(() => {});
-            res.json({ image: info.data, translatedPrompt });
-          } else if (info.name) {
-            const fileUrl = `http://127.0.0.1:7860/file=${info.name.split('?')[0]}`;
-            http.get(fileUrl, r => {
-              const cs = [];
-              r.on('data', c => cs.push(c));
-              r.on('end', () => {
-                const img = 'data:image/png;base64,' + Buffer.concat(cs).toString('base64');
-                console.log('[SD] success (name)');
-                sendToDiscord(img, prompt, translatedPrompt, charName).catch(() => {});
-                res.json({ image: img, translatedPrompt });
-              });
-            }).on('error', e => res.status(500).json({ error: 'SD 画像DL失敗: ' + e.message }));
-          } else {
-            res.status(500).json({ error: 'SD: 画像フォーマット不明 ' + JSON.stringify(info).slice(0, 80) });
-          }
-        }
-        resolveAndSend(imageInfo);
+        console.log('[SD] response: images:', result.images?.length, '| detail:', result.detail?.toString?.().slice(0, 80));
+        if (result.detail) return res.status(500).json({ error: 'SD error: ' + result.detail });
+        const b64 = result.images?.[0];
+        if (!b64) return res.status(500).json({ error: 'SD: 画像なし' });
+        const dataUrl = 'data:image/png;base64,' + b64;
+        console.log('[SD] success');
+        sendToDiscord(dataUrl, prompt, translatedPrompt, charName).catch(() => {});
+        try {
+          const _today = new Date().toISOString().slice(0, 10);
+          const _saveDir = path.join('F:\\AI\\Data\\Images\\Text2Img', _today);
+          if (!fs.existsSync(_saveDir)) fs.mkdirSync(_saveDir, { recursive: true });
+          const _ts  = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+          const _slug = translatedPrompt.slice(0, 40).replace(/[^a-zA-Z0-9 _-]/g, '').trim().replace(/\s+/g, '_') || 'image';
+          fs.writeFileSync(path.join(_saveDir, `${_ts}_${_slug}.png`), Buffer.from(b64, 'base64'));
+        } catch (e) { console.warn('[SD] 保存失敗:', e.message); }
+        res.json({ image: dataUrl, translatedPrompt });
       } catch (e) {
         if (!res.headersSent) res.status(500).json({ error: 'SD レスポンス解析失敗: ' + e.message });
+      } finally {
+        resolveQueue();
       }
     });
   });
-  sdReq.setTimeout(120000, () => { sdReq.destroy(); if (!res.headersSent) res.status(500).json({ error: 'SD timeout' }); });
-  sdReq.on('error', e => { if (!res.headersSent) res.status(500).json({ error: e.message }); });
-  sdReq.write(body);
+  sdReq.setTimeout(30000, () => {
+    sdReq.destroy();
+    // SD に中断を送信して GPU を解放する
+    const intReq = http.request({ hostname: '127.0.0.1', port: 7860, path: '/sdapi/v1/interrupt', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': 0 } });
+    intReq.on('error', () => {});
+    intReq.end();
+    console.warn('[SD] timeout (30s) → sent /sdapi/v1/interrupt');
+    if (!res.headersSent) res.status(500).json({ error: 'SD timeout (30s)' });
+    resolveQueue();
+  });
+  sdReq.on('error', e => { if (!res.headersSent) res.status(500).json({ error: e.message }); resolveQueue(); });
+  sdReq.write(sdBody);
   sdReq.end();
+  })); // _sdQueue
 });
 
-// キャラ作成：SD生成＋ABG Remover で背景透過→ディスク保存せず dataUrl をそのまま返す
+// SD生成をすべて直列化する共有キュー（sd-generate / sd-create-char 両方が使う）
+// SD は同時に1件しか処理できないため並列リクエストを防ぐ
+let _sdQueue = Promise.resolve();
+
 app.post('/api/sd-create-char', async (req, res) => {
   const { prompt, ipid, positiveSuffix, negative, steps, cfgScale, sampler, sdCharOutdir } = req.body || {};
   console.log('[SD-CHAR] request received, prompt:', prompt, 'ipid:', ipid, 'outdir:', sdCharOutdir || '(未設定)');
   if (!prompt) return res.status(400).json({ error: 'prompt is required' });
 
+  // 翻訳は並走させてよい（SDを直列化するだけでよい）
   let translatedPrompt = prompt;
   if (hasJapanese(prompt)) {
-    try { translatedPrompt = await translateToEnglish(prompt); } catch(e) {}
+    try { translatedPrompt = await translateToEnglish(prompt); } catch(e) { console.warn('[SD-CHAR] 翻訳失敗:', e.message); }
   }
+  console.log('[SD-CHAR] translated:', translatedPrompt, '→ queuing SD...');
   const fullPrompt = translatedPrompt + (positiveSuffix ? ', ' + positiveSuffix : '');
 
+  // SD生成をシリアル化：前のリクエスト完了後に startTime を記録してから開始する
+  _sdQueue = _sdQueue.then(() => new Promise((resolveQueue) => {
+  console.log('[SD-CHAR] queue start, sending to SD:', fullPrompt.slice(0, 60));
   // only_save=true で ABG Remover が透過 PNG をディスク保存する。
-  // API レスポンスは JPEG なので使わず、生成前の timestamp を基に SD の outputs フォルダから
+  // API レスポンスは JPEG なので使わず、生成直前の timestamp を基に SD の outputs フォルダから
   // 新しく作られた RGBA PNG を探して使う。
   const startTime = Date.now();
 
@@ -881,6 +884,7 @@ app.post('/api/sd-create-char', async (req, res) => {
     steps: parseInt(steps) || 20,
     cfg_scale: parseFloat(cfgScale) || 7,
     sampler_name: sampler || 'Euler a',
+    scheduler: 'Automatic',
     batch_size: 1, n_iter: 1,
     script_name: 'ABG Remover',
     script_args: [true, false, false, '#ffffff', false],  // only_save=true → 透過PNGのみディスク保存
@@ -963,13 +967,388 @@ app.post('/api/sd-create-char', async (req, res) => {
         res.json({ image: dataUrl, translatedPrompt });
       } catch(e) {
         if (!res.headersSent) res.status(500).json({ error: 'レスポンス解析失敗: ' + e.message });
+      } finally {
+        resolveQueue();
       }
     });
   });
-  sdReq.setTimeout(120000, () => { sdReq.destroy(); if (!res.headersSent) res.status(504).json({ error: 'SD timeout' }); });
-  sdReq.on('error', e => { if (!res.headersSent) res.status(500).json({ error: e.message }); });
+  sdReq.setTimeout(120000, () => { sdReq.destroy(); if (!res.headersSent) res.status(504).json({ error: 'SD timeout' }); resolveQueue(); });
+  sdReq.on('error', e => { if (!res.headersSent) res.status(500).json({ error: e.message }); resolveQueue(); });
   sdReq.write(sdBody);
   sdReq.end();
+  })); // _sdQueue
+});
+
+// ── AutoGen: PNG info読み取り＋自動SD生成 ────────────────────────────
+const AUTOGEN_SOURCE_DIR = 'E:\\claude\\AutoGen\\sourceImage';
+const AUTOGEN_OUTPUT_BASE = 'E:\\claude\\AutoGen\\output';
+
+// SD生成パラメータをファイルから読み取る（PNG/JPG両対応）
+function readSdInfo(filePath) {
+  try {
+    const buf = fs.readFileSync(filePath);
+    // PNG: tEXt チャンク "parameters"
+    if (buf.slice(0, 8).toString('hex') === '89504e470d0a1a0a') {
+      let offset = 8;
+      while (offset < buf.length - 12) {
+        const length = buf.readUInt32BE(offset);
+        const type = buf.slice(offset + 4, offset + 8).toString('ascii');
+        const data = buf.slice(offset + 8, offset + 8 + length);
+        offset += 12 + length;
+        if (type === 'tEXt') {
+          const nullIdx = data.indexOf(0);
+          if (nullIdx !== -1 && data.slice(0, nullIdx).toString('ascii') === 'parameters') {
+            return data.slice(nullIdx + 1).toString('latin1');
+          }
+        }
+        if (type === 'IEND') break;
+      }
+      return null;
+    }
+    // JPEG: EXIF APP1 → ExifIFD → UserComment (0x9286)
+    if (buf[0] === 0xFF && buf[1] === 0xD8) {
+      let i = 2;
+      while (i < buf.length - 4) {
+        if (buf[i] !== 0xFF) break;
+        const marker = buf[i + 1];
+        const segLen = buf.readUInt16BE(i + 2);
+        if (marker === 0xE1 && buf.slice(i + 4, i + 10).toString('ascii') === 'Exif\0\0') {
+          const tb = buf.slice(i + 10, i + 2 + segLen); // TIFF buffer
+          const isLE = tb[0] === 0x49; // 'I'=little-endian, 'M'=big-endian
+          const r16 = o => isLE ? tb.readUInt16LE(o) : tb.readUInt16BE(o);
+          const r32 = o => isLE ? tb.readUInt32LE(o) : tb.readUInt32BE(o);
+          if (r16(2) !== 42) break;
+          const ifd0 = r32(4);
+          const cnt0 = r16(ifd0);
+          let exifOff = 0;
+          for (let e = 0; e < cnt0; e++) {
+            const ep = ifd0 + 2 + e * 12;
+            if (r16(ep) === 0x8769) { exifOff = r32(ep + 8); break; }
+          }
+          if (!exifOff) break;
+          const cntE = r16(exifOff);
+          for (let e = 0; e < cntE; e++) {
+            const ep = exifOff + 2 + e * 12;
+            if (r16(ep) === 0x9286) { // UserComment
+              const count = r32(ep + 4);
+              const valOff = count > 4 ? r32(ep + 8) : ep + 8;
+              // 先頭8バイトは文字コード識別子（"ASCII\0\0\0"等）をスキップ
+              const text = tb.slice(valOff + 8, valOff + count).toString('utf8').replace(/\0+$/, '');
+              return text || null;
+            }
+          }
+          break;
+        }
+        i += 2 + segLen;
+      }
+      return null;
+    }
+  } catch (e) { console.warn('[AutoGen] readSdInfo error:', e.message); }
+  return null;
+}
+
+// A1111形式パラメータテキストをパース
+function parseSdParameters(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const positiveLines = [];
+  let negative = '';
+  const params = {};
+  let mode = 'positive';
+
+  for (const line of lines) {
+    if (line.startsWith('Negative prompt:')) {
+      mode = 'negative';
+      negative = line.replace('Negative prompt:', '').trim();
+    } else if (/^Steps:\s*\d+/.test(line)) {
+      mode = 'params';
+      line.split(',').forEach(pair => {
+        const m = pair.trim().match(/^([^:]+):\s*(.+)$/);
+        if (m) params[m[1].trim()] = m[2].trim();
+      });
+    } else if (mode === 'positive') {
+      positiveLines.push(line);
+    } else if (mode === 'negative') {
+      negative += '\n' + line;
+    }
+  }
+
+  const sizeM = (params['Size'] || '').match(/(\d+)x(\d+)/);
+  return {
+    positive: positiveLines.join(', '),
+    negative: negative.trim(),
+    steps: parseInt(params['Steps']) || 20,
+    cfgScale: parseFloat(params['CFG scale']) || 7,
+    sampler: params['Sampler'] || 'Euler a',
+    width: sizeM ? parseInt(sizeM[1]) : 512,
+    height: sizeM ? parseInt(sizeM[2]) : 512,
+  };
+}
+
+let _autogenRunning   = false;
+let _autogenStopping  = false;
+let _autogenProcessed = 0;
+let _autogenErrors    = 0;
+let _autogenCurrent   = null;
+let _autogenTotal     = 0;
+
+// Ollama設定・プロンプト管理
+let _autogenOllamaModel      = 'gemma3:12b';
+let _autogenNumCtx           = -1;   // -1=グローバル設定に従う
+let _autogenPromptInterval   = 5;   // N枚ごとにOllamaでプロンプト更新
+let _autogenSinceLastPrompt  = 0;   // 前回更新から何枚生成したか
+let _autogenCurrentPrompt    = null; // 現在使用中のOllamaプロンプト
+let _autogenCurrentRefParams = null; // ソースから引き継ぐSD基本パラメータ
+let _autogenLastOllamaPrompt = null; // ステータス表示用
+let _autogenFixedPositive    = '';   // 常時付加するポジティブ
+let _autogenFixedNegative    = '';   // 常時使うネガティブ（空=ソース画像のネガティブ）
+let _autogenWidth            = 0;   // 0=ソース画像の値を引き継ぐ
+let _autogenHeight           = 0;
+let _autogenCount            = 0;   // 0=ソースファイル数と同数
+
+// Ollamaにプロンプト生成を依頼（直列キュー内から呼ぶので並列しない）
+function _autogenAskOllama(prompts) {
+  return new Promise((resolve) => {
+    const list = prompts.map((p, i) => `例${i + 1}: ${p}`).join('\n');
+    const userMsg =
+      `以下は私が好みとする画像のStable Diffusionプロンプト（ポジティブ）です:\n\n${list}\n\n` +
+      `これらの傾向・特徴を踏まえ、さらに魅力的でエロいポルノの新しい画像が生成できる英語のSD用プロンプトを1つ作ってください。\n` +
+      `プロンプトのテキストのみを出力してください。説明・前置き・番号は不要です。`;
+    const ollamaPayload = {
+      model: _autogenOllamaModel,
+      messages: [
+        { role: 'system', content: 'You are an expert Stable Diffusion prompt engineer. Output only the prompt text, nothing else.' },
+        { role: 'user', content: userMsg },
+      ],
+      stream: false,
+    };
+    if (_autogenNumCtx !== -1) ollamaPayload.options = { num_ctx: _autogenNumCtx };
+    const body = JSON.stringify(ollamaPayload);
+    const opts = {
+      hostname: ollamaHost, port: OLLAMA_PORT, path: '/api/chat', method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+    };
+    const req = http.request(opts, r => {
+      let raw = ''; r.on('data', c => raw += c);
+      r.on('end', () => {
+        try { resolve(JSON.parse(raw).message?.content?.trim() || null); }
+        catch (e) { console.warn('[AutoGen] Ollama parse error:', e.message); resolve(null); }
+      });
+    });
+    req.setTimeout(OLLAMA_TIMEOUT_MS, () => { req.destroy(); resolve(null); });
+    req.on('error', e => { console.warn('[AutoGen] Ollama error:', e.message); resolve(null); });
+    req.write(body); req.end();
+  });
+}
+
+// SD生成本体（直列キュー内から呼ぶ）
+function _autogenGenerateOne(params) {
+  return new Promise((resolve) => {
+    const fullPositive = params.positive + (_autogenFixedPositive ? ', ' + _autogenFixedPositive : '');
+    const fullNegative = _autogenFixedNegative || params.negative || SD_NEGATIVE;
+    const sdBody = JSON.stringify({
+      prompt: fullPositive,
+      negative_prompt: fullNegative,
+      width: params.width, height: params.height,
+      steps: params.steps, cfg_scale: params.cfgScale,
+      sampler_name: params.sampler, scheduler: 'Automatic',
+      batch_size: 1, n_iter: 1, seed: -1,
+    });
+    const opts = {
+      hostname: '127.0.0.1', port: 7860, path: '/sdapi/v1/txt2img', method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(sdBody) },
+    };
+    const sdReq = http.request(opts, sdRes => {
+      const chunks = [];
+      sdRes.on('data', c => chunks.push(c));
+      sdRes.on('end', () => {
+        try {
+          const result = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+          if (result.detail || !result.images?.[0]) {
+            console.warn('[AutoGen] SD error:', result.detail || '画像なし');
+            _autogenErrors++;
+          } else {
+            const b64 = result.images[0];
+            const today = new Date().toISOString().slice(0, 10);
+            const outDir = path.join(AUTOGEN_OUTPUT_BASE, today);
+            if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+            const ts   = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            const slug = params.positive.slice(0, 40).replace(/[^a-zA-Z0-9 _-]/g, '').trim().replace(/\s+/g, '_') || 'autogen';
+            fs.writeFileSync(path.join(outDir, `${ts}_${slug}.png`), Buffer.from(b64, 'base64'));
+            _autogenProcessed++;
+            _autogenSinceLastPrompt++;
+            console.log(`[AutoGen] 保存完了 (${_autogenProcessed}枚, 今回プロンプト${_autogenSinceLastPrompt}枚目)`);
+          }
+        } catch (e) {
+          console.warn('[AutoGen] 解析失敗:', e.message);
+          _autogenErrors++;
+        }
+        resolve();
+      });
+    });
+    sdReq.setTimeout(120000, () => { sdReq.destroy(); console.warn('[AutoGen] SDタイムアウト'); _autogenErrors++; resolve(); });
+    sdReq.on('error', e => { console.warn('[AutoGen] SDエラー:', e.message); _autogenErrors++; resolve(); });
+    sdReq.write(sdBody); sdReq.end();
+  });
+}
+
+// 開始時にフォルダ内全画像を一括処理（直列キュー）
+function _startAutogenBatch() {
+  if (_autogenRunning) return;
+  if (!fs.existsSync(AUTOGEN_SOURCE_DIR)) fs.mkdirSync(AUTOGEN_SOURCE_DIR, { recursive: true });
+
+  const files = fs.readdirSync(AUTOGEN_SOURCE_DIR)
+    .filter(f => /\.(png|jpe?g|webp)$/i.test(f))
+    .map(f => path.join(AUTOGEN_SOURCE_DIR, f));
+
+  if (files.length === 0) {
+    console.log('[AutoGen] ソースフォルダに対象ファイルなし');
+    return;
+  }
+
+  // 全ファイルのプロンプトを事前に収集（Ollamaへの参照リストとして使う）
+  const allPrompts = [];
+  let refParams = null;
+  for (const fp of files) {
+    const info = readSdInfo(fp);
+    if (!info) continue;
+    const p = parseSdParameters(info);
+    if (p.positive) allPrompts.push(p.positive);
+    if (!refParams) refParams = p;
+  }
+
+  if (allPrompts.length === 0) {
+    console.warn('[AutoGen] 有効なプロンプトなし（PNG info 未記録の画像のみ）');
+    return;
+  }
+
+  const genCount = _autogenCount > 0 ? _autogenCount : files.length;
+
+  _autogenRunning          = true;
+  _autogenStopping         = false;
+  _autogenProcessed        = 0;
+  _autogenErrors           = 0;
+  _autogenTotal            = genCount;
+  _autogenCurrent          = null;
+  _autogenCurrentPrompt    = null;
+  _autogenCurrentRefParams = refParams;
+  _autogenSinceLastPrompt  = _autogenPromptInterval; // 1枚目からOllama呼ぶ
+
+  console.log(`[AutoGen] バッチ開始: ${genCount}枚生成 / ソース${files.length}ファイル / ${allPrompts.length}プロンプト収集済`);
+
+  for (let i = 0; i < genCount; i++) {
+    _sdQueue = _sdQueue.then(async () => {
+      if (_autogenStopping) return;
+      _autogenCurrent = `${i + 1}/${genCount}`;
+
+      try {
+        // N枚ごと or 初回: Ollamaでプロンプト生成（直列 — SDキューの中で実行）
+        if (_autogenCurrentPrompt === null || _autogenSinceLastPrompt >= _autogenPromptInterval) {
+          console.log(`[AutoGen] Ollamaプロンプト生成中... (${allPrompts.length}件参照, model=${_autogenOllamaModel})`);
+          const newPrompt = await _autogenAskOllama(allPrompts);
+          if (newPrompt) {
+            _autogenCurrentPrompt   = newPrompt;
+            _autogenLastOllamaPrompt = newPrompt;
+            _autogenSinceLastPrompt  = 0;
+            console.log(`[AutoGen] 新プロンプト: "${newPrompt.slice(0, 80)}..."`);
+          } else {
+            console.warn('[AutoGen] Ollama失敗 → 元プロンプトで続行');
+            if (!_autogenCurrentPrompt) _autogenCurrentPrompt = allPrompts[0];
+          }
+        }
+
+        const ref = _autogenCurrentRefParams || {};
+        await _autogenGenerateOne({
+          positive: _autogenCurrentPrompt,
+          negative: ref.negative || '',
+          steps:    ref.steps    || 20,
+          cfgScale: ref.cfgScale || 7,
+          sampler:  ref.sampler  || 'Euler a',
+          width:    _autogenWidth  || ref.width  || 512,
+          height:   _autogenHeight || ref.height || 512,
+        });
+      } catch (e) {
+        console.warn('[AutoGen] 処理エラー:', e.message);
+        _autogenErrors++;
+      }
+      _autogenCurrent = null;
+    });
+  }
+
+  // 全処理完了 or 停止後にフラグリセット
+  _sdQueue = _sdQueue.then(() => {
+    _autogenRunning  = false;
+    _autogenStopping = false;
+    console.log(`[AutoGen] 完了: 生成${_autogenProcessed}枚 / エラー${_autogenErrors}件`);
+  });
+}
+
+function _stopAutogenBatch() {
+  if (!_autogenRunning) return;
+  _autogenStopping = true;
+  console.log('[AutoGen] 停止要求 → 現在の生成完了後に停止');
+}
+
+app.post('/api/autogen/start', (req, res) => {
+  if (_autogenRunning) return res.json({ ok: false, message: '既に実行中' });
+  _startAutogenBatch();
+  const total = _autogenTotal;
+  res.json({ ok: total > 0, message: total > 0 ? `処理開始: ${total}件` : 'ファイルなし', total });
+});
+
+app.post('/api/autogen/stop', (req, res) => {
+  _stopAutogenBatch();
+  res.json({ ok: true, message: '停止要求を送信' });
+});
+
+app.post('/api/autogen/config', (req, res) => {
+  const { model, interval, numCtx, fixedPositive, fixedNegative, width, height, count } = req.body || {};
+  if (model         != null) _autogenOllamaModel   = model;
+  if (numCtx        != null) _autogenNumCtx         = (numCtx === '' || numCtx === -1) ? -1 : Math.max(512, parseInt(numCtx) || -1);
+  if (fixedPositive != null) _autogenFixedPositive  = fixedPositive;
+  if (fixedNegative != null) _autogenFixedNegative  = fixedNegative;
+  if (width         != null) _autogenWidth           = Math.max(0, parseInt(width)  || 0);
+  if (height        != null) _autogenHeight          = Math.max(0, parseInt(height) || 0);
+  if (count         != null) _autogenCount           = Math.max(0, parseInt(count)  || 0);
+  if (interval      != null) {
+    _autogenPromptInterval  = Math.max(1, parseInt(interval) || 5);
+    _autogenSinceLastPrompt = _autogenPromptInterval;
+  }
+  const cfg = loadServerConfig();
+  cfg.autogenOllamaModel    = _autogenOllamaModel;
+  cfg.autogenNumCtx         = _autogenNumCtx;
+  cfg.autogenPromptInterval = _autogenPromptInterval;
+  cfg.autogenFixedPositive  = _autogenFixedPositive;
+  cfg.autogenFixedNegative  = _autogenFixedNegative;
+  cfg.autogenWidth          = _autogenWidth;
+  cfg.autogenHeight         = _autogenHeight;
+  cfg.autogenCount          = _autogenCount;
+  saveServerConfig(cfg);
+  res.json({ ok: true, model: _autogenOllamaModel, interval: _autogenPromptInterval,
+             numCtx: _autogenNumCtx, fixedPositive: _autogenFixedPositive, fixedNegative: _autogenFixedNegative,
+             width: _autogenWidth, height: _autogenHeight, count: _autogenCount });
+});
+
+app.get('/api/autogen/status', (req, res) => {
+  res.json({
+    running:          _autogenRunning,
+    stopping:         _autogenStopping,
+    processed:        _autogenProcessed,
+    total:            _autogenTotal,
+    errors:           _autogenErrors,
+    current:          _autogenCurrent,
+    lastOllamaPrompt: _autogenLastOllamaPrompt,
+    sinceLastPrompt:  _autogenSinceLastPrompt,
+    promptInterval:   _autogenPromptInterval,
+    model:            _autogenOllamaModel,
+    numCtx:           _autogenNumCtx,
+    fixedPositive:    _autogenFixedPositive,
+    fixedNegative:    _autogenFixedNegative,
+    width:            _autogenWidth,
+    height:           _autogenHeight,
+    count:            _autogenCount,
+    sourceDir:        AUTOGEN_SOURCE_DIR,
+    outputBase:       AUTOGEN_OUTPUT_BASE,
+  });
 });
 
 // TTS（RVC 7870）
@@ -1099,6 +1478,16 @@ let ollamaHost      = _initSrvCfg.ollamaHost      || '127.0.0.1';
 let ollamaNumGpu    = _initSrvCfg.ollamaNumGpu    ?? -1;
 let ollamaNumThread = _initSrvCfg.ollamaNumThread ?? -1;
 let ollamaNumCtx    = _initSrvCfg.ollamaNumCtx    ?? -1;
+
+// AutoGen 設定を server-config.json から復元
+if (_initSrvCfg.autogenOllamaModel    != null) _autogenOllamaModel    = _initSrvCfg.autogenOllamaModel;
+if (_initSrvCfg.autogenNumCtx         != null) _autogenNumCtx          = _initSrvCfg.autogenNumCtx;
+if (_initSrvCfg.autogenPromptInterval != null) _autogenPromptInterval  = _initSrvCfg.autogenPromptInterval;
+if (_initSrvCfg.autogenFixedPositive  != null) _autogenFixedPositive   = _initSrvCfg.autogenFixedPositive;
+if (_initSrvCfg.autogenFixedNegative  != null) _autogenFixedNegative   = _initSrvCfg.autogenFixedNegative;
+if (_initSrvCfg.autogenWidth          != null) _autogenWidth            = _initSrvCfg.autogenWidth;
+if (_initSrvCfg.autogenHeight         != null) _autogenHeight           = _initSrvCfg.autogenHeight;
+if (_initSrvCfg.autogenCount          != null) _autogenCount            = _initSrvCfg.autogenCount;
 const OLLAMA_PORT = 11434;
 const OLLAMA_TIMEOUT_MS = 120000; // Ollama応答のタイムアウト(ms)。生成スタック時に無限待ちしないため
 
@@ -1112,6 +1501,23 @@ function buildOllamaOptions() {
 
 app.get('/api/ollama-host', (req, res) => {
   res.json({ host: ollamaHost === '127.0.0.1' ? '' : ollamaHost });
+});
+
+app.get('/api/ollama-models', (req, res) => {
+  const opts = { hostname: ollamaHost, port: OLLAMA_PORT, path: '/api/tags', method: 'GET' };
+  const r = http.request(opts, r2 => {
+    let raw = ''; r2.on('data', c => raw += c);
+    r2.on('end', () => {
+      try {
+        const json = JSON.parse(raw);
+        const models = (json.models || []).map(m => m.name).sort();
+        res.json({ models });
+      } catch (e) { res.status(500).json({ models: [], error: e.message }); }
+    });
+  });
+  r.setTimeout(5000, () => { r.destroy(); res.status(504).json({ models: [], error: 'timeout' }); });
+  r.on('error', e => res.status(500).json({ models: [], error: e.message }));
+  r.end();
 });
 
 app.post('/api/ollama-host', (req, res) => {
@@ -1303,6 +1709,41 @@ app.post('/api/ai-reply', (req, res) => {
     req2.write(body);
     req2.end();
   }
+});
+
+// タイマン攻撃技生成（Ollama）
+app.post('/api/taiman-skills', (req, res) => {
+  const { name, level = 1, atk = 1, model = 'gemma3:12b' } = req.body || {};
+  if (!name) return res.status(400).json({ error: 'name is required' });
+  const prompt = `キャラ「${name}」（Lv.${level}、ATK${atk}）の必殺技名を4つ、2〜6文字で改行区切りだけで答えてください。余分な文字・説明・番号は不要。`;
+  const ollamaBody = { model, prompt, system: 'あなたはゲームキャラクターの必殺技名を考えるアシスタントです。', stream: false };
+  const _opts = buildOllamaOptions(); if (_opts) ollamaBody.options = _opts;
+  const body = JSON.stringify(ollamaBody);
+  const opts = {
+    hostname: ollamaHost, port: OLLAMA_PORT,
+    path: '/api/generate', method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+  };
+  const req2 = http.request(opts, res2 => {
+    let raw = '';
+    res2.on('data', c => raw += c);
+    res2.on('end', () => {
+      try {
+        const json = JSON.parse(raw);
+        const text = (json.response || '').trim();
+        const skills = text.split('\n')
+          .map(s => s.replace(/^[\d.\-\s・●▶→:：]+/, '').trim())
+          .filter(s => s.length >= 1 && s.length <= 10)
+          .slice(0, 4);
+        while (skills.length < 4) skills.push('攻撃');
+        if (!res.headersSent) res.json({ skills });
+      } catch (e) { if (!res.headersSent) res.status(500).json({ error: e.message }); }
+    });
+  });
+  req2.on('error', e => { if (!res.headersSent) res.status(500).json({ error: e.message }); });
+  req2.setTimeout(OLLAMA_TIMEOUT_MS, () => { req2.destroy(); if (!res.headersSent) res.status(504).json({ error: 'タイムアウト' }); });
+  req2.write(body);
+  req2.end();
 });
 
 // Ollama モデルのアンロード（画像コマンド後に返答とは別で呼ぶ）

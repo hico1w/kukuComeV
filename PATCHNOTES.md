@@ -2,6 +2,440 @@
 
 ---
 
+## v2.833.0 — 2026-08-30
+
+### feat: 大谷+ぺこら強制変換の対象キーワードを拡張
+
+- **`public/js/app-11-agru-state-sd.js`** `_sdGenerateOne()`: 「大谷/otani」との組み合わせでさくらみこに強制変換される対象を拡張
+  - 変更前: `usada pekora` のみ
+  - 変更後: `usada pekora`, `usada`, `pekora`, `tekora`, `sada`, `usa`, `kora`, `peko` のいずれかにマッチ
+
+---
+
+## v2.832.0 — 2026-08-26
+
+### fix: SD生成でキーワード一致時「ポジティブ（常時付加）」が消えていたのを合成に修正
+
+- **`public/js/app-11-agru-state-sd.js`** `_sdGenerateOne()`: 「ドット」「リアル」「もいちゃん」やカスタムキーワード（`sdKeywordPrompts`）がプロンプトに含まれる場合、従来は `positiveSuffix` が丸ごとキーワード用の値に置き換わり「常時付加」設定が付与されなくなっていた
+- `positiveSuffix = [cfg.positiveSuffix, ..._valid].filter(Boolean).join(', ')` に変更し、常時付加 + キーワード用ポジティブを両方合成するように修正
+
+---
+
+## v2.831.0 — 2026-08-26
+
+### fix: 翻訳APIがGoogle側で429ブロックされてもMyMemoryにフォールバック
+
+- **`server.js`**: `translateToEnglish()` を Google翻訳（非公式） → 失敗時は MyMemory Translation API の二段構えに変更
+  - `_translateGoogle()`: 従来のGoogle非公式エンドポイント（変更なし）
+  - `_translateMyMemory()`: `api.mymemory.translated.net` を新規追加。クォータ超過時（`responseStatus`≠200 や本文に`MYMEMORY WARNING`）も失敗として例外を投げ、呼び出し元の「翻訳失敗→元プロンプトのまま続行」に委ねる
+  - `/api/translate`・`/api/sd-generate`・キャラ作成の翻訳呼び出し元は無修正
+- 背景: Google非公式エンドポイントがIP単位で自動クエリ判定→一時ブロック（HTTP 429）されることがあり、特にMP消費の軽い「エコ生成」連打時に翻訳スキップが発生しやすかった
+- **`server.js`**: `_translateMyMemory()` に `de=` パラメータ（ランダム生成のダミーメール `MYMEMORY_DUMMY_EMAIL`）を追加し、MyMemory側の無料枠を5,000→50,000文字/日に拡張
+
+---
+
+## v2.830.0 — 2026-08-23
+
+### fix: ゴミ生成コマンドのトリガーワードを「エコ生成」に変更
+
+- **`public/js/app-06-comment-handler.js`**: `ゴミ生成` → `エコ生成` に変更（内部変数名・設定キーは変更なし）
+- **`public/js/app-11-agru-state-sd.js`**: 吹き出し表示テキストを「エコ生成」に変更
+
+---
+
+## v2.829.0 — 2026-08-22
+
+### feat: 特定キーワード組み合わせでプロンプト強制上書き
+
+- **`public/js/app-11-agru-state-sd.js`** `_sdGenerateOne()`:
+  - プロンプトに「大谷」または「otani」かつ「usada pekora」が同時に含まれる場合、プロンプトを固定の内容に強制置換（全生成コマンド共通）
+
+---
+
+## v2.828.0 — 2026-08-22
+
+### feat: ゴミ生成コマンド追加（5MP消費・低品質SD生成）
+
+- **コマンド**: コメントに「ゴミ生成」を含めると発動。5MP消費
+- デフォルト設定: 512×512、Steps 5、表示サイズ 240px
+- ポジティブサフィックス・ネガティブ・CFG Scale・Sampler は通常のSD生成設定を使用
+- **`public/js/app-03-boss-pets.js`**: `sdGomiWidth/Height/Steps/PopWidth` グローバル変数を追加
+- **`public/js/app-11-agru-state-sd.js`**: `generateSDImageGomi()` 関数を追加
+- **`public/js/app-06-comment-handler.js`**: 「ゴミ生成」コマンドハンドラを追加（超生成より先に判定）
+- **`public/js/app-12-features-minigames.js`**: Gomi 設定の init・listeners を追加
+- **`public/js/app-13-race-admin-misc.js`**: Gomi 設定を設定保存・同期に追加
+- **`public/admin.html`**: SD生成設定に「🗑️ ゴミ生成設定（5MP消費）」UI を追加（ゴミ→超生成の順で表示）
+
+---
+
+## v2.827.0 — 2026-08-22
+
+### fix: 超生成プレビューのサイズ・アスペクト比ずれを修正
+
+- **`public/js/app-03-boss-pets.js`**: `sdChoPopWidth = 700` グローバル変数を追加
+- **`public/js/app-11-agru-state-sd.js`**:
+  - `generateSDImageCho()` の settingsOverride に `popWidth: sdChoPopWidth` を追加
+  - `_sdGenerateOne()` で `popWidth` も override から取得するよう追加
+  - `showSDImage()` 呼び出しを `{ ...cfg, width, height, popWidth }` に変更し、実際の生成解像度でアスペクト比・表示サイズを計算するよう修正（横長画像でも正しい比率・サイズで表示）
+- **`public/js/app-12-features-minigames.js`**: `sdChoPopWidth` の init・listener を追加
+- **`public/js/app-13-race-admin-misc.js`**: `sdChoPopWidth` を設定保存・同期に追加
+- **`public/admin.html`**: 超生成設定に「表示サイズ」スライダー（100〜1200px、デフォルト700px）を追加。sdFields/sdElMap/display に `sdChoPopWidth` を追加
+
+---
+
+## v2.826.0 — 2026-08-22
+
+### feat: 超生成コマンド追加（500MP消費・専用解像度/Steps）
+
+- **コマンド**: コメントに「超生成」を含めると発動。500MP消費。プロンプトは「超生成」を除いた残り文字列
+- ポジティブサフィックス・ネガティブ・CFG Scale・Sampler など他の設定は通常の SD生成設定をそのまま使用
+- **`public/js/app-03-boss-pets.js`**: `sdChoWidth`(1920)・`sdChoHeight`(1080)・`sdChoSteps`(40) グローバル変数を追加
+- **`public/js/app-11-agru-state-sd.js`**:
+  - `generateSDImageCho()` 関数を追加（キューに `settingsOverride` を積む）
+  - `_sdProcessQueue()` → `settingsOverride` をキューから取り出し `_sdGenerateOne` に渡す
+  - `_sdGenerateOne(user, prompt, commentNo, settingsOverride = null)` → `width/height/steps` を override で上書き可能に変更
+- **`public/js/app-06-comment-handler.js`**: 「超生成」コマンドハンドラを追加（MP不足チェック・通常生成より先に判定）
+- **`public/js/app-12-features-minigames.js`**: `initSDSettings` に cho 設定の localStorage 読み込み・DOM 初期化・listeners を追加
+- **`public/js/app-13-race-admin-misc.js`**: saveSettingsToServer の state オブジェクト・sdText 同期ハンドラ（elMap / if blocks / 表示更新）に cho 設定を追加
+- **`public/admin.html`**: SD生成設定セクション内に「⚡ 超生成設定（500MP消費）」UI（幅・高さ・Steps）を追加。`_loadSettingsDirect` の sdFields/sdElMap/display にも追加
+
+---
+
+## v2.825.0 — 2026-08-21
+
+### perf: OBSブラウザソース向け GPU コンポジット最適化
+
+**`style.left/top` → `transform: translate()` への統一（レイアウト処理を GPU コンポジット専用に変更）**
+
+- **`public/style.css`**:
+  - `.kai-bullet`: `left:0; top:0` を追加、`will-change: transform, left, top, opacity` → `will-change: transform, opacity`
+  - `.comment-phys`: `will-change: left, top` → `will-change: transform`（これまで GPU レイヤーが作られていなかった）
+  - `.race-horse-run`: `left:0; will-change: transform` を追加
+- **`public/js/app-07-ui-stage-ai.js`**:
+  - 弾の DOM 更新: `style.left/top + style.transform(rotate)` → `style.transform: translate(X,Y) rotate(Z)` の 1 プロパティに集約
+  - `_kaiBossTarget()` / `_kaiAgruBossTarget()`: 150ms キャッシュを追加（毎フレームの `getBoundingClientRect` × 2 を削減）
+- **`public/js/app-09-agru-battle-fx.js`**:
+  - MP 浮き上がりラベル: `style.left/top + style.transform(translate+scale)` → `style.transform: translate(bx,by) translate(-50%,-100%) scale(s)` に統合
+- **`public/js/app-13-race-admin-misc.js`**:
+  - 競馬馬: `style.left` → `style.transform: translateX(x) translateY(-50%)` に変更
+  - xMap の x 座標取得を `style.left` パース → `h._x` キャッシュに変更
+- **`public/js/app-14-stream-physics.js`**:
+  - コメント物理の初期配置・毎フレーム更新: `style.left/top` → `style.transform: translate(X,Y)`
+
+**`new Audio()` プールによるメモリ/GC 削減**
+
+- **`public/js/app-06-comment-handler.js`**: `playLocalSound()` に `_localSoundPool` を追加。同 URL の Audio を最大 4 インスタンス再利用し、毎コメントの都度生成・GC を解消
+
+---
+
+## v2.824.0 — 2026-08-21
+
+### perf: 射コマンド・コメント物理演算の軽量化
+
+- **`public/js/app-07-ui-stage-ai.js`**:
+  - `charTargets` の `offsetWidth/offsetHeight` 読み取りを 200ms ごとのキャッシュに変更（毎フレームのレイアウト強制リフローを削減）
+  - 着地・静止した弾（`vy===0 && |vx|<0.3`）の物理計算・衝突判定を完全スキップ。フェードアウトと寿命処理のみ実行
+- **`public/js/app-11-agru-state-sd.js`**:
+  - 弾の寿命を 300-420フレーム(5-7秒) → 180-240フレーム(3-4秒) に短縮
+- **`public/js/app-14-stream-physics.js`**:
+  - `stageEl.getBoundingClientRect()` を 300ms ごとのキャッシュに変更（毎フレームのリフローを削減）
+  - 着地・静止したコメントオブジェクト（`vy===0 && |vx|<0.1`）の物理演算をスキップ。弾との衝突判定は引き続き実施
+  - `kaiBullets.length > 0` チェックを事前に行いループを節約
+
+---
+
+## v2.823.0 — 2026-08-21
+
+### fix: タイマン Ollama 呼び出し（_fetchTaimanSkills）を完全削除
+
+- **`public/js/app-05-taiman-boss.js`**:
+  - `taimanState` から `skills: {}` / `skillIdx: {}` フィールドを削除
+  - `_fetchTaimanSkills` 関数定義と `_fetchTaimanSkills(challenger)` / `_fetchTaimanSkills(target)` の呼び出しを削除
+  - 攻撃技名表示を `'攻撃'` 固定に変更（Ollama 依存を排除）
+- タイマン開始時に2回走っていた重い Ollama API 呼び出しが消え、バトル開始の重さが解消
+
+---
+
+## v2.822.0 — 2026-08-21
+
+### feat: ペット非表示ボタン追加・装備/ペット非表示状態を localStorage に永続化
+
+- **`public/style.css`**: `#stage.pet-hidden .char-pet, .char-pet2 { display:none }` を追加
+- **`public/js/app-03-boss-pets.js`**: `equipHidden` / `petHidden` を `localStorage` から初期値を読み込むよう変更
+- **`public/js/app-12-features-minigames.js`**:
+  - `hideEquipBtn` クリック時に `localStorage.setItem('equipHidden', ...)` を追加
+  - `hidePetBtn` のクリックリスナーを追加（トグル・CSS クラス・localStorage 保存）
+  - ページロード時に `equipHidden` / `petHidden` の状態を stage と button に反映
+- **`public/js/app-13-race-admin-misc.js`**: `cmd('hidePetBtn')` ハンドラを追加（`equipHidden` も localStorage 保存を追加）
+- **`public/admin.html`**: 「🐾 ペット表示」ボタンを追加（装備ボタンの隣）
+
+---
+
+## v2.821.0 — 2026-08-20
+
+### feat: AutoGen 設定を server-config.json に永続化
+
+- **`server.js`**: `/api/autogen/config` で変更した全設定（model/numCtx/interval/fixedPositive/fixedNegative/width/height/count）を `data/server-config.json` に保存。起動時に `_initSrvCfg` から復元する
+
+---
+
+## v2.820.0 — 2026-08-20
+
+### feat: AutoGen に解像度・生成枚数の設定を追加
+
+- **`server.js`**: `_autogenWidth` / `_autogenHeight` / `_autogenCount` を追加。`/api/autogen/config` と `/api/autogen/status` に対応フィールドを追加
+  - 解像度: 0=ソース画像のパラメータを引き継ぐ、指定時はその値で生成
+  - 生成枚数: 0=ソースファイル数と同数、指定時はその枚数だけ生成
+- **`public/admin.html`**: AutoGen セクションに「生成枚数」「解像度（幅×高さ）」入力欄を追加
+
+---
+
+## v2.819.0 — 2026-08-20
+
+### feat: AutoGen をファイル監視→一括バッチ処理に変更
+
+- **`server.js`**
+  - `fs.watch` 監視を廃止。「開始」ボタン押下時にソースフォルダの全画像を一括スキャンしてキューに積む方式に変更
+  - 全画像のプロンプトを開始時に一括収集し Ollama の参照リストとして使う
+  - 停止ボタンはフラグ（`_autogenStopping`）をセットし現在の生成完了後に止まる
+  - ステータスに `total`（総件数）・`stopping`（停止中フラグ）を追加
+- **`public/admin.html`**
+  - ステータス表示に進捗（生成N/M枚）・停止中状態を表示
+
+---
+
+## v2.818.0 — 2026-08-20
+
+### feat: AutoGen Ollamaモデルを選択リストに変更
+
+- **`server.js`**: `GET /api/ollama-models` エンドポイント追加（Ollama の `/api/tags` を proxy してモデル名リストを返す）
+- **`public/admin.html`**: AutoGen のモデル設定を `<input>` → `<select>` に変更。↺ ボタンで一覧を再取得、admin.html 読み込み時に自動取得
+
+---
+
+## v2.817.0 — 2026-08-20
+
+### feat: AutoGen — Ollama統合・N枚ごとプロンプト更新・直列処理・固定プロンプト対応
+
+- **`server.js`**
+  - ソースフォルダの全画像SD infoからプロンプトを収集 → Ollamaに渡して組み合わせ新プロンプトを生成
+  - OllamaとSD生成を両方 `_sdQueue` に乗せて完全直列化（並列実行なし）
+  - N枚ごと（`_autogenPromptInterval`）にOllamaでプロンプトを再生成、間のN枚は同じプロンプトを再利用
+  - Ollama `num_ctx` を個別設定可能（-1でグローバル設定に従う）
+  - 固定ポジティブ（`_autogenFixedPositive`）: Ollamaプロンプトの末尾に常時付加
+  - 固定ネガティブ（`_autogenFixedNegative`）: 空欄ならソース画像のネガティブを使用
+  - `POST /api/autogen/config`: model/numCtx/interval/fixedPositive/fixedNegative を一括設定
+  - `GET /api/autogen/status`: 上記設定値・最新Ollamaプロンプト・次回更新まで残り枚数も返す
+- **`public/admin.html`**
+  - AutoGenセクションに設定UIを追加: Ollamaモデル・コンテキスト長・プロンプト更新間隔・固定ポジティブ・固定ネガティブ
+  - ステータス表示に「あとN枚でプロンプト更新」「最新Ollamaプロンプト」を表示
+
+---
+
+## v2.816.0 — 2026-08-20
+
+### fix: AutoGen の画像読み取りをJPG対応に拡張
+
+- **`server.js`**
+  - `readPngInfo` を `readSdInfo` に統合・改名
+  - JPEG: APP1マーカー → TIFF解析 → ExifIFD → UserComment (0x9286) を読み取るよう対応
+  - PNG: 従来どおり tEXt チャンク "parameters" を読み取り
+  - ファイルの先頭バイトでPNG/JPEGを自動判別
+
+---
+
+## v2.815.0 — 2026-08-20
+
+### feat: AutoGen 自動画像生成機能を追加
+
+`E:\claude\AutoGen\sourceImage` フォルダを監視し、配置されたPNG画像のSD infoを読み取って同パラメータ・ランダムシードで自動生成する機能。
+
+- **`server.js`**
+  - `readPngInfo(filePath)` — PNG tEXt チャンクから A1111 `parameters` キーを読み取る
+  - `parseSdParameters(text)` — ポジティブ/ネガティブ/Steps/CFG scale/Sampler/Sizeをパース
+  - `_autogenGenerateOne(filePath, params)` — `_sdQueue` を使いSD APIへ直列リクエスト、`E:\claude\AutoGen\output\YYYY-MM-DD\` に保存
+  - `_startAutogenWatcher()` / `_stopAutogenWatcher()` — `fs.watch` によるフォルダ監視
+  - `POST /api/autogen/start` / `POST /api/autogen/stop` / `GET /api/autogen/status` エンドポイント
+- **`public/admin.html`**
+  - 「🤖 AutoGen 自動生成」セクション追加（開始/停止ボタン、処理件数・エラー件数・処理中ファイル名表示）
+
+---
+
+## v2.814.0 — 2026-08-20
+
+### fix: SD画像生成キューがGPUハング時に詰まる問題を修正
+
+**根本原因**: SD が長時間 GPU を使い続けて生成が終わらないとき、サーバーはタイムアウトしてもSD本体は止まらず、次のリクエストが SD 内部キューに積まれ続けて詰まり状態になっていた。
+
+- **`public/js/app-11-agru-state-sd.js`**
+  - `_sdProcessQueue` に `try-finally` を追加し、`_sdGenerateOne` が万が一 throw しても `_sdBusy=false` でキューが必ず進むように修正。
+  - `_sdGenerateOne` の `fetch` に `AbortController` (200秒) を追加。サーバーから応答がない場合もクライアント側でタイムアウトしキューを解放する。
+  - 複数件待機中の場合は `⏳ 順番待ち (N件待ち)…` と件数を表示。
+- **`server.js`**
+  - `sdReq.setTimeout` を 120s → 30s に短縮。
+  - タイムアウト時に `POST /sdapi/v1/interrupt` を SD に送信し、GPU で動き続けている生成を強制停止するよう修正。
+
+---
+
+## v2.813.0 — 2026-08-19
+
+### feat: 出してコマンドの生成画像をローカルに保存
+
+- **`server.js`** `/api/sd-generate` の成功時に `F:\AI\Data\Images\Text2Img\YYYY-MM-DD\` へ PNG を保存。
+- ファイル名: `2026-08-19T14-30-22_translated_prompt_slug.png`（タイムスタンプ＋翻訳プロンプト先頭40文字）。
+- ディレクトリが存在しない場合は自動生成。保存失敗時はコンソールにwarnを出すのみで生成結果には影響しない。
+
+## v2.812.0 — 2026-08-19
+
+### feat: キャラ作成モザイクNGを吹き出し通知
+
+- **`app-06-comment-handler.js`** モザイクワード一致時に `showBubble(user, 'そのキャラは作れません', { color: '#ef4444' })` を表示してから return。
+
+### feat: タイマン実況（ollama）を完全削除
+
+- **`app-05-taiman-boss.js`** 以下を削除：
+  - `_showTaimanCommentaryEl` / `_taimanCommentaryOk` ヘルパー関数
+  - `_startTaimanIntroCommentary` / `_startTaimanOutroCommentary` / `_startTaimanCommentary` の3実況 async 関数（各 `/api/ai-reply` 呼び出しを含む）
+  - `startTaiman` 内の開幕解説呼び出しブロック
+  - `taimanDoAttack` 内の `commentaryCount` カウント・5回に1回実況ブロック
+  - `endTaiman` 内の `_outroHistory` 変数・終幕解説呼び出しブロック
+  - `taimanState` 初期化フィールドから `commentaryCount` / `commentaryHistory` / `_commentaryBusy` を削除
+  - `endTaiman` に `#taimanCommentary` 要素の明示削除を追加
+
+## v2.810.0 — 2026-08-19
+
+### fix: SD画像ポップアップのコメント番号を `comment.number`（配信通し番号）に修正
+
+- **`app-06-comment-handler.js`** `generateSDImage()` と `createCharImage()` の呼び出しに `comment.number` を渡すよう変更。
+- **`app-11-agru-state-sd.js`** `generateSDImage` / `_sdProcessQueue` / `_sdGenerateOne` / `showSDImage` / `createCharImage` のシグネチャに `commentNo` を追加し、ポップアップの `#番号` 表示に使用。
+- 従来の `user.commentCount`（ユーザー累計コメント数）から `comment.number`（配信の通し番号）に変更。
+- **`style.css`** `.sd-image-prompt` のフォントサイズを 10px → 15px（1.5倍）に変更。
+
+## v2.809.0 — 2026-08-19
+
+### fix: キャラ作成をモザイクワード一致時にブロック
+
+- **`app-06-comment-handler.js`** `キャラ作成` コマンド処理でMP消費前にモザイクワードチェックを追加。
+- プロンプトが `sdMosaicKeywords` のいずれかに一致した場合、MP消費・`createCharImage()` 呼び出しをせずに無視する。
+- これによりモザイクワードを含むプロンプトでのキャラ作成（アバター常時表示）を防止。
+
+## v2.808.0 — 2026-08-19
+
+### feat: SD画像ポップアップにコメント番号とプロンプトを表示
+
+- **`app-11-agru-state-sd.js`** `showSDImage()`（出して）・`createCharImage()`（キャラ作成）両方のポップアップを変更。
+- ヘッダーに `#コメント番号 ユーザー名` を表示（`user.commentCount`）。
+- 画像の上に翻訳済みポジティブプロンプトを表示（`data.translatedPrompt`）。adminで自動付与される `positiveSuffix` / `sdCharPositiveSuffix` は含まない。
+- キャラ作成ポップアップに `.sd-image-popup` と同じ紫枠・背景スタイルを適用。
+- **`style.css`** `.sd-image-prompt` クラスを追加（薄グレー・10px・省略表示）。
+- `showSDImage` の `popH` を `imgH + 56` に変更（プロンプト行分を加算）。
+
+## v2.807.0 — 2026-08-19
+
+### fix: キャラ作成画像表示中は揺れ設定も無効化
+
+- **`app-01-core-characters.js`** `updateJiggleOverlay()` に `if (user.charImageData) return;` を追加。
+- キャラ作成で生成した dataURL 画像が表示されている間は揺れ（jiggle）が適用されない。
+- 前バージョン（v2.806）で `updatePurupuruOverlay` にガードを追加済みだったが、`updateJiggleOverlay` は未対応だったため揺れが継続していた。
+
+## v2.806.0 — 2026-08-19
+
+### fix: キャラ作成画像表示中はぷるぷるを無効化
+
+- **`app-01-core-characters.js`** `updatePurupuruOverlay()` に `if (user.charImageData) return;` を追加。
+- キャラ作成で生成した dataURL 画像が表示されている間はぷるぷるが適用されない。
+- 元キャラ・他キャラへ戻ったとき（`charImageData` が削除されて `applyAvatarStyle` が呼ばれたとき）は従来通り imgFile ベースのぷるぷる設定が再適用される。
+
+## v2.805.0 — 2026-08-19
+
+### feat: 画像生成とキャラ作成を共有キューで完全直列化
+
+- **`server.js`** `_sdCharQueue` を `_sdQueue` に改名し、`sd-generate`（出して）と `sd-create-char`（キャラ作成）の両方で共有。
+- これにより `出して` と `キャラ作成` が同時に SD に到達することを防ぐ。前のリクエストが完了するまで次のリクエストはキューで待機する。
+- `sd-generate` にも `finally { resolveQueue(); }` / タイムアウト / エラー時の `resolveQueue()` を追加。
+
+## v2.804.0 — 2026-08-19
+
+### fix: 出してコマンドの画像生成がハングする問題を修正（Gradio API → REST API）
+
+- **`server.js`** `/api/sd-generate` を `/api/predict`（Gradio）から `/sdapi/v1/txt2img`（REST API）に切り替え。
+- reforge の Gradio API がレスポンスを返さなくなった（Gradio バージョン変更が原因）ため、`sd-create-char` と同じ REST API に統一。
+- Gradio がハングすると SD が詰まり後続のキャラ作成も失敗していた問題も解消。
+- `fn_index` / `defaults` / `SD_IDX` の配列マップに依存しない単純な JSON ボディに変更。
+
+## v2.803.0 — 2026-08-19
+
+### fix: キャラ作成SDリクエストにscheduler: "Automatic"を追加（WARNING解消）
+
+- **`server.js`** `/api/sd-create-char` のSDリクエストボディに `scheduler: 'Automatic'` を追加。
+- SD側が `"None" -> "Automatic"` と自動修正していた WARNING を事前に正しい値を渡すことで解消。
+
+## v2.802.0 — 2026-08-19
+
+### fix: 複数人同時キャラ作成でSD生成を直列化（findRGBA競合バグ修正）
+
+- **`server.js`** `/api/sd-create-char` に `_sdCharQueue`（Promise チェーン）を追加し、SD生成を1リクエストずつ直列実行するよう変更。
+- `startTime` をキューの Promise 内部（SD開始直前）で記録することで、複数リクエストが同じ RGBA PNG を `findRGBA` で取得するレースコンディションを解消。
+- 成功・失敗・タイムアウト・ネットワークエラーのすべての終端で `resolveQueue()` を呼び出し、次のキューを確実に進行させる。
+
+## v2.801.0 — 2026-08-18
+
+### feat: タイマン解説ON/OFFスイッチ（admin切替・デフォルトOFF）
+
+- **`app-03-boss-pets.js`** `taimanCommentaryEnabled` 変数を追加（デフォルト `false`・localStorage永続化）。
+- **`app-05-taiman-boss.js`** 開幕・中間・終幕の3解説関数すべてに `if (!taimanCommentaryEnabled ...) return;` を追加。
+- **`app-13-race-admin-misc.js`** `type:'taimanCommentaryEnabled'` 処理・設定保存・設定同期を追加。
+- **`admin.html`** タイマンセクションに「解説（AI）」ON/OFFボタンを追加（赤=OFFで表示）。接続時に現在の状態を復元。
+
+## v2.800.0 — 2026-08-18
+
+### feat: タイマン無効化モード（admin切替）
+
+- **`app-03-boss-pets.js`** `taimanDisabled` 変数を追加（localStorage永続化）。
+- **`app-06-comment-handler.js`** `ランダムタイマン` / `タイマン：X` の両コマンドに `if (taimanDisabled) return;` を追加。
+- **`app-13-race-admin-misc.js`** `type:'taimanDisabled'` メッセージ処理・設定保存（`saveSettingsToServer`）・設定同期（`state.taimanDisabled`）を追加。
+- **`admin.html`** タイマンセクションに「有効／無効」トグルボタンを追加。接続時に現在の状態を復元。
+
+## v2.799.0 — 2026-08-18
+
+### fix: masterキャラをバトロワ・MPランキング・ダメージランキングから除外
+
+- **`app-04-battle-royale.js`** BR参加者の `eligible` フィルターに `&& !u.isMaster` を追加。
+- **`app-12-features-minigames.js`** ランキングパネル・全順位モーダルの両方で、MPランキング（`users` フィルター）とダメージランキング（`_liveDmg` フィルター）に master 除外を追加。
+
+## v2.796.0 — 2026-08-18
+
+### feat: タイマン実況解説（Ollama連携・ストーリー性・過去発言参照）
+
+- **`app-05-taiman-boss.js`** `_startTaimanCommentary()` / `_showTaimanCommentaryEl()` を追加。5回に1回の攻撃後、Ollama でエルデンリング・ダークソウル風のフレーバーテキスト形式の実況を非同期生成。
+- プロンプトに攻撃者・被攻撃者の `_streamComments` から最新6件の過去発言を含め、人物像を反映した解説を生成。
+- `taimanState.commentaryHistory` に過去実況を最大10件保持し、直前2件を次の解説プロンプトに渡すことでストーリーとしての連続性を担保。
+- `_commentaryBusy` フラグで同時生成を防止。表示中（8秒）は新規解説をスキップ。
+- バトル開始時に `_startTaimanIntroCommentary()` で開幕実況（10秒表示）を生成。
+- バトル終了時に `_startTaimanOutroCommentary()` で終幕実況（12秒表示）を生成。Commentary バナーは表示後に自動削除。
+- **`public/style.css`** `.taiman-commentary` / `.taiman-commentary-show` を追加（紫ボーダー・フェードトランジション）。
+
+## v2.795.0 — 2026-08-18
+
+### fix: タイマン中の画像生成コマンドをブロック
+
+- **`app-06-comment-handler.js`** `キャラ作成` / `出して・出ろ・生成・gen` の両コマンドに `if (taimanState) return;` を追加。タイマン中は画像生成を受け付けない。
+
+## v2.794.0 — 2026-08-18
+
+### feat: タイマン攻撃技生成（Ollama連携）
+
+- **`server.js`** `/api/taiman-skills` エンドポイントを追加。キャラ名・レベル・ATKを受け取り、Ollama `/api/generate` でオリジナル必殺技名を4つ生成して返す。
+- **`app-05-taiman-boss.js`** `startTaiman()` でバトル開始時に両者の技名を非同期フェッチ（バトルをブロックしない）。`taimanState.skills` / `taimanState.skillIdx` に格納。
+- **`app-05-taiman-boss.js`** `taimanDoAttack()` のダメージトーストに技名を表示（`攻撃者名「技名」⚔️ 被攻撃者名 -ダメージ`）。技名は4つをローテーション。Ollama未応答時は「攻撃」にフォールバック。
+- **`public/style.css`** `.br-skill` クラスを追加（黄色イタリック）。
+
+## v2.793.0 — 2026-08-17
+
+### fix: キャラ作成後にキャラNコマンドで画像が変わらない問題
+
+- **`app-06-comment-handler.js`** エイリアスコマンド・キャラNコマンドの両処理で `delete user.charImageData` を追加。キャラ変更時に一時画像をクリアし、指定キャラの通常画像を表示するよう修正。
+
 ## v2.792.0 — 2026-08-17
 
 ### chore: キャラ一覧同期・新規キャラ登録（sync-chars）

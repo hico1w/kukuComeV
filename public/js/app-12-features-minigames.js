@@ -775,13 +775,15 @@ function renderRankingPanel() {
     _liveDmg[k].name = v.name;
     _liveDmg[k].totalDmg += v.totalDmg;
   });
-  const dmgEntries = Object.values(_liveDmg)
+  const dmgEntries = Object.entries(_liveDmg)
+    .filter(([k]) => !users[k]?.isMaster)
+    .map(([, v]) => v)
     .sort((a, b) => b.totalDmg - a.totalDmg).slice(0, 3);
   let dmgRows = dmgEntries.length
     ? dmgEntries.map((e, i) => `<div class="ranking-row"><span class="ranking-medal">${medals[i]}</span><span class="ranking-name">${escapeHtml(e.name)}</span><span class="ranking-dmg">${e.totalDmg.toLocaleString()}</span></div>`).join('')
     : '<div class="ranking-empty">データなし</div>';
 
-  const mpEntries = Object.values(users).filter(u => u.el)
+  const mpEntries = Object.values(users).filter(u => u.el && !u.isMaster)
     .map(u => ({ name: u.name || u.ipid, mp: u.mp ?? 0 }))
     .sort((a, b) => b.mp - a.mp).slice(0, 3);
   const mpRows = mpEntries.map((e, i) =>
@@ -808,8 +810,11 @@ function showRankingModal(type) {
     _liveDmg[k].name = v.name;
     _liveDmg[k].totalDmg += v.totalDmg;
   });
-  const dmgAll = Object.values(_liveDmg).sort((a, b) => b.totalDmg - a.totalDmg);
-  const mpAll = Object.values(users).filter(u => u.el)
+  const dmgAll = Object.entries(_liveDmg)
+    .filter(([k]) => !users[k]?.isMaster)
+    .map(([, v]) => v)
+    .sort((a, b) => b.totalDmg - a.totalDmg);
+  const mpAll = Object.values(users).filter(u => u.el && !u.isMaster)
     .map(u => ({ name: u.name || u.ipid, mp: u.mp ?? 0 }))
     .sort((a, b) => b.mp - a.mp);
 
@@ -1715,6 +1720,14 @@ document.getElementById('hideEquipBtn')?.addEventListener('click', () => {
   equipHidden = !equipHidden;
   stage.classList.toggle('equip-hidden', equipHidden);
   document.getElementById('hideEquipBtn').classList.toggle('active', equipHidden);
+  localStorage.setItem('equipHidden', equipHidden);
+});
+
+document.getElementById('hidePetBtn')?.addEventListener('click', () => {
+  petHidden = !petHidden;
+  stage.classList.toggle('pet-hidden', petHidden);
+  document.getElementById('hidePetBtn').classList.toggle('active', petHidden);
+  localStorage.setItem('petHidden', petHidden);
 });
 
 document.getElementById('toggleBombBtn')?.addEventListener('click', () => {
@@ -1870,6 +1883,8 @@ if (bombHidden)       { document.getElementById('bombBtn').style.display  = 'non
 if (trashHidden)      { document.getElementById('trashCan').style.display = 'none'; document.getElementById('toggleTrashBtn')?.classList.add('active'); }
 if (charStatsHidden)  { document.body.classList.add('stats-hidden'); document.getElementById('toggleStatsBtn')?.classList.add('active'); }
 if (breatheDisabled)   { document.body.classList.add('no-breathe');    document.getElementById('toggleBreatheBtn')?.classList.add('active'); }
+if (equipHidden)      { stage.classList.add('equip-hidden'); document.getElementById('hideEquipBtn')?.classList.add('active'); }
+if (petHidden)        { stage.classList.add('pet-hidden');   document.getElementById('hidePetBtn')?.classList.add('active'); }
 if (bossFloatDisabled) { document.body.classList.add('no-boss-float'); document.getElementById('toggleBossFloatBtn')?.classList.add('active'); }
 if (charNameHidden)    { document.body.classList.add('char-name-hidden'); document.getElementById('toggleCharNameBtn')?.classList.add('active'); }
 applyNewsTickerSettings();
@@ -1975,6 +1990,14 @@ _ttsListeners.forEach(([id, ev, fn]) => document.getElementById(id)?.addEventLis
   sdWidth          = parseInt(load('sdWidth',  1600));
   sdHeight         = parseInt(load('sdHeight', 1000));
   sdSteps          = parseInt(load('sdSteps',  20));
+  sdChoWidth    = parseInt(load('sdChoWidth',    1920));
+  sdChoHeight   = parseInt(load('sdChoHeight',   1080));
+  sdChoSteps    = parseInt(load('sdChoSteps',    40));
+  sdChoPopWidth = parseInt(load('sdChoPopWidth', 700));
+  sdGomiWidth    = parseInt(load('sdGomiWidth',    512));
+  sdGomiHeight   = parseInt(load('sdGomiHeight',   512));
+  sdGomiSteps    = parseInt(load('sdGomiSteps',    5));
+  sdGomiPopWidth = parseInt(load('sdGomiPopWidth', 240));
   sdPositiveSuffix    = load('sdPositiveSuffix', 'masterpiece, best quality');
   sdDotPositiveSuffix  = load('sdDotPositiveSuffix',  sdDotPositiveSuffix);
   sdRealPositiveSuffix = load('sdRealPositiveSuffix', sdRealPositiveSuffix);
@@ -1996,6 +2019,18 @@ _ttsListeners.forEach(([id, ev, fn]) => document.getElementById(id)?.addEventLis
   _sdSet('sdHeightInput',          'value',       sdHeight);
   _sdSet('sdStepsSlider',          'value',       sdSteps);
   _sdSet('sdStepsVal',             'textContent', sdSteps);
+  _sdSet('sdChoWidthInput',    'value', sdChoWidth);
+  _sdSet('sdChoHeightInput',   'value', sdChoHeight);
+  _sdSet('sdChoStepsSlider',   'value', sdChoSteps);
+  _sdSet('sdChoStepsVal',      'textContent', sdChoSteps);
+  _sdSet('sdChoPopWidthSlider','value', sdChoPopWidth);
+  _sdSet('sdChoPopWidthVal',   'textContent', sdChoPopWidth + 'px');
+  _sdSet('sdGomiWidthInput',    'value', sdGomiWidth);
+  _sdSet('sdGomiHeightInput',   'value', sdGomiHeight);
+  _sdSet('sdGomiStepsSlider',   'value', sdGomiSteps);
+  _sdSet('sdGomiStepsVal',      'textContent', sdGomiSteps);
+  _sdSet('sdGomiPopWidthSlider','value', sdGomiPopWidth);
+  _sdSet('sdGomiPopWidthVal',   'textContent', sdGomiPopWidth + 'px');
   _sdSet('sdPopWidthSlider',       'value',       sdPopWidth);
   _sdSet('sdPopWidthVal',          'textContent', sdPopWidth + 'px');
   _sdSet('sdPositiveSuffixInput',     'value', sdPositiveSuffix);
@@ -2019,6 +2054,26 @@ document.getElementById('sdHeightInput')?.addEventListener('change', e => _sdSav
 document.getElementById('sdStepsSlider')?.addEventListener('input', e => {
   document.getElementById('sdStepsVal').textContent = e.target.value;
   _sdSave('sdSteps', e.target.value);
+});
+document.getElementById('sdChoWidthInput')?.addEventListener('change', e => _sdSave('sdChoWidth', e.target.value));
+document.getElementById('sdChoHeightInput')?.addEventListener('change', e => _sdSave('sdChoHeight', e.target.value));
+document.getElementById('sdChoStepsSlider')?.addEventListener('input', e => {
+  document.getElementById('sdChoStepsVal').textContent = e.target.value;
+  _sdSave('sdChoSteps', e.target.value);
+});
+document.getElementById('sdChoPopWidthSlider')?.addEventListener('input', e => {
+  document.getElementById('sdChoPopWidthVal').textContent = e.target.value + 'px';
+  _sdSave('sdChoPopWidth', e.target.value);
+});
+document.getElementById('sdGomiWidthInput')?.addEventListener('change', e => _sdSave('sdGomiWidth', e.target.value));
+document.getElementById('sdGomiHeightInput')?.addEventListener('change', e => _sdSave('sdGomiHeight', e.target.value));
+document.getElementById('sdGomiStepsSlider')?.addEventListener('input', e => {
+  document.getElementById('sdGomiStepsVal').textContent = e.target.value;
+  _sdSave('sdGomiSteps', e.target.value);
+});
+document.getElementById('sdGomiPopWidthSlider')?.addEventListener('input', e => {
+  document.getElementById('sdGomiPopWidthVal').textContent = e.target.value + 'px';
+  _sdSave('sdGomiPopWidth', e.target.value);
 });
 document.getElementById('sdPopWidthSlider')?.addEventListener('input', e => {
   document.getElementById('sdPopWidthVal').textContent = e.target.value + 'px';

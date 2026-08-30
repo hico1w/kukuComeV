@@ -68,6 +68,8 @@ let commentPhysZ           = parseInt(localStorage.getItem('commentPhysZ')      
 
 let _cphysObjs  = [];   // { el, x, y, vx, vy, w, h, born }
 let _cphysAnim  = null;
+let _cphysRectCache = null;
+let _cphysRectTs = 0;
 
 const _CPHYS_BURST_SND = '/sound/syageki/' + encodeURIComponent('nc77822_びっくり０３－１.mp3');
 function _playCommentPhysBurstSound() {
@@ -178,9 +180,8 @@ function spawnCommentPhys(text, user, imgUrls) {
     vy: Math.random() * 2,
     born: performance.now(),
   };
-  // 物理座標(o.x/o.y)はstage基準。描画はstageのビューポート位置を足して配置
-  el.style.left = (rect.left + x) + 'px';
-  el.style.top  = (rect.top + obj.y) + 'px';
+  // 物理座標(o.x/o.y)はstage基準。translate でビューポート絶対位置に配置（GPU コンポジット）
+  el.style.transform = `translate(${(rect.left + x).toFixed(1)}px,${(rect.top + obj.y).toFixed(1)}px)`;
   _cphysObjs.push(obj);
 
   // 上限超過：古いものから消す（積み上がりすぎ防止）
@@ -196,25 +197,36 @@ function _cphysStep() {
   if (!stageEl) { _cphysAnim = null; return; }
   const stageW = stageEl.clientWidth;
   const stageH = stageEl.clientHeight;
-  const rect = stageEl.getBoundingClientRect(); // body直下に置くためのビューポートオフセット
+  // getBoundingClientRect は 300ms ごとにのみ呼ぶ（毎フレームのレイアウトリフローを削減）
+  const now300 = performance.now();
+  if (!_cphysRectCache || now300 - _cphysRectTs > 300) {
+    _cphysRectCache = stageEl.getBoundingClientRect();
+    _cphysRectTs = now300;
+  }
+  const rect = _cphysRectCache;
+  const hasBullets = typeof kaiBullets !== 'undefined' && kaiBullets.length > 0;
 
   for (const o of _cphysObjs) {
-    o.vy += commentPhysGravity;
-    o.x  += o.vx;
-    o.y  += o.vy;
+    const sleeping = o.vy === 0 && Math.abs(o.vx) < 0.1;
 
-    // 壁・床の反射
-    if (o.x < 0)            { o.x = 0;            o.vx =  Math.abs(o.vx) * commentPhysRestitution; }
-    if (o.x + o.w > stageW) { o.x = stageW - o.w; o.vx = -Math.abs(o.vx) * commentPhysRestitution; }
-    if (o.y + o.h > stageH) {
-      o.y = stageH - o.h;
-      o.vy = -Math.abs(o.vy) * commentPhysRestitution;
-      o.vx *= 0.9;
-      if (Math.abs(o.vy) < 1.2) { o.vy = 0; o.vx *= 0.6; } // 着地して静止
+    if (!sleeping) {
+      o.vy += commentPhysGravity;
+      o.x  += o.vx;
+      o.y  += o.vy;
+
+      // 壁・床の反射
+      if (o.x < 0)            { o.x = 0;            o.vx =  Math.abs(o.vx) * commentPhysRestitution; }
+      if (o.x + o.w > stageW) { o.x = stageW - o.w; o.vx = -Math.abs(o.vx) * commentPhysRestitution; }
+      if (o.y + o.h > stageH) {
+        o.y = stageH - o.h;
+        o.vy = -Math.abs(o.vy) * commentPhysRestitution;
+        o.vx *= 0.9;
+        if (Math.abs(o.vy) < 1.2) { o.vy = 0; o.vx *= 0.6; } // 着地して静止
+      }
     }
 
     // 射コマンドの弾と衝突 → 消滅（+1MP・バーストエフェクト）
-    if (!o._destroyBy && typeof kaiBullets !== 'undefined' && kaiBullets.length) {
+    if (!o._destroyBy && hasBullets) {
       for (const b of kaiBullets) {
         const nx = Math.max(o.x, Math.min(b.x, o.x + o.w));
         const ny = Math.max(o.y, Math.min(b.y, o.y + o.h));
@@ -252,8 +264,7 @@ function _cphysStep() {
   }
 
   for (const o of _cphysObjs) {
-    o.el.style.left = (rect.left + o.x) + 'px';
-    o.el.style.top  = (rect.top + o.y) + 'px';
+    o.el.style.transform = `translate(${(rect.left + o.x).toFixed(1)}px,${(rect.top + o.y).toFixed(1)}px)`;
   }
 
   // 弾が命中したオブジェクトの消滅処理（レンダリング後に実行してクローンの座標を正確にする）

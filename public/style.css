@@ -158,6 +158,14 @@ body {
   line-height: 1;
 }
 .sd-image-close:hover { color: #f87171; }
+.sd-image-prompt {
+  color: #94a3b8;
+  font-size: 15px;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .sd-image-img {
   width: 100%;
   border-radius: 8px;
@@ -1231,6 +1239,7 @@ body {
 /* ── 射コマンド bullets ─────────────────────── */
 .kai-bullet {
   position: absolute;
+  left: 0; top: 0;
   font-weight: 900;
   z-index: 60;
   pointer-events: none;
@@ -1240,7 +1249,7 @@ body {
   justify-content: center;
   line-height: 1;
   text-shadow: 0 0 10px currentColor, 2px 2px 0 rgba(0,0,0,0.7);
-  will-change: transform, left, top, opacity;
+  will-change: transform, opacity;
 }
 
 #bombBtn {
@@ -3627,6 +3636,7 @@ a.btn-debug    { text-decoration: none; display: inline-block; }
 
 /* ── 装備アイコン非表示 ── */
 #stage.equip-hidden .char-equip-area { display: none !important; }
+#stage.pet-hidden .char-pet, #stage.pet-hidden .char-pet2 { display: none !important; }
 .char-afk .char-equip-area           { display: none !important; }
 
 /* ── ステータス非表示 ── */
@@ -4290,6 +4300,7 @@ body.compact-mode .title-tag         { display: none !important; }
 .br-atk  { color: #7dd3fc; font-weight: 700; }
 .br-tgt  { color: #f87171; }
 .br-dmg  { font-weight: 700; }
+.br-skill { color: #fde68a; font-style: italic; }
 .br-toast-crit .br-dmg { color: #fbbf24; }
 .br-rank { color: #94a3b8; font-size: 11px; margin-left: 4px; }
 @keyframes brToastIn  { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
@@ -4446,11 +4457,13 @@ body.compact-mode .title-tag         { display: none !important; }
 }
 .race-horse-run {
   position: absolute;
+  left: 0;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   pointer-events: none;
+  will-change: transform;
 }
 .race-horse-no {
   position: absolute;
@@ -4889,6 +4902,29 @@ body.compact-mode .title-tag         { display: none !important; }
   text-align: center;
   margin-top: 2px;
 }
+/* タイマン解説 */
+.taiman-commentary {
+  position: absolute;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 820;
+  background: rgba(0, 0, 0, 0.82);
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  border-radius: 20px;
+  padding: 7px 20px;
+  color: #e2e8f0;
+  font-size: 21px;
+  font-weight: 600;
+  white-space: nowrap;
+  max-width: 80%;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.taiman-commentary.taiman-commentary-show { opacity: 1; }
+
 .taiman-bet-banner {
   position: absolute;
   top: 4%;
@@ -5005,7 +5041,7 @@ body.compact-mode .title-tag         { display: none !important; }
   position: fixed;
   left: 0; top: 0;
   pointer-events: none;
-  will-change: left, top;
+  will-change: transform;
 }
 .comment-phys-pop {
   animation: _cphysPop 0.25s ease-out;

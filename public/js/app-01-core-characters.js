@@ -831,6 +831,7 @@ function updateJiggleOverlay(user) {
   const a = document.getElementById('a-' + user.ipid);
   if (!a) return;
   a.querySelector('.jiggle-overlay')?.remove();
+  if (user.charImageData) return; // キャラ作成画像中は揺れ無効
 
   const imgFile = user.charImage || (user.charDef && charImages[user.charDef.id]) || 'kisyokeee.png';
   const cfg = jiggleConfig[imgFile];
@@ -1214,6 +1215,7 @@ function updatePurupuruOverlay(user) {
   const a = document.getElementById('a-' + user.ipid);
   if (!a) return;
   a.querySelectorAll('.puru-canvas').forEach(c => { if (c._puruImg) c._puruImg.style.opacity = ''; c.remove(); });
+  if (user.charImageData) return; // キャラ作成画像中はぷるぷる無効
   const imgFile = user.charImage || (user.charDef && charImages[user.charDef.id]) || 'kisyokeee.png';
   const cfg = purupuruConfig[imgFile];
   if (!cfg || !cfg.enabled) return;

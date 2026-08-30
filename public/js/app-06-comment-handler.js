@@ -61,9 +61,21 @@ function showEquipSynthPop(badge, equip) {
 
 // 音声再生
 // ──────────────────────────────────────────────────────────────────
+// 同一 src の Audio を最大4つまで使い回してGCを減らす
+const _localSoundPool = Object.create(null);
 function playLocalSound(src, volume = 0.8) {
   if (compactMode) return;
-  try { const a = new Audio(src); a.volume = Math.min(1, volume * seVolume); a.play().catch(() => {}); } catch {}
+  try {
+    let pool = _localSoundPool[src];
+    if (!pool) _localSoundPool[src] = pool = [];
+    let a = pool.find(x => x.paused || x.ended);
+    if (!a) {
+      if (pool.length < 4) { a = new Audio(src); pool.push(a); }
+      else { a = pool[0]; pool.push(pool.shift()); a.currentTime = 0; }
+    }
+    a.volume = Math.min(1, volume * seVolume);
+    a.play().catch(() => {});
+  } catch {}
 }
 
 function playVoice(url) {
@@ -527,6 +539,7 @@ function handleComment(comment) {
   // ── ランダムタイマン ──────────────────────────────
   if (message.includes('ランダムタイマン')) {
     if (compactMode || contentMode) return;
+    if (taimanDisabled) return;
     ensureCharOnStage(user);
     if (taimanState) {
       showBubble(user, 'タイマン中です', {});
@@ -556,6 +569,7 @@ function handleComment(comment) {
     const taimanM = trimmedMsg.match(/^タイマン[：:](.+)$/);
     if (taimanM) {
       if (compactMode || contentMode) return;
+      if (taimanDisabled) return;
       const targetName = taimanM[1].trim();
       ensureCharOnStage(user);
       if (taimanState) {
@@ -636,15 +650,58 @@ function handleComment(comment) {
   if (message.includes('キャラ作成')) {
     if (!agruImgCmdEnabled) return;
     if (agruBattleActive) return;
+    if (agruActive) return;
+    if (taimanState) return;
     ensureCharOnStage(user);
     if ((user.mp ?? 0) < 50) {
       showBubble(user, `MPが足りない… (${user.mp ?? 0}/50)`, {});
       return;
     }
+    const charPrompt = message.replace(/キャラ作成/g, '').trim() || 'cute character';
+    const _cpCfg = _sdReadSettings();
+    if (_sdNeedsMosaic(charPrompt, charPrompt, _cpCfg.mosaicKeywords)) {
+      showBubble(user, 'そのキャラは作れません', { color: '#ef4444' });
+      return;
+    }
     user.mp -= 50;
     updateStatsDisplay(user);
-    const charPrompt = message.replace(/キャラ作成/g, '').trim();
-    createCharImage(user, charPrompt || 'cute character');
+    createCharImage(user, charPrompt, comment.number);
+    return;
+  }
+
+  // ── エコ生成コマンド：5MP消費・低解像度/低Stepsで雑に生成 ──────
+  if (message.includes('エコ生成')) {
+    if (!agruImgCmdEnabled) return;
+    if (agruBattleActive) return;
+    if (taimanState) return;
+    if (agruActive) return;
+    ensureCharOnStage(user);
+    if ((user.mp ?? 0) < 5) {
+      showBubble(user, `MPが足りません（${user.mp ?? 0}/5）`, {});
+      return;
+    }
+    user.mp -= 5;
+    showBubble(user, message, {});
+    const prompt = message.replace(/エコ生成/g, '').trim();
+    generateSDImageGomi(user, prompt || '1girl, anime', comment.number);
+    return;
+  }
+
+  // ── 超生成コマンド：500MP消費・別解像度/Stepsで高品質SD生成 ──────
+  if (message.includes('超生成')) {
+    if (!agruImgCmdEnabled) return;
+    if (agruBattleActive) return;
+    if (taimanState) return;
+    if (agruActive) return;
+    ensureCharOnStage(user);
+    if ((user.mp ?? 0) < 500) {
+      showBubble(user, `MPが足りません（${user.mp ?? 0}/500）`, {});
+      return;
+    }
+    user.mp -= 500;
+    showBubble(user, message, {});
+    const prompt = message.replace(/超生成/g, '').trim();
+    generateSDImageCho(user, prompt || '1girl, anime', comment.number);
     return;
   }
 
@@ -652,6 +709,7 @@ function handleComment(comment) {
   if (/出ろ|出して|生成|gen/i.test(message)) {
     if (!agruImgCmdEnabled) return; // 画像コマンド無視設定
     if (agruBattleActive) return; // バトル中は画像コマンド無効
+    if (taimanState) return; // タイマン中は画像コマンド無効
     if (agruActive) return; // 会話モード中は _agruSend 側で処理
     ensureCharOnStage(user);
     if ((user.mp ?? 0) < 20) {
@@ -662,7 +720,7 @@ function handleComment(comment) {
     user.mp -= 20;
     showBubble(user, message, {});
     const prompt = message.replace(/出ろ|出して|生成|gen/gi, '').trim();
-    generateSDImage(user, prompt || '1girl, anime');
+    generateSDImage(user, prompt || '1girl, anime', comment.number);
     return;
   }
 
@@ -824,6 +882,7 @@ function handleComment(comment) {
     }
     user.charDef = getCharDef(id);
     delete user.charImage;
+    delete user.charImageData;
     if (!user.el) createCharacter(user);
     else applyAvatarStyle(user);
     updateNameDisplay(user);
@@ -867,6 +926,7 @@ function handleComment(comment) {
       } else {
         user.charDef = getCharDef(id);
         delete user.charImage;
+        delete user.charImageData;
         delete user._taimanDefeatImg; // 自発変更としてタイマー判定をリセット
         if (!user.el) createCharacter(user);
         else applyAvatarStyle(user);
