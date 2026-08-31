@@ -4306,6 +4306,23 @@ body.compact-mode .title-tag         { display: none !important; }
 @keyframes brToastIn  { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
 @keyframes brToastOut { from{opacity:1} to{opacity:0} }
 
+.mp-all-banner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  background: rgba(14,116,188,0.92);
+  color: #fff;
+  font-size: 26px;
+  font-weight: 900;
+  padding: 18px 36px;
+  border-radius: 16px;
+  border: 2px solid #7dd3fc;
+  z-index: 70;
+  pointer-events: none;
+  animation: brBannerIn 0.3s ease, brBannerOut 0.4s ease 2.6s forwards;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
 .br-start-banner {
   position: absolute;
   top: 50%;

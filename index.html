@@ -446,7 +446,7 @@
         <div class="feature-card-body">
           <b>HP</b>：基本30 ＋ HP系装備ボーナス（鉄壁ペットで+10追加）<br>
           <b>MP</b>：コメント攻撃で+1（ペット効果で+2〜+4）。上限なし。死亡しても保持。<br>
-          　消費：<b>ペットガチャ</b> -20 ／ <b>10連ペットガチャ</b> -200 ／ <b>出して（AI画像）</b> -20 ／ <b>キャラ作成</b> -50 ／ <b>字幕</b> -20 ／ <b>止めて（YouTube停止）</b> -50 ／ <b>大きさ:大</b> -200 ／ <b>スロット</b> -3 ／ <b>回復</b> -2<br>
+          　消費：<b>ペットガチャ</b> -20 ／ <b>10連ペットガチャ</b> -200 ／ <b>出して（AI画像）</b> -20 ／ <b>エコ生成</b> -5 ／ <b>超生成</b> -500 ／ <b>キャラ作成</b> -50 ／ <b>字幕</b> -20 ／ <b>止めて（YouTube停止）</b> -50 ／ <b>大きさ:大</b> -200 ／ <b>移動:XXX</b> -200 ／ <b>スロット</b> -3 ／ <b>回復</b> -2<br>
           <b>ATK</b>：1 ＋ レベル ＋ ATK系装備ボーナス ＋ 称号ボーナス<br>
           <b>CRT（クリティカル率）</b>：基本15%。ペット「偵察」+5%・「鋭爪」+20%（pet1・pet2それぞれ加算）＋ 称号ボーナス。クリ時ダメージ×2〜4倍。<br>
           <b>キャラ名表示</b>：設定した文字色・背景色・フォント・装飾がキャラ名にも反映されます。
@@ -530,11 +530,49 @@
       </div>
 
       <div class="feature-card">
-        <div class="feature-card-title" style="color:#f472b6">🎨 AI画像生成（出してコマンド）</div>
+        <div class="feature-card-title" style="color:#f472b6">🎨 AI画像生成（出して／エコ生成／超生成）</div>
         <div class="feature-card-body">
-          コメントに <b>出して / 出ろ / 生成</b> を含めると <b>MP20を消費</b> してStable DiffusionでAI画像を生成します。<br>
-          MPが20未満の場合は「MPが足りなくて画像生成できません」と吹き出しに表示されます。<br>
-          コメントのテキスト部分がそのままプロンプトになります。Discord Webhook連携時は生成画像とプロンプトが自動送信されます。
+          コメントのキーワードでStable DiffusionによるAI画像を生成します。テキスト部分がプロンプトになります。<br>
+          <table style="border-collapse:collapse;margin:6px 0;width:100%;font-size:12px">
+            <tr style="color:#94a3b8"><th style="text-align:left;padding:2px 8px 2px 0">コマンド</th><th style="text-align:left;padding:2px 8px 2px 0">MP消費</th><th style="text-align:left;padding:2px 0">内容</th></tr>
+            <tr><td style="padding:2px 8px 2px 0"><b>出して／出ろ／生成／gen</b></td><td style="padding:2px 8px 2px 0">-20</td><td style="padding:2px 0">通常品質（管理パネルの設定を使用）</td></tr>
+            <tr><td style="padding:2px 8px 2px 0"><b>エコ生成</b></td><td style="padding:2px 8px 2px 0">-5</td><td style="padding:2px 0">低解像度・低Steps・軽量設定</td></tr>
+            <tr><td style="padding:2px 8px 2px 0"><b>超生成</b></td><td style="padding:2px 8px 2px 0">-500</td><td style="padding:2px 0">専用の解像度・Steps設定（管理パネルで設定）</td></tr>
+          </table>
+          <b>キーワード自動追加</b>：プロンプトに特定キーワードが含まれると対応するポジティブプロンプト（LoRAなど）が自動付加されます。キーワード本文は翻訳・SD送信前にプロンプトから除去されます。複数同時適用可。<br>
+          　固定：<span class="variant">ドット</span><span class="variant">リアル</span><span class="variant">もいちゃん</span><br>
+          　汎用（管理パネル「キーワード別ポジティブ」で編集可）：<br>
+          <div class="cmd-variants" style="margin:4px 0 0 1em">
+            <span class="variant" title="アゲルちゃん外見LoRA">ageru</span>
+            <span class="variant" title="スピキスタイル">スピキ</span>
+            <span class="variant" title="スピキスタイル（半角）">ｽﾋﾟｷ</span>
+            <span class="variant" title="いらすとやスタイル">いらすとや</span>
+            <span class="variant" title="noobスタイル">noob</span>
+            <span class="variant" title="ちいかわスタイル">ちいかわ</span>
+            <span class="variant" title="パステルフラットスタイル">パステル</span>
+            <span class="variant" title="カードキャプターさくらスタイル">CC</span>
+            <span class="variant" title="かぐやスタイル">かぐや</span>
+            <span class="variant" title="FATEスタイル">FATE</span>
+            <span class="variant" title="ZZZ絵文字ちびスタイル">エモ</span>
+            <span class="variant" title="ちびスタイル">ちび</span>
+            <span class="variant" title="RPGツクールキャラシートスタイル">ツクール</span>
+            <span class="variant" title="対魔忍キャラシートスタイル">taima</span>
+            <span class="variant" title="表情リファレンスシート">表情リスト</span>
+            <span class="variant" title="カメレオン顔ハグスタイル">カメレオン</span>
+            <span class="variant" title="キラキラテックスタイル">キラキラ</span>
+            <span class="variant" title="廃棄スライムスタイル">廃棄</span>
+            <span class="variant" title="90年代レトロスタイル">90</span>
+            <span class="variant" title="80年代レトロスタイル">80</span>
+            <span class="variant" title="フラットミニマリズムスタイル">フラット</span>
+            <span class="variant" title="ねんどろいどスタイル">ねんど</span>
+            <span class="variant" title="フィギュアスタイル">フィギュア</span>
+            <span class="variant" title="ランダムカラー">ランダム色</span>
+            <span class="variant" title="ランダム服装">ランダム服</span>
+            <span class="variant" title="ランダム表情">ランダム表情</span>
+            <span class="variant" title="ランダムポーズ">ランダムポーズ</span>
+            <span class="variant" title="ランダム人物">ランダム人</span>
+          </div><br>
+          MP不足の場合は吹き出しでエラー表示。Discord Webhook連携時は生成画像とプロンプトが自動送信されます。
         </div>
       </div>
 
@@ -1227,7 +1265,7 @@
 
       <div class="cmd-card">
         <div class="cmd-row"><span class="cmd-code green">移動:速い</span></div>
-        <div class="cmd-desc">キャラがランダムに動き回る速度を設定</div>
+        <div class="cmd-desc">キャラがランダムに動き回る速度を設定。<b>MP200消費</b>。MP不足の場合は変更されません。</div>
         <div class="cmd-variants">
           <span class="variant">移動:速い</span><span class="variant">移動:普通</span>
           <span class="variant">移動:遅い</span><span class="variant">移動:止まれ（デフォルト）</span>
@@ -1810,7 +1848,7 @@
     <!-- 移動 -->
     <div class="section-subtitle" style="font-size:13px;font-weight:700;color:var(--accent);margin:12px 0 6px">🚶 移動</div>
     <div class="cmd-grid">
-      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">移動:速い／普通／遅い／止まれ</span></div><div class="cmd-desc">自動移動速度を変更（止まれで停止）。設定は記憶される。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">移動:速い／普通／遅い／止まれ</span></div><div class="cmd-desc">自動移動速度を変更（止まれで停止）。<b>MP200消費</b>。設定は記憶される。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">上:N／下:N／左:N／右:N</span></div><div class="cmd-desc">指定方向へNpx（最大2000）移動。複数同時指定で順番に実行。</div></div>
     </div>
 
@@ -1886,7 +1924,9 @@
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">AFK</span><span class="cmd-code pink" style="margin-left:4px">ＡＦＫ</span></div><div class="cmd-desc">AFK（離席）状態を即時表示。次のコメントで自動解除。30分間コメントがない場合も自動AFK。<b>手動AFK中は自動ステージ削除の対象外。</b></div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">放置:テキスト</span><span class="cmd-code pink" style="margin-left:4px">無明:テキスト</span></div><div class="cmd-desc">カスタムメッセージ付きでAFK状態表示。次コメントで解除。<b>自動ステージ削除の対象外。</b></div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">射</span></div><div class="cmd-desc">コメントの文字を1文字ずつ物理的に発射。当たったキャラにダメージ。</div></div>
-      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">出ろ／出して／生成</span></div><div class="cmd-desc">★単独。MP20消費でAI画像生成。テキスト部分がプロンプトになる。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">出ろ／出して／生成／gen</span></div><div class="cmd-desc">★単独。MP20消費でAI画像生成（通常品質）。テキスト部分がプロンプトになる。プロンプト内の特定キーワード（ドット・リアル・もいちゃん・汎用設定済みキーワード）は自動でポジティブプロンプトに変換され、本文からは除去される。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">エコ生成</span></div><div class="cmd-desc">★単独。MP5消費でAI画像生成（低解像度・低Steps・軽量設定）。テキスト部分がプロンプトになる。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">超生成</span></div><div class="cmd-desc">★単独。MP500消費でAI画像生成（専用解像度・Steps設定、管理パネルで設定）。テキスト部分がプロンプトになる。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">tts:テキスト</span></div><div class="cmd-desc">★単独。テキストを音声合成（TTS）で読み上げ。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">ai:質問</span><span class="cmd-code pink" style="margin-left:4px">AI:質問</span></div><div class="cmd-desc">★単独。AIに質問してコメントで返答。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code pink">ノベル起動</span></div><div class="cmd-desc">★単独。ノベルモードを起動。</div></div>

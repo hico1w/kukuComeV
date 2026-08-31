@@ -3920,6 +3920,9 @@
     adminSend({ type: 'sdText', key, value });
   }
 
+  function _escHtml(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
   let _sdKwpList = [];
   function _sdKwpRender(list) {
     _sdKwpList = list || [];
@@ -3928,12 +3931,44 @@
     container.innerHTML = '';
     _sdKwpList.forEach((item, i) => {
       const row = document.createElement('div');
+      row.id = `kwp-row-${i}`;
       row.style.cssText = 'display:flex;gap:4px;align-items:center;background:#0f172a;border-radius:4px;padding:3px 6px';
-      row.innerHTML = `<span style="color:#94a3b8;font-size:11px;min-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${item.keyword}">${item.keyword}</span>`
-        + `<span style="color:#e2e8f0;font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${item.positive || ''}">${item.positive || '（なし）'}</span>`
+      row.innerHTML = `<span style="color:#94a3b8;font-size:11px;min-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${_escHtml(item.keyword)}">${_escHtml(item.keyword)}</span>`
+        + `<span style="color:#e2e8f0;font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${_escHtml(item.positive || '')}">${_escHtml(item.positive) || '（なし）'}</span>`
+        + `<button onclick="_sdKwpEdit(${i})" style="background:#3b82f6;border:none;border-radius:3px;color:#fff;padding:1px 6px;cursor:pointer;font-size:11px">✏</button>`
         + `<button onclick="_sdKwpDelete(${i})" style="background:#ef4444;border:none;border-radius:3px;color:#fff;padding:1px 6px;cursor:pointer;font-size:11px">×</button>`;
       container.appendChild(row);
     });
+  }
+  function _sdKwpEdit(i) {
+    const row = document.getElementById(`kwp-row-${i}`);
+    if (!row) return;
+    const item = _sdKwpList[i];
+    row.innerHTML = '';
+    const kwInput = document.createElement('input');
+    kwInput.type = 'text'; kwInput.className = 'kwp-edit-kw'; kwInput.value = item.keyword;
+    kwInput.style.cssText = 'width:110px;background:#1e293b;border:1px solid #3b82f6;border-radius:3px;color:#e2e8f0;padding:2px 4px;font-size:11px;box-sizing:border-box';
+    const posInput = document.createElement('input');
+    posInput.type = 'text'; posInput.className = 'kwp-edit-pos'; posInput.value = item.positive || '';
+    posInput.style.cssText = 'flex:1;background:#1e293b;border:1px solid #3b82f6;border-radius:3px;color:#e2e8f0;padding:2px 4px;font-size:11px;box-sizing:border-box;min-width:0';
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = '✓'; saveBtn.onclick = () => _sdKwpSaveEdit(i);
+    saveBtn.style.cssText = 'background:#22c55e;border:none;border-radius:3px;color:#fff;padding:1px 6px;cursor:pointer;font-size:11px;white-space:nowrap';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = '✕'; cancelBtn.onclick = () => _sdKwpRender(_sdKwpList);
+    cancelBtn.style.cssText = 'background:#64748b;border:none;border-radius:3px;color:#fff;padding:1px 6px;cursor:pointer;font-size:11px;white-space:nowrap';
+    row.append(kwInput, posInput, saveBtn, cancelBtn);
+    kwInput.focus();
+  }
+  function _sdKwpSaveEdit(i) {
+    const row = document.getElementById(`kwp-row-${i}`);
+    if (!row) return;
+    const kw  = row.querySelector('.kwp-edit-kw')?.value?.trim();
+    const pos = row.querySelector('.kwp-edit-pos')?.value?.trim();
+    if (!kw) return;
+    _sdKwpList[i] = { keyword: kw, positive: pos || '' };
+    _sdKwpRender(_sdKwpList);
+    _sdKwpSend();
   }
   function _sdKwpAdd() {
     const kw  = document.getElementById('sdKwpKeyInput')?.value?.trim();

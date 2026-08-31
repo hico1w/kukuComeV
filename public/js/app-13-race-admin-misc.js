@@ -729,6 +729,15 @@ function _adminBtnDispatch(id) {
     Object.values(users).forEach(u => updateStatsDisplay(u));
   } else if (id === 'debugMpBtn') {
     Object.values(users).forEach(u => { u.mp = (u.mp ?? 0) + 30; updateStatsDisplay(u); });
+    const _mpStage = document.getElementById('stage');
+    if (_mpStage) {
+      const _mpBanner = document.createElement('div');
+      _mpBanner.className = 'mp-all-banner';
+      _mpBanner.textContent = '💧 全員 MP +30！';
+      _mpStage.appendChild(_mpBanner);
+      setTimeout(() => _mpBanner.remove(), 3000);
+    }
+    playLocalSound('/sound/char/maplestory-lvl-up.mp3');
   } else if (id === 'battleRoyaleBtn') { startBattleRoyale(); }
   else if (id === 'spikiBossBtn')      { spawnSpikiBoss(); }
   else if (id === 'dismissBossBtn') {

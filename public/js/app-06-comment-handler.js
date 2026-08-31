@@ -987,11 +987,17 @@ function handleComment(comment) {
   const moveM = display.match(/移動[：:]([\S]+)/);
   if (moveM) {
     if (!moveLocked && MOVE_INTERVAL[moveM[1]] !== undefined) {
-      user.movement = moveM[1];
-      if (!user.tc) user.tc = {};
-      user.tc.moveChanges = (user.tc.moveChanges || 0) + 1;
-      if (moveM[1] === '止まれ') { applyMotion(user, null); stopWalk(user); }
-      if (user.el) scheduleMove(user);
+      if ((user.mp ?? 0) < 200) {
+        showBubble(user, `❌ MP不足 (${user.mp ?? 0}/200)`, {});
+      } else {
+        user.mp = (user.mp ?? 0) - 200;
+        updateStatsDisplay(user);
+        user.movement = moveM[1];
+        if (!user.tc) user.tc = {};
+        user.tc.moveChanges = (user.tc.moveChanges || 0) + 1;
+        if (moveM[1] === '止まれ') { applyMotion(user, null); stopWalk(user); }
+        if (user.el) scheduleMove(user);
+      }
     }
     display = display.replace(moveM[0], '').trim();
   }

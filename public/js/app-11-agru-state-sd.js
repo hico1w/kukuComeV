@@ -1460,12 +1460,18 @@ async function _sdGenerateOne(user, prompt, commentNo, settingsOverride = null) 
   }
   let positiveSuffix = cfg.positiveSuffix;
   const _extras = [];
-  if (prompt.includes('ドット'))                                _extras.push(cfg.dotPositiveSuffix);
-  if (prompt.includes('リアル'))                               _extras.push(cfg.realPositiveSuffix);
-  if (prompt.includes('もいちゃん') || /moi/i.test(prompt))   _extras.push(cfg.moiPositiveSuffix);
+  const _kwStrip = [];
+  if (prompt.includes('ドット'))    { _extras.push(cfg.dotPositiveSuffix);  _kwStrip.push('ドット'); }
+  if (prompt.includes('リアル'))    { _extras.push(cfg.realPositiveSuffix); _kwStrip.push('リアル'); }
+  if (prompt.includes('もいちゃん')){ _extras.push(cfg.moiPositiveSuffix);  _kwStrip.push('もいちゃん'); }
+  else if (/moi/i.test(prompt))     { _extras.push(cfg.moiPositiveSuffix); }
   sdKeywordPrompts.forEach(({keyword, positive}) => {
-    if (keyword && positive && prompt.includes(keyword)) _extras.push(positive);
+    if (keyword && positive && prompt.includes(keyword)) { _extras.push(positive); _kwStrip.push(keyword); }
   });
+  // マッチしたキーワードをプロンプト本文から除去（翻訳・SD送信に含めない）
+  for (const kw of _kwStrip) {
+    prompt = prompt.split(kw).join('').replace(/\s{2,}/g, ' ').replace(/,\s*,/g, ',').trim();
+  }
   const _valid = _extras.filter(Boolean);
   if (_valid.length) positiveSuffix = [cfg.positiveSuffix, ..._valid].filter(Boolean).join(', ');
   const fullPrompt = prompt + (positiveSuffix ? ', ' + positiveSuffix : '');
