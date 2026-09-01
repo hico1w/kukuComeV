@@ -204,6 +204,8 @@
   .image-thumb:hover { border-color:#7dd3fc;transform:scale(1.04); }
   .image-thumb img { width:100%;height:100%;object-fit:contain;display:block; }
   .image-thumb-name { position:absolute;bottom:0;left:0;right:0;font-size:9px;color:rgba(255,255,255,0.7);background:rgba(0,0,0,0.6);padding:2px 4px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+  .image-thumb-del { position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:rgba(239,68,68,0.85);border:none;color:#fff;font-size:10px;line-height:1;cursor:pointer;display:none;align-items:center;justify-content:center;padding:0; }
+  .image-thumb:hover .image-thumb-del { display:flex; }
   .image-grid-empty { grid-column:1/-1;color:#475569;font-size:12px;text-align:center;padding:24px 0; }
   .char-slots { flex:1;overflow-y:auto;padding:4px 12px 8px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.12) transparent; }
   .slot-pager { display:flex;align-items:center;gap:8px;padding:6px 0 8px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:4px;font-size:12px;color:#94a3b8; }
@@ -4405,7 +4407,14 @@
       const div = document.createElement('div');
       div.className = 'image-thumb';
       div.title = fname;
-      div.innerHTML = `<img src="/chara/${encodeURIComponent(fname)}" loading="lazy"><div class="image-thumb-name">${fname}</div>`;
+      div.innerHTML = `<img src="/chara/${encodeURIComponent(fname)}" loading="lazy"><div class="image-thumb-name">${fname}</div><button class="image-thumb-del" title="削除">✕</button>`;
+      div.querySelector('.image-thumb-del').addEventListener('click', async e => {
+        e.stopPropagation();
+        if (!confirm(`「${fname}」を削除しますか？\nキャラ割り当てからも除去されます。`)) return;
+        const r = await fetch(`/api/chara-image/${encodeURIComponent(fname)}`, { method: 'DELETE' });
+        if (r.ok) { await _adminLoadImages(); _adminRenderGrid(); _adminRenderSlots(); }
+        else alert('削除に失敗しました');
+      });
       grid.appendChild(div);
     });
   }

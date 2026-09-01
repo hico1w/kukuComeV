@@ -2,6 +2,15 @@
 
 ---
 
+## v2.842.0 — 2026-09-02
+
+### feat: admin キャラ画像削除ボタン追加
+
+- **`public/admin.html`**: 🖼キャラ画像モーダルの各サムネイルにホバーで ✕ 削除ボタンを追加
+- **`server.js`** `DELETE /api/chara-image/:filename`: ファイル削除 + `charImages.json` / `charImageSizes.json` からエントリ除去 + `charaReload` WebSocket通知
+
+---
+
 ## v2.841.0 — 2026-09-02
 
 ### feat: ストレージをR2からGitHubに変更、Cloudflareフルデプロイ完了

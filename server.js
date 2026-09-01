@@ -44,6 +44,32 @@ app.post('/api/bg-upload', (req, res) => {
   res.json({ url: `/bg/${filename}` });
 });
 
+// キャラ画像削除
+app.delete('/api/chara-image/:filename', (req, res) => {
+  const fname = req.params.filename;
+  if (!fname || /[/\\]/.test(fname)) return res.status(400).json({ error: 'invalid filename' });
+  try {
+    const filePath = path.join(__dirname, 'public', 'chara', fname);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+    const ciPath = path.join(__dirname, 'data', 'charImages.json');
+    const ci = JSON.parse(fs.readFileSync(ciPath, 'utf8'));
+    for (const k of Object.keys(ci)) { if (ci[k] === fname) delete ci[k]; }
+    fs.writeFileSync(ciPath, JSON.stringify(ci));
+
+    const csPath = path.join(__dirname, 'data', 'charImageSizes.json');
+    const cs = JSON.parse(fs.readFileSync(csPath, 'utf8'));
+    delete cs[fname];
+    fs.writeFileSync(csPath, JSON.stringify(cs));
+
+    const note = JSON.stringify({ type: 'charaReload' });
+    wsClients.main.forEach(c => { if (c.readyState === 1) c.send(note); });
+    wsClients.admin.forEach(c => { if (c.readyState === 1) c.send(note); });
+
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // 背景画像クリア
 app.delete('/api/bg', (req, res) => {
   const dir = path.join(__dirname, 'public', 'bg');
