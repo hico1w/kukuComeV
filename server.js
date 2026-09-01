@@ -427,7 +427,9 @@ app.get('/api/images', (req, res) => {
   try {
     const files = fs.readdirSync(dir)
       .filter(f => /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(f))
-      .sort();
+      .map(f => ({ name: f, mtime: fs.statSync(path.join(dir, f)).mtimeMs }))
+      .sort((a, b) => b.mtime - a.mtime)
+      .map(f => f.name);
     res.json({ images: files });
   } catch {
     res.json({ images: [] });
