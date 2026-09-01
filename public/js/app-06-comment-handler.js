@@ -683,7 +683,7 @@ function handleComment(comment) {
     user.mp -= 5;
     showBubble(user, message, {});
     const prompt = message.replace(/エコ生成/g, '').trim();
-    generateSDImageGomi(user, prompt || '1girl, anime', comment.number);
+    generateSDImageGomi(user, prompt, comment.number);
     return;
   }
 
@@ -701,7 +701,7 @@ function handleComment(comment) {
     user.mp -= 500;
     showBubble(user, message, {});
     const prompt = message.replace(/超生成/g, '').trim();
-    generateSDImageCho(user, prompt || '1girl, anime', comment.number);
+    generateSDImageCho(user, prompt, comment.number);
     return;
   }
 
@@ -720,7 +720,7 @@ function handleComment(comment) {
     user.mp -= 20;
     showBubble(user, message, {});
     const prompt = message.replace(/出ろ|出して|生成|gen/gi, '').trim();
-    generateSDImage(user, prompt || '1girl, anime', comment.number);
+    generateSDImage(user, prompt, comment.number);
     return;
   }
 

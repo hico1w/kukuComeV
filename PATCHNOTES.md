@@ -2,6 +2,54 @@
 
 ---
 
+## v2.840.0 — 2026-09-02
+
+### feat: Cloudflare R2 + Worker によるリスナーキャラ画像アップロードシステム
+
+- **`cloudflare/worker.js`** (新規): Cloudflare Worker コード
+  - `POST /upload`: PNG/JPG/WebP/GIF・2MB以下を検証し R2 に `timestamp-random.ext` キーで保存
+  - `GET /list`: R2 バケット一覧（`[{key, size}]`）をポーリング用に返す
+  - `GET /file/:key`: R2 からファイルを Content-Type 付きで配信
+  - 全エンドポイントに CORS ヘッダー付与
+- **`cloudflare/upload.html`** (新規): Cloudflare Pages 用アップロードページ
+  - ドラッグ＆ドロップ + クリック選択
+  - 画像プレビュー・ファイルサイズ/形式バリデーション
+  - アップロード中スピナー・成功/エラーステータス表示
+  - `WORKER_URL` 定数にWorker URLを入れるだけで動作
+- **`server.js`**:
+  - `_uploadWorkerUrl` 定数を `server-config.json` の `uploadWorkerUrl` から読み込み
+  - `_pollCharaUploads()` 非同期関数: 60秒ごとに `/list` をポーリング
+    - 新規ファイルを `/file/:key` から取得し `public/chara/` に保存
+    - `sharp` で縦横比を計算し `charImageSizes.json` に追記
+    - `charImages.json` に次の連番キーで登録
+    - WebSocket で `{ type: 'charaReload' }` をブロードキャスト
+- **`data/server-config.json`**: `"uploadWorkerUrl": ""` フィールドを追加
+
+---
+
+## v2.839.0 — 2026-08-31
+
+### fix: SD生成コマンドのプロンプト必須チェックを削除（クライアント・サーバー両方）
+
+- **`public/js/app-06-comment-handler.js`**: 出して/エコ生成/超生成の `'1girl, anime'` フォールバックを廃止
+- **`server.js`** `/api/sd-generate`: `if (!prompt) return 400` チェックを削除、空プロンプトは空文字として翻訳スキップ・そのまま続行
+
+---
+
+## v2.838.0 — 2026-08-31
+
+### feat: 全員MP+30の演出を超派手化
+
+- **`public/js/app-13-race-admin-misc.js`** `_showMpAllCelebration()` 関数を新設:
+  - 青い放射フラッシュ（画面全体）
+  - 衝撃波リング × 3（130ms間隔で拡散）
+  - 54px レインボーグラデーション文字 + 虹色ボーダーアニメーションの大バナー（弾性スケールイン）
+  - パーティクル雨 45個（💧⭐✨💎💫🌊⚡🎊🎉、ランダムサイズ・速度）
+  - ステージ上の全キャラ位置から「+30 💧」ラベルが浮き上がるフライアップ演出
+- **`public/style.css`**: `.mp-all-banner` 系を完全刷新、`.mp-flash`/`.mp-shockwave`/`.mp-particle`/`.mp-fly-label` を新規追加
+
+---
+
 ## v2.837.0 — 2026-08-31
 
 ### docs: index.html をコード実装に同期 (update-index)（スピキ/いらすとや等汎用キーワード全件追記）

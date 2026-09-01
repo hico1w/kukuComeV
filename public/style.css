@@ -4306,22 +4306,134 @@ body.compact-mode .title-tag         { display: none !important; }
 @keyframes brToastIn  { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
 @keyframes brToastOut { from{opacity:1} to{opacity:0} }
 
+/* ─── 全員MP+30 超派手演出 ──────────────────────────────────── */
+.mp-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(125,211,252,0.6) 0%, rgba(14,116,188,0.3) 55%, transparent 100%);
+  z-index: 190;
+  pointer-events: none;
+  animation: mpFlash 0.9s ease forwards;
+}
+@keyframes mpFlash { 0%{opacity:0} 12%{opacity:1} 100%{opacity:0} }
+
+.mp-shockwave {
+  position: absolute;
+  top: 42%; left: 50%;
+  width: 0; height: 0;
+  border-radius: 50%;
+  border: 6px solid rgba(125,211,252,0.9);
+  box-shadow: 0 0 20px rgba(125,211,252,0.6);
+  z-index: 185;
+  pointer-events: none;
+  animation: mpShockwave 0.9s ease-out forwards;
+}
+@keyframes mpShockwave {
+  0%   { width:0;height:0;transform:translate(-50%,-50%);opacity:1;border-width:8px }
+  100% { width:1000px;height:1000px;transform:translate(-50%,-50%);opacity:0;border-width:1px }
+}
+
 .mp-all-banner {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%,-50%);
-  background: rgba(14,116,188,0.92);
-  color: #fff;
-  font-size: 26px;
-  font-weight: 900;
-  padding: 18px 36px;
-  border-radius: 16px;
-  border: 2px solid #7dd3fc;
-  z-index: 70;
+  top: 42%; left: 50%;
+  transform: translate(-50%,-50%) scale(0) rotate(-6deg);
+  z-index: 180;
   pointer-events: none;
-  animation: brBannerIn 0.3s ease, brBannerOut 0.4s ease 2.6s forwards;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  animation: mpBannerBounce 0.6s cubic-bezier(0.34,1.7,0.64,1) 0.12s forwards,
+             mpBannerOut 0.5s ease 4.0s forwards;
+}
+.mp-all-banner-box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(135deg, rgba(2,6,23,0.97), rgba(10,20,55,0.97));
+  border-radius: 24px;
+  padding: 20px 52px;
+  position: relative;
+  box-shadow: 0 0 50px rgba(125,211,252,0.65), 0 0 100px rgba(125,211,252,0.3), inset 0 1px 0 rgba(255,255,255,0.12);
+  animation: mpBoxGlow 0.55s ease infinite alternate;
+}
+.mp-all-banner-box::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 26px;
+  background: linear-gradient(90deg, #7dd3fc, #a78bfa, #f472b6, #fb923c, #fbbf24, #34d399, #7dd3fc);
+  background-size: 300% 100%;
+  z-index: -1;
+  animation: mpRainbowBorder 0.9s linear infinite;
+}
+.mp-all-banner-icon {
+  font-size: 56px;
+  line-height: 1;
+  animation: mpIconBounce 0.38s ease infinite alternate;
+  filter: drop-shadow(0 0 14px rgba(125,211,252,0.95));
+}
+.mp-all-banner-text {
+  font-size: 54px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  white-space: nowrap;
+  background: linear-gradient(90deg, #7dd3fc, #c4b5fd, #f9a8d4, #fb923c, #fcd34d, #6ee7b7, #7dd3fc);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 18px rgba(125,211,252,0.75));
+  animation: mpRainbowText 0.9s linear infinite;
+}
+.mp-all-banner-sub {
+  font-size: 17px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.75);
+  letter-spacing: 5px;
+  text-shadow: 0 0 12px rgba(125,211,252,0.7);
+  animation: mpSubPulse 0.7s ease infinite alternate;
+}
+@keyframes mpBannerBounce { 0%{transform:translate(-50%,-50%) scale(0) rotate(-6deg)} 100%{transform:translate(-50%,-50%) scale(1) rotate(0deg)} }
+@keyframes mpBannerOut { 0%{opacity:1;transform:translate(-50%,-50%) scale(1)} 100%{opacity:0;transform:translate(-50%,-50%) scale(1.18)} }
+@keyframes mpBoxGlow { 0%{box-shadow:0 0 50px rgba(125,211,252,0.65), 0 0 100px rgba(125,211,252,0.3), inset 0 1px 0 rgba(255,255,255,0.12)} 100%{box-shadow:0 0 80px rgba(125,211,252,0.95), 0 0 160px rgba(125,211,252,0.5), inset 0 1px 0 rgba(255,255,255,0.12)} }
+@keyframes mpRainbowBorder { 0%{background-position:0% 50%} 100%{background-position:100% 50%} }
+@keyframes mpRainbowText { 0%{background-position:0% 50%} 100%{background-position:100% 50%} }
+@keyframes mpIconBounce { 0%{transform:scale(1) rotate(-14deg)} 100%{transform:scale(1.28) rotate(14deg)} }
+@keyframes mpSubPulse { 0%{opacity:0.6;letter-spacing:4px} 100%{opacity:1;letter-spacing:7px} }
+
+.mp-particle {
+  position: absolute;
+  top: -40px;
+  z-index: 175;
+  pointer-events: none;
+  user-select: none;
+  line-height: 1;
+  animation: mpParticleFall linear forwards;
+}
+@keyframes mpParticleFall {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateY(110vh) rotate(900deg); opacity: 0; }
+}
+
+.mp-fly-label {
+  position: absolute;
+  font-size: 20px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 14px rgba(125,211,252,0.95), 0 0 28px rgba(125,211,252,0.6), 0 2px 5px rgba(0,0,0,0.9);
+  z-index: 170;
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translate(-50%, -100%);
+  animation: mpFlyUp 1.8s cubic-bezier(0.25,1,0.5,1) forwards;
+}
+@keyframes mpFlyUp {
+  0%   { opacity:0; transform:translate(-50%,-80%) scale(0.4); }
+  15%  { opacity:1; transform:translate(-50%,-100%) scale(1.35); }
+  55%  { opacity:1; transform:translate(-50%,-210%); }
+  100% { opacity:0; transform:translate(-50%,-340%) scale(0.7); }
 }
 .br-start-banner {
   position: absolute;

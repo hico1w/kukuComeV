@@ -729,14 +729,7 @@ function _adminBtnDispatch(id) {
     Object.values(users).forEach(u => updateStatsDisplay(u));
   } else if (id === 'debugMpBtn') {
     Object.values(users).forEach(u => { u.mp = (u.mp ?? 0) + 30; updateStatsDisplay(u); });
-    const _mpStage = document.getElementById('stage');
-    if (_mpStage) {
-      const _mpBanner = document.createElement('div');
-      _mpBanner.className = 'mp-all-banner';
-      _mpBanner.textContent = '💧 全員 MP +30！';
-      _mpStage.appendChild(_mpBanner);
-      setTimeout(() => _mpBanner.remove(), 3000);
-    }
+    _showMpAllCelebration();
     playLocalSound('/sound/char/maplestory-lvl-up.mp3');
   } else if (id === 'battleRoyaleBtn') { startBattleRoyale(); }
   else if (id === 'spikiBossBtn')      { spawnSpikiBoss(); }
@@ -2078,6 +2071,71 @@ function cancelRace() {
   document.getElementById('racePanel')?.remove();
   raceState = null;
   addSystemLog('🏇 競馬キャンセル・賭けMP返金', '#94a3b8');
+}
+
+function _showMpAllCelebration() {
+  const stage = document.getElementById('stage');
+  if (!stage) return;
+  const stageRect = stage.getBoundingClientRect();
+
+  // フラッシュ
+  const flash = document.createElement('div');
+  flash.className = 'mp-flash';
+  stage.appendChild(flash);
+  setTimeout(() => flash.remove(), 900);
+
+  // 衝撃波リング × 3
+  for (let i = 0; i < 3; i++) {
+    setTimeout(() => {
+      const sw = document.createElement('div');
+      sw.className = 'mp-shockwave';
+      stage.appendChild(sw);
+      setTimeout(() => sw.remove(), 1000);
+    }, i * 130);
+  }
+
+  // メインバナー
+  const banner = document.createElement('div');
+  banner.className = 'mp-all-banner';
+  banner.innerHTML =
+    '<div class="mp-all-banner-box">' +
+      '<span class="mp-all-banner-icon">💧</span>' +
+      '<span class="mp-all-banner-text">全員 MP +30！</span>' +
+      '<span class="mp-all-banner-icon" style="animation-delay:0.18s">💧</span>' +
+    '</div>' +
+    '<div class="mp-all-banner-sub">✨ EVERYONE GOT MP ✨</div>';
+  stage.appendChild(banner);
+  setTimeout(() => banner.remove(), 4500);
+
+  // パーティクル雨（45個）
+  const PTCL = ['💧','⭐','✨','💎','💫','🌊','🔵','⚡','🎊','🎉'];
+  for (let i = 0; i < 45; i++) {
+    setTimeout(() => {
+      const p = document.createElement('div');
+      p.className = 'mp-particle';
+      p.textContent = PTCL[Math.floor(Math.random() * PTCL.length)];
+      const dur = 1.0 + Math.random() * 1.6;
+      p.style.cssText = `left:${Math.random() * 100}%;font-size:${16 + Math.random() * 22}px;animation-duration:${dur}s`;
+      stage.appendChild(p);
+      setTimeout(() => p.remove(), dur * 1000 + 200);
+    }, Math.random() * 900);
+  }
+
+  // 各キャラに個別ラベル
+  Object.values(users).forEach((u, idx) => {
+    if (!u.el) return;
+    setTimeout(() => {
+      const rect = u.el.getBoundingClientRect();
+      const x = rect.left - stageRect.left + rect.width / 2;
+      const y = rect.top - stageRect.top;
+      const lbl = document.createElement('div');
+      lbl.className = 'mp-fly-label';
+      lbl.textContent = '+30 💧';
+      lbl.style.cssText = `left:${x}px;top:${y}px`;
+      stage.appendChild(lbl);
+      setTimeout(() => lbl.remove(), 1900);
+    }, idx * 60 + Math.random() * 120);
+  });
 }
 
 function renderRacePanel() {

@@ -771,10 +771,8 @@ _sdFetchDefaults().catch(() => {});
 
 app.post('/api/sd-generate', async (req, res) => {
   const { prompt, charName, width, height, steps, cfgScale, sampler, positiveSuffix, negative } = req.body || {};
-  if (!prompt) return res.status(400).json({ error: 'prompt is required' });
-
-  let translatedPrompt = prompt;
-  if (hasJapanese(prompt)) {
+  let translatedPrompt = prompt || '';
+  if (prompt && hasJapanese(prompt)) {
     try {
       translatedPrompt = await translateToEnglish(prompt);
       console.log(`[SD] translate: "${prompt}" → "${translatedPrompt}"`);
@@ -1996,6 +1994,65 @@ const server = app.listen(PORT, () => {
   console.log(`✅ kukuCome 起動: http://localhost:${PORT}`);
   console.log('   Ctrl+C で停止');
 });
+
+// ── キャラ画像自動取り込み（Cloudflare R2 ポーリング） ─────────────
+const _uploadWorkerUrl = (() => {
+  try { return JSON.parse(fs.readFileSync('data/server-config.json', 'utf8')).uploadWorkerUrl || ''; } catch { return ''; }
+})();
+
+async function _pollCharaUploads() {
+  if (!_uploadWorkerUrl) return;
+  try {
+    const listRes = await fetch(`${_uploadWorkerUrl}/list`);
+    if (!listRes.ok) return;
+    const remoteFiles = await listRes.json();
+
+    const charaDir = path.join(__dirname, 'public', 'chara');
+    if (!fs.existsSync(charaDir)) fs.mkdirSync(charaDir, { recursive: true });
+    const existing = new Set(fs.readdirSync(charaDir).filter(f => /\.(png|jpe?g|webp|gif)$/i.test(f)));
+
+    const newFiles = remoteFiles.filter(f => f.key && !existing.has(f.key));
+    if (!newFiles.length) return;
+
+    const ciPath = path.join(__dirname, 'data', 'charImages.json');
+    const csPath = path.join(__dirname, 'data', 'charImageSizes.json');
+    const ci = JSON.parse(fs.readFileSync(ciPath, 'utf8'));
+    const cs = JSON.parse(fs.readFileSync(csPath, 'utf8'));
+    let nextKey = Math.max(0, ...Object.keys(ci).map(Number)) + 1;
+
+    for (const f of newFiles) {
+      try {
+        const fileRes = await fetch(`${_uploadWorkerUrl}/file/${encodeURIComponent(f.key)}`);
+        if (!fileRes.ok) { console.warn(`[CHARA] DL失敗: ${f.key}`); continue; }
+        const buf = Buffer.from(await fileRes.arrayBuffer());
+        fs.writeFileSync(path.join(charaDir, f.key), buf);
+
+        let ratio = 1.0;
+        try { const m = await sharp(buf).metadata(); if (m.width && m.height) ratio = parseFloat((m.width / m.height).toFixed(3)); } catch {}
+
+        ci[String(nextKey)] = f.key;
+        cs[f.key] = ratio;
+        console.log(`[CHARA] 追加 #${nextKey}: ${f.key} (ratio:${ratio})`);
+        nextKey++;
+      } catch (e) { console.warn(`[CHARA] ${f.key} エラー:`, e.message); }
+    }
+
+    fs.writeFileSync(ciPath, JSON.stringify(ci));
+    fs.writeFileSync(csPath, JSON.stringify(cs));
+
+    // WebSocket クライアントに通知（ブラウザ側でキャラリストを再読み込み）
+    const note = JSON.stringify({ type: 'charaReload' });
+    wsClients.main.forEach(c => { if (c.readyState === 1) c.send(note); });
+    wsClients.admin.forEach(c => { if (c.readyState === 1) c.send(note); });
+    console.log(`[CHARA] ${newFiles.length}件取り込み完了`);
+  } catch (e) { console.warn('[CHARA] ポーリングエラー:', e.message); }
+}
+
+if (_uploadWorkerUrl) {
+  setTimeout(_pollCharaUploads, 5000); // 起動5秒後に初回実行
+  setInterval(_pollCharaUploads, 60 * 1000); // 以降60秒ごと
+  console.log('[CHARA] 自動取り込みポーリング有効:', _uploadWorkerUrl);
+}
 
 // ── オセロゲーム WebSocket ─────────────────────────────────────────
 const gameWss = new WebSocketServer({ noServer: true });
