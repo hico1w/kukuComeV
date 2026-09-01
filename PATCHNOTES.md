@@ -2,6 +2,26 @@
 
 ---
 
+## v2.841.0 — 2026-09-02
+
+### feat: ストレージをR2からGitHubに変更、Cloudflareフルデプロイ完了
+
+- **`cloudflare/worker.js`**: R2バインド不要のGitHub Contents API版に書き換え
+  - `POST /upload` → base64エンコードしてGitHubリポジトリにコミット
+  - 環境変数 `GITHUB_OWNER` / `GITHUB_REPO` + シークレット `GITHUB_TOKEN`
+- **`cloudflare/wrangler.toml`** (新規): Worker デプロイ設定
+- **`cloudflare/upload.html`**: Worker URL を `kukucome-chara-worker.chikamakoo.workers.dev` に設定
+- **`server.js`**: GitHub API ポーリングに変更
+  - `GET /repos/{owner}/{repo}/contents/` で新規ファイルを検出
+  - `download_url` から直接ダウンロード・`public/chara/` に保存
+  - `server-config.json` の `githubUploadOwner` / `githubUploadRepo` / `githubUploadToken` を参照
+- **`data/server-config.json`**: `uploadWorkerUrl` → `githubUploadOwner` / `githubUploadRepo` / `githubUploadToken` に変更
+- **デプロイ済み**:
+  - Worker: `https://kukucome-chara-worker.chikamakoo.workers.dev`
+  - Pages:  `https://kukucome-chara.pages.dev`
+
+---
+
 ## v2.840.0 — 2026-09-02
 
 ### feat: Cloudflare R2 + Worker によるリスナーキャラ画像アップロードシステム

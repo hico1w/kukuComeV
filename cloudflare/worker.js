@@ -1,6 +1,9 @@
-// kukuCome キャラ画像アップロード Worker
+// kukuCome キャラ画像アップロード Worker (GitHub Storage)
 // Cloudflare Dashboard > Workers & Pages > Create > Worker に貼り付けて Deploy
-// ※ Settings > Bindings > R2 Bucket を追加: Variable name = BUCKET, bucket = kukucome-chara
+// Settings > Variables and Secrets:
+//   GITHUB_TOKEN  (Secret)  : GitHub Fine-grained PAT (Contents: Read+Write)
+//   GITHUB_OWNER  (Variable): hico1w
+//   GITHUB_REPO   (Variable): kukucome-chara-uploads
 
 export default {
   async fetch(request, env) {
@@ -30,9 +33,35 @@ export default {
 
         const ext = file.type === 'image/jpeg' ? 'jpg' : file.type.split('/')[1];
         const key = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${ext}`;
-        await env.BUCKET.put(key, file.stream(), {
-          httpMetadata: { contentType: file.type },
-        });
+
+        // base64 encode (chunked to avoid call stack limit)
+        const arrayBuffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = '';
+        const chunkSize = 8192;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+        }
+        const base64 = btoa(binary);
+
+        // GitHub Contents API でコミット
+        const ghRes = await fetch(
+          `https://api.github.com/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/contents/${key}`,
+          {
+            method: 'PUT',
+            headers: {
+              'Authorization': `token ${env.GITHUB_TOKEN}`,
+              'Content-Type': 'application/json',
+              'User-Agent': 'kukuCome-Worker',
+            },
+            body: JSON.stringify({ message: `upload: ${key}`, content: base64 }),
+          }
+        );
+
+        if (!ghRes.ok) {
+          const err = await ghRes.json().catch(() => ({}));
+          throw new Error(err.message || 'GitHubへの保存に失敗しました');
+        }
 
         return json({ ok: true, key }, 200, cors);
       } catch (e) {
@@ -40,24 +69,7 @@ export default {
       }
     }
 
-    // GET /list - ローカルサーバーのポーリング用
-    if (request.method === 'GET' && url.pathname === '/list') {
-      const listed = await env.BUCKET.list();
-      const files = listed.objects.map(o => ({ key: o.key, size: o.size }));
-      return json(files, 200, cors);
-    }
-
-    // GET /file/:key - ファイルダウンロード用
-    if (request.method === 'GET' && url.pathname.startsWith('/file/')) {
-      const key = decodeURIComponent(url.pathname.slice(6));
-      const obj = await env.BUCKET.get(key);
-      if (!obj) return new Response('Not found', { status: 404, headers: cors });
-      return new Response(obj.body, {
-        headers: { 'Content-Type': obj.httpMetadata?.contentType || 'image/png', ...cors },
-      });
-    }
-
-    return new Response('Not found', { status: 404 });
+    return new Response('Not found', { status: 404, headers: cors });
   },
 };
 

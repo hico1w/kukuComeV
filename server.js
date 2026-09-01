@@ -1995,23 +1995,29 @@ const server = app.listen(PORT, () => {
   console.log('   Ctrl+C で停止');
 });
 
-// ── キャラ画像自動取り込み（Cloudflare R2 ポーリング） ─────────────
-const _uploadWorkerUrl = (() => {
-  try { return JSON.parse(fs.readFileSync('data/server-config.json', 'utf8')).uploadWorkerUrl || ''; } catch { return ''; }
+// ── キャラ画像自動取り込み（GitHub API ポーリング） ──────────────────
+const _ghUploadCfg = (() => {
+  try {
+    const c = JSON.parse(fs.readFileSync('data/server-config.json', 'utf8'));
+    return { owner: c.githubUploadOwner || '', repo: c.githubUploadRepo || '', token: c.githubUploadToken || '' };
+  } catch { return { owner: '', repo: '', token: '' }; }
 })();
 
 async function _pollCharaUploads() {
-  if (!_uploadWorkerUrl) return;
+  const { owner, repo, token } = _ghUploadCfg;
+  if (!owner || !repo || !token) return;
   try {
-    const listRes = await fetch(`${_uploadWorkerUrl}/list`);
+    const headers = { 'User-Agent': 'kukuCome-Server', 'Accept': 'application/vnd.github.v3+json', 'Authorization': `token ${token}` };
+    const listRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/`, { headers });
     if (!listRes.ok) return;
     const remoteFiles = await listRes.json();
+    if (!Array.isArray(remoteFiles)) return;
 
     const charaDir = path.join(__dirname, 'public', 'chara');
     if (!fs.existsSync(charaDir)) fs.mkdirSync(charaDir, { recursive: true });
     const existing = new Set(fs.readdirSync(charaDir).filter(f => /\.(png|jpe?g|webp|gif)$/i.test(f)));
 
-    const newFiles = remoteFiles.filter(f => f.key && !existing.has(f.key));
+    const newFiles = remoteFiles.filter(f => f.type === 'file' && /\.(png|jpe?g|webp|gif)$/i.test(f.name) && !existing.has(f.name));
     if (!newFiles.length) return;
 
     const ciPath = path.join(__dirname, 'data', 'charImages.json');
@@ -2022,25 +2028,24 @@ async function _pollCharaUploads() {
 
     for (const f of newFiles) {
       try {
-        const fileRes = await fetch(`${_uploadWorkerUrl}/file/${encodeURIComponent(f.key)}`);
-        if (!fileRes.ok) { console.warn(`[CHARA] DL失敗: ${f.key}`); continue; }
+        const fileRes = await fetch(f.download_url, { headers: { 'User-Agent': 'kukuCome-Server', 'Authorization': `token ${token}` } });
+        if (!fileRes.ok) { console.warn(`[CHARA] DL失敗: ${f.name}`); continue; }
         const buf = Buffer.from(await fileRes.arrayBuffer());
-        fs.writeFileSync(path.join(charaDir, f.key), buf);
+        fs.writeFileSync(path.join(charaDir, f.name), buf);
 
         let ratio = 1.0;
         try { const m = await sharp(buf).metadata(); if (m.width && m.height) ratio = parseFloat((m.width / m.height).toFixed(3)); } catch {}
 
-        ci[String(nextKey)] = f.key;
-        cs[f.key] = ratio;
-        console.log(`[CHARA] 追加 #${nextKey}: ${f.key} (ratio:${ratio})`);
+        ci[String(nextKey)] = f.name;
+        cs[f.name] = ratio;
+        console.log(`[CHARA] 追加 #${nextKey}: ${f.name} (ratio:${ratio})`);
         nextKey++;
-      } catch (e) { console.warn(`[CHARA] ${f.key} エラー:`, e.message); }
+      } catch (e) { console.warn(`[CHARA] ${f.name} エラー:`, e.message); }
     }
 
     fs.writeFileSync(ciPath, JSON.stringify(ci));
     fs.writeFileSync(csPath, JSON.stringify(cs));
 
-    // WebSocket クライアントに通知（ブラウザ側でキャラリストを再読み込み）
     const note = JSON.stringify({ type: 'charaReload' });
     wsClients.main.forEach(c => { if (c.readyState === 1) c.send(note); });
     wsClients.admin.forEach(c => { if (c.readyState === 1) c.send(note); });
@@ -2048,10 +2053,10 @@ async function _pollCharaUploads() {
   } catch (e) { console.warn('[CHARA] ポーリングエラー:', e.message); }
 }
 
-if (_uploadWorkerUrl) {
-  setTimeout(_pollCharaUploads, 5000); // 起動5秒後に初回実行
-  setInterval(_pollCharaUploads, 60 * 1000); // 以降60秒ごと
-  console.log('[CHARA] 自動取り込みポーリング有効:', _uploadWorkerUrl);
+if (_ghUploadCfg.owner && _ghUploadCfg.repo && _ghUploadCfg.token) {
+  setTimeout(_pollCharaUploads, 5000);
+  setInterval(_pollCharaUploads, 60 * 1000);
+  console.log(`[CHARA] 自動取り込みポーリング有効: ${_ghUploadCfg.owner}/${_ghUploadCfg.repo}`);
 }
 
 // ── オセロゲーム WebSocket ─────────────────────────────────────────
