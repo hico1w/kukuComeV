@@ -2,6 +2,21 @@
 
 ---
 
+## v2.868.0 — 2026-09-03
+
+### style: index.html デザインをcloudflare版に合わせてライトテーマへ変更
+
+#### `index.html`
+- ダークテーマ（`#0d1117`背景）→ ライトテーマ（`#ffffff`背景、`#111`テキスト）
+- フォントを `Segoe UI` → Google Fonts `Noto Sans JP` + `Cormorant Garamond`（ページタイトルにserif表示）
+- `--border: #e2e2e2` / `--muted: #888888` / `--accent: #2563eb` 等のライト用カラートークンへ置換
+- 各コンポーネント（カード・テーブル・ボックス・サイドバー・チップ）を全て白背景ベースに更新
+- コマンドタグ（`.cmd-code.*`）・バッジ・ガチャカードの色も白背景で読めるコントラスト値に調整
+- キーワードサンプルカードのJS生成インラインスタイルも白背景に更新
+- `.section-title` の letter-spacing を `0.2em` 横幅詰めに（cloudflare版と統一）
+
+---
+
 ## v2.867.0 — 2026-09-03
 
 ### feat: キーワード別サンプル画像生成・index.html新セクション追加
