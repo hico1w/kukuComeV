@@ -2,6 +2,27 @@
 
 ---
 
+## v2.864.0 — 2026-09-03
+
+### fix: fetchJSON エラー時に詳細ログを出力
+
+#### `server.js`
+- `fetchJSON` の JSON.parse 失敗時、ホスト名・HTTPステータス・レスポンス冒頭300文字をサーバーログに出力するよう変更
+- エラーメッセージにも `(hostname HTTP xxx)` を含めて診断しやすくした
+
+---
+
+## v2.863.0 — 2026-09-03
+
+### feat: masterキャラは画像コマンド無効時でもMP不足時でも画像生成コマンドを使用可能に
+
+#### `public/js/app-06-comment-handler.js`
+- キャラ作成・エコ生成・超生成・出ろ/出して/生成/gen の `agruImgCmdEnabled` ガードを `!agruImgCmdEnabled && !isMasterUser(user)` に変更
+- 同4コマンドのMPチェック・MP消費を `!isMasterUser(user)` 条件付きに変更
+- masterキャラは画像コマンド無効設定・MP不足にかかわらず常に実行可能（MP消費もなし）
+
+---
+
 ## v2.862.0 — 2026-09-03
 
 ### docs: index.html コマンドマニュアル最新化（全セクション同期）

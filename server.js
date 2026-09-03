@@ -44,8 +44,34 @@ app.post('/api/bg-upload', (req, res) => {
   res.json({ url: `/bg/${filename}` });
 });
 
+// GitHub アップロード先リポジトリ設定を読む（キャラ画像自動取り込み/削除で共用）
+function _ghUploadConfig() {
+  try {
+    const c = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'server-config.json'), 'utf8'));
+    return { owner: c.githubUploadOwner || '', repo: c.githubUploadRepo || '', token: c.githubUploadToken || '' };
+  } catch { return { owner: '', repo: '', token: '' }; }
+}
+
+// GitHub 上のキャラ画像ファイルを削除（存在しなければ何もしない）
+async function _ghDeleteCharaFile(filename) {
+  const { owner, repo, token } = _ghUploadConfig();
+  if (!owner || !repo || !token) return false;
+  const headers = { 'User-Agent': 'kukuCome-Server', 'Accept': 'application/vnd.github.v3+json', 'Authorization': `token ${token}` };
+  const getRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(filename)}`, { headers });
+  if (getRes.status === 404) return false;
+  if (!getRes.ok) throw new Error(`GitHub取得失敗: ${getRes.status}`);
+  const info = await getRes.json();
+  const delRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(filename)}`, {
+    method: 'DELETE',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: `chore: delete ${filename} via admin`, sha: info.sha })
+  });
+  if (!delRes.ok) throw new Error(`GitHub削除失敗: ${delRes.status}`);
+  return true;
+}
+
 // キャラ画像削除
-app.delete('/api/chara-image/:filename', (req, res) => {
+app.delete('/api/chara-image/:filename', async (req, res) => {
   const fname = req.params.filename;
   if (!fname || /[/\\]/.test(fname)) return res.status(400).json({ error: 'invalid filename' });
   try {
@@ -62,11 +88,15 @@ app.delete('/api/chara-image/:filename', (req, res) => {
     delete cs[fname];
     fs.writeFileSync(csPath, JSON.stringify(cs));
 
+    let githubDeleted = false, githubError = null;
+    try { githubDeleted = await _ghDeleteCharaFile(fname); }
+    catch (e) { githubError = e.message; console.warn(`[CHARA] GitHub削除失敗 (${fname}):`, e.message); }
+
     const note = JSON.stringify({ type: 'charaReload' });
     wsClients.main.forEach(c => { if (c.readyState === 1) c.send(note); });
     wsClients.admin.forEach(c => { if (c.readyState === 1) c.send(note); });
 
-    res.json({ ok: true });
+    res.json({ ok: true, githubDeleted, githubError });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -84,7 +114,11 @@ function fetchJSON(url) {
       res.on('data', chunk => raw += chunk);
       res.on('end', () => {
         try { resolve(JSON.parse(raw)); }
-        catch { reject(new Error('Invalid JSON from API')); }
+        catch {
+          const host = (() => { try { return new URL(url).hostname; } catch { return url; } })();
+          console.warn(`[fetchJSON] Invalid JSON from ${host} (HTTP ${res.statusCode}): ${raw.slice(0, 300)}`);
+          reject(new Error(`Invalid JSON from API (${host} HTTP ${res.statusCode})`));
+        }
       });
     }).on('error', reject);
   });
@@ -2024,15 +2058,8 @@ const server = app.listen(PORT, () => {
 });
 
 // ── キャラ画像自動取り込み（GitHub API ポーリング） ──────────────────
-const _ghUploadCfg = (() => {
-  try {
-    const c = JSON.parse(fs.readFileSync('data/server-config.json', 'utf8'));
-    return { owner: c.githubUploadOwner || '', repo: c.githubUploadRepo || '', token: c.githubUploadToken || '' };
-  } catch { return { owner: '', repo: '', token: '' }; }
-})();
-
 async function _pollCharaUploads() {
-  const { owner, repo, token } = _ghUploadCfg;
+  const { owner, repo, token } = _ghUploadConfig();
   if (!owner || !repo || !token) return;
   try {
     const headers = { 'User-Agent': 'kukuCome-Server', 'Accept': 'application/vnd.github.v3+json', 'Authorization': `token ${token}` };
@@ -2054,6 +2081,7 @@ async function _pollCharaUploads() {
     const cs = JSON.parse(fs.readFileSync(csPath, 'utf8'));
     let nextKey = Math.max(0, ...Object.keys(ci).map(Number)) + 1;
 
+    const puruUpdates = [];
     for (const f of newFiles) {
       try {
         const fileRes = await fetch(f.download_url, { headers: { 'User-Agent': 'kukuCome-Server', 'Authorization': `token ${token}` } });
@@ -2068,6 +2096,24 @@ async function _pollCharaUploads() {
         cs[f.name] = ratio;
         console.log(`[CHARA] 追加 #${nextKey}: ${f.name} (ratio:${ratio})`);
         nextKey++;
+
+        // ぷるぷる設定サイドカー (_puru/{f.name}.json) を確認
+        try {
+          const puruRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/_puru/${encodeURIComponent(f.name)}.json`, { headers });
+          if (puruRes.ok) {
+            const puruMeta = await puruRes.json();
+            const puruCfg = JSON.parse(Buffer.from(puruMeta.content.replace(/\n/g, ''), 'base64').toString('utf8'));
+            const settingsPath = path.join(__dirname, 'data', 'settings.json');
+            const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8') || '{}');
+            let purupuruConfig = {};
+            try { purupuruConfig = JSON.parse(settings.purupuruConfig || '{}'); } catch {}
+            purupuruConfig[f.name] = puruCfg;
+            settings.purupuruConfig = JSON.stringify(purupuruConfig);
+            fs.writeFileSync(settingsPath, JSON.stringify(settings));
+            puruUpdates.push({ imgFile: f.name, config: puruCfg });
+            console.log(`[CHARA] ぷるぷる設定読み込み: ${f.name}`);
+          }
+        } catch (e) { /* ぷるぷる設定は任意 */ }
       } catch (e) { console.warn(`[CHARA] ${f.name} エラー:`, e.message); }
     }
 
@@ -2077,14 +2123,24 @@ async function _pollCharaUploads() {
     const note = JSON.stringify({ type: 'charaReload' });
     wsClients.main.forEach(c => { if (c.readyState === 1) c.send(note); });
     wsClients.admin.forEach(c => { if (c.readyState === 1) c.send(note); });
-    console.log(`[CHARA] ${newFiles.length}件取り込み完了`);
+
+    for (const { imgFile, config } of puruUpdates) {
+      const pNote = JSON.stringify({ type: 'purupuruConfig', imgFile, config });
+      wsClients.main.forEach(c => { if (c.readyState === 1) c.send(pNote); });
+      wsClients.admin.forEach(c => { if (c.readyState === 1) c.send(pNote); });
+    }
+
+    console.log(`[CHARA] ${newFiles.length}件取り込み完了${puruUpdates.length ? ` (ぷるぷる設定 ${puruUpdates.length}件)` : ''}`);
   } catch (e) { console.warn('[CHARA] ポーリングエラー:', e.message); }
 }
 
-if (_ghUploadCfg.owner && _ghUploadCfg.repo && _ghUploadCfg.token) {
-  setTimeout(_pollCharaUploads, 5000);
-  setInterval(_pollCharaUploads, 60 * 1000);
-  console.log(`[CHARA] 自動取り込みポーリング有効: ${_ghUploadCfg.owner}/${_ghUploadCfg.repo}`);
+{
+  const _cfg = _ghUploadConfig();
+  if (_cfg.owner && _cfg.repo && _cfg.token) {
+    setTimeout(_pollCharaUploads, 5000);
+    setInterval(_pollCharaUploads, 60 * 1000);
+    console.log(`[CHARA] 自動取り込みポーリング有効: ${_cfg.owner}/${_cfg.repo}`);
+  }
 }
 
 // ── オセロゲーム WebSocket ─────────────────────────────────────────
