@@ -1,0 +1,594 @@
+<title>ぷるぷる設定</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300&family=Noto+Sans+JP:wght@300;400;500&display=swap">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:       #070508;
+  --surface:  #0E0B12;
+  --surface2: #160F1C;
+  --rose:     #C83060;
+  --rose-dim: rgba(200,48,96,.1);
+  --rose-glow:rgba(200,48,96,.32);
+  --cream:    #EDE0D4;
+  --muted:    #7A6878;
+  --border:   rgba(139,21,56,.28);
+  --border-hi:rgba(200,48,96,.38);
+  --success:  #3DD68C;
+  --error:    #F97066;
+  --cyan:     #67E8F9;
+}
+html { color-scheme: dark; }
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 300;
+  background: var(--bg);
+  color: var(--cream);
+  min-height: 100dvh;
+}
+
+/* ── nav ── */
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  height: 56px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px;
+  background: rgba(7,5,8,.9); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 600; letter-spacing: .04em; }
+.nav-back { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); text-decoration: none; display: flex; align-items: center; gap: 6px; transition: color .15s; }
+.nav-back:hover { color: var(--cream); }
+.nav-back svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ── layout ── */
+.page { max-width: 1060px; margin: 0 auto; padding: 36px 24px 64px; display: flex; flex-direction: column; gap: 32px; }
+
+/* ── header ── */
+.page-header { display: flex; flex-direction: column; gap: 8px; }
+.page-eyebrow { font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--rose); }
+.page-title { font-family: 'Cormorant Garamond', serif; font-size: 40px; font-weight: 300; line-height: 1.1; }
+.page-title em { font-style: italic; color: var(--rose); }
+.page-sub { font-size: 13px; color: var(--muted); line-height: 1.8; max-width: 560px; }
+
+/* ── upload zone ── */
+.drop-zone {
+  border: 1.5px dashed var(--border-hi); border-radius: 14px;
+  padding: 36px 24px; display: flex; flex-direction: column; align-items: center; gap: 12px;
+  cursor: pointer; transition: border-color .2s, background .2s;
+}
+.drop-zone:hover, .drop-zone.over { border-color: var(--rose); background: var(--rose-dim); }
+.drop-icon { width: 48px; height: 48px; border-radius: 50%; background: rgba(200,48,96,.08); border: 1.5px solid rgba(200,48,96,.28); display: flex; align-items: center; justify-content: center; transition: transform .22s, box-shadow .22s; }
+.drop-zone:hover .drop-icon { transform: translateY(-3px); box-shadow: 0 8px 20px var(--rose-glow); }
+.drop-icon svg { width: 20px; height: 20px; stroke: var(--rose); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.drop-label { font-size: 14px; color: var(--cream); text-align: center; }
+.drop-label em { font-style: normal; color: var(--rose); }
+.drop-hint { font-size: 12px; color: var(--muted); }
+input[type=file] { display: none; }
+
+/* ── editor ── */
+#editor { display: none; }
+.editor-grid {
+  display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: start;
+}
+@media (max-width: 760px) { .editor-grid { grid-template-columns: 1fr; } }
+
+/* canvas wrap */
+.canvas-wrap {
+  position: relative; display: inline-block; line-height: 0;
+  border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: #000;
+}
+#previewCanvas { display: block; max-height: 440px; width: auto; }
+#dotCanvas {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  cursor: crosshair;
+}
+
+/* controls */
+.ctrl-panel { display: flex; flex-direction: column; gap: 16px; }
+.ctrl-section { display: flex; flex-direction: column; gap: 10px; }
+.ctrl-label { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+
+/* grid slider */
+.row { display: flex; align-items: center; gap: 10px; }
+.row label { font-size: 12px; color: var(--muted); white-space: nowrap; min-width: 60px; }
+.row input[type=range] { flex: 1; accent-color: var(--rose); }
+.row .val { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--cream); min-width: 28px; text-align: right; }
+
+/* point list */
+.pt-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; padding-right: 4px; }
+.pt-row {
+  display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: center;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 10px; transition: border-color .15s;
+}
+.pt-row.active { border-color: var(--border-hi); }
+.pt-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; border: 1.5px solid rgba(255,255,255,.3); }
+.pt-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pt-name { font-size: 11px; color: var(--muted); }
+.pt-sliders { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.pt-sliders label { font-size: 10px; color: var(--muted); }
+.pt-sliders input[type=range] { width: 70px; accent-color: var(--cyan); }
+.pt-sliders span { font-size: 10px; color: var(--cream); font-variant-numeric: tabular-nums; min-width: 24px; }
+.pt-sliders select { background: var(--surface); border: 1px solid var(--border); color: var(--cream); font-size: 10px; border-radius: 4px; padding: 2px 4px; }
+.pt-toggle { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 3px 8px; font-size: 11px; cursor: pointer; white-space: nowrap; transition: background .15s, color .15s; }
+.pt-row.active .pt-toggle { background: var(--rose-dim); border-color: var(--border-hi); color: var(--cream); }
+
+/* buttons */
+.btn { border: none; border-radius: 8px; padding: 12px 24px; font-family: 'Noto Sans JP', sans-serif; font-weight: 500; font-size: 13px; letter-spacing: .06em; cursor: pointer; transition: opacity .15s, transform .1s; display: inline-flex; align-items: center; gap: 8px; }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .3; cursor: not-allowed; }
+.btn-primary { background: var(--rose); color: #fff; }
+.btn-primary:not(:disabled):hover { opacity: .85; }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 8px 16px; font-size: 12px; }
+.btn-ghost:hover { border-color: var(--border-hi); color: var(--cream); }
+
+/* status */
+.status-msg { font-size: 13px; padding: 10px 16px; border-radius: 8px; display: none; }
+.status-msg.ok  { background: rgba(61,214,140,.1);  color: var(--success); border: 1px solid rgba(61,214,140,.25); display: block; }
+.status-msg.err { background: rgba(249,112,102,.1); color: var(--error);   border: 1px solid rgba(249,112,102,.25); display: block; }
+
+/* divider */
+.divider { height: 1px; background: var(--border); }
+</style>
+
+<nav class="nav">
+  <span class="nav-logo">hico1</span>
+  <a href="./index.html" class="nav-back">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    Gallery
+  </a>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <p class="page-eyebrow">Fan Character Setup</p>
+    <h1 class="page-title">ぷるぷる<em>設定</em></h1>
+    <p class="page-sub">画像をアップロードしてぷるぷる設定を行うと、配信画面のゲームにあなたのキャラが揺れる設定で登場します。<br>配信者の確認後に反映されます。</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Step 1: Upload -->
+  <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif">
+  <label class="drop-zone" id="dropZone" for="fileInput" tabindex="0">
+    <div class="drop-icon">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    </div>
+    <p class="drop-label">ドラッグ＆ドロップ または <em>クリックして選択</em></p>
+    <p class="drop-hint">PNG · JPG · WebP · GIF &nbsp;／&nbsp; 最大 2 MB</p>
+  </label>
+
+  <!-- Step 2: Editor -->
+  <div id="editor">
+    <div class="editor-grid">
+      <!-- Canvas -->
+      <div>
+        <div class="canvas-wrap" id="canvasWrap">
+          <canvas id="previewCanvas"></canvas>
+          <canvas id="dotCanvas"></canvas>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+          <button class="btn btn-ghost" id="changeImgBtn">画像を変更</button>
+          <span style="font-size:11px;color:var(--muted)">●をドラッグで位置調整</span>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="ctrl-panel">
+        <div class="ctrl-section">
+          <p class="ctrl-label">有効にする</p>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+            <input type="checkbox" id="puruEnabled" style="accent-color:var(--rose);width:16px;height:16px">
+            <span>ぷるぷるをON</span>
+          </label>
+        </div>
+
+        <div class="ctrl-section">
+          <p class="ctrl-label">グリッド品質</p>
+          <div class="row">
+            <label>グリッド</label>
+            <input type="range" id="gridSlider" min="6" max="24" value="12">
+            <span class="val" id="gridVal">12</span>
+          </div>
+        </div>
+
+        <div class="ctrl-section">
+          <p class="ctrl-label">揺れポイント（クリックでON/OFF・ドラッグで移動）</p>
+          <div class="pt-list" id="ptList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;display:flex;flex-direction:column;gap:12px">
+      <div class="status-msg" id="statusMsg"></div>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-primary" id="submitBtn">アップロード＆ぷるぷる設定を送信</button>
+        <span style="font-size:11px;color:var(--muted)">PNG / JPG / WebP / GIF · 最大 2 MB</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const WORKER = 'https://kukucome-chara-worker.chikamakoo.workers.dev';
+
+// ── Point colors ───────────────────────────────────────────────────
+const PT_COLORS = [
+  '#f87171','#fb923c','#fbbf24','#a3e635','#34d399','#67e8f9',
+  '#60a5fa','#a78bfa','#f472b6','#e879f9','#f97316','#22d3ee',
+];
+const PT_NAMES = ['胸L','胸R','頭','腰','腕L','腕R','上半身','下半身','肩L','肩R','スカートL','スカートR'];
+
+// ── Default config ─────────────────────────────────────────────────
+function defaultCfg() {
+  return {
+    enabled: false,
+    gridSize: 12,
+    points: [
+      { enabled:false, x:30, y:45, radius:30, amplitude:8,   speed:1.2, mode:'breast',    phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:70, y:45, radius:30, amplitude:8,   speed:1.2, mode:'breast',    phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:50, y:15, radius:25, amplitude:5,   speed:0.8, mode:'pendulum_x',phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:50, y:80, radius:25, amplitude:5,   speed:0.8, mode:'pendulum_y',phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:20, y:55, radius:20, amplitude:6,   speed:1.5, mode:'pendulum_x',phase:90,  shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:80, y:55, radius:20, amplitude:6,   speed:1.5, mode:'pendulum_x',phase:270, shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:50, y:30, radius:22, amplitude:4,   speed:1.0, mode:'sin_y',     phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:50, y:70, radius:22, amplitude:4,   speed:1.0, mode:'sin_y',     phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:30, y:25, radius:15, amplitude:3,   speed:1.8, mode:'pendulum_y',phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:70, y:25, radius:15, amplitude:3,   speed:1.8, mode:'pendulum_y',phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:25, y:78, radius:22, amplitude:7,   speed:1.1, mode:'skirt',     phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:75, y:78, radius:22, amplitude:7,   speed:1.1, mode:'skirt',     phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 },
+    ],
+  };
+}
+
+// ── State ──────────────────────────────────────────────────────────
+let cfg = defaultCfg();
+let imgEl = null;
+let selectedFile = null;
+let animRAF = null;
+let puruTime = 0, puruLastTs = null;
+
+// ── Upload UI ──────────────────────────────────────────────────────
+const fileInput   = document.getElementById('fileInput');
+const dropZone    = document.getElementById('dropZone');
+const editor      = document.getElementById('editor');
+const changeImgBtn= document.getElementById('changeImgBtn');
+const puruEnabled = document.getElementById('puruEnabled');
+const gridSlider  = document.getElementById('gridSlider');
+const gridVal     = document.getElementById('gridVal');
+const submitBtn   = document.getElementById('submitBtn');
+const statusMsg   = document.getElementById('statusMsg');
+
+function loadFile(file) {
+  if (!file || !['image/png','image/jpeg','image/webp','image/gif'].includes(file.type)) return;
+  if (file.size > 2*1024*1024) { alert('2MB以下のファイルを選んでください'); return; }
+  selectedFile = file;
+  const url = URL.createObjectURL(file);
+  imgEl = new Image();
+  imgEl.onload = () => {
+    showEditor();
+    URL.revokeObjectURL(url);
+  };
+  imgEl.src = url;
+}
+
+fileInput.addEventListener('change', () => { const f = fileInput.files[0]; if (f) loadFile(f); });
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('over'); loadFile(e.dataTransfer.files[0]); });
+changeImgBtn.addEventListener('click', () => fileInput.click());
+puruEnabled.addEventListener('change', () => { cfg.enabled = puruEnabled.checked; });
+gridSlider.addEventListener('input', () => { cfg.gridSize = parseInt(gridSlider.value); gridVal.textContent = gridSlider.value; });
+
+// ── Editor ─────────────────────────────────────────────────────────
+const previewCanvas = document.getElementById('previewCanvas');
+const dotCanvas     = document.getElementById('dotCanvas');
+const pCtx = previewCanvas.getContext('2d');
+const dCtx = dotCanvas.getContext('2d');
+
+function showEditor() {
+  editor.style.display = 'block';
+  dropZone.style.display = 'none';
+  buildPointList();
+  resizeCanvases();
+  startAnim();
+}
+
+function resizeCanvases() {
+  if (!imgEl) return;
+  const maxH = 440;
+  const r = imgEl.naturalWidth / imgEl.naturalHeight;
+  const h = Math.min(maxH, imgEl.naturalHeight);
+  const w = Math.round(h * r);
+  previewCanvas.width  = w; previewCanvas.height = h;
+  dotCanvas.width      = w; dotCanvas.height     = h;
+}
+
+// ── Point list UI ──────────────────────────────────────────────────
+function buildPointList() {
+  const list = document.getElementById('ptList');
+  list.innerHTML = '';
+  cfg.points.forEach((pt, i) => {
+    const row = document.createElement('div');
+    row.className = 'pt-row' + (pt.enabled ? ' active' : '');
+    row.id = 'pt-' + i;
+    row.innerHTML = `
+      <div class="pt-dot" style="background:${pt.enabled ? PT_COLORS[i] : 'transparent'}; border-color:${PT_COLORS[i]}"></div>
+      <div class="pt-body">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="pt-name">${PT_NAMES[i]}</span>
+          <select class="pt-mode" data-i="${i}">
+            ${modeOptions(pt.mode)}
+          </select>
+        </div>
+        <div class="pt-sliders" style="${pt.enabled ? '' : 'opacity:.4;pointer-events:none'}">
+          <label>強さ</label>
+          <input type="range" class="pt-amp" data-i="${i}" min="1" max="30" step="0.5" value="${pt.amplitude}">
+          <span class="pt-amp-v">${pt.amplitude}</span>
+          <label>速さ</label>
+          <input type="range" class="pt-spd" data-i="${i}" min="0.2" max="4" step="0.1" value="${pt.speed}">
+          <span class="pt-spd-v">${pt.speed.toFixed(1)}</span>
+        </div>
+      </div>
+      <button class="pt-toggle" data-i="${i}">${pt.enabled ? 'ON' : 'OFF'}</button>
+    `;
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('.pt-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = parseInt(btn.dataset.i);
+      cfg.points[i].enabled = !cfg.points[i].enabled;
+      buildPointList();
+    });
+  });
+  list.querySelectorAll('.pt-mode').forEach(sel => {
+    sel.addEventListener('change', () => {
+      cfg.points[parseInt(sel.dataset.i)].mode = sel.value;
+    });
+  });
+  list.querySelectorAll('.pt-amp').forEach(s => {
+    s.addEventListener('input', () => {
+      const i = parseInt(s.dataset.i); cfg.points[i].amplitude = parseFloat(s.value);
+      s.parentNode.querySelector('.pt-amp-v').textContent = s.value;
+    });
+  });
+  list.querySelectorAll('.pt-spd').forEach(s => {
+    s.addEventListener('input', () => {
+      const i = parseInt(s.dataset.i); cfg.points[i].speed = parseFloat(s.value);
+      s.parentNode.querySelector('.pt-spd-v').textContent = parseFloat(s.value).toFixed(1);
+    });
+  });
+}
+
+function modeOptions(current) {
+  const modes = [
+    ['breast','胸揺れ'],['circle','円形'],['pendulum_x','左右振り'],
+    ['pendulum_y','上下振り'],['skirt','スカート'],['flutter','ひらひら'],
+    ['sin_y','波'],['spring','バネ'],['punipuni','ぷにぷに'],['purun','ぷるん'],
+    ['swing','ブランコ'],['neko','ネコ'],['heart','鼓動'],
+  ];
+  return modes.map(([v,l]) => `<option value="${v}"${v===current?' selected':''}>${l}</option>`).join('');
+}
+
+// ── Dot canvas interaction ─────────────────────────────────────────
+let drag = null;
+dotCanvas.addEventListener('mousedown', e => {
+  const { x, y } = canvasPos(e);
+  const W = dotCanvas.width, H = dotCanvas.height;
+  for (let i = cfg.points.length - 1; i >= 0; i--) {
+    const pt = cfg.points[i];
+    const px = pt.x/100*W, py = pt.y/100*H;
+    if (Math.hypot(x-px, y-py) < 14) { drag = { i, hasMoved: false }; return; }
+  }
+});
+dotCanvas.addEventListener('mousemove', e => {
+  if (!drag) return;
+  const { x, y } = canvasPos(e);
+  const W = dotCanvas.width, H = dotCanvas.height;
+  cfg.points[drag.i].x = Math.max(0, Math.min(100, x/W*100));
+  cfg.points[drag.i].y = Math.max(0, Math.min(100, y/H*100));
+  drag.hasMoved = true;
+});
+dotCanvas.addEventListener('mouseup', e => {
+  if (drag && !drag.hasMoved) {
+    cfg.points[drag.i].enabled = !cfg.points[drag.i].enabled;
+    buildPointList();
+  }
+  drag = null;
+});
+dotCanvas.addEventListener('mouseleave', () => { drag = null; });
+
+// touch
+dotCanvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const { x, y } = canvasPos(e.touches[0]);
+  const W = dotCanvas.width, H = dotCanvas.height;
+  for (let i = cfg.points.length - 1; i >= 0; i--) {
+    const pt = cfg.points[i];
+    const px = pt.x/100*W, py = pt.y/100*H;
+    if (Math.hypot(x-px, y-py) < 20) { drag = { i, hasMoved: false }; return; }
+  }
+}, { passive: false });
+dotCanvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (!drag) return;
+  const { x, y } = canvasPos(e.touches[0]);
+  const W = dotCanvas.width, H = dotCanvas.height;
+  cfg.points[drag.i].x = Math.max(0, Math.min(100, x/W*100));
+  cfg.points[drag.i].y = Math.max(0, Math.min(100, y/H*100));
+  drag.hasMoved = true;
+}, { passive: false });
+dotCanvas.addEventListener('touchend', e => {
+  if (drag && !drag.hasMoved) {
+    cfg.points[drag.i].enabled = !cfg.points[drag.i].enabled;
+    buildPointList();
+  }
+  drag = null;
+});
+
+function canvasPos(e) {
+  const r = dotCanvas.getBoundingClientRect();
+  return { x: (e.clientX - r.left) * dotCanvas.width / r.width, y: (e.clientY - r.top) * dotCanvas.height / r.height };
+}
+
+// ── Purupuru engine (ported from app-01) ───────────────────────────
+const _dispBuf = { dx: 0, dy: 0 };
+function puruWeight(pt, dx, dy, W, H) {
+  const mn = Math.min(W, H);
+  const rr = (pt.radius ?? 30) / 100 * mn;
+  if (!rr) return 0;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  return dist >= rr ? 0 : (1 - dist/rr) ** 2;
+}
+function puruDisplace(pt, t) {
+  const ph = (pt.phase || 0) * Math.PI / 180;
+  const om = (pt.speed || 1) * Math.PI * 2;
+  const a  = pt.amplitude || 0;
+  let dx=0, dy=0;
+  switch (pt.mode || 'circle') {
+    case 'circle':     dx=Math.cos(t*om+ph)*a; dy=Math.sin(t*om+ph)*a; break;
+    case 'pendulum_x': dx=Math.sin(t*om+ph)*a; break;
+    case 'pendulum_y': dy=Math.sin(t*om+ph)*a; break;
+    case 'sin_y':      dx=Math.sin(t*om*2+ph)*a*0.3; dy=Math.sin(t*om+ph)*a; break;
+    case 'breast':     dx=Math.sin(t*om*1.5+ph+Math.PI/4)*a*0.3; dy=Math.sin(t*om+ph)*a; break;
+    case 'flutter':    dx=Math.sin(t*om*2.7+ph)*a*0.7; dy=Math.cos(t*om*2.5+ph)*a; break;
+    case 'spring':     dy=(Math.sin(t*om+ph)+0.3*Math.sin(t*om*3+ph))*a/1.3; break;
+    case 'skirt': { const c=t*om+ph; dx=Math.sin(c)*a*(1+0.4*Math.sin(c*0.53+1.2)+0.15*Math.sin(c*2.3)); dy=Math.sin(c*0.7+0.5)*a*0.15; break; }
+    case 'neko':  { const c=t*om+ph; const base=Math.max(0,Math.sin(c)); dx=Math.sin(c*1.3+ph)*a*0.2; dy=-(base+base*0.3*Math.sin(c*4))*a; break; }
+    case 'swing': { const p=Math.sin(t*om+ph); dx=p*a; dy=(0.4-0.6*p*p)*a; break; }
+    case 'purun': { const c=((t*om+ph)%(Math.PI*2)); const jig=Math.exp(-c*0.8)*Math.cos(c*5)*a; dx=jig*0.25; dy=jig; break; }
+    case 'heart': { const c=((t*om+ph)%(Math.PI*2))/(Math.PI*2); const p1=Math.exp(-Math.pow((c-0.15)*14,2)); const p2=Math.exp(-Math.pow((c-0.35)*11,2))*0.65; dy=-(p1+p2)*a; dx=p1*a*0.15; break; }
+    case 'punipuni': { const c=t*om+ph; dx=(Math.sin(c)*0.55+Math.sin(c*2.3+0.7)*0.45)*a; dy=(Math.cos(c*0.7)*0.55+Math.cos(c*1.9+1.1)*0.45)*a; break; }
+  }
+  _dispBuf.dx=dx; _dispBuf.dy=dy; return _dispBuf;
+}
+
+function puruTri(ctx, img, x0,y0,u0,v0, x1,y1,u1,v1, x2,y2,u2,v2) {
+  const iw=img.naturalWidth, ih=img.naturalHeight;
+  const p0u=u0*iw,p0v=v0*ih, p1u=u1*iw,p1v=v1*ih, p2u=u2*iw,p2v=v2*ih;
+  const det=p0u*(p1v-p2v)+p1u*(p2v-p0v)+p2u*(p0v-p1v);
+  if (Math.abs(det)<0.001) return;
+  const a_=(x0*(p1v-p2v)+x1*(p2v-p0v)+x2*(p0v-p1v))/det;
+  const b_=(y0*(p1v-p2v)+y1*(p2v-p0v)+y2*(p0v-p1v))/det;
+  const c_=(x0*(p2u-p1u)+x1*(p0u-p2u)+x2*(p1u-p0u))/det;
+  const d_=(y0*(p2u-p1u)+y1*(p0u-p2u)+y2*(p1u-p0u))/det;
+  const ecx=(x0+x1+x2)/3, ecy=(y0+y1+y2)/3;
+  const [ex0,ey0]=expand(x0,y0,ecx,ecy), [ex1,ey1]=expand(x1,y1,ecx,ecy), [ex2,ey2]=expand(x2,y2,ecx,ecy);
+  ctx.save();
+  ctx.beginPath(); ctx.moveTo(ex0,ey0); ctx.lineTo(ex1,ey1); ctx.lineTo(ex2,ey2);
+  ctx.closePath(); ctx.clip();
+  ctx.transform(a_,b_,c_,d_, x0-a_*p0u-c_*p0v, y0-b_*p0u-d_*p0v);
+  ctx.drawImage(img, 0, 0);
+  ctx.restore();
+}
+function expand(x,y,cx,cy) { const dx=x-cx,dy=y-cy,l=Math.sqrt(dx*dx+dy*dy); return l<0.001?[x,y]:[x+dx/l*0.6,y+dy/l*0.6]; }
+
+let _verts = null, _uvs = null;
+function renderPuru(t) {
+  if (!imgEl || !cfg.enabled) {
+    pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+    pCtx.drawImage(imgEl || new Image(), 0, 0, previewCanvas.width, previewCanvas.height);
+    return;
+  }
+  const W = previewCanvas.width, H = previewCanvas.height;
+  const gs = cfg.gridSize || 12;
+  const cols = gs+1, rows = gs+1, needed = cols*rows*2;
+  if (!_verts || _verts.length < needed) { _verts = new Float32Array(needed); _uvs = new Float32Array(needed); }
+
+  const ampScale = H / 420;
+  for (let r=0; r<rows; r++) {
+    for (let c=0; c<cols; c++) {
+      const idx = (r*cols+c)*2;
+      const bx = c/gs*W, by = r/gs*H;
+      let dx=0, dy=0;
+      for (const pt of cfg.points) {
+        if (!pt.enabled) continue;
+        const px=pt.x/100*W, py=pt.y/100*H;
+        const w = puruWeight(pt, bx-px, by-py, W, H);
+        if (!w) continue;
+        const d = puruDisplace(pt, t);
+        dx += w*d.dx*ampScale; dy += w*d.dy*ampScale;
+      }
+      _verts[idx]=bx+dx; _verts[idx+1]=by+dy;
+      _uvs[idx]=c/gs;    _uvs[idx+1]=r/gs;
+    }
+  }
+
+  pCtx.clearRect(0, 0, W, H);
+  for (let r=0; r<gs; r++) {
+    for (let c=0; c<gs; c++) {
+      const i00=(r*cols+c)*2, i10=(r*cols+c+1)*2, i01=((r+1)*cols+c)*2, i11=((r+1)*cols+c+1)*2;
+      puruTri(pCtx,imgEl, _verts[i00],_verts[i00+1],_uvs[i00],_uvs[i00+1], _verts[i10],_verts[i10+1],_uvs[i10],_uvs[i10+1], _verts[i01],_verts[i01+1],_uvs[i01],_uvs[i01+1]);
+      puruTri(pCtx,imgEl, _verts[i10],_verts[i10+1],_uvs[i10],_uvs[i10+1], _verts[i11],_verts[i11+1],_uvs[i11],_uvs[i11+1], _verts[i01],_verts[i01+1],_uvs[i01],_uvs[i01+1]);
+    }
+  }
+}
+
+function renderDots() {
+  const W = dotCanvas.width, H = dotCanvas.height;
+  dCtx.clearRect(0, 0, W, H);
+  cfg.points.forEach((pt, i) => {
+    const px = pt.x/100*W, py = pt.y/100*H;
+    const col = PT_COLORS[i];
+    // influence circle
+    if (pt.enabled) {
+      const rr = pt.radius/100*Math.min(W,H);
+      dCtx.beginPath(); dCtx.arc(px, py, rr, 0, Math.PI*2);
+      dCtx.strokeStyle = col + '44'; dCtx.lineWidth = 1.5; dCtx.stroke();
+      dCtx.fillStyle = col + '18'; dCtx.fill();
+    }
+    // dot
+    dCtx.beginPath(); dCtx.arc(px, py, pt.enabled ? 9 : 6, 0, Math.PI*2);
+    dCtx.fillStyle = pt.enabled ? col : col + '44';
+    dCtx.fill();
+    dCtx.strokeStyle = pt.enabled ? '#fff' : col + '88'; dCtx.lineWidth = 1.5; dCtx.stroke();
+    // label
+    dCtx.fillStyle = pt.enabled ? '#fff' : col + 'aa';
+    dCtx.font = `bold ${pt.enabled?10:9}px monospace`;
+    dCtx.textAlign = 'center'; dCtx.textBaseline = 'middle';
+    dCtx.fillText(i+1, px, py);
+  });
+}
+
+function startAnim() {
+  if (animRAF) cancelAnimationFrame(animRAF);
+  puruLastTs = null;
+  function frame(ts) {
+    if (puruLastTs != null) puruTime += (ts - puruLastTs) / 1000;
+    puruLastTs = ts;
+    renderPuru(puruTime);
+    renderDots();
+    animRAF = requestAnimationFrame(frame);
+  }
+  animRAF = requestAnimationFrame(frame);
+}
+
+// ── Submit ──────────────────────────────────────────────────────────
+submitBtn.addEventListener('click', async () => {
+  if (!selectedFile) { showStatus('err', '画像を選んでください'); return; }
+  submitBtn.disabled = true;
+  submitBtn.textContent = '送信中…';
+  statusMsg.className = 'status-msg';
+  try {
+    cfg.enabled = puruEnabled.checked;
+    cfg.gridSize = parseInt(gridSlider.value);
+    const form = new FormData();
+    form.append('file', selectedFile);
+    form.append('puruConfig', JSON.stringify(cfg));
+    const res = await fetch(WORKER + '/upload', { method: 'POST', body: form });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'アップロードに失敗しました');
+    showStatus('ok', '✅ 送信完了！配信画面に自動で追加されます。ありがとうございます！');
+    submitBtn.textContent = '送信済み';
+  } catch (e) {
+    showStatus('err', '❌ ' + (e.message || 'エラーが発生しました'));
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'アップロード＆ぷるぷる設定を送信';
+  }
+});
+
+function showStatus(type, msg) {
+  statusMsg.className = 'status-msg ' + type;
+  statusMsg.textContent = msg;
+}
+</script>

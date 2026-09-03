@@ -1,0 +1,380 @@
+<title>Upload Admin</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300&family=Noto+Sans+JP:wght@300;400;500&display=swap">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:       #070508;
+  --surface:  #0E0B12;
+  --surface2: #160F1C;
+  --rose:     #C83060;
+  --rose-dim: rgba(200,48,96,.1);
+  --cream:    #EDE0D4;
+  --muted:    #7A6878;
+  --border:   rgba(139,21,56,.28);
+  --border-hi:rgba(200,48,96,.38);
+  --success:  #3DD68C;
+  --error:    #F97066;
+  --warn:     #FBB647;
+}
+html { color-scheme: dark; }
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 300;
+  background: var(--bg);
+  color: var(--cream);
+  min-height: 100dvh;
+  padding: 0;
+}
+
+/* ── nav ── */
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  height: 56px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px;
+  background: rgba(7,5,8,.9); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 600; letter-spacing: .04em; }
+.nav-tag { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--rose); }
+
+/* ── auth ── */
+#auth-screen {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: calc(100dvh - 56px); gap: 20px; padding: 40px 16px;
+}
+.auth-card {
+  width: 100%; max-width: 360px;
+  background: var(--surface); border: 1px solid var(--border-hi);
+  border-radius: 12px; padding: 32px 28px; display: flex; flex-direction: column; gap: 20px;
+}
+.auth-title { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 300; }
+.auth-title em { font-style: italic; color: var(--rose); }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.field input {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px; font-size: 14px; color: var(--cream);
+  font-family: monospace; outline: none; transition: border-color .15s;
+}
+.field input:focus { border-color: var(--rose); }
+
+/* ── buttons ── */
+.btn {
+  border: none; border-radius: 6px; padding: 9px 16px;
+  font-family: 'Noto Sans JP', sans-serif; font-weight: 500; font-size: 12px;
+  letter-spacing: .06em; cursor: pointer; transition: opacity .15s, transform .1s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .3; cursor: not-allowed; }
+.btn-primary { background: var(--rose); color: #fff; }
+.btn-primary:not(:disabled):hover { opacity: .85; }
+.btn-block { background: rgba(249,112,102,.15); color: var(--error); border: 1px solid rgba(249,112,102,.3); }
+.btn-block:not(:disabled):hover { background: rgba(249,112,102,.25); }
+.btn-unblock { background: rgba(61,214,140,.1); color: var(--success); border: 1px solid rgba(61,214,140,.25); }
+.btn-unblock:not(:disabled):hover { background: rgba(61,214,140,.2); }
+.btn-sm { padding: 5px 12px; font-size: 11px; }
+
+/* ── main ── */
+#main-screen { display: none; padding: 32px; }
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+
+/* ── panels ── */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+}
+.panel-head {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+}
+.panel-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 300; }
+.panel-count { font-size: 11px; color: var(--muted); letter-spacing: .1em; }
+.panel-body { padding: 8px 0; }
+
+/* ── table ── */
+.log-table { width: 100%; border-collapse: collapse; }
+.log-table th {
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--muted); text-align: left;
+  padding: 8px 16px; border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.log-table td {
+  padding: 10px 16px; vertical-align: middle;
+  border-bottom: 1px solid rgba(139,21,56,.12);
+  font-size: 13px;
+}
+.log-table tr:last-child td { border-bottom: none; }
+.log-table tr.blocked-row td { opacity: .5; }
+.log-table tr:hover td { background: rgba(200,48,96,.04); }
+.ip-cell { font-family: monospace; font-size: 12px; color: var(--cream); }
+.ua-cell { color: var(--muted); font-size: 11px; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ts-cell { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.file-cell { font-family: monospace; font-size: 11px; color: var(--muted); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badge-blocked { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(249,112,102,.15); color: var(--error); letter-spacing: .08em; }
+.empty-row td { text-align: center; color: var(--muted); padding: 32px; font-size: 13px; }
+
+/* ── blocklist ── */
+.block-list { display: flex; flex-direction: column; }
+.block-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 18px; gap: 12px;
+  border-bottom: 1px solid rgba(139,21,56,.12);
+}
+.block-item:last-child { border-bottom: none; }
+.block-ip { font-family: monospace; font-size: 13px; }
+.empty-block { padding: 24px 18px; color: var(--muted); font-size: 13px; text-align: center; }
+
+/* ── status bar ── */
+.status-bar {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--surface2); border: 1px solid var(--border-hi);
+  border-radius: 8px; padding: 10px 20px; font-size: 13px;
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s, transform .25s;
+  z-index: 100; white-space: nowrap;
+}
+.status-bar.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+.status-bar.ok  { color: var(--success); border-color: rgba(61,214,140,.3); }
+.status-bar.err { color: var(--error);   border-color: rgba(249,112,102,.3); }
+
+/* ── spinner ── */
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(237,224,212,.2); border-top-color: var(--cream); border-radius: 50%; animation: spin .6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-row td { text-align: center; padding: 32px; }
+</style>
+
+<nav class="nav">
+  <span class="nav-logo">hico1</span>
+  <span class="nav-tag">Upload Admin</span>
+</nav>
+
+<!-- auth screen -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <p class="auth-title">Upload <em>Admin</em></p>
+    <div class="field">
+      <label>Admin Secret</label>
+      <input type="password" id="secret-input" placeholder="ADMIN_SECRET を入力" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" id="auth-btn">ログイン</button>
+    <p id="auth-err" style="font-size:12px;color:var(--error);display:none;"></p>
+  </div>
+</div>
+
+<!-- main screen -->
+<div id="main-screen">
+  <div class="main-grid">
+    <!-- upload log -->
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">Upload Log</span>
+        <span class="panel-count" id="log-count">—</span>
+      </div>
+      <div class="panel-body" style="overflow-x:auto;">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>日時</th>
+              <th>IP アドレス</th>
+              <th>User-Agent</th>
+              <th>ファイル</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="log-tbody">
+            <tr class="loading-row"><td colspan="5"><span class="spinner"></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- blocklist -->
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">Blocklist</span>
+        <span class="panel-count" id="block-count">—</span>
+      </div>
+      <div class="panel-body">
+        <div class="block-list" id="block-list">
+          <div class="empty-block"><span class="spinner"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar" id="status-bar"></div>
+
+<script>
+const WORKER = 'https://kukucome-chara-worker.chikamakoo.workers.dev';
+let SECRET = '';
+let blockedIPs = new Set();
+
+// ── auth ──────────────────────────────────────────────────────────
+const secretInput = document.getElementById('secret-input');
+const authErr = document.getElementById('auth-err');
+
+async function tryLogin() {
+  const s = secretInput.value.trim();
+  if (!s) return;
+  document.getElementById('auth-btn').disabled = true;
+  authErr.style.display = 'none';
+  try {
+    const res = await fetch(`${WORKER}/admin/logs?secret=${encodeURIComponent(s)}`);
+    if (res.status === 401) { throw new Error('パスワードが違います'); }
+    SECRET = s;
+    try { localStorage.setItem('_admin_secret', s); } catch {}
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('main-screen').style.display = 'block';
+    loadAll();
+  } catch (e) {
+    authErr.textContent = e.message;
+    authErr.style.display = 'block';
+  }
+  document.getElementById('auth-btn').disabled = false;
+}
+
+document.getElementById('auth-btn').addEventListener('click', tryLogin);
+secretInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
+
+// Try saved secret
+try {
+  const saved = localStorage.getItem('_admin_secret');
+  if (saved) { secretInput.value = saved; }
+} catch {}
+
+// ── load ──────────────────────────────────────────────────────────
+async function loadAll() {
+  await Promise.all([loadBlocklist(), loadLogs()]);
+}
+
+async function loadBlocklist() {
+  const res = await fetch(`${WORKER}/admin/blocklist?secret=${encodeURIComponent(SECRET)}`);
+  const data = await res.json();
+  blockedIPs = new Set(data.blocked || []);
+  renderBlocklist(data.blocked || []);
+}
+
+async function loadLogs() {
+  const res = await fetch(`${WORKER}/admin/logs?secret=${encodeURIComponent(SECRET)}`);
+  const data = await res.json();
+  renderLogs(data.entries || []);
+}
+
+// ── render logs ───────────────────────────────────────────────────
+function renderLogs(entries) {
+  const tbody = document.getElementById('log-tbody');
+  document.getElementById('log-count').textContent = entries.length + ' 件';
+
+  if (!entries.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">アップロード記録がありません</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = entries.map(e => {
+    const isBlocked = blockedIPs.has(e.ip);
+    const ts = new Date(e.timestamp).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+    const ua = escHtml(e.ua || '—');
+    return `
+      <tr class="${isBlocked ? 'blocked-row' : ''}" data-ip="${escHtml(e.ip)}">
+        <td class="ts-cell">${ts}</td>
+        <td class="ip-cell">${escHtml(e.ip)} ${isBlocked ? '<span class="badge-blocked">blocked</span>' : ''}</td>
+        <td class="ua-cell" title="${ua}">${ua}</td>
+        <td class="file-cell" title="${escHtml(e.file)}">${escHtml(e.file)}</td>
+        <td>
+          ${isBlocked
+            ? `<button class="btn btn-unblock btn-sm" onclick="unblockIP('${escHtml(e.ip)}')">解除</button>`
+            : `<button class="btn btn-block btn-sm" onclick="blockIP('${escHtml(e.ip)}')">ブロック</button>`
+          }
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+// ── render blocklist ──────────────────────────────────────────────
+function renderBlocklist(list) {
+  const el = document.getElementById('block-list');
+  document.getElementById('block-count').textContent = list.length + ' 件';
+
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-block">ブロック中の IP はありません</div>';
+    return;
+  }
+
+  el.innerHTML = list.map(ip => `
+    <div class="block-item" id="bi-${CSS.escape(ip)}">
+      <span class="block-ip">${escHtml(ip)}</span>
+      <button class="btn btn-unblock btn-sm" onclick="unblockIP('${escHtml(ip)}')">解除</button>
+    </div>
+  `).join('');
+}
+
+// ── actions ───────────────────────────────────────────────────────
+async function blockIP(ip) {
+  disableIPBtns(ip);
+  try {
+    const res = await fetch(`${WORKER}/admin/block?secret=${encodeURIComponent(SECRET)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    showStatus('ok', `${ip} をブロックしました`);
+    await loadAll();
+  } catch (e) {
+    showStatus('err', 'エラー: ' + e.message);
+    enableIPBtns(ip);
+  }
+}
+
+async function unblockIP(ip) {
+  disableIPBtns(ip);
+  try {
+    const res = await fetch(`${WORKER}/admin/block?secret=${encodeURIComponent(SECRET)}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    showStatus('ok', `${ip} のブロックを解除しました`);
+    await loadAll();
+  } catch (e) {
+    showStatus('err', 'エラー: ' + e.message);
+    enableIPBtns(ip);
+  }
+}
+
+function disableIPBtns(ip) {
+  document.querySelectorAll(`[data-ip="${CSS.escape(ip)}"] button, #bi-${CSS.escape(ip)} button`)
+    .forEach(b => b.disabled = true);
+}
+function enableIPBtns(ip) {
+  document.querySelectorAll(`[data-ip="${CSS.escape(ip)}"] button, #bi-${CSS.escape(ip)} button`)
+    .forEach(b => b.disabled = false);
+}
+
+// ── status toast ──────────────────────────────────────────────────
+let _toastTimer;
+function showStatus(type, msg) {
+  const el = document.getElementById('status-bar');
+  el.textContent = msg;
+  el.className = 'status-bar show ' + type;
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.className = 'status-bar'; }, 3000);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+</script>

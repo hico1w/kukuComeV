@@ -230,6 +230,16 @@ function openTreasureChest(user) {
   if (typeof checkTitles === 'function') setTimeout(() => checkTitles(user), 200);
 }
 
+function showCharaToast(text) {
+  let c = document.getElementById('charaToastContainer');
+  if (!c) { c = document.createElement('div'); c.id = 'charaToastContainer'; document.body.appendChild(c); }
+  const t = document.createElement('div');
+  t.className = 'chara-toast';
+  t.textContent = text;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 10000);
+}
+
 function showTreasureOverlay(user) {
   const wrap = user?.el?.querySelector('.avatar-wrap');
   if (!wrap) return;
@@ -1448,8 +1458,23 @@ function handleAdminMessage(d, replyFn) {
     if (d.url) { localStorage.setItem('bgImageUrl', d.url); applyBgImage(d.url); }
   } else if (d.type === 'bgClear') {
     localStorage.removeItem('bgImageUrl'); applyBgImage(null);
-  } else if (d.type === 'reloadCharImages') {
-    charImages = loadCharImages(); refreshAllAvatars();
+  } else if (d.type === 'reloadCharImages' || d.type === 'charaReload') {
+    const _oldKeys = new Set(Object.keys(charImages));
+    charImages = loadCharImages();
+    refreshAllAvatars();
+    if (d.type === 'charaReload') {
+      Object.keys(charImages).filter(k => !_oldKeys.has(k)).forEach(k => {
+        const _msg = 'キャラ' + k + ' が追加されました！';
+        showCharaToast(_msg);
+        addSystemLog(_msg, '#4ade80');
+        if (typeof postAIReply === 'function') postAIReply(_msg);
+      });
+      document.querySelectorAll('.avatar').forEach(el => {
+        el.classList.remove('chara-glow');
+        void el.offsetWidth;
+        el.classList.add('chara-glow');
+      });
+    }
   } else if (d.type === 'allWalk') {
     Object.values(users).filter(u => u.el).forEach(u => startWalk(u));
   } else if (d.type === 'allMoveNormal') {

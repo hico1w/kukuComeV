@@ -141,12 +141,7 @@ body {
   letter-spacing: 0.03em;
 }
 input[type="file"] {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-  width: 100%;
-  height: 100%;
+  display: none;
 }
 
 /* ── Preview ─────────────────────────────────────────────────────────────── */
@@ -311,9 +306,11 @@ input[type="file"] {
     <p class="hd-sub">アップロードした画像は配信画面のゲームに登場します</p>
   </header>
 
-  <!-- Drop zone -->
-  <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="画像ファイルを選択またはドロップ">
-    <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif" aria-hidden="true">
+  <!-- File input -->
+  <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none">
+
+  <!-- Drop zone: label要素でfileInputと紐付け → クリックでネイティブにファイルピッカーが開く -->
+  <label class="drop-zone" id="dropZone" for="fileInput" tabindex="0" role="button" aria-label="画像ファイルを選択またはドロップ">
     <div class="drop-icon">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -323,7 +320,7 @@ input[type="file"] {
     </div>
     <p class="drop-label">ドラッグ＆ドロップ または <em>クリックして選択</em></p>
     <p class="drop-hint">PNG · JPG · WebP · GIF &nbsp;／&nbsp; 最大 2 MB</p>
-  </div>
+  </label>
 
   <!-- Preview -->
   <div class="preview-wrap" id="previewWrap">
@@ -362,11 +359,12 @@ input[type="file"] {
   </div>
 </div>
 
-<p class="foot">kukuCome キャラ追加ポータル</p>
+<p class="foot">kukuCome キャラ追加ポータル &nbsp;·&nbsp; <a href="https://hico1w.github.io/kukuComeV/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">コマンドマニュアル →</a></p>
 
 <script>
 // ← デプロイ後に CloudflareワーカーのURLを入れてください（末尾スラッシュなし）
 const WORKER_URL = 'https://kukucome-chara-worker.chikamakoo.workers.dev';
+console.log('[kukuCome upload] version: 2026-09-02-v6');
 
 const dropZone   = document.getElementById('dropZone');
 const fileInput  = document.getElementById('fileInput');
@@ -438,8 +436,8 @@ function clearFile() {
 
 // ── File input ──────────────────────────────────────────────────────────
 fileInput.addEventListener('change', () => {
-  clearFile();
-  setFile(fileInput.files[0]);
+  const file = fileInput.files && fileInput.files[0];
+  if (file) { clearFile(); setFile(file); }
 });
 
 // ── Drag & drop ─────────────────────────────────────────────────────────

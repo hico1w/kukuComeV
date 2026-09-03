@@ -1417,7 +1417,15 @@ async function _sdProcessQueue() {
   _sdBusy = true;
   const { user, prompt, commentNo, settingsOverride } = _sdQueue.shift();
   try {
-    await _sdGenerateOne(user, prompt, commentNo, settingsOverride);
+    const _qTimeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('queue-timeout')), 30000)
+    );
+    await Promise.race([_sdGenerateOne(user, prompt, commentNo, settingsOverride), _qTimeout]);
+  } catch (e) {
+    if (e.message === 'queue-timeout') {
+      showBubble(user, '⏱ タイムアウト、次へ', { color: '#ef4444' });
+      addToLog(user, '🎨SD ⏱ キュータイムアウト (30s) — 強制次へ', '#ef4444');
+    }
   } finally {
     _sdBusy = false;
     _sdProcessQueue();
@@ -1480,7 +1488,7 @@ async function _sdGenerateOne(user, prompt, commentNo, settingsOverride = null) 
     `🎨SD prompt: ${fullPrompt} | ${width}x${height} steps:${steps} popW:${cfg.popWidth}`,
     '#a855f7');
   const _ctrl = new AbortController();
-  const _fetchTimeout = setTimeout(() => _ctrl.abort(), 35000); // 35s client-side safety net
+  const _fetchTimeout = setTimeout(() => _ctrl.abort(), 28000); // 28s — fetch+body 両方をカバー
   try {
     const res  = await fetch('/api/sd-generate', {
       method:  'POST',
@@ -1498,8 +1506,8 @@ async function _sdGenerateOne(user, prompt, commentNo, settingsOverride = null) 
       }),
       signal: _ctrl.signal,
     });
+    const data = await res.json(); // clearTimeout は json() 完了後に移動（ボディ受信中もタイムアウト有効）
     clearTimeout(_fetchTimeout);
-    const data = await res.json();
     if (data.error) {
       showBubble(user, '❌ ' + data.error.slice(0, 40), {});
       addToLog(user, '🎨SD ❌ ' + data.error.slice(0, 80), '#ef4444');
@@ -1514,7 +1522,7 @@ async function _sdGenerateOne(user, prompt, commentNo, settingsOverride = null) 
     clearTimeout(_fetchTimeout);
     if (e.name === 'AbortError') {
       showBubble(user, '⏱ SDタイムアウト', { color: '#ef4444' });
-      addToLog(user, '🎨SD ⏱ クライアントタイムアウト (200s)', '#ef4444');
+      addToLog(user, '🎨SD ⏱ クライアントタイムアウト (30s)', '#ef4444');
     } else {
       showBubble(user, '❌ 通信エラー', {});
     }

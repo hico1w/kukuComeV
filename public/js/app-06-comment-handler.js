@@ -199,6 +199,9 @@ function handleComment(comment) {
   const message    = stripPrefix(rawMessage);
   const trimmedMsg = message.trim(); // message は const のため一度だけ算出して再利用
 
+  // ボット自身が投稿したコメントはキャラコマンド等を無効化
+  if (typeof _aiPostedTexts !== 'undefined' && _aiPostedTexts.has(message)) return;
+
   // エモーションURLを早期解決（物理オブジェクト・アゲルちゃんチャット共用）— 複数対応
   const _emoUrls = [];
   {
@@ -648,12 +651,12 @@ function handleComment(comment) {
 
   // ── キャラ作成コマンド：SD生成＋背景透過＋アバター設定 ──
   if (message.includes('キャラ作成')) {
-    if (!agruImgCmdEnabled) return;
+    if (!agruImgCmdEnabled && !isMasterUser(user)) return;
     if (agruBattleActive) return;
     if (agruActive) return;
     if (taimanState) return;
     ensureCharOnStage(user);
-    if ((user.mp ?? 0) < 50) {
+    if (!isMasterUser(user) && (user.mp ?? 0) < 50) {
       showBubble(user, `MPが足りない… (${user.mp ?? 0}/50)`, {});
       return;
     }
@@ -663,7 +666,7 @@ function handleComment(comment) {
       showBubble(user, 'そのキャラは作れません', { color: '#ef4444' });
       return;
     }
-    user.mp -= 50;
+    if (!isMasterUser(user)) user.mp -= 50;
     updateStatsDisplay(user);
     createCharImage(user, charPrompt, comment.number);
     return;
@@ -671,16 +674,16 @@ function handleComment(comment) {
 
   // ── エコ生成コマンド：5MP消費・低解像度/低Stepsで雑に生成 ──────
   if (message.includes('エコ生成')) {
-    if (!agruImgCmdEnabled) return;
+    if (!agruImgCmdEnabled && !isMasterUser(user)) return;
     if (agruBattleActive) return;
     if (taimanState) return;
     if (agruActive) return;
     ensureCharOnStage(user);
-    if ((user.mp ?? 0) < 5) {
+    if (!isMasterUser(user) && (user.mp ?? 0) < 5) {
       showBubble(user, `MPが足りません（${user.mp ?? 0}/5）`, {});
       return;
     }
-    user.mp -= 5;
+    if (!isMasterUser(user)) user.mp -= 5;
     showBubble(user, message, {});
     const prompt = message.replace(/エコ生成/g, '').trim();
     generateSDImageGomi(user, prompt, comment.number);
@@ -689,16 +692,16 @@ function handleComment(comment) {
 
   // ── 超生成コマンド：500MP消費・別解像度/Stepsで高品質SD生成 ──────
   if (message.includes('超生成')) {
-    if (!agruImgCmdEnabled) return;
+    if (!agruImgCmdEnabled && !isMasterUser(user)) return;
     if (agruBattleActive) return;
     if (taimanState) return;
     if (agruActive) return;
     ensureCharOnStage(user);
-    if ((user.mp ?? 0) < 500) {
+    if (!isMasterUser(user) && (user.mp ?? 0) < 500) {
       showBubble(user, `MPが足りません（${user.mp ?? 0}/500）`, {});
       return;
     }
-    user.mp -= 500;
+    if (!isMasterUser(user)) user.mp -= 500;
     showBubble(user, message, {});
     const prompt = message.replace(/超生成/g, '').trim();
     generateSDImageCho(user, prompt, comment.number);
@@ -707,17 +710,17 @@ function handleComment(comment) {
 
   // ── 出ろ/出して/生成コマンド：SD画像生成 ──────
   if (/出ろ|出して|生成|gen/i.test(message)) {
-    if (!agruImgCmdEnabled) return; // 画像コマンド無視設定
+    if (!agruImgCmdEnabled && !isMasterUser(user)) return; // 画像コマンド無視設定（masterは常に使用可）
     if (agruBattleActive) return; // バトル中は画像コマンド無効
     if (taimanState) return; // タイマン中は画像コマンド無効
     if (agruActive) return; // 会話モード中は _agruSend 側で処理
     ensureCharOnStage(user);
-    if ((user.mp ?? 0) < 20) {
+    if (!isMasterUser(user) && (user.mp ?? 0) < 20) {
       showBubble(user, 'MPが足りなくて画像生成できません', {});
       postAIReply(`${user.name || '名無し'} MPが足りません（${user.mp ?? 0}/20）`);
       return;
     }
-    user.mp -= 20;
+    if (!isMasterUser(user)) user.mp -= 20;
     showBubble(user, message, {});
     const prompt = message.replace(/出ろ|出して|生成|gen/gi, '').trim();
     generateSDImage(user, prompt, comment.number);

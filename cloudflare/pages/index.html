@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>星井野アゲル — hico1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Noto+Sans+JP:wght@300;400&display=swap">
+<style>
+/* ── Reset ───────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 300;
+  font-size: 14px;
+  color: #111;
+  background: #fff;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+img { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+button { cursor: pointer; background: none; border: none; font: inherit; color: inherit; }
+
+/* ── Intro overlay ───────────────────────────────────────── */
+#intro {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: #09090b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 18px;
+  transition: transform .9s cubic-bezier(.76,0,.24,1);
+  will-change: transform;
+}
+#intro.out { transform: translateY(-100%); }
+.intro-logo {
+  height: clamp(90px, 13vw, 170px);
+  width: auto;
+  mix-blend-mode: screen;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: ifade .9s ease .2s forwards;
+}
+@keyframes ifade { to { opacity: 1; transform: none; } }
+
+/* ── Screensaver overlay ─────────────────────────────────── */
+#ss-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.2s ease;
+  overflow: hidden;
+}
+#ss-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.ss-strip {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  height: 100dvh;
+  gap: 2px;
+  will-change: transform;
+}
+.ss-strip img {
+  height: 100dvh;
+  width: auto;
+  flex-shrink: 0;
+  object-fit: cover;
+  object-position: center top;
+}
+.ss-clock {
+  position: absolute;
+  bottom: 40px;
+  right: 44px;
+  text-align: right;
+  pointer-events: none;
+}
+.ss-clock-time {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 64px;
+  font-weight: 300;
+  color: rgba(255,255,255,.9);
+  letter-spacing: .04em;
+  line-height: 1;
+  text-shadow: 0 2px 24px rgba(0,0,0,.5);
+}
+.ss-clock-date {
+  font-size: 10px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.4);
+  margin-top: 6px;
+}
+.ss-brand {
+  position: absolute;
+  top: 28px;
+  left: 40px;
+}
+.ss-brand img {
+  height: 44px;
+  width: auto;
+  mix-blend-mode: screen;
+  opacity: .55;
+}
+
+/* ── Header ──────────────────────────────────────────────── */
+#site-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 200;
+  height: 60px;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  padding: 0 40px;
+  background: rgba(255,255,255,.95);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #e2e2e2;
+  transition: opacity 1s ease;
+}
+.hd-logo { display: flex; align-items: center; }
+.hd-logo img {
+  height: 44px;
+  width: auto;
+  mix-blend-mode: difference;
+  display: block;
+}
+.hd-nav {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  list-style: none;
+  gap: 36px;
+}
+.hd-nav a {
+  font-size: 10px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: #888;
+  transition: color .18s;
+}
+.hd-nav a:hover, .hd-nav a.active { color: #111; }
+.hd-lang {
+  display: flex;
+  gap: 4px;
+  font-size: 10px;
+  letter-spacing: .16em;
+  color: #aaa;
+}
+.hd-lang .active { color: #111; }
+.hd-lang .sep { color: #ccc; }
+
+/* ── Hero (filmstrip, auto-scroll) ──────────────────────── */
+#hero {
+  position: relative;
+  height: 100dvh;
+  overflow: hidden;
+}
+.hero-strip {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  gap: 2px;
+  height: 100dvh;
+  will-change: transform;
+}
+.hero-strip img {
+  height: 100dvh;
+  width: auto;
+  flex-shrink: 0;
+  object-fit: cover;
+  object-position: center top;
+}
+.hero-grad {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,.65) 0%, rgba(0,0,0,.08) 55%, transparent 100%);
+  transition: opacity 1s ease;
+}
+.hero-body {
+  position: absolute;
+  bottom: 80px;
+  left: 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: opacity 1s ease;
+}
+.hero-eyebrow {
+  font-size: 10px;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.6);
+}
+.hero-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(48px, 7vw, 88px);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: .04em;
+  color: #fff;
+  text-shadow: 0 2px 20px rgba(0,0,0,.3);
+}
+.hero-sub {
+  font-size: 13px;
+  letter-spacing: .08em;
+  color: rgba(255,255,255,.55);
+  font-style: italic;
+  font-family: 'Cormorant Garamond', serif;
+}
+.hero-explore {
+  margin-top: 8px;
+  display: inline-block;
+  padding: 10px 28px;
+  border: 1px solid rgba(255,255,255,.45);
+  font-size: 10px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: #fff;
+  transition: background .2s, border-color .2s;
+  align-self: flex-start;
+}
+.hero-explore:hover {
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.7);
+}
+.hero-scroll {
+  position: absolute;
+  bottom: 80px;
+  right: 40px;
+  writing-mode: vertical-rl;
+  font-size: 9px;
+  letter-spacing: .24em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.45);
+  transition: opacity 1s ease;
+}
+
+/* ── Scroll strips (page) ────────────────────────────────── */
+.scroll-section {
+  overflow: hidden;
+  line-height: 0;
+  background: #f3f3f3;
+  border-top: 1px solid #e6e6e6;
+  border-bottom: 1px solid #e6e6e6;
+}
+.scroll-track-page {
+  display: inline-flex;
+  gap: 3px;
+  will-change: transform;
+}
+.scroll-track-page img {
+  height: 240px;
+  width: auto;
+  flex-shrink: 0;
+  object-fit: cover;
+  object-position: center top;
+}
+
+/* ── Gallery viewer ──────────────────────────────────────── */
+#gallery {
+  background: #fff;
+  transition: opacity 1s ease;
+}
+.viewer-wrap { max-width: 1200px; margin: 0 auto; }
+.viewer-row {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #e2e2e2;
+}
+.viewer-arrow {
+  width: 64px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60dvh;
+  font-size: 20px;
+  color: #aaa;
+  transition: color .15s;
+}
+.viewer-arrow:hover { color: #111; }
+.viewer-center {
+  flex: 1;
+  min-height: 60dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #f9f9f9;
+}
+#main-photo {
+  max-height: 60dvh;
+  max-width: 100%;
+  object-fit: contain;
+}
+.viewer-meta {
+  height: 44px;
+  padding: 0 64px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border-bottom: 1px solid #e2e2e2;
+}
+.photo-counter {
+  font-size: 11px;
+  letter-spacing: .1em;
+  color: #999;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.thumbs-outer { flex: 1; overflow: hidden; }
+.thumbs-track {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+  padding: 4px 0;
+}
+.thumbs-track::-webkit-scrollbar { display: none; }
+.thumb {
+  width: 44px; height: 32px;
+  flex-shrink: 0;
+  object-fit: cover;
+  object-position: center top;
+  opacity: .4;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.thumb.active { opacity: 1; outline: 1.5px solid #111; outline-offset: 1px; }
+.thumb:hover { opacity: .75; }
+
+/* ── Tabs ────────────────────────────────────────────────── */
+.tabs-bar {
+  display: flex;
+  border-bottom: 1px solid #e2e2e2;
+}
+.tab-btn {
+  padding: 14px 40px;
+  font-size: 10px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: #aaa;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color .15s, border-color .15s;
+}
+.tab-btn.active { color: #111; border-bottom-color: #111; }
+.tab-btn:hover { color: #555; }
+.tab-content { padding: 40px 64px; }
+
+.spec-table { border-collapse: collapse; width: 100%; max-width: 560px; }
+.spec-table td {
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: top;
+  line-height: 1.7;
+}
+.spec-table td:first-child {
+  font-size: 10px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: #999;
+  width: 140px;
+  padding-right: 20px;
+}
+.spec-note {
+  margin-top: 24px;
+  font-size: 12px;
+  color: #aaa;
+  line-height: 1.8;
+}
+.spec-note a { color: #555; text-decoration: underline; text-underline-offset: 3px; }
+.tab-intro {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 16px;
+  font-style: italic;
+  font-weight: 300;
+  color: #777;
+  line-height: 1.9;
+  margin-bottom: 28px;
+  max-width: 480px;
+}
+
+.index-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+.index-img {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  object-position: center top;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.index-img:hover { opacity: .8; }
+
+/* ── Footer ──────────────────────────────────────────────── */
+#footer {
+  background: #09090b;
+  padding: 60px 64px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: opacity 1s ease;
+}
+.footer-logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  font-weight: 300;
+  letter-spacing: .1em;
+  color: rgba(255,255,255,.7);
+}
+.footer-copy {
+  font-size: 10px;
+  letter-spacing: .14em;
+  color: rgba(255,255,255,.22);
+  text-transform: uppercase;
+}
+
+/* ── YouTube + Links (横並び) ────────────────────────────── */
+#yt-links {
+  background: #09090b;
+  padding: 72px 64px;
+  border-top: 1px solid #1a1a1e;
+  transition: opacity 1s ease;
+}
+.ytl-row {
+  display: flex;
+  gap: 64px;
+  align-items: flex-start;
+}
+.ytl-yt {
+  flex: 1;
+  min-width: 0;
+}
+.ytl-links {
+  flex: 0 0 340px;
+}
+.ytl-eyebrow {
+  font-size: 10px;
+  letter-spacing: .28em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.28);
+  margin-bottom: 20px;
+}
+.yt-frame-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #111;
+  overflow: hidden;
+}
+.yt-frame-wrap iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+.yt-channel-link {
+  display: inline-block;
+  margin-top: 16px;
+  font-size: 10px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.32);
+  transition: color .15s;
+}
+.yt-channel-link:hover { color: rgba(255,255,255,.7); }
+
+/* ── Links list ──────────────────────────────────────────── */
+.links-list { list-style: none; }
+.link-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  text-decoration: none;
+  color: rgba(255,255,255,.8);
+  transition: opacity .15s;
+}
+a.link-item:hover { opacity: .5; }
+.link-nolink { cursor: default; }
+.link-label {
+  font-size: 13px;
+  letter-spacing: .03em;
+  min-width: 150px;
+  flex-shrink: 0;
+}
+.link-label em {
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: .1em;
+  color: rgba(255,255,255,.3);
+  margin-left: 8px;
+}
+.link-url {
+  font-size: 11px;
+  color: rgba(255,255,255,.28);
+  letter-spacing: .04em;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.link-arrow {
+  font-size: 13px;
+  color: rgba(255,255,255,.2);
+  flex-shrink: 0;
+}
+
+/* ── Upload slide panel ─────────────────────────────────── */
+#upload-backdrop {
+  position: fixed; inset: 0; z-index: 599;
+  background: rgba(0,0,0,0); pointer-events: none;
+  transition: background .5s ease;
+}
+#upload-backdrop.open { background: rgba(0,0,0,.38); pointer-events: auto; }
+
+#upload-panel {
+  position: fixed; top: 0; right: 0;
+  width: min(1000px, 100%); height: 100dvh;
+  background: #fff;
+  border-left: 1px solid #e2e2e2;
+  z-index: 600;
+  transform: translateX(100%);
+  transition: transform .65s cubic-bezier(.76,0,.24,1);
+  overflow-y: auto; overflow-x: hidden;
+  padding: 80px 40px 60px;
+  display: flex; flex-direction: column; gap: 24px;
+  color: #111;
+}
+#upload-panel.open { transform: translateX(0); }
+
+.up-close {
+  position: fixed; top: 18px; right: 22px; z-index: 601;
+  background: none; border: none; cursor: pointer;
+  color: #bbb;
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color .15s, transform .22s; font-family: inherit;
+}
+.up-close:hover { color: #111; transform: rotate(90deg); }
+.up-close svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; }
+
+.hd-upload-btn {
+  font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+  color: #888; background: none; border: none; cursor: pointer;
+  font-family: 'Noto Sans JP', sans-serif; font-weight: 300;
+  transition: color .18s; padding: 0 8px;
+}
+.hd-upload-btn:hover { color: #111; }
+
+.up-eyebrow { font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: #aaa; }
+.up-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 32px; font-weight: 300; line-height: 1.15; letter-spacing: .02em;
+  color: #111;
+}
+.up-title em { font-style: italic; color: #111; }
+.up-sub { font-size: 13px; color: #888; line-height: 1.7; }
+.up-divider { height: 1px; background: #e2e2e2; flex-shrink: 0; }
+#up-file-input { display: none; }
+
+.up-drop {
+  border: 1.5px dashed #d0d0d0; border-radius: 4px;
+  padding: 36px 20px; flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  cursor: pointer; transition: border-color .2s, background .2s;
+}
+.up-drop:hover, .up-drop.dragover {
+  border-color: #111; background: rgba(0,0,0,.03);
+}
+.up-drop-icon {
+  width: 46px; height: 46px; border-radius: 50%;
+  background: rgba(0,0,0,.04); border: 1.5px solid rgba(0,0,0,.12);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .24s, box-shadow .24s;
+}
+.up-drop:hover .up-drop-icon, .up-drop.dragover .up-drop-icon {
+  transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,.1);
+}
+.up-drop-icon svg { width: 20px; height: 20px; stroke: #555; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.up-drop-label { font-size: 14px; color: #111; text-align: center; }
+.up-drop-label em { font-style: normal; color: #555; text-decoration: underline; text-underline-offset: 3px; }
+.up-drop-hint { font-size: 12px; color: #bbb; letter-spacing: .04em; }
+
+.up-preview {
+  display: none; gap: 14px; align-items: flex-start;
+  background: #f9f9f9; border: 1px solid #e2e2e2;
+  border-radius: 4px; padding: 14px;
+}
+.up-preview.visible { display: flex; }
+.up-preview-img { width: 68px; height: 68px; object-fit: contain; border-radius: 4px; border: 1px solid #e2e2e2; background: #fff; flex-shrink: 0; }
+.up-preview-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+.up-preview-name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #111; }
+.up-preview-size { font-size: 12px; color: #999; }
+.up-preview-clear { background: none; border: none; color: #ccc; cursor: pointer; padding: 4px; border-radius: 4px; font-size: 17px; line-height: 1; transition: color .15s; flex-shrink: 0; align-self: flex-start; }
+.up-preview-clear:hover { color: #111; }
+
+.up-status { display: none; border-radius: 4px; padding: 12px 14px; font-size: 13px; gap: 10px; align-items: flex-start; }
+.up-status.visible { display: flex; }
+.up-status.ok  { background: rgba(30,180,100,.07); color: #1a7a50; border: 1px solid rgba(30,180,100,.2); }
+.up-status.err { background: rgba(200,40,40,.06); color: #b83030; border: 1px solid rgba(200,40,40,.16); }
+.up-status-icon { flex-shrink: 0; font-size: 15px; line-height: 1.5; }
+
+.up-btn {
+  width: 100%; padding: 13px; background: #111; color: #fff; border: none;
+  border-radius: 4px; font-family: 'Noto Sans JP', sans-serif; font-weight: 400;
+  font-size: 13px; cursor: pointer; letter-spacing: .07em; flex-shrink: 0;
+  transition: opacity .15s, transform .1s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.up-btn:not(:disabled):hover { opacity: .72; }
+.up-btn:not(:disabled):active { transform: translateY(1px); }
+.up-btn:disabled { opacity: .2; cursor: not-allowed; }
+.up-btn.loading svg { animation: up-spin .7s linear infinite; }
+@keyframes up-spin { to { transform: rotate(360deg); } }
+
+.up-rules { display: flex; flex-direction: column; gap: 7px; }
+.up-rules-label { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: #bbb; }
+.up-rules-list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.up-rules-list li { font-size: 12px; color: #aaa; display: flex; align-items: baseline; gap: 8px; line-height: 1.6; }
+.up-rules-list li::before { content: '—'; color: #ddd; font-size: 10px; flex-shrink: 0; }
+
+.up-toast {
+  position: fixed; bottom: 40px; left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  z-index: 700;
+  background: #111; color: #fff;
+  font-family: 'Noto Sans JP', sans-serif; font-size: 13px; font-weight: 300; letter-spacing: .04em;
+  padding: 12px 28px; border-radius: 4px; white-space: nowrap;
+  opacity: 0; pointer-events: none;
+  transition: opacity .25s ease, transform .3s ease;
+}
+.up-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── Purupuru section ────────────────────────────────────── */
+#up-puru-section { display: none; flex-direction: column; gap: 16px; }
+#up-puru-section.visible { display: flex; }
+.up-puru-lbl { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: #bbb; }
+.up-puru-enable { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #111; cursor: pointer; }
+.up-puru-row2 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.up-puru-grid-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #888; flex: 1; }
+.up-puru-grid-row input[type=range] { flex: 1; accent-color: #111; }
+#up-puru-canvas-wrap { position: relative; background: #f0f0f0; border: 1px solid #e2e2e2; border-radius: 4px; overflow: hidden; height: 500px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+#up-puru-img { display: none; }
+#up-puru-canvas { position: absolute; cursor: crosshair; }
+#up-puru-points { display: flex; flex-direction: column; gap: 5px; max-height: 600px; overflow-y: auto; padding-right: 2px; }
+.up-pp-row { background: #fafafa; border: 1px solid #ebebeb; border-radius: 6px; padding: 7px 10px; }
+.up-pp-row-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.up-pp-inp { background: #fff; border: 1px solid #d8d8d8; color: #111; border-radius: 3px; padding: 2px 4px; font-size: 11px; font-family: inherit; }
+.up-pp-sel { background: #fff; border: 1px solid #d8d8d8; color: #111; border-radius: 3px; padding: 2px 3px; font-size: 11px; font-family: inherit; }
+.up-pp-lbl { font-size: 10px; color: #bbb; }
+
+/* ── Screensaver state ───────────────────────────────────── */
+body.screensaver #site-header { opacity: 0; pointer-events: none; }
+body.screensaver .hero-body   { opacity: 0; pointer-events: none; }
+body.screensaver .hero-scroll { opacity: 0; }
+body.screensaver .hero-grad   { opacity: 0; }
+body.screensaver #gallery     { opacity: 0; pointer-events: none; }
+body.screensaver #yt-links    { opacity: 0; pointer-events: none; }
+body.screensaver #footer      { opacity: 0; pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-strip, .scroll-track-page, #ss-fullimg { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ① INTRO -->
+<div id="intro">
+  <img class="intro-logo" src="./img/logo.png" alt="hico1 / 星井野アゲル">
+</div>
+
+<!-- ② SCREENSAVER -->
+<div id="ss-overlay" aria-hidden="true">
+  <div class="ss-strip" id="ss-strip"></div>
+  <div class="ss-clock">
+    <div class="ss-clock-time" id="ss-time">00:00:00</div>
+    <div class="ss-clock-date" id="ss-date"></div>
+  </div>
+  <div class="ss-brand"><img src="./img/logo.png" alt="hico1"></div>
+</div>
+
+<!-- ③ HEADER -->
+<header id="site-header">
+  <a href="#" class="hd-logo"><img src="./img/logo.png" alt="hico1"></a>
+  <ul class="hd-nav">
+    <li><a href="#" class="active">Top</a></li>
+    <li><a href="#gallery">Gallery</a></li>
+    <li><a href="#tab-info">About</a></li>
+    <li><a href="https://hico1w.github.io/kukuComeV/" target="_blank" rel="noopener">kukuCome</a></li>
+  </ul>
+  <button class="hd-upload-btn" id="open-upload" aria-label="キャラ画像をアップロード">Upload</button>
+  <div class="hd-lang">
+    <span class="active">JA</span><span class="sep">/</span><span>EN</span>
+  </div>
+</header>
+
+<!-- UPLOAD SLIDE PANEL -->
+<div id="upload-backdrop" aria-hidden="true"></div>
+<button class="up-close" id="upload-close" aria-label="閉じる" hidden>
+  <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+</button>
+<div id="upload-panel" role="dialog" aria-modal="true" aria-label="キャラ画像アップロード">
+  <div>
+    <p class="up-eyebrow">Fan Art Upload</p>
+    <h2 class="up-title">キャラ画像を<br><em>追加しよう</em></h2>
+  </div>
+  <div class="up-divider"></div>
+  <input type="file" id="up-file-input" accept="image/png,image/jpeg,image/webp,image/gif">
+  <label class="up-drop" id="up-drop-zone" for="up-file-input" tabindex="0" role="button" aria-label="画像ファイルを選択またはドロップ">
+    <div class="up-drop-icon">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    </div>
+    <p class="up-drop-label">ドラッグ＆ドロップ または <em>クリックして選択</em></p>
+    <p class="up-drop-hint">PNG · JPG · WebP · GIF &nbsp;／&nbsp; 最大 2 MB</p>
+  </label>
+  <div class="up-preview" id="up-preview-wrap">
+    <img class="up-preview-img" id="up-preview-img" src="" alt="プレビュー">
+    <div class="up-preview-info">
+      <p class="up-preview-name" id="up-preview-name"></p>
+      <p class="up-preview-size" id="up-preview-size"></p>
+    </div>
+    <button class="up-preview-clear" id="up-preview-clear" aria-label="選択を解除">×</button>
+  </div>
+  <!-- ぷるぷる設定 -->
+  <div id="up-puru-section">
+    <div class="up-divider"></div>
+    <p class="up-puru-lbl">ぷるぷる設定</p>
+    <div class="up-puru-row2">
+      <label class="up-puru-enable">
+        <input type="checkbox" id="up-puru-enabled">
+        <span>ぷるぷる有効</span>
+      </label>
+      <div class="up-puru-grid-row">
+        <span class="up-pp-lbl">グリッド</span>
+        <input type="range" id="up-puru-grid" min="3" max="12" step="1" value="12">
+        <span id="up-puru-grid-val" style="font-size:12px;color:#888;min-width:14px">12</span>
+      </div>
+    </div>
+    <div id="up-puru-canvas-wrap">
+      <img id="up-puru-img" src="" alt="">
+      <canvas id="up-puru-canvas"></canvas>
+    </div>
+    <div id="up-puru-points"></div>
+  </div>
+
+  <div class="up-status" id="up-status" role="alert" aria-live="polite">
+    <span class="up-status-icon" id="up-status-icon"></span>
+    <span id="up-status-text"></span>
+  </div>
+  <button class="up-btn" id="up-btn-upload" disabled>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+    アップロード
+  </button>
+  <div class="up-rules">
+    <p class="up-rules-label">注意事項</p>
+    <ul class="up-rules-list">
+      <li>PNG / JPG / WebP / GIF のみ対応です</li>
+      <li>2 MB を超えるファイルはアップロードできません</li>
+      <li>背景透過されていない画像は削除される場合があります</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ④ HERO (filmstrip: vrageru+ageruCos+v89+PHOTOAGERU, auto-scroll left) -->
+<section id="hero">
+  <div class="hero-strip" id="hero-strip"></div>
+  <div class="hero-grad"></div>
+  <div class="hero-body">
+    <p class="hero-eyebrow">kukuCome — hico1</p>
+    <h1 class="hero-name">星井野アゲル</h1>
+    <p class="hero-sub" id="hero-tagline"></p>
+    <a href="#gallery" class="hero-explore">Explore →</a>
+  </div>
+  <p class="hero-scroll">Scroll</p>
+</section>
+
+<!-- ⑤ SCROLL STRIP 1 (vrageru → an01-an20, auto-scroll left) -->
+<div class="scroll-section">
+  <div class="scroll-track-page" id="strip1"></div>
+</div>
+
+<!-- ⑥ GALLERY VIEWER (ageruCos → cos01-cos25) -->
+<section id="gallery">
+  <div class="viewer-wrap">
+    <div class="viewer-row">
+      <button class="viewer-arrow" id="btn-prev" aria-label="前の写真">←</button>
+      <div class="viewer-center">
+        <img id="main-photo" src="./img/cos01.jpg" alt="星井野アゲル">
+      </div>
+      <button class="viewer-arrow" id="btn-next" aria-label="次の写真">→</button>
+    </div>
+    <div class="viewer-meta">
+      <span class="photo-counter" id="counter">01 / 25</span>
+      <div class="thumbs-outer">
+        <div class="thumbs-track" id="thumbs-track"></div>
+      </div>
+    </div>
+    <div class="tabs-bar">
+      <button class="tab-btn active" data-tab="info">INFO</button>
+      <button class="tab-btn" data-tab="index">PHOTO INDEX</button>
+    </div>
+    <div id="tab-info" class="tab-content">
+      <p class="tab-intro">A streamer, a character, a world.<br>Hoshino Ageru lives at the edge of gothic night and cyberpunk chrome — brought to life through kukuCome.</p>
+      <table class="spec-table">
+        <tr><td>Streamer</td><td>hico1</td></tr>
+        <tr><td>Platform</td><td>erinn.biz</td></tr>
+        <tr><td>YouTube</td><td>@hico1w</td></tr>
+        <tr><td>Discord</td><td>heugemoon</td></tr>
+      </table>
+    </div>
+    <div id="tab-index" class="tab-content" hidden>
+      <div class="index-grid" id="photo-index-grid"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ⑦ SCROLL STRIP 2 (PHOTOAGERU → ph01-ph15, auto-scroll right) -->
+<div class="scroll-section">
+  <div class="scroll-track-page rev" id="strip2"></div>
+</div>
+
+<!-- ⑧ YOUTUBE + LINKS (横並び) -->
+<section id="yt-links">
+  <div class="ytl-row">
+    <!-- YouTube 左 -->
+    <div class="ytl-yt">
+      <p class="ytl-eyebrow">YouTube — @hico1w</p>
+      <div class="yt-frame-wrap">
+        <iframe id="yt-player"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen></iframe>
+      </div>
+      <a class="yt-channel-link" href="https://www.youtube.com/@hico1w" target="_blank" rel="noopener">チャンネルを見る →</a>
+    </div>
+    <!-- Links 右 -->
+    <div class="ytl-links">
+      <p class="ytl-eyebrow">Links</p>
+      <ul class="links-list">
+        <li><a class="link-item" href="https://live.erinn.biz/u/x" target="_blank" rel="noopener">
+          <span class="link-label">配信ページ</span>
+          <span class="link-url">live.erinn.biz/u/x</span>
+          <span class="link-arrow">→</span>
+        </a></li>
+        <li><a class="link-item" href="https://live.erinn.biz/live.bbs.php?num=54961" target="_blank" rel="noopener">
+          <span class="link-label">れんらくちょう</span>
+          <span class="link-url">live.erinn.biz</span>
+          <span class="link-arrow">→</span>
+        </a></li>
+        <li><a class="link-item" href="https://marshmallow-qa.com/gxhrmmz0qoxbyxc" target="_blank" rel="noopener">
+          <span class="link-label">マシュマロ <em>質問・相談受付中</em></span>
+          <span class="link-url">marshmallow-qa.com</span>
+          <span class="link-arrow">→</span>
+        </a></li>
+        <li><a class="link-item" href="https://discord.gg/XbrGAwvV" target="_blank" rel="noopener">
+          <span class="link-label">表ディスコ <em>参加歓迎</em></span>
+          <span class="link-url">discord.gg/XbrGAwvV</span>
+          <span class="link-arrow">→</span>
+        </a></li>
+        <li><span class="link-item link-nolink">
+          <span class="link-label">Discord</span>
+          <span class="link-url">heugemoon</span>
+          <span class="link-arrow"></span>
+        </span></li>
+        <li><a class="link-item" href="https://www.youtube.com/@hico1w" target="_blank" rel="noopener">
+          <span class="link-label">YouTube</span>
+          <span class="link-url">@hico1w</span>
+          <span class="link-arrow">→</span>
+        </a></li>
+        <li><a class="link-item" href="https://www.flickr.com/photos/203581702@N05/albums" target="_blank" rel="noopener">
+          <span class="link-label">素材</span>
+          <span class="link-url">flickr.com</span>
+          <span class="link-arrow">→</span>
+        </a></li>
+        <li><a class="link-item" href="https://hub.vroid.com/users/50457226" target="_blank" rel="noopener">
+          <span class="link-label">VRoid Hub</span>
+          <span class="link-url">hub.vroid.com</span>
+          <span class="link-arrow">→</span>
+        </a></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ⑨ FOOTER -->
+<footer id="footer">
+  <p class="footer-logo">hico1</p>
+  <p class="footer-copy">© 2026 hico1 / 星井野アゲル — kukuCome</p>
+</footer>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   Image sets (folder → area mapping)
+   ageruCos   → cos01-cos25  (gallery viewer + hero strip)
+   vrageru    → an01-an20    (hero strip + page strip 1)
+   vrageru89  → v8901-v8920  (photo index grid + hero strip)
+   PHOTOAGERU → ph01-ph15    (page strip 2 + hero strip + screensaver)
+   ════════════════════════════════════════════════════════════ */
+const AN  = Array.from({length:20}, (_,i) => `./img/an${String(i+1).padStart(2,'0')}.jpg`);
+const COS = Array.from({length:25}, (_,i) => `./img/cos${String(i+1).padStart(2,'0')}.jpg`);
+const V89 = Array.from({length:20}, (_,i) => `./img/v89${String(i+1).padStart(2,'0')}.jpg`);
+const PH  = Array.from({length:15}, (_,i) => `./img/ph${String(i+1).padStart(2,'0')}.jpg`);
+// sozai/ → strip1 (sz01-sz10) and strip2 (sz11-sz19)
+// seleSozai → ss01-ss41 (strip1: 01-21, strip2: 22-41)
+const SZ1 = Array.from({length:21}, (_,i) => `./img/ss${String(i+1).padStart(2,'0')}.png`);
+const SZ2 = Array.from({length:20}, (_,i) => `./img/ss${String(i+22).padStart(2,'0')}.png`);
+
+/* ── Helpers ─────────────────────────────────────────────── */
+function buildStrip(trackEl, srcs, lazy=true) {
+  [...srcs, ...srcs].forEach((src, i) => {
+    const img = document.createElement('img');
+    img.src = src; img.alt = '';
+    if (lazy && i >= 4) img.loading = 'lazy';
+    trackEl.appendChild(img);
+  });
+}
+
+/* RAF scroll loop — works correctly as images load in */
+function animStrip(el, secPerLoop, dir='left') {
+  let pos = 0, prev = null, hw = 0, hwStamp = -Infinity;
+  (function tick(now) {
+    if (prev === null) prev = now;
+    const dt = Math.min((now - prev) / 1000, 0.05);
+    prev = now;
+    // recalculate halfWidth every 200 ms
+    if (now - hwStamp > 200) {
+      const w = el.scrollWidth / 2;
+      if (w > 0) hw = w;
+      hwStamp = now;
+    }
+    if (hw > 0) {
+      const speed = hw / secPerLoop;
+      pos += (dir === 'left' ? 1 : -1) * speed * dt;
+      pos = ((pos % hw) + hw) % hw; // wrap [0, hw)
+      el.style.transform = `translateX(${-pos}px)`;
+    }
+    requestAnimationFrame(tick);
+  })(performance.now());
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+/* ── Intro ───────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  const intro = document.getElementById('intro');
+  setTimeout(() => {
+    intro.classList.add('out');
+    intro.addEventListener('transitionend', () => intro.remove(), {once:true});
+  }, 1800);
+
+  /* ── Hero filmstrip (all 4 folders interleaved) ───────── */
+  const heroSrcs = [];
+  const maxLen = Math.max(AN.length, COS.length, V89.length, PH.length);
+  for (let i = 0; i < maxLen; i++) {
+    if (i < AN.length)  heroSrcs.push(AN[i]);
+    if (i < COS.length) heroSrcs.push(COS[i]);
+    if (i < V89.length) heroSrcs.push(V89[i]);
+    if (i < PH.length)  heroSrcs.push(PH[i]);
+  }
+  buildStrip(document.getElementById('hero-strip'), heroSrcs, true);
+  animStrip(document.getElementById('hero-strip'), 600, 'left');
+
+  /* ── Page strips ─────────────────────────────────────── */
+  buildStrip(document.getElementById('strip1'), SZ1);
+  animStrip(document.getElementById('strip1'), 50, 'left');
+  buildStrip(document.getElementById('strip2'), SZ2);
+  animStrip(document.getElementById('strip2'), 50, 'right');
+});
+
+/* ── Gallery viewer ──────────────────────────────────────── */
+const GALLERY = COS;
+const TOTAL = GALLERY.length;
+let current = 0;
+
+function goTo(idx) {
+  current = (idx + TOTAL) % TOTAL;
+  document.getElementById('main-photo').src = GALLERY[current];
+  document.getElementById('counter').textContent =
+    `${String(current+1).padStart(2,'0')} / ${String(TOTAL).padStart(2,'0')}`;
+  document.querySelectorAll('.thumb').forEach((t,i) =>
+    t.classList.toggle('active', i===current));
+  const at = document.querySelector('.thumb.active');
+  if (at) at.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
+}
+
+const tt = document.getElementById('thumbs-track');
+GALLERY.forEach((src,i) => {
+  const img = document.createElement('img');
+  img.src=src; img.className='thumb'; img.alt='';
+  if (i===0) img.classList.add('active');
+  img.addEventListener('click', ()=>goTo(i));
+  tt.appendChild(img);
+});
+
+document.getElementById('btn-prev').addEventListener('click', ()=>goTo(current-1));
+document.getElementById('btn-next').addEventListener('click', ()=>goTo(current+1));
+document.addEventListener('keydown', e=>{
+  if(e.key==='ArrowLeft')  goTo(current-1);
+  if(e.key==='ArrowRight') goTo(current+1);
+});
+let tx=0;
+const mpEl = document.getElementById('main-photo');
+mpEl.addEventListener('touchstart', e=>{tx=e.touches[0].clientX;},{passive:true});
+mpEl.addEventListener('touchend',   e=>{
+  const dx=e.changedTouches[0].clientX-tx;
+  if(Math.abs(dx)>40) goTo(current+(dx<0?1:-1));
+});
+
+/* ── Tabs ────────────────────────────────────────────────── */
+let indexBuilt = false;
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.getElementById('tab-info').hidden  = tab!=='info';
+    document.getElementById('tab-index').hidden = tab!=='index';
+    if(tab==='index' && !indexBuilt){
+      indexBuilt=true;
+      const grid = document.getElementById('photo-index-grid');
+      V89.forEach((src,i)=>{
+        const img=document.createElement('img');
+        img.src=src; img.className='index-img';
+        img.alt=`Photo ${i+1}`; img.loading='lazy';
+        grid.appendChild(img);
+      });
+    }
+  });
+});
+
+/* ── Screensaver: filmstrip (same style as hero) ─────────── */
+const ssOver = document.getElementById('ss-overlay');
+
+// Build strip once (all 4 folders interleaved, ×2 for seamless loop)
+(()=>{
+  const srcs = [];
+  const maxLen = Math.max(AN.length, COS.length, V89.length, PH.length);
+  for(let i=0; i<maxLen; i++){
+    if(i<AN.length)  srcs.push(AN[i]);
+    if(i<COS.length) srcs.push(COS[i]);
+    if(i<V89.length) srcs.push(V89[i]);
+    if(i<PH.length)  srcs.push(PH[i]);
+  }
+  buildStrip(document.getElementById('ss-strip'), srcs, false);
+  animStrip(document.getElementById('ss-strip'), 600, 'left');
+})();
+
+function enterSS() {
+  if (document.getElementById('upload-panel').classList.contains('open')) return;
+  document.body.classList.add('screensaver');
+  ssOver.classList.add('active');
+  ssOver.setAttribute('aria-hidden','false');
+}
+function exitSS() {
+  document.body.classList.remove('screensaver');
+  ssOver.classList.remove('active');
+  ssOver.setAttribute('aria-hidden','true');
+}
+
+document.addEventListener('mouseleave', enterSS);
+document.addEventListener('mouseenter', exitSS);
+ssOver.addEventListener('click',      exitSS);
+ssOver.addEventListener('touchstart', exitSS, {passive:true});
+
+/* ── Hero tagline (random) ───────────────────────────────── */
+(function(){
+  const TAGLINES = [
+    'static and stars',
+    'signal from the void',
+    'live from the dark side',
+    'dark orbit',
+    'petals and pixels',
+    'she rewrites the signal',
+    'neon, chrome, and cherry blossoms',
+    'wired into the dark',
+    'ghost frequency',
+    'static bloom',
+    'soft chaos',
+    'dark signal',
+    'after hours',
+    'cherry blossoms in the machine',
+    'between the hologram and the dark',
+    'she glitches beautifully',
+    'somewhere the sakura never stops',
+    'bloom and static',
+    'always online, never found',
+    'she crashed the feed',
+    'running on midnight',
+    'the network has no name for her',
+    'too dark to trace',
+  ];
+  const t = TAGLINES[Math.floor(Math.random() * TAGLINES.length)];
+  document.getElementById('hero-tagline').textContent = '‘' + t + '’';
+})();
+
+/* ── YouTube random autoplay ─────────────────────────────── */
+(function(){
+  const vids = ['7n97mUiXr9s','AFl-F4D27n4','AhJBAtI4M1s','HRTdPzm4Dio',
+    'NEz7YG46IsA','NxK3XW_213M','OfVRuesLx5Y','SYMgLKOPeKo',
+    'Z8qYI1KVWas','hVMpH1lejII','lRosduEclG0','oaKT2mpB81I',
+    'udfydIUtXHI','w6K50OztoMk'];
+  const id = vids[Math.floor(Math.random() * vids.length)];
+  document.getElementById('yt-player').src =
+    `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&rel=0&modestbranding=1`;
+})();
+
+/* ── Upload slide panel ─────────────────────────────────── */
+(function(){
+  const WORKER_URL = 'https://kukucome-chara-worker.chikamakoo.workers.dev';
+  const panel    = document.getElementById('upload-panel');
+  const backdrop = document.getElementById('upload-backdrop');
+  const closeBtn = document.getElementById('upload-close');
+
+  function openUpload() {
+    panel.classList.add('open');
+    backdrop.classList.add('open');
+    backdrop.setAttribute('aria-hidden','false');
+    closeBtn.hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+  function closeUpload() {
+    panel.classList.remove('open');
+    backdrop.classList.remove('open');
+    backdrop.setAttribute('aria-hidden','true');
+    closeBtn.hidden = true;
+    document.body.style.overflow = '';
+  }
+
+  document.getElementById('open-upload').addEventListener('click', e => { e.preventDefault(); openUpload(); });
+  document.querySelectorAll('.open-upload-trigger').forEach(el =>
+    el.addEventListener('click', e => { e.preventDefault(); openUpload(); }));
+  closeBtn.addEventListener('click', closeUpload);
+  backdrop.addEventListener('click', closeUpload);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeUpload(); });
+
+  /* upload form */
+  const dropZone     = document.getElementById('up-drop-zone');
+  const fileInput    = document.getElementById('up-file-input');
+  const previewWrap  = document.getElementById('up-preview-wrap');
+  const previewImg   = document.getElementById('up-preview-img');
+  const previewName  = document.getElementById('up-preview-name');
+  const previewSize  = document.getElementById('up-preview-size');
+  const previewClear = document.getElementById('up-preview-clear');
+  const btnUpload    = document.getElementById('up-btn-upload');
+  const status       = document.getElementById('up-status');
+  const statusIcon   = document.getElementById('up-status-icon');
+  const statusText   = document.getElementById('up-status-text');
+  let selectedFile   = null;
+  let _upPuruCfg = null, _upPuruDrag = null;
+
+  const showStatus = (type, icon, text) => {
+    status.className = 'up-status visible ' + type;
+    statusIcon.textContent = icon;
+    statusText.textContent = text;
+  };
+  const hideStatus = () => { status.className = 'up-status'; };
+  function showToast(text) {
+    const t = document.createElement('div');
+    t.className = 'up-toast';
+    t.textContent = text;
+    document.body.appendChild(t);
+    requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('show')));
+    setTimeout(() => {
+      t.classList.remove('show');
+      t.addEventListener('transitionend', () => t.remove(), {once:true});
+    }, 3500);
+  }
+  const fmtSize = b => b < 1024 ? b + ' B' : b < 1048576 ? (b/1024).toFixed(1) + ' KB' : (b/1048576).toFixed(2) + ' MB';
+
+  function setFile(file) {
+    if (!file) return;
+    if (!['image/png','image/jpeg','image/webp','image/gif'].includes(file.type)) {
+      showStatus('err','❌','対応していない形式です。PNG / JPG / WebP / GIF を選んでください。'); return;
+    }
+    if (file.size > 2*1024*1024) {
+      showStatus('err','❌',`ファイルが大きすぎます（${fmtSize(file.size)}）。2MB以下にしてください。`); return;
+    }
+    selectedFile = file; hideStatus();
+    const r = new FileReader();
+    r.onload = e => {
+      previewImg.src = e.target.result;
+      const pi = document.getElementById('up-puru-img');
+      pi.src = e.target.result;
+      pi.onload = () => _upPuruStartLoop();
+    };
+    r.readAsDataURL(file);
+    previewName.textContent = file.name;
+    previewSize.textContent = fmtSize(file.size);
+    previewWrap.classList.add('visible');
+    btnUpload.disabled = false;
+    _upPuruInit();
+    document.getElementById('up-puru-section').classList.add('visible');
+  }
+  function clearFile() {
+    selectedFile = null; fileInput.value = '';
+    previewWrap.classList.remove('visible'); previewImg.src = '';
+    btnUpload.disabled = true; hideStatus();
+    document.getElementById('up-puru-section').classList.remove('visible');
+    _upPuruStopLoop(); _upPuruCfg = null;
+  }
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files && fileInput.files[0];
+    if (file) { clearFile(); setFile(file); }
+  });
+  dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop',      e => { e.preventDefault(); dropZone.classList.remove('dragover'); clearFile(); setFile(e.dataTransfer.files[0]); });
+  dropZone.addEventListener('keydown',   e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
+  previewClear.addEventListener('click', clearFile);
+
+  const uploadSVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`;
+  const spinSVG   = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>`;
+
+  btnUpload.addEventListener('click', async () => {
+    if (!selectedFile) return;
+    btnUpload.disabled = true; btnUpload.classList.add('loading');
+    btnUpload.innerHTML = spinSVG + ' アップロード中…'; hideStatus();
+    try {
+      const form = new FormData(); form.append('file', selectedFile);
+      if (_upPuruCfg) form.append('puruConfig', JSON.stringify(_upPuruCfg));
+      const res  = await fetch(WORKER_URL + '/upload', { method: 'POST', body: form });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'アップロードに失敗しました');
+      showToast('アップロード完了！配信画面に自動で追加されます。ありがとうございます！');
+      clearFile();
+    } catch (err) {
+      showStatus('err','❌', err.message || 'ネットワークエラーが発生しました。もう一度お試しください。');
+      btnUpload.disabled = false;
+    } finally {
+      btnUpload.classList.remove('loading');
+      btnUpload.innerHTML = uploadSVG + ' アップロード';
+    }
+  });
+  /* ── ぷるぷるエンジン ─────────────────────────────────── */
+  const PURU_MODES_UP = { circle:'⭕ 円回転', pendulum_x:'↔ 横揺れ', pendulum_y:'↕ 縦揺れ', sin_y:'〜 縦波', lissajous:'∞ リサジュー', breast:'💗 むね揺れ', bounce:'⬇ バウンス', spring:'🌀 バネ弾み', flutter:'✨ ふるふる', skirt:'🎀 スカート', neko:'🐱 猫耳', swing:'🎠 ブランコ', purun:'💫 ぷるん', heart:'💓 鼓動', punipuni:'🫧 ぷにぷに' };
+  const PURU_COLS_UP  = ['#f472b6','#fb923c','#facc15','#4ade80','#38bdf8','#a78bfa','#f87171','#34d399','#22d3ee','#e879f9','#f59e0b','#10b981'];
+  let _upPuruTime = 0, _upPuruLastTs = null, _upPuruRAF = null;
+
+  function _upPuruDefCfg() {
+    return { enabled: false, gridSize: 12, points: [
+      { enabled:false, x:30, y:45, radius:30, amplitude:8,   speed:1.2, mode:'circle',     phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:70, y:45, radius:30, amplitude:8,   speed:1.2, mode:'circle',     phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:50, y:20, radius:25, amplitude:5,   speed:0.8, mode:'pendulum_x', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:50, y:80, radius:25, amplitude:5,   speed:0.8, mode:'pendulum_y', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:20, y:60, radius:20, amplitude:6,   speed:1.5, mode:'pendulum_x', phase:90,  shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:80, y:60, radius:20, amplitude:6,   speed:1.5, mode:'pendulum_x', phase:270, shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:50, y:10, radius:20, amplitude:4,   speed:1.0, mode:'sin_y',      phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:50, y:90, radius:20, amplitude:4,   speed:1.0, mode:'sin_y',      phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:35, y:27, radius:12, amplitude:2.5, speed:2.0, mode:'pendulum_y', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:65, y:27, radius:12, amplitude:2.5, speed:2.0, mode:'pendulum_y', phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:25, y:75, radius:22, amplitude:7,   speed:1.1, mode:'skirt',      phase:0,   shape:'circle', width:60, height:30, rotation:0, direction:0 },
+      { enabled:false, x:75, y:75, radius:22, amplitude:7,   speed:1.1, mode:'skirt',      phase:180, shape:'circle', width:60, height:30, rotation:0, direction:0 },
+    ]};
+  }
+
+  function _upPuruDisp(pt, t) {
+    const ph=(pt.phase||0)*Math.PI/180, om=(pt.speed||1)*Math.PI*2, a=pt.amplitude||0;
+    switch(pt.mode||'circle'){
+      case 'circle':     return{dx:Math.cos(t*om+ph)*a,       dy:Math.sin(t*om+ph)*a};
+      case 'pendulum_x': return{dx:Math.sin(t*om+ph)*a,       dy:0};
+      case 'pendulum_y': return{dx:0,                          dy:Math.sin(t*om+ph)*a};
+      case 'sin_y':      return{dx:Math.sin(t*om*2+ph)*a*0.3, dy:Math.sin(t*om+ph)*a};
+      case 'lissajous':  return{dx:Math.sin(t*om+ph)*a,       dy:Math.sin(t*om*2+ph+Math.PI/2)*a};
+      case 'breast':     return{dx:Math.sin(t*om*1.5+ph+Math.PI/4)*a*0.3, dy:Math.sin(t*om+ph)*a};
+      case 'bounce':     return{dx:0, dy:Math.abs(Math.sin(t*om*0.5+ph))*a};
+      case 'spring':     return{dx:0, dy:(Math.sin(t*om+ph)+0.3*Math.sin(t*om*3+ph))*a/1.3};
+      case 'flutter':    return{dx:Math.sin(t*om*2.7+ph)*a*0.7, dy:Math.cos(t*om*2.5+ph)*a};
+      case 'skirt':    {const c=t*om+ph; return{dx:Math.sin(c)*a*(1+0.4*Math.sin(c*0.53+1.2)+0.15*Math.sin(c*2.3)), dy:Math.sin(c*0.7+0.5)*a*0.15};}
+      case 'neko':     {const c=t*om+ph, base=Math.max(0,Math.sin(c)); return{dx:Math.sin(c*1.3+ph)*a*0.2, dy:-(base+base*0.3*Math.sin(c*4))*a};}
+      case 'swing':    {const p=Math.sin(t*om+ph); return{dx:p*a, dy:(0.4-0.6*p*p)*a};}
+      case 'purun':    {const c=(t*om+ph)%(Math.PI*2), jig=Math.exp(-c*0.8)*Math.cos(c*5)*a; return{dx:jig*0.25, dy:jig};}
+      case 'heart':    {const c=((t*om+ph)%(Math.PI*2))/(Math.PI*2), p1=Math.exp(-Math.pow((c-0.15)*14,2)), p2=Math.exp(-Math.pow((c-0.35)*11,2))*0.65; return{dx:p1*a*0.15, dy:-(p1+p2)*a};}
+      case 'punipuni': {const c=t*om+ph; return{dx:(Math.sin(c*1.0)*0.55+Math.sin(c*2.3+0.7)*0.45)*a, dy:(Math.cos(c*0.7)*0.55+Math.cos(c*1.9+1.1)*0.45)*a};}
+      default:           return{dx:0,dy:0};
+    }
+  }
+
+  function _upPuruWt(pt, dx, dy, W, H) {
+    const mn=Math.min(W,H), shape=pt.shape||'circle';
+    if(shape==='rect'){
+      const hw=((pt.width??(pt.radius??30))/100)*W/2, hh=((pt.height??(pt.radius??30))/100)*H/2;
+      if(!hw||!hh||Math.abs(dx)>=hw||Math.abs(dy)>=hh) return 0;
+      return(1-Math.max(Math.abs(dx)/hw,Math.abs(dy)/hh))**2;
+    }
+    if(shape==='triangle'){
+      const R=(pt.radius??30)/100*mn; if(!R) return 0;
+      const rot=(pt.rotation??0)*Math.PI/180;
+      const lx=dx*Math.cos(rot)+dy*Math.sin(rot), ly=-dx*Math.sin(rot)+dy*Math.cos(rot);
+      const h=R*Math.sqrt(3)/2;
+      const cr=(ax,ay,bx,by,px,py)=>(bx-ax)*(py-ay)-(by-ay)*(px-ax);
+      const d0=cr(0,-R,h,R*.5,lx,ly),d1=cr(h,R*.5,-h,R*.5,lx,ly),d2=cr(-h,R*.5,0,-R,lx,ly);
+      if(!((d0>=0&&d1>=0&&d2>=0)||(d0<=0&&d1<=0&&d2<=0))) return 0;
+      return Math.max(0,1-Math.sqrt(lx*lx+ly*ly)/R)**2;
+    }
+    const rr=(pt.radius??30)/100*mn; if(!rr) return 0;
+    const d=Math.sqrt(dx*dx+dy*dy); return d>=rr?0:(1-d/rr)**2;
+  }
+
+  function _upPuruTri(ctx,img,x0,y0,u0,v0,x1,y1,u1,v1,x2,y2,u2,v2){
+    const iw=img.naturalWidth,ih=img.naturalHeight;
+    const p0u=u0*iw,p0v=v0*ih,p1u=u1*iw,p1v=v1*ih,p2u=u2*iw,p2v=v2*ih;
+    const det=p0u*(p1v-p2v)+p1u*(p2v-p0v)+p2u*(p0v-p1v);
+    if(Math.abs(det)<0.001) return;
+    const a_=(x0*(p1v-p2v)+x1*(p2v-p0v)+x2*(p0v-p1v))/det;
+    const b_=(y0*(p1v-p2v)+y1*(p2v-p0v)+y2*(p0v-p1v))/det;
+    const c_=(x0*(p2u-p1u)+x1*(p0u-p2u)+x2*(p1u-p0u))/det;
+    const d_=(y0*(p2u-p1u)+y1*(p0u-p2u)+y2*(p1u-p0u))/det;
+    const ecx=(x0+x1+x2)/3,ecy=(y0+y1+y2)/3;
+    function ep(px,py){const ex=px-ecx,ey=py-ecy,l=Math.sqrt(ex*ex+ey*ey);return l<.001?[px,py]:[px+ex/l*.6,py+ey/l*.6];}
+    const[ex0,ey0]=ep(x0,y0),[ex1,ey1]=ep(x1,y1),[ex2,ey2]=ep(x2,y2);
+    ctx.save();
+    ctx.beginPath();ctx.moveTo(ex0,ey0);ctx.lineTo(ex1,ey1);ctx.lineTo(ex2,ey2);ctx.closePath();ctx.clip();
+    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+    ctx.transform(a_,b_,c_,d_,x0-a_*p0u-c_*p0v,y0-b_*p0u-d_*p0v);
+    ctx.drawImage(img,0,0);ctx.restore();
+  }
+
+  function _upPuruRender() {
+    const canvas=document.getElementById('up-puru-canvas');
+    const img=document.getElementById('up-puru-img');
+    if(!canvas||!_upPuruCfg) return;
+    const dpr=window.devicePixelRatio||1;
+    const wrap=document.getElementById('up-puru-canvas-wrap');
+    const maxW=wrap?wrap.clientWidth:920;
+    const maxH=wrap?wrap.clientHeight:500;
+    let cw=maxW, ch=maxH;
+    if(img&&img.naturalWidth&&img.naturalHeight){
+      const iR=img.naturalWidth/img.naturalHeight;
+      const cR=maxW/maxH;
+      if(iR>cR){cw=maxW; ch=Math.round(maxW/iR);}
+      else{ch=maxH; cw=Math.round(maxH*iR);}
+    }
+    if(canvas._upW!==cw||canvas._upH!==ch||canvas._upDpr!==dpr){
+      canvas.style.width=cw+'px'; canvas.style.height=ch+'px';
+      canvas.style.left=Math.round((maxW-cw)/2)+'px';
+      canvas.style.top=Math.round((maxH-ch)/2)+'px';
+      canvas.width=Math.round(cw*dpr); canvas.height=Math.round(ch*dpr);
+      canvas._upW=cw; canvas._upH=ch; canvas._upDpr=dpr;
+    }
+    const W=cw, H=ch;
+    const ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.save(); ctx.scale(dpr,dpr);
+    const ePts=(_upPuruCfg.points||[]).filter(p=>p.enabled);
+    if(img&&img.complete&&img.naturalWidth){
+      const gs=Math.max(6,_upPuruCfg.gridSize||12);
+      const cols=gs+1, rows=gs+1;
+      const verts=new Float32Array(cols*rows*2);
+      for(let j=0;j<rows;j++){
+        for(let i=0;i<cols;i++){
+          const bx=(i/gs)*W, by=(j/gs)*H;
+          let tdx=0, tdy=0;
+          for(const pt of ePts){
+            const px=(pt.x/100)*W, py=(pt.y/100)*H;
+            const w=_upPuruWt(pt,bx-px,by-py,W,H);
+            if(w<=0) continue;
+            const dsp=_upPuruDisp(pt,_upPuruTime);
+            const dr=(pt.direction??0)*Math.PI/180;
+            const rdx=dsp.dx*Math.cos(dr)-dsp.dy*Math.sin(dr);
+            const rdy=dsp.dx*Math.sin(dr)+dsp.dy*Math.cos(dr);
+            tdx+=rdx*w; tdy+=rdy*w;
+          }
+          const idx=(j*cols+i)*2;
+          verts[idx]=bx+tdx; verts[idx+1]=by+tdy;
+        }
+      }
+      for(let j=0;j<gs;j++){
+        for(let i=0;i<gs;i++){
+          const i00=(j*cols+i)*2,i10=(j*cols+i+1)*2;
+          const i01=((j+1)*cols+i)*2,i11=((j+1)*cols+i+1)*2;
+          _upPuruTri(ctx,img,verts[i00],verts[i00+1],i/gs,j/gs,verts[i10],verts[i10+1],(i+1)/gs,j/gs,verts[i01],verts[i01+1],i/gs,(j+1)/gs);
+          _upPuruTri(ctx,img,verts[i10],verts[i10+1],(i+1)/gs,j/gs,verts[i11],verts[i11+1],(i+1)/gs,(j+1)/gs,verts[i01],verts[i01+1],i/gs,(j+1)/gs);
+        }
+      }
+    }
+    (_upPuruCfg.points||[]).forEach((pt,i)=>{
+      if(!pt.enabled) return;
+      const color=PURU_COLS_UP[i];
+      const cx=(pt.x/100)*W, cy=(pt.y/100)*H;
+      const mn=Math.min(W,H), shape=pt.shape||'circle';
+      ctx.strokeStyle=color+'88'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+      if(shape==='rect'){
+        const hw=((pt.width??pt.radius??30)/100)*W/2, hh=((pt.height??pt.radius??30)/100)*H/2;
+        ctx.strokeRect(cx-hw,cy-hh,hw*2,hh*2);
+      } else if(shape==='triangle'){
+        const R=(pt.radius??30)/100*mn, rot=(pt.rotation??0)*Math.PI/180;
+        ctx.beginPath();
+        [0,1,2].forEach(k=>{const a=rot+k*Math.PI*2/3-Math.PI/2; ctx[k?'lineTo':'moveTo'](cx+R*Math.cos(a),cy+R*Math.sin(a));});
+        ctx.closePath(); ctx.stroke();
+      } else {
+        const rr=(pt.radius??30)/100*mn;
+        ctx.beginPath(); ctx.arc(cx,cy,rr,0,Math.PI*2); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      ctx.beginPath(); ctx.arc(cx,cy,7,0,Math.PI*2);
+      ctx.fillStyle=color; ctx.fill();
+      ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.fillStyle='#111'; ctx.font='bold 9px sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('P'+(i+1),cx,cy);
+    });
+    ctx.restore();
+  }
+
+  function _upPuruStartLoop() {
+    if(_upPuruRAF) cancelAnimationFrame(_upPuruRAF);
+    _upPuruLastTs=null;
+    const loop=ts=>{
+      _upPuruRAF=requestAnimationFrame(loop);
+      if(_upPuruLastTs===null) _upPuruLastTs=ts;
+      _upPuruTime+=Math.min((ts-_upPuruLastTs)/1000,0.05);
+      _upPuruLastTs=ts;
+      _upPuruRender();
+    };
+    _upPuruRAF=requestAnimationFrame(loop);
+  }
+
+  function _upPuruStopLoop() {
+    if(_upPuruRAF){cancelAnimationFrame(_upPuruRAF); _upPuruRAF=null;}
+  }
+
+  function _upBuildPuruUI() {
+    if(!_upPuruCfg) return;
+    const wrap=document.getElementById('up-puru-points');
+    if(!wrap) return;
+    wrap.innerHTML='';
+    _upPuruCfg.points.forEach((pt,i)=>{
+      const color=PURU_COLS_UP[i];
+      const shape=pt.shape||'circle';
+      const rH=shape==='rect'?'display:none':'';
+      const wH=shape!=='rect'?'display:none':'';
+      const tH=shape!=='triangle'?'display:none':'';
+      const mOpts=Object.entries(PURU_MODES_UP).map(([v,l])=>`<option value="${v}"${pt.mode===v?' selected':''}>${l}</option>`).join('');
+      const sOpts=`<option value="circle"${shape==='circle'?' selected':''}>○ 円</option><option value="rect"${shape==='rect'?' selected':''}>□ 四角</option><option value="triangle"${shape==='triangle'?' selected':''}>△ 三角</option>`;
+      const row=document.createElement('div');
+      row.className='up-pp-row';
+      row.innerHTML=`<div class="up-pp-row-inner">
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:0">
+          <input class="up-pp-en" type="checkbox" data-idx="${i}" ${pt.enabled?'checked':''} onchange="_upPPRead(${i})">
+          <span style="font-size:12px;font-weight:700;color:${color}">P${i+1}</span>
+        </label>
+        <select class="up-pp-sel up-pp-shape" data-idx="${i}" onchange="_upPPRead(${i});_upPPShapeUI(${i})">${sOpts}</select>
+        <span class="up-pp-lbl">X</span>
+        <input class="up-pp-inp up-pp-x" type="number" data-idx="${i}" value="${pt.x}" min="0" max="100" step="1" style="width:54px" oninput="_upPPRead(${i})">
+        <span class="up-pp-lbl">Y</span>
+        <input class="up-pp-inp up-pp-y" type="number" data-idx="${i}" value="${pt.y}" min="0" max="100" step="1" style="width:54px" oninput="_upPPRead(${i})">
+        <span class="up-pp-lbl" data-idx="${i}" data-shapes="circle,triangle" style="${rH}">半径</span>
+        <input class="up-pp-inp up-pp-r" type="number" data-idx="${i}" data-shapes="circle,triangle" value="${pt.radius}" min="5" max="70" step="1" style="width:48px;${rH}" oninput="_upPPRead(${i})">
+        <span class="up-pp-lbl" data-idx="${i}" data-shapes="rect" style="${wH}">横%</span>
+        <input class="up-pp-inp up-pp-w" type="number" data-idx="${i}" data-shapes="rect" value="${pt.width??60}" min="5" max="200" step="1" style="width:54px;${wH}" oninput="_upPPRead(${i})">
+        <span class="up-pp-lbl" data-idx="${i}" data-shapes="rect" style="${wH}">縦%</span>
+        <input class="up-pp-inp up-pp-h" type="number" data-idx="${i}" data-shapes="rect" value="${pt.height??30}" min="5" max="200" step="1" style="width:54px;${wH}" oninput="_upPPRead(${i})">
+        <span class="up-pp-lbl" data-idx="${i}" data-shapes="triangle" style="${tH}">回転°</span>
+        <input class="up-pp-inp up-pp-rot" type="number" data-idx="${i}" data-shapes="triangle" value="${pt.rotation??0}" min="-180" max="180" step="15" style="width:60px;${tH}" oninput="_upPPRead(${i})">
+        <span class="up-pp-lbl">振幅</span>
+        <input class="up-pp-inp up-pp-amp" type="number" data-idx="${i}" value="${pt.amplitude}" min="0" max="40" step="0.5" style="width:48px" oninput="_upPPRead(${i})">
+        <span class="up-pp-lbl">速さ</span>
+        <input class="up-pp-inp up-pp-spd" type="number" data-idx="${i}" value="${pt.speed}" min="0.1" max="5" step="0.1" style="width:48px" oninput="_upPPRead(${i})">
+        <select class="up-pp-sel up-pp-mode" data-idx="${i}" onchange="_upPPRead(${i})" style="width:90px;min-width:60px;flex:none">${mOpts}</select>
+        <span class="up-pp-lbl">位相°</span>
+        <input class="up-pp-inp up-pp-phase" type="number" data-idx="${i}" value="${pt.phase}" min="0" max="360" step="15" style="width:54px" oninput="_upPPRead(${i})">
+        <span class="up-pp-lbl">方向°</span>
+        <input class="up-pp-inp up-pp-dir" type="number" data-idx="${i}" value="${pt.direction??0}" min="-180" max="180" step="15" style="width:60px" oninput="_upPPRead(${i})">
+      </div>`;
+      wrap.appendChild(row);
+    });
+  }
+
+  function _upPuruInit() {
+    _upPuruCfg=_upPuruDefCfg();
+    const en=document.getElementById('up-puru-enabled');
+    const gr=document.getElementById('up-puru-grid');
+    const gv=document.getElementById('up-puru-grid-val');
+    if(en) en.checked=false; if(gr) gr.value='12'; if(gv) gv.textContent='12';
+    _upBuildPuruUI();
+  }
+
+  // Global handlers for inline oninput/onchange in dynamic rows
+  window._upPPRead = function(i) {
+    if(!_upPuruCfg) return;
+    const pt=_upPuruCfg.points[i];
+    const q=s=>document.querySelector(`[data-idx="${i}"].up-pp-${s}`);
+    pt.enabled   = q('en')?.checked ?? false;
+    pt.shape     = q('shape')?.value ?? 'circle';
+    pt.x         = parseFloat(q('x')?.value    ?? pt.x);
+    pt.y         = parseFloat(q('y')?.value    ?? pt.y);
+    pt.radius    = parseFloat(q('r')?.value    ?? pt.radius);
+    pt.width     = parseFloat(q('w')?.value    ?? pt.width  ?? 60);
+    pt.height    = parseFloat(q('h')?.value    ?? pt.height ?? 30);
+    pt.rotation  = parseFloat(q('rot')?.value  ?? pt.rotation ?? 0);
+    pt.amplitude = parseFloat(q('amp')?.value  ?? pt.amplitude);
+    pt.speed     = parseFloat(q('spd')?.value  ?? pt.speed);
+    pt.mode      = q('mode')?.value  ?? pt.mode;
+    pt.phase     = parseFloat(q('phase')?.value ?? pt.phase);
+    pt.direction = parseFloat(q('dir')?.value   ?? pt.direction ?? 0);
+    _upPuruCfg.enabled  = document.getElementById('up-puru-enabled')?.checked ?? false;
+    _upPuruCfg.gridSize = parseInt(document.getElementById('up-puru-grid')?.value ?? 12);
+  };
+  window._upPPShapeUI = function(i) {
+    const shape=document.querySelector(`[data-idx="${i}"].up-pp-shape`)?.value || 'circle';
+    document.querySelectorAll(`[data-idx="${i}"][data-shapes]`).forEach(el=>{
+      el.style.display=el.dataset.shapes.split(',').includes(shape)?'':'none';
+    });
+  };
+
+  // Canvas drag
+  const _upPCv=document.getElementById('up-puru-canvas');
+  function _upPCvCoord(clientX,clientY){
+    const r=_upPCv.getBoundingClientRect();
+    return{x:clientX-r.left,y:clientY-r.top};
+  }
+  function _upPCvWH(){return{W:_upPCv._upW||_upPCv.clientWidth||200,H:_upPCv._upH||_upPCv.clientHeight||300};}
+  _upPCv.addEventListener('mousedown',e=>{
+    if(!_upPuruCfg) return;
+    const{x,y}=_upPCvCoord(e.clientX,e.clientY);
+    const{W,H}=_upPCvWH();
+    let best=-1,bestD=14;
+    _upPuruCfg.points.forEach((pt,i)=>{
+      if(!pt.enabled) return;
+      const d=Math.hypot((pt.x/100)*W-x,(pt.y/100)*H-y);
+      if(d<bestD){bestD=d;best=i;}
+    });
+    if(best>=0) _upPuruDrag={idx:best};
+    e.preventDefault();
+  });
+  _upPCv.addEventListener('mousemove',e=>{
+    if(!_upPuruDrag||!_upPuruCfg) return;
+    const{x,y}=_upPCvCoord(e.clientX,e.clientY);
+    const{W,H}=_upPCvWH();
+    const pt=_upPuruCfg.points[_upPuruDrag.idx];
+    pt.x=Math.max(0,Math.min(100,Math.round(x/W*100)));
+    pt.y=Math.max(0,Math.min(100,Math.round(y/H*100)));
+    const xi=document.querySelector(`[data-idx="${_upPuruDrag.idx}"].up-pp-x`);
+    const yi=document.querySelector(`[data-idx="${_upPuruDrag.idx}"].up-pp-y`);
+    if(xi) xi.value=pt.x; if(yi) yi.value=pt.y;
+  });
+  const _upStopDrag=()=>{_upPuruDrag=null;};
+  _upPCv.addEventListener('mouseup',_upStopDrag);
+  document.addEventListener('mouseup',_upStopDrag);
+  _upPCv.addEventListener('touchstart',e=>{
+    if(!_upPuruCfg||!e.touches[0]) return;
+    const{x,y}=_upPCvCoord(e.touches[0].clientX,e.touches[0].clientY);
+    const{W,H}=_upPCvWH();
+    let best=-1,bestD=20;
+    _upPuruCfg.points.forEach((pt,i)=>{
+      if(!pt.enabled) return;
+      const d=Math.hypot((pt.x/100)*W-x,(pt.y/100)*H-y);
+      if(d<bestD){bestD=d;best=i;}
+    });
+    if(best>=0){_upPuruDrag={idx:best};e.preventDefault();}
+  },{passive:false});
+  _upPCv.addEventListener('touchmove',e=>{
+    if(!_upPuruDrag||!_upPuruCfg||!e.touches[0]) return;
+    const{x,y}=_upPCvCoord(e.touches[0].clientX,e.touches[0].clientY);
+    const{W,H}=_upPCvWH();
+    const pt=_upPuruCfg.points[_upPuruDrag.idx];
+    pt.x=Math.max(0,Math.min(100,Math.round(x/W*100)));
+    pt.y=Math.max(0,Math.min(100,Math.round(y/H*100)));
+    const xi=document.querySelector(`[data-idx="${_upPuruDrag.idx}"].up-pp-x`);
+    const yi=document.querySelector(`[data-idx="${_upPuruDrag.idx}"].up-pp-y`);
+    if(xi) xi.value=pt.x; if(yi) yi.value=pt.y;
+    e.preventDefault();
+  },{passive:false});
+  _upPCv.addEventListener('touchend',()=>{_upPuruDrag=null;});
+
+  document.getElementById('up-puru-grid').addEventListener('input',function(){
+    document.getElementById('up-puru-grid-val').textContent=this.value;
+    if(_upPuruCfg) _upPuruCfg.gridSize=parseInt(this.value);
+  });
+  document.getElementById('up-puru-enabled').addEventListener('change',function(){
+    if(_upPuruCfg) _upPuruCfg.enabled=this.checked;
+  });
+})();
+
+/* ── Screensaver: clock ──────────────────────────────────── */
+const DAYS   = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const ssTimeEl = document.getElementById('ss-time');
+const ssDateEl = document.getElementById('ss-date');
+function updateClock(){
+  const n=new Date();
+  ssTimeEl.textContent=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;
+  ssDateEl.textContent=`${DAYS[n.getDay()]} — ${String(n.getDate()).padStart(2,'0')} ${MONTHS[n.getMonth()]}`;
+}
+updateClock();
+setInterval(updateClock,1000);
+</script>
+</body>
+</html>
