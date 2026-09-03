@@ -107,29 +107,25 @@ app.delete('/api/bg', (req, res) => {
   res.json({ ok: true });
 });
 
-function fetchJSON(url) {
-  return new Promise((resolve, reject) => {
-    https.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/javascript, */*; q=0.01',
-      }
-    }, (res) => {
-      let raw = '';
-      res.on('data', chunk => raw += chunk);
-      res.on('end', () => {
-        try { resolve(JSON.parse(raw)); }
-        catch {
-          const u = (() => { try { return new URL(url); } catch { return null; } })();
-          const host = u?.hostname || url;
-          const typeParam = u?.searchParams.get('type') || '';
-          const label = typeParam ? `${host} type=${typeParam}` : host;
-          console.warn(`[fetchJSON] Invalid JSON from ${label} (HTTP ${res.statusCode}): ${raw.slice(0, 300)}`);
-          reject(new Error(`Invalid JSON from API (${label} HTTP ${res.statusCode})`));
-        }
-      });
-    }).on('error', reject);
+async function fetchJSON(url) {
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'application/json, text/javascript, */*; q=0.01',
+      'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8',
+    }
   });
+  const raw = await res.text();
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const u = (() => { try { return new URL(url); } catch { return null; } })();
+    const host = u?.hostname || url;
+    const typeParam = u?.searchParams.get('type') || '';
+    const label = typeParam ? `${host} type=${typeParam}` : host;
+    console.warn(`[fetchJSON] Invalid JSON from ${label} (HTTP ${res.status}): ${raw.slice(0, 300)}`);
+    throw new Error(`Invalid JSON from API (${label} HTTP ${res.status})`);
+  }
 }
 
 function hasJapanese(text) {
