@@ -1488,7 +1488,7 @@ async function _sdGenerateOne(user, prompt, commentNo, settingsOverride = null) 
     `🎨SD prompt: ${fullPrompt} | ${width}x${height} steps:${steps} popW:${cfg.popWidth}`,
     '#a855f7');
   const _ctrl = new AbortController();
-  const _fetchTimeout = setTimeout(() => _ctrl.abort(), 120000); // 120s — SD応答待ちタイムアウト
+  const _fetchTimeout = setTimeout(() => _ctrl.abort(), 30000); // 30s — SD応答待ちタイムアウト
   try {
     const res  = await fetch('/api/sd-generate', {
       method:  'POST',
