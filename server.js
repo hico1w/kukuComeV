@@ -48,7 +48,8 @@ app.post('/api/bg-upload', (req, res) => {
 function _ghUploadConfig() {
   try {
     const c = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'server-config.json'), 'utf8'));
-    return { owner: c.githubUploadOwner || '', repo: c.githubUploadRepo || '', token: c.githubUploadToken || '' };
+    const s = (() => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'secrets.json'), 'utf8')); } catch { return {}; } })();
+    return { owner: c.githubUploadOwner || '', repo: c.githubUploadRepo || '', token: s.githubUploadToken || '' };
   } catch { return { owner: '', repo: '', token: '' }; }
 }
 

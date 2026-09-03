@@ -1,20 +1,2 @@
+data/secrets.json
 node_modules/
-
-# キャラ画像（個人のファイルはコミットしない）
-public/chara/*
-!public/chara/.gitkeep
-
-# BGM音楽ファイル（ローカルのみ、GitHubには送らない）
-public/ageru/oto/bgm/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# ログ
-*.log
-npm-debug.log*
-
-# 環境変数
-.env
-.env.local

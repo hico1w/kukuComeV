@@ -2,5 +2,15 @@
   "ollamaHost": "127.0.0.1",
   "ollamaNumGpu": -1,
   "ollamaNumThread": 24,
-  "ollamaNumCtx": 2048
+  "ollamaNumCtx": 2048,
+  "autogenOllamaModel": "huihui_ai/qwen2.5-1m-abliterated:14b",
+  "autogenNumCtx": -1,
+  "autogenPromptInterval": 5,
+  "autogenFixedPositive": "",
+  "autogenFixedNegative": "multiple breasts,, ai-generated,old,low quality,worst quality,bad quality,normal quality,lowres,scan artifacts,jpeg,artifacts,signature,username,text,logo,bad anatomy,\nillustration,anime,sketch,comic,cartoon,toon,oil painting \\(medium\\),flat color,outline,3D,2.5D,2D,unreal,unity,blender,anime,smooth skin,semi-anthro,impasto,",
+  "autogenWidth": 1024,
+  "autogenHeight": 1440,
+  "autogenCount": 0,
+  "githubUploadOwner": "hico1w",
+  "githubUploadRepo": "kukucome-chara-uploads"
 }
