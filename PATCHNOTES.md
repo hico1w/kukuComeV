@@ -4,12 +4,13 @@
 
 ## v2.865.0 — 2026-09-03
 
-### fix: fetchJSON に User-Agent/Accept ヘッダーを追加
+### fix: fetchJSON を native fetch に切替・ブラウザ互換ヘッダー追加
 
 #### `server.js`
-- `fetchJSON` の `https.get` にブラウザ互換の `User-Agent` と `Accept` ヘッダーを追加
-- live.erinn.biz の PHP 8 が UA なしリクエストで `string / int` TypeError を起こす問題を修正
-- 調査で判明: `hash=undefined cnum=undefined`（パラメータ無し）でも発生 → ヘッダー不足が原因
+- `fetchJSON` を `https.get`（Node.js低レベルAPI）から Node.js 18+ ネイティブ `fetch` に変更
+- `User-Agent`・`Accept`・`Accept-Language` ヘッダーを付与
+- live.erinn.biz の PHP 8 が UA/ヘッダーなしリクエストで `string / int` TypeError を起こす問題を修正
+- 調査で判明: `hash=undefined cnum=undefined`（パラメータ無し）でも発生 → `https.get` のヘッダー不足が原因
 
 ---
 
