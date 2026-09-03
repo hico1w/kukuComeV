@@ -115,9 +115,12 @@ function fetchJSON(url) {
       res.on('end', () => {
         try { resolve(JSON.parse(raw)); }
         catch {
-          const host = (() => { try { return new URL(url).hostname; } catch { return url; } })();
-          console.warn(`[fetchJSON] Invalid JSON from ${host} (HTTP ${res.statusCode}): ${raw.slice(0, 300)}`);
-          reject(new Error(`Invalid JSON from API (${host} HTTP ${res.statusCode})`));
+          const u = (() => { try { return new URL(url); } catch { return null; } })();
+          const host = u?.hostname || url;
+          const typeParam = u?.searchParams.get('type') || '';
+          const label = typeParam ? `${host} type=${typeParam}` : host;
+          console.warn(`[fetchJSON] Invalid JSON from ${label} (HTTP ${res.statusCode}): ${raw.slice(0, 300)}`);
+          reject(new Error(`Invalid JSON from API (${label} HTTP ${res.statusCode})`));
         }
       });
     }).on('error', reject);
