@@ -2,6 +2,17 @@
 
 ---
 
+## v2.865.0 — 2026-09-03
+
+### fix: fetchJSON に User-Agent/Accept ヘッダーを追加
+
+#### `server.js`
+- `fetchJSON` の `https.get` にブラウザ互換の `User-Agent` と `Accept` ヘッダーを追加
+- live.erinn.biz の PHP 8 が UA なしリクエストで `string / int` TypeError を起こす問題を修正
+- 調査で判明: `hash=undefined cnum=undefined`（パラメータ無し）でも発生 → ヘッダー不足が原因
+
+---
+
 ## v2.864.0 — 2026-09-03
 
 ### fix: fetchJSON エラー時に詳細ログを出力

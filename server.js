@@ -109,7 +109,12 @@ app.delete('/api/bg', (req, res) => {
 
 function fetchJSON(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    https.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
+      }
+    }, (res) => {
       let raw = '';
       res.on('data', chunk => raw += chunk);
       res.on('end', () => {
@@ -279,6 +284,7 @@ app.get('/api/comments', async (req, res) => {
     const data = await fetchJSON(url);
     res.json(data);
   } catch (err) {
+    console.warn(`[comments] fetch失敗 hash=${JSON.stringify(hash)} cnum=${JSON.stringify(cnum)}`);
     res.status(500).json({ error: err.message });
   }
 });
