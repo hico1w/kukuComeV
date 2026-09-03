@@ -228,6 +228,7 @@
     <div class="sidebar-header">目次</div>
     <a class="sidebar-link" href="#sec-cmdgen">🔧 コマンド生成</a>
     <a class="sidebar-link" href="#sec-features">📖 機能解説</a>
+    <a class="sidebar-link" href="#sec-kwsamples">🖼 キーワードサンプル</a>
     <a class="sidebar-link" href="#sec-pet">🐾 ペットガチャ</a>
     <a class="sidebar-link" href="#sec-equip">⚔️ 装備レアリティ</a>
     <a class="sidebar-link" href="#sec-boss">🐉 ボスバトル</a>
@@ -723,6 +724,64 @@
       </div>
 
     </div>
+  </div>
+
+  <!-- ── キーワードサンプル画像 ── -->
+  <div class="section" id="sec-kwsamples">
+    <div class="section-title">🖼 キーワード別サンプル画像</div>
+    <div class="cmd-desc" style="margin-bottom:4px">
+      「出して」のプロンプトにキーワードを含めると、対応するLoRAが自動付加されます。<br>
+      <span style="color:#64748b;font-size:11px">各キーワード2枚：左＝ベース+キーワード / 右＝キーワードのみ。キーワードはプロンプト本文から除去されます。</span>
+    </div>
+    <div style="display:flex;gap:16px;font-size:10px;color:#64748b;margin-bottom:10px">
+      <span>🟦 ベース+キーワード</span><span>⬜ キーワードのみ</span>
+    </div>
+    <div id="kwsamples-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px"></div>
+    <script>
+    (function(){
+      var KW=[
+        'ドット','リアル','もいちゃん',
+        'ageru','ｽﾋﾟｷ','スピキ','いらすとや','noob','ちいかわ','パステル','CC','かぐや','FATE',
+        'エモ','ちび','ツクール','taima','表情リスト','カメレオン','キラキラ','廃棄','90','80',
+        'フラット','ねんど','フィギュア','ランダム色','ランダム服','ランダム表情','ランダムポーズ','ランダム人',
+        '制服','スーツ','立ち絵','メスマ','ツイ','宇宙','NIKKE','線画','メイプル','水墨','メカ','ローポリ',
+        'シルエット','資料','スタイル7','露光','00','アニル','ぬるぬる','れじゅめ','マイクラ','スタイル6',
+        'スタイル1','スタイル2','スタイル3','デュオリンゴ','スタイル4','スタイル5','猫ポーズ','スタイル8','スタイル9',
+        'アドベンチャー','meme','グリッチ','バナナ','ピクト','ストンプ','紙袋','パネル','インク','VHS',
+        'サイコ','アクスタ','例のプール','スマホ','冷蔵庫','スタイルA','アイ','I字','キャミィポーズ','水',
+        '壁','ミソロジー','透明','スタイルB','スタイルC','ジャックO','秤','ガラス','ぎふ','スタイルD',
+        '墓','整列','スタイルE','催眠術','sample'
+      ];
+      var grid=document.getElementById('kwsamples-grid');
+      if(!grid)return;
+      function mkImg(src){
+        var wrap=document.createElement('div');
+        wrap.style.cssText='background:#0f172a;aspect-ratio:2/3;overflow:hidden;display:flex;align-items:center;justify-content:center;flex:1;min-width:0';
+        var img=document.createElement('img');
+        img.src=src; img.loading='lazy';
+        img.style.cssText='width:100%;height:100%;object-fit:cover;display:block';
+        img.onerror=function(){this.style.display='none';wrap.innerHTML+='<span style="color:#334155;font-size:16px">📷</span>';};
+        wrap.appendChild(img);
+        return wrap;
+      }
+      KW.forEach(function(kw){
+        var safe=kw.replace(/[<>:"\/\\|?*]/g,'_').slice(0,60);
+        var enc=encodeURIComponent(safe);
+        var card=document.createElement('div');
+        card.style.cssText='background:#1e293b;border-radius:6px;overflow:hidden;border:1px solid #334155';
+        var label=document.createElement('div');
+        label.style.cssText='font-size:11px;color:#e2e8f0;padding:4px 8px;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-bottom:1px solid #334155';
+        label.title=kw; label.textContent=kw;
+        var imgs=document.createElement('div');
+        imgs.style.cssText='display:flex;gap:1px';
+        imgs.appendChild(mkImg('./chara/keyword-samples/'+enc+'.png'));
+        imgs.appendChild(mkImg('./chara/keyword-samples/'+enc+'_plain.png'));
+        card.appendChild(label);
+        card.appendChild(imgs);
+        grid.appendChild(card);
+      });
+    })();
+    </script>
   </div>
 
   <!-- ── ペットガチャ ── -->
