@@ -1488,7 +1488,7 @@ async function _sdGenerateOne(user, prompt, commentNo, settingsOverride = null) 
     `🎨SD prompt: ${fullPrompt} | ${width}x${height} steps:${steps} popW:${cfg.popWidth}`,
     '#a855f7');
   const _ctrl = new AbortController();
-  const _fetchTimeout = setTimeout(() => _ctrl.abort(), 28000); // 28s — fetch+body 両方をカバー
+  const _fetchTimeout = setTimeout(() => _ctrl.abort(), 120000); // 120s — SD応答待ちタイムアウト
   try {
     const res  = await fetch('/api/sd-generate', {
       method:  'POST',
@@ -1506,8 +1506,8 @@ async function _sdGenerateOne(user, prompt, commentNo, settingsOverride = null) 
       }),
       signal: _ctrl.signal,
     });
-    const data = await res.json(); // clearTimeout は json() 完了後に移動（ボディ受信中もタイムアウト有効）
     clearTimeout(_fetchTimeout);
+    const data = await res.json();
     if (data.error) {
       showBubble(user, '❌ ' + data.error.slice(0, 40), {});
       addToLog(user, '🎨SD ❌ ' + data.error.slice(0, 80), '#ef4444');
