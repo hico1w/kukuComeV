@@ -2,6 +2,315 @@
 
 ---
 
+## v2.862.0 — 2026-09-03
+
+### docs: index.html コマンドマニュアル最新化（全セクション同期）
+
+#### `index.html`
+- sec-cmdref エフェクト: 桜・雪・爆発・泡・稲妻 の5種を追加（4種→9種）
+- sec-cmdref 吹き出しスタイル: `吹き出し背景色:色名` コマンドを追加
+- sec-cmdref 特殊: `#/＃先頭コメント`（MP20消費・吹き出し4倍＋ガタガタ演出）を追加
+- sec-cmdref 特殊 YouTube URL: 説明を「MP+20獲得」から「MP30消費で再生」に修正
+- sec-titles: 称号数の表記を「全100種」→「全101種」に修正（T01〜T101が正）
+- sec-features AI画像生成: 汎用キーワード一覧を28種→93種に更新（制服・スーツ・NIKKE・スタイル1〜E等65種追加）
+
+---
+
+## v2.861.0 — 2026-09-03
+
+### fix: ボット投稿コメントでキャラコマンドが発動しないよう修正
+
+#### `public/js/app-06-comment-handler.js`
+- `handleComment` の `message` 確定直後に `_aiPostedTexts.has(message)` チェックを追加
+- `postAIReply` で投稿したテキスト（キャラ追加通知など）が再取得されてもコマンド処理をスキップ
+
+---
+
+## v2.860.0 — 2026-09-03
+
+### fix: キャラ追加通知をコメントAPIで実際のチャットに投稿
+
+#### `public/js/app-13-race-admin-misc.js`
+- `addSystemLog`（UI表示のみ）に加えて `postAIReply` を呼び出し `/api/post-comment` 経由で実際のチャットにも投稿するよう修正
+
+---
+
+## v2.859.0 — 2026-09-03
+
+### feat: キャラ追加通知をコメント欄にも投稿
+
+#### `public/js/app-13-race-admin-misc.js`
+- `charaReload` 受信時、新キャラ番号のトースト表示に加えて `addSystemLog` でコメント欄にも緑色で投稿するよう追加
+
+---
+
+## v2.858.0 — 2026-09-03
+
+### feat: キャラ追加トーストを3倍サイズに拡大
+
+#### `public/style.css`
+- `.chara-toast`: `font-size` 15px → 45px、`padding` 10px 20px → 30px 60px、`border-radius` 8px → 16px
+- `#charaToastContainer`: `max-width` 360px → 1080px
+
+---
+
+## v2.857.0 — 2026-09-03
+
+### fix: admin.html ぷるぷる設定がリスナーアップロードで自動反映されない問題を修正
+
+#### `public/admin.html`
+- **問題**: server.js がリスナーのアップロード時に `{ type: 'purupuruConfig', imgFile, config }` を WebSocket で admin にも送信していたが、`handleReply` にそのメッセージを処理するケースがなく完全に無視されていた
+- **修正**: `handleReply` に `d.type === 'purupuruConfig'` のケースを追加
+  - `_puruAllConfig[d.imgFile] = d.config` で内部状態を更新
+  - `adminSend({ type: 'getUsers' })` でグリッドを再描画（有効済みドット ● の表示を更新）
+  - 現在選択中の画像と一致する場合は enabled チェック・gridSize スライダー・ポイントUI も即時更新
+
+---
+
+## v2.856.0 — 2026-09-03
+
+### fix: ぷるぷるプレビュー アスペクト比修正・ドラッグ改善
+
+#### `cloudflare/pages/index.html`
+- **アスペクト比修正**: キャンバスを固定サイズ(500px高)で引き伸ばしていた問題を修正。画像の naturalWidth/naturalHeight から正しいアスペクト比を計算し、ラップ内に収まる最大サイズ（letterbox）で canvas をリサイズ＆センタリング
+- **ドラッグ改善**: `#up-puru-img` を `display:none` にして canvas のみ表示、canvas の CSS size を画像アスペクト比に合わせて動的設定することでマウス座標と描画座標が一致するように修正
+
+---
+
+## v2.855.0 — 2026-09-03
+
+### fix: アップロードパネル ぷるぷる設定バグ修正・UI改善
+
+#### `cloudflare/pages/index.html`
+- **バグ修正**: `_upBuildPuruUI` の行内 HTML で class 属性が重複していたため、`up-pp-en`（チェックボックス）・`up-pp-x/y/r/w/h/...`（各入力値）のクラスが無効になっていた → `_upPPRead` が値を読み取れずぷるぷる設定が全て未反映になる問題を修正
+- パネル横幅を 500px → 1000px に拡大（ぷるぷる設定の操作性向上）
+- ぷるぷるプレビューキャンバス高さを 300px → 500px に拡大
+- ポイントリストの最大高さを 380px → 600px に拡大
+- サブタイトル（「アップロードした画像は配信者が確認後…」）を削除
+
+---
+
+## v2.854.0 — 2026-09-03
+
+### feat: ぷるぷる設定をアップロードパネルに統合（全パラメータ対応）
+
+#### `cloudflare/pages/index.html`
+- 右上 UPLOAD ボタンから開くスライドパネル内にぷるぷる設定エディタを追加
+- 画像を選択すると「ぷるぷる設定」セクションが自動表示
+- admin.html と同等の全パラメータを実装:
+  - **有効フラグ** (`ぷるぷる有効` チェックボックス)
+  - **グリッド品質** スライダー（3〜12）
+  - **12ポイント個別設定**: shape（円/四角/三角）、X・Y位置、半径・横幅%・縦幅%・回転°（形状別表示切替）、振幅、速さ、モード（15種類）、位相°、方向°
+- キャンバス上でドラッグして点の位置を直接調整可能（マウス・タッチ対応）
+- リアルタイム三角形パッチメッシュ変形プレビュー（`_upPuruTri`、direction対応）
+- ぷるぷる有効にした状態でアップロードすると `puruConfig` JSON を Worker に同時送信
+- ホワイト/ライトカラースキームで既存パネルと統一（`#fafafa` 背景、`#111` テキスト）
+- `window._upPPRead` / `window._upPPShapeUI` をグローバル公開（動的生成 HTML のハンドラ用）
+- `closeFile()` 時にぷるぷるセクションを非表示・RAFループ停止
+
+---
+
+## v2.853.0 — 2026-09-03
+
+### feat: リスナー向けぷるぷる設定ページ
+
+#### `cloudflare/pages/puru.html` — 新規作成
+- `https://kukucome-chara.pages.dev/puru.html` でアクセス可能
+- 画像アップロード + ぷるぷる設定をワンページで完結
+- 12個の揺れポイントをキャンバス上でドラッグして位置調整、クリックでON/OFF
+- 各ポイントの影響範囲（円）をリアルタイム表示
+- モード選択（胸揺れ/円形/左右振り/上下振り/スカート/ひらひら/波/バネ/ぷにぷに/ぷるん/ブランコ/ネコ/鼓動）
+- 強さ・速さスライダー（ポイントごと）
+- グリッド品質スライダー（6〜24）
+- **リアルタイムプレビュー**: app-01 のメッシュ変形エンジンをそのまま移植（三角形パッチ描画）
+- アップロード時にぷるぷる設定 JSON (`puruConfig`) を同時送信
+
+#### `cloudflare/worker.js`
+- `/upload` に `puruConfig` フィールド対応を追加
+- アップロード成功後に `_puru/{key}.json` としてサイドカー保存
+
+#### `server.js` — `_pollCharaUploads`
+- 新規画像検出時に `_puru/{filename}.json` のサイドカーを確認
+- 存在する場合: `data/settings.json` の `purupuruConfig` に merge → WebSocket で `{ type: 'purupuruConfig', imgFile, config }` を全クライアントにブロードキャスト
+- 既存の `handleAdminMessage` がこのメッセージを処理し `_puruApplyAll()` が呼ばれる（追加実装不要）
+
+---
+
+## v2.852.0 — 2026-09-02
+
+### fix: SD生成 30秒タイムアウト強制終了
+
+#### `public/js/app-11-agru-state-sd.js`
+- **根本原因修正**: `clearTimeout(_fetchTimeout)` が `res.json()` の前にあったため、巨大な画像のボディ受信中にタイムアウトが無効化されて無限ハングになっていた。`clearTimeout` を `res.json()` 完了後に移動し、ボディ読み込み中もAbortが有効に
+- 内部 AbortController タイムアウトを 35s → **28s** に短縮
+- `_sdProcessQueue` に **30s の `Promise.race` 上位タイムアウト**を追加: 何があっても30秒で次のキューアイテムへ強制進行し、`_sdBusy` を解除
+- タイムアウト時のアバターに「⏱ タイムアウト、次へ」バブル表示
+
+---
+
+## v2.851.0 — 2026-09-02
+
+### feat: アップロード者IP・端末保存 + ブロック機能
+
+#### `cloudflare/worker.js` — 全面改修
+- **アップロード時にIP・UAを記録**: `CF-Connecting-IP` ヘッダーからIP、`User-Agent` からデバイス情報を取得
+- **ログ保存**: アップロード成功後に `_log/{key}.json` として GitHub リポジトリへ保存（`{ timestamp, ip, ua, file, size }`）
+- **ブロックチェック**: `_blocklist.json` を参照し、ブロック済みIPからのアップロードを 403 で拒否
+- **管理APIエンドポイント追加** (`ADMIN_SECRET` で認証):
+  - `GET /admin/logs?secret=S` — 最新50件のアップロードログ返却
+  - `GET /admin/blocklist?secret=S` — ブロックリスト返却
+  - `POST /admin/block?secret=S` — IP をブロックリストに追加
+  - `DELETE /admin/block?secret=S` — IP をブロックリストから削除
+- UTF-8 safe な base64 encode/decode ヘルパー追加
+- CORS に `DELETE` メソッドを追加
+
+#### `cloudflare/pages/upload-admin.html` — 新規作成
+- ブラウザから開く管理ページ（`ADMIN_SECRET` でログイン）
+- アップロードログ一覧（日時・IP・UA・ファイル名）テーブル表示
+- IP ブロック/解除ボタン（行ごと + ブロックリストパネル）
+- ブロック中IPは行がグレーアウト + "blocked" バッジ表示
+- 画面下部にトースト確認メッセージ
+
+#### セットアップ手順（要実施）
+```sh
+# Cloudflare Dashboard または wrangler CLI で ADMIN_SECRET を登録
+wrangler secret put ADMIN_SECRET
+# プロンプトに任意のパスワードを入力
+
+# Worker を再デプロイ
+wrangler deploy
+```
+
+---
+
+## v2.850.0 — 2026-09-02
+
+### feat: charaReload 時のアバターグローエフェクト + トースト調整
+
+#### `public/js/app-13-race-admin-misc.js`
+- `charaReload` 受信時に全 `.avatar` 要素に `.chara-glow` クラスを付与 → グリーン/シアン系の `drop-shadow` ピカーエフェクトを 2 秒間表示
+- トースト表示時間を 4 秒 → 10 秒に変更、位置を左下 → 画面中央に変更
+- 通知内容をファイル名からキャラ番号（`charImages` のキー）に変更
+
+#### `public/style.css`
+- `.chara-glow` + `@keyframes charaGlowFx`: `filter: drop-shadow` を使ったグリーン/シアン光沢アニメーション（2s）
+- `#charaToastContainer` を画面中央（`top:50%; left:50%; transform:translate(-50%,-50%)`）に変更
+- `.chara-toast` のアニメーション: 9.5 秒でフェードアウト、10 秒で DOM 削除
+
+---
+
+## v2.849.0 — 2026-09-02
+
+### fix: アップロード後リフレッシュ不要化 + 新キャラ追加トースト通知
+
+#### `public/js/app-13-race-admin-misc.js`
+- `handleAdminMessage` に `charaReload` WebSocket メッセージのハンドラを追加（`reloadCharImages` と OR 条件で統合）
+- サーバーが 60 秒ごとに GitHub リポジトリをポーリングして新画像を検出し `{ type: 'charaReload' }` を送信していたが、フロントエンドでは未処理だったため対応
+- `charaReload` 受信時：旧キーセットと新キーセットを比較し、新たに追加されたキャラごとに `showCharaToast` でトースト通知を表示
+- `showCharaToast(text)` 関数を追加: 画面左下に緑色のトーストを 4 秒間表示
+
+#### `public/style.css`
+- `#charaToastContainer`（固定、左下 bottom:24px left:16px）と `.chara-toast` スタイルを追加
+- スライドイン／フェードアウトアニメーション (`charaToastIn` / `charaToastOut`)
+
+---
+
+## v2.848.0 — 2026-09-02
+
+### feat: cloudflare/pages — アップロードフォームをスライドパネル（ポップアップ）化
+
+#### `cloudflare/pages/index.html` — アップロードスライドパネル追加
+- `upload.html` の独立ページをなくし、メインページ内のスライドパネル（`#upload-panel`）として統合
+- 開閉アニメ: 右からスライドイン `transform: translateX(100%) → 0` / cubic-bezier(.76,0,.24,1) 0.65s
+- 暗いバックドロップ (`#upload-backdrop`) がパネル後ろに表示
+- ヘッダーナビに "Upload" ボタン (`#open-upload`, `.hd-upload-btn`) を追加
+- INFO タブの「こちらからアップロード」リンクもパネルトリガー (`.open-upload-trigger`) に変更
+- 固定位置の × ボタン (`#upload-close`, `.up-close`) をホバー時90度回転で表示
+- ESC キー・バックドロップクリックで閉じる
+- スクリーンセーバー (`enterSS`) にパネル開放中スキップ条件を追加
+- `body.overflow = 'hidden'` でパネル開放中の背景スクロールをロック
+- ドラッグ&ドロップ・ファイル選択・プレビュー・バリデーション・アップロード処理をすべて IIFE でスコープ分離
+- Worker URL: `https://kukucome-chara-worker.chikamakoo.workers.dev`
+
+---
+
+## v2.847.0 — 2026-09-02
+
+### feat: cloudflare/pages — イントロアニメ・自動横スクロール・スクリーンセーバーモード実装
+
+#### イントロアニメ（ページオープン演出）
+- `cloudflare/pages/index.html`: ページ読み込み時にフルスクリーンの暗いオーバーレイ（#09090b）で「hico1 / 星井野アゲル」を表示し、1.8秒後に上方向へスライドアウトするカーテン演出を実装
+  - CSS: `#intro.out { transform: translateY(-100%) }` + cubic-bezier トランジション
+  - ブランド名・区切り線・キャラ名がシーケンシャルにフェードイン
+
+#### 自動横スクロールストリップ（2箇所）
+- **ストリップ1**（ヒーローと下ギャラリーの間）: `vrageru/` フォルダから an01〜an20.jpg（20枚）を使用、左方向へ自動ループスクロール
+- **ストリップ2**（ギャラリーとフッターの間）: `PHOTOAGERU/` フォルダから ph01〜ph15.jpg（15枚）を使用、右方向へ自動ループスクロール
+- 実装: 2セット重複配置 + `translateX(-50%)` アニメーション（シームレスループ）
+
+#### スクリーンセーバーモード（マウスカーソルが画面外に出たとき）
+- `document.mouseleave` → スクリーンセーバーON、`document.mouseenter` → スクリーンセーバーOFF
+- ON時: ヘッダー・ヒーローテキスト・ギャラリー・フッターがopacity:0に（CSS `body.screensaver` クラス）
+- 暗いフルスクリーンオーバーレイに4本の自動スクロール画像ストリップが表示される：
+  - Row 1: vrageru（an, 左方向 速い）
+  - Row 2: ageruCos（cos, 右方向 中速）
+  - Row 3: vrageru89（v89, 左方向 遅い）
+  - Row 4: PHOTOAGERU（ph, 右方向 速い）
+- 右下に時計（時:分:秒 + 曜日・日付）がCormorant Garamondで表示
+- オーバーレイをクリックまたはマウス再進入でスクリーンセーバー解除
+
+#### 画像エリア別フォルダ固定（81ファイル、50.5 MB）
+- `cover.jpg`: PHOTOAGERU/00005（ヒーロー背景）
+- `an01〜an20.jpg`: vrageru/ 上位20枚（ページストリップ1）
+- `cos01〜cos25.jpg`: ageruCos/ 全25枚（メインギャラリービューワー）
+- `v8901〜v8920.jpg`: vrageru89/ 上位20枚（PHOTOINDEXグリッド）
+- `ph01〜ph15.jpg`: PHOTOAGERU/ 上位15枚（ページストリップ2）
+- 旧 g01〜g25.jpg, img1〜img4.jpg を削除し新体系に完全移行
+
+---
+
+## v2.846.0 — 2026-09-02
+
+### fix: admin.html キャラ画像設定モーダルのサムネイル重なりを修正
+
+- **`public/admin.html`**: `.image-thumb`（利用可能な画像グリッドのサムネイル枠）が `aspect-ratio:2/3` 依存で高さを確定できず、内部の絶対配置 `img`（`height:100%`）が正しく解決されずサムネイルが重なって表示される不具合を修正
+  - `aspect-ratio` をやめ、`width:100%;height:0;padding-top:150%` のパディング比率トリックに変更し、常に確定した高さを持つボックスにした
+
+---
+
+## v2.845.0 — 2026-09-02
+
+### feat: mimeyoi.co完全再現スタイルのキャラクターショーケースページ
+
+- **`cloudflare/pages/index.html`**: mimeyoi.co/figures/kirishima/ と同構成のギャラリーページに全面刷新
+  - 固定ヘッダー: hico1ロゴ（左）/ ナビ（中央）/ 言語切り替え（右）
+  - ヒーロービジュアル: 100dvh フルブリード画像 + 左下テキスト（星井野アゲル）+ EXPLOREボタン
+  - フォトビューワー: 左右矢印 / カウンター（01/25）/ サムネイルストリップ / キーボード＆スワイプ対応
+  - タブ: INFO（スペックテーブル）/ PHOTO INDEX（5列グリッド）
+  - フッター: hico1ロゴ、ナビリンク、コピーライト
+- **`cloudflare/pages/img/`**: cover.jpg + g01〜g25.jpg（計25枚、計約20MB）
+  - vrageru（アニメ/イラスト横長）、vrageru89（縦長）、ageruCos（3Dコスプレ）、PHOTOAGERU（フォトリアル）から選定
+
+---
+
+## v2.844.0 — 2026-09-02
+
+### feat: アップロードページ大幅リデザイン（ギャラリー形式）
+
+- **`cloudflare/pages/index.html`**: キャラクターギャラリー型レイアウトに全面刷新（v7）
+  - 左カラム: キャラ画像スティッキーパネル＋サムネイルストリップ（クリックで主画像切り替え）
+  - 右カラム: タイトル・説明 → アップロードフォーム → フッター
+  - タイポグラフィ: `Cormorant Garamond`（見出し）× `Noto Sans JP`（本文）
+  - カラー: バーガンディ系（`#8B1538` / `#C83060`）× ほぼ黒背景
+  - レスポンシブ: 760px以下で縦積み（ヒーロー50dvh）
+- **`cloudflare/pages/img/`** (新規): キャラ画像4枚を配置
+  - `img1.jpg` vrageru — 夜桜サイバーパンク
+  - `img2.jpg` vrageru89 — アリーナシーン
+  - `img3.jpg` ageruCos — ゴシックコスプレ
+  - `img4.jpg` PHOTOAGERU — 自転車シーン
+
+---
+
 ## v2.843.0 — 2026-09-02
 
 ### fix: adminキャラ画像グリッド表示改善

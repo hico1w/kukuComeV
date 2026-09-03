@@ -26,7 +26,8 @@
 | 🐉 ボスバトルコマンド（`sec-boss`） | `handleComment`（`app-06`）のボス系コマンド＋ボス処理（`app-05-taiman-boss.js`：召喚/攻撃/討伐） |
 | 👹 ボスアゲルバトル・アゲルちゃんスキル一覧（`sec-ageru-boss`） | `AGRU_BATTLE_SKILLS` と `_agruBattleDoCounter`（`app-10-agru-battle-skills.js`）＋ `data/bossAgruConfig.json` の `skills`。**ダメージ式（基礎攻撃×`atkMult`）・発動確率（HPティア別の重み）・各スキルの効果**を反映 |
 | 🎮 ゲーム機能（`sec-game`） | スロット/Wordle/クイズ/早押し/コンボ/宝箱（`app-12` `app-13`）、競馬（`app-13`） |
-| 📖 機能解説（`sec-features`） | AI画像生成（出して）/AFK・放置自動削除/AI返答(ai:)/タイマン 等、各実装 |
+| 📖 機能解説（`sec-features`）のキーワード一覧 | `sdKeywordPrompts`（`data/settings.json` の `sdKeywordPrompts` フィールドをJSONパース）。**動的設定なのでコードではなく実データが正**。以下のコマンドでキーワード名一覧を取得してindex.htmlの汎用キーワードchip（`data-group="kwp"` またはキーワード別ポジティブのvariantリスト）と比較する：<br>`node -e "const fs=require('fs');const kw=JSON.parse(JSON.parse(fs.readFileSync('data/settings.json','utf8')).sdKeywordPrompts\|\|'[]');kw.forEach(k=>console.log(k.keyword));"` |
+| 📖 機能解説（`sec-features`）その他 | AI画像生成（出して）/AFK・放置自動削除/AI返答(ai:)/タイマン 等、各実装 |
 | 📋 コマンド一覧（`sec-cmdref`） | `handleComment`（`app-06`）の全コマンド分岐＋各機能トリガー文字列 |
 | ⚙️ その他の設定（`sec-settings`） | フォント/反転 等の永続設定コマンド（`handleComment`） |
 | 🐱 キャラ設定 / `STANDALONE_CHARS`（`sec-char`） | **`/sync-chars` に委譲**（`data/charImages.json`） |
@@ -41,6 +42,12 @@
 - 追加すべきコマンド／選択肢（コードにあるが index.html に無い）
 - 削除すべき記述（index.html にあるがコードに無い・廃止済み）
 - 変更すべき仕様（ダメージ式・発動条件・数値・説明文の食い違い）
+
+**汎用キーワード（`sdKeywordPrompts`）の照合方法**：
+1. Node.jsで現在のキーワード一覧を取得（情報源マップのコマンド参照）
+2. `index.html` 内の `sec-features` AI画像生成欄の「汎用」キーワードchip群と突き合わせ
+3. settings.jsonにあってindex.htmlにないキーワードを「追加候補」、逆を「削除候補」として提示
+4. この一覧は動的に増減するため、毎回 `/update-index` 実行時に照合すること
 
 ### 3. 差分を提示して承認を得る
 洗い出した差分を**セクション別に一覧化**して提示する（例：「`sec-ageru-boss`：即死撃の『HP25%以下で発動』を削除／攻撃力倍率の説明を追加」）。ユーザーが承認した項目のみ反映する。
