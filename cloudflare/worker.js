@@ -136,6 +136,36 @@ export default {
           return json({ error: e.message }, 500, cors);
         }
       }
+
+      // GET /admin/image?key={filename} — GitHubからプライベート画像をプロキシ
+      if (request.method === 'GET' && url.pathname === '/admin/image') {
+        try {
+          const key = url.searchParams.get('key');
+          if (!key) return new Response('key が必要です', { status: 400, headers: cors });
+
+          const ghRes = await fetch(
+            `https://api.github.com/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/contents/${encodeURIComponent(key)}`,
+            { headers: ghHeaders(env) }
+          );
+          if (!ghRes.ok) return new Response('Not found', { status: 404, headers: cors });
+
+          const data = await ghRes.json();
+          const binary = atob(data.content.replace(/\n/g, ''));
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+          const ext = key.split('.').pop().toLowerCase();
+          const ctMap = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' };
+          const ct = ctMap[ext] || 'image/jpeg';
+
+          return new Response(bytes, {
+            status: 200,
+            headers: { ...cors, 'Content-Type': ct, 'Cache-Control': 'public, max-age=86400' },
+          });
+        } catch (e) {
+          return new Response(e.message, { status: 500, headers: cors });
+        }
+      }
     }
 
     return new Response('Not found', { status: 404, headers: cors });

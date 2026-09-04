@@ -267,7 +267,6 @@ body {
 
 <script>
 const WORKER = 'https://kukucome-chara-worker.chikamakoo.workers.dev';
-const GH_RAW = 'https://raw.githubusercontent.com/hico1w/kukucome-chara-uploads/main/';
 let SECRET = '';
 let blockedIPs = new Set();
 
@@ -379,7 +378,7 @@ function renderLogs(entries) {
     grid.className = 'img-grid';
 
     group.forEach(e => {
-      const imgUrl = GH_RAW + encodeURIComponent(e.file);
+      const imgUrl = `${WORKER}/admin/image?secret=${encodeURIComponent(SECRET)}&key=${encodeURIComponent(e.file)}`;
       const ts2 = new Date(e.timestamp).toLocaleString('ja-JP', {
         timeZone: 'Asia/Tokyo', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit'
