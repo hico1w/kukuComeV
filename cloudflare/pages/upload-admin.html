@@ -23,7 +23,6 @@ body {
   background: var(--bg);
   color: var(--cream);
   min-height: 100dvh;
-  padding: 0;
 }
 
 /* ── nav ── */
@@ -79,7 +78,7 @@ body {
 #main-screen { display: none; padding: 32px; }
 .main-grid {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: 1fr 300px;
   gap: 24px;
   align-items: start;
 }
@@ -98,30 +97,69 @@ body {
 }
 .panel-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 300; }
 .panel-count { font-size: 11px; color: var(--muted); letter-spacing: .1em; }
-.panel-body { padding: 8px 0; }
+.panel-body { padding: 0; }
 
-/* ── table ── */
-.log-table { width: 100%; border-collapse: collapse; }
-.log-table th {
-  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
-  color: var(--muted); text-align: left;
-  padding: 8px 16px; border-bottom: 1px solid var(--border);
-  white-space: nowrap;
+/* ── IP groups ── */
+.ip-group {
+  border-bottom: 1px solid var(--border);
 }
-.log-table td {
-  padding: 10px 16px; vertical-align: middle;
-  border-bottom: 1px solid rgba(139,21,56,.12);
-  font-size: 13px;
+.ip-group:last-child { border-bottom: none; }
+.ip-group.blocked .ip-group-head { opacity: .55; }
+
+.ip-group-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 18px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
 }
-.log-table tr:last-child td { border-bottom: none; }
-.log-table tr.blocked-row td { opacity: .5; }
-.log-table tr:hover td { background: rgba(200,48,96,.04); }
-.ip-cell { font-family: monospace; font-size: 12px; color: var(--cream); }
-.ua-cell { color: var(--muted); font-size: 11px; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ts-cell { color: var(--muted); font-size: 11px; white-space: nowrap; }
-.file-cell { font-family: monospace; font-size: 11px; color: var(--muted); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.badge-blocked { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(249,112,102,.15); color: var(--error); letter-spacing: .08em; }
-.empty-row td { text-align: center; color: var(--muted); padding: 32px; font-size: 13px; }
+.ip-group-info { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.ip-mono { font-family: monospace; font-size: 13px; color: var(--cream); white-space: nowrap; }
+.ip-count { font-size: 11px; color: var(--rose); letter-spacing: .08em; white-space: nowrap; }
+.ip-ts { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.badge-blocked { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(249,112,102,.15); color: var(--error); letter-spacing: .08em; white-space: nowrap; }
+
+/* ── image grid ── */
+.img-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 1px;
+  background: var(--border);
+}
+.img-card {
+  background: var(--surface);
+  cursor: pointer;
+  transition: background .15s;
+  overflow: hidden;
+}
+.img-card:hover { background: var(--surface2); }
+.img-thumb-wrap {
+  aspect-ratio: 1;
+  background: #0a0810;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; position: relative;
+}
+.img-thumb {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+  transition: opacity .15s;
+}
+.img-card:hover .img-thumb { opacity: .85; }
+.img-thumb-wrap .img-err-icon { display: none; font-size: 20px; color: var(--muted); }
+.img-thumb-wrap.err .img-thumb { display: none; }
+.img-thumb-wrap.err .img-err-icon { display: block; }
+.img-info {
+  padding: 5px 7px 6px;
+  border-top: 1px solid var(--border);
+}
+.img-name {
+  font-family: monospace; font-size: 9px; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.img-ts { font-size: 9px; color: var(--muted); margin-top: 1px; }
+
+/* ── loading / empty ── */
+.loading-box { padding: 40px; text-align: center; }
+.empty-box { padding: 32px; text-align: center; color: var(--muted); font-size: 13px; }
 
 /* ── blocklist ── */
 .block-list { display: flex; flex-direction: column; }
@@ -151,7 +189,23 @@ body {
 .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(237,224,212,.2); border-top-color: var(--cream); border-radius: 50%; animation: spin .6s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.loading-row td { text-align: center; padding: 32px; }
+/* ── lightbox ── */
+#_lb {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.92);
+  z-index: 999;
+  display: none;
+  flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 12px;
+  cursor: zoom-out;
+}
+#_lb img {
+  max-width: 92vw; max-height: 86vh;
+  object-fit: contain; border-radius: 4px;
+  box-shadow: 0 8px 48px rgba(0,0,0,.7);
+}
+#_lb_label { font-family: monospace; font-size: 11px; color: #6b7280; }
 </style>
 
 <nav class="nav">
@@ -181,21 +235,10 @@ body {
         <span class="panel-title">Upload Log</span>
         <span class="panel-count" id="log-count">—</span>
       </div>
-      <div class="panel-body" style="overflow-x:auto;">
-        <table class="log-table">
-          <thead>
-            <tr>
-              <th>日時</th>
-              <th>IP アドレス</th>
-              <th>User-Agent</th>
-              <th>ファイル</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="log-tbody">
-            <tr class="loading-row"><td colspan="5"><span class="spinner"></span></td></tr>
-          </tbody>
-        </table>
+      <div class="panel-body">
+        <div id="log-groups">
+          <div class="loading-box"><span class="spinner"></span></div>
+        </div>
       </div>
     </div>
 
@@ -214,10 +257,17 @@ body {
   </div>
 </div>
 
+<!-- lightbox -->
+<div id="_lb">
+  <img id="_lb_img" src="" alt="">
+  <div id="_lb_label"></div>
+</div>
+
 <div class="status-bar" id="status-bar"></div>
 
 <script>
 const WORKER = 'https://kukucome-chara-worker.chikamakoo.workers.dev';
+const GH_RAW = 'https://raw.githubusercontent.com/hico1w/kukucome-chara-uploads/main/';
 let SECRET = '';
 let blockedIPs = new Set();
 
@@ -232,7 +282,7 @@ async function tryLogin() {
   authErr.style.display = 'none';
   try {
     const res = await fetch(`${WORKER}/admin/logs?secret=${encodeURIComponent(s)}`);
-    if (res.status === 401) { throw new Error('パスワードが違います'); }
+    if (res.status === 401) throw new Error('パスワードが違います');
     SECRET = s;
     try { localStorage.setItem('_admin_secret', s); } catch {}
     document.getElementById('auth-screen').style.display = 'none';
@@ -248,10 +298,9 @@ async function tryLogin() {
 document.getElementById('auth-btn').addEventListener('click', tryLogin);
 secretInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
 
-// Try saved secret
 try {
   const saved = localStorage.getItem('_admin_secret');
-  if (saved) { secretInput.value = saved; }
+  if (saved) secretInput.value = saved;
 } catch {}
 
 // ── load ──────────────────────────────────────────────────────────
@@ -272,34 +321,104 @@ async function loadLogs() {
   renderLogs(data.entries || []);
 }
 
-// ── render logs ───────────────────────────────────────────────────
+// ── render logs (IP grouped) ──────────────────────────────────────
 function renderLogs(entries) {
-  const tbody = document.getElementById('log-tbody');
+  const container = document.getElementById('log-groups');
   document.getElementById('log-count').textContent = entries.length + ' 件';
 
   if (!entries.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">アップロード記録がありません</td></tr>';
+    container.innerHTML = '<div class="empty-box">アップロード記録がありません</div>';
     return;
   }
 
-  tbody.innerHTML = entries.map(e => {
-    const isBlocked = blockedIPs.has(e.ip);
-    const ts = new Date(e.timestamp).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
-    const ua = escHtml(e.ua || '—');
-    return `
-      <tr class="${isBlocked ? 'blocked-row' : ''}" data-ip="${escHtml(e.ip)}">
-        <td class="ts-cell">${ts}</td>
-        <td class="ip-cell">${escHtml(e.ip)} ${isBlocked ? '<span class="badge-blocked">blocked</span>' : ''}</td>
-        <td class="ua-cell" title="${ua}">${ua}</td>
-        <td class="file-cell" title="${escHtml(e.file)}">${escHtml(e.file)}</td>
-        <td>
-          ${isBlocked
-            ? `<button class="btn btn-unblock btn-sm" onclick="unblockIP('${escHtml(e.ip)}')">解除</button>`
-            : `<button class="btn btn-block btn-sm" onclick="blockIP('${escHtml(e.ip)}')">ブロック</button>`
-          }
-        </td>
-      </tr>`;
-  }).join('');
+  // group by IP
+  const groups = {};
+  entries.forEach(e => {
+    if (!groups[e.ip]) groups[e.ip] = [];
+    groups[e.ip].push(e);
+  });
+
+  // sort IPs by latest upload desc
+  const sortedIPs = Object.keys(groups).sort((a, b) => {
+    const la = Math.max(...groups[a].map(e => new Date(e.timestamp).getTime()));
+    const lb = Math.max(...groups[b].map(e => new Date(e.timestamp).getTime()));
+    return lb - la;
+  });
+
+  container.innerHTML = '';
+  sortedIPs.forEach(ip => {
+    const group = groups[ip].slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const isBlocked = blockedIPs.has(ip);
+    const latestTs = new Date(group[0].timestamp).toLocaleString('ja-JP', {
+      timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    });
+
+    const div = document.createElement('div');
+    div.className = 'ip-group' + (isBlocked ? ' blocked' : '');
+    div.dataset.ip = ip;
+
+    // group header
+    const head = document.createElement('div');
+    head.className = 'ip-group-head';
+    head.innerHTML = `
+      <div class="ip-group-info">
+        <span class="ip-mono">${escHtml(ip)}</span>
+        ${isBlocked ? '<span class="badge-blocked">blocked</span>' : ''}
+        <span class="ip-count">${group.length} 件</span>
+        <span class="ip-ts">${latestTs}</span>
+      </div>
+      <button class="btn ${isBlocked ? 'btn-unblock' : 'btn-block'} btn-sm"
+        onclick="${isBlocked ? `unblockIP('${escHtml(ip)}')` : `blockIP('${escHtml(ip)}')`}">
+        ${isBlocked ? '解除' : 'ブロック'}
+      </button>
+    `;
+
+    // image grid
+    const grid = document.createElement('div');
+    grid.className = 'img-grid';
+
+    group.forEach(e => {
+      const imgUrl = GH_RAW + encodeURIComponent(e.file);
+      const ts2 = new Date(e.timestamp).toLocaleString('ja-JP', {
+        timeZone: 'Asia/Tokyo', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit'
+      });
+
+      const card = document.createElement('div');
+      card.className = 'img-card';
+      card.addEventListener('click', () => openLightbox(imgUrl, e.file));
+
+      const wrap = document.createElement('div');
+      wrap.className = 'img-thumb-wrap';
+
+      const img = document.createElement('img');
+      img.className = 'img-thumb';
+      img.src = imgUrl;
+      img.loading = 'lazy';
+      img.alt = e.file;
+      img.onerror = () => wrap.classList.add('err');
+
+      const errIcon = document.createElement('span');
+      errIcon.className = 'img-err-icon';
+      errIcon.textContent = '📷';
+
+      wrap.appendChild(img);
+      wrap.appendChild(errIcon);
+
+      const info = document.createElement('div');
+      info.className = 'img-info';
+      info.innerHTML = `<div class="img-name" title="${escHtml(e.file)}">${escHtml(e.file)}</div><div class="img-ts">${ts2}</div>`;
+
+      card.appendChild(wrap);
+      card.appendChild(info);
+      grid.appendChild(card);
+    });
+
+    div.appendChild(head);
+    div.appendChild(grid);
+    container.appendChild(div);
+  });
 }
 
 // ── render blocklist ──────────────────────────────────────────────
@@ -319,6 +438,30 @@ function renderBlocklist(list) {
     </div>
   `).join('');
 }
+
+// ── lightbox ──────────────────────────────────────────────────────
+const lb = document.getElementById('_lb');
+const lbImg = document.getElementById('_lb_img');
+const lbLabel = document.getElementById('_lb_label');
+
+function openLightbox(url, label) {
+  lbImg.src = url;
+  lbLabel.textContent = label;
+  lb.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+lb.addEventListener('click', () => {
+  lb.style.display = 'none';
+  document.body.style.overflow = '';
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && lb.style.display === 'flex') {
+    lb.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+});
 
 // ── actions ───────────────────────────────────────────────────────
 async function blockIP(ip) {
