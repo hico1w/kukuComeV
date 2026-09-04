@@ -231,6 +231,7 @@
     <a class="sidebar-link" href="#sec-cmdgen">🔧 コマンド生成</a>
     <a class="sidebar-link" href="#sec-features">📖 機能解説</a>
     <a class="sidebar-link" href="#sec-kwsamples">🖼 キーワードサンプル</a>
+    <a class="sidebar-link" href="#sec-promptsamples">🎨 サンプルプロンプト</a>
     <a class="sidebar-link" href="#sec-pet">🐾 ペットガチャ</a>
     <a class="sidebar-link" href="#sec-equip">⚔️ 装備レアリティ</a>
     <a class="sidebar-link" href="#sec-boss">🐉 ボスバトル</a>
@@ -854,6 +855,96 @@
         wrap.appendChild(img);
         card.appendChild(label);
         card.appendChild(wrap);
+        grid.appendChild(card);
+      });
+    })();
+    </script>
+  </div>
+
+  <!-- ── サンプルプロンプト ── -->
+  <div class="section" id="sec-promptsamples">
+    <div class="section-title">🎨 サンプルプロンプト</div>
+    <div class="cmd-desc" style="margin-bottom:16px">
+      実際に生成した画像とポジティブプロンプト。クリックで拡大。プロンプト情報はPNGファイルのみ埋め込みあり。
+    </div>
+    <div id="ps-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px"></div>
+    <script>
+    (function(){
+      var SAMPLES=[
+        {f:'00001-1137089502.jpg'},
+        {f:'00002-4164809616.jpg'},
+        {f:'00007-1290838949.jpg'},
+        {f:'00008-1111849208.png',p:'masterpiece,best quality,amazing quality,very aesthetic,high resolution,ultra-detailed,absurdres,newest,scenery,shiny skin,depth of field,(anime,anime coloring),1girl,solo,flat chest,blonde hair,red eyes,brown gloves,portrait,red hood,white thighhighs,dynamic pose,short dress,white dress,sitting tree stump,arms behind back,outdoors,tree,long hair,(red flower,red_forest, red apple, ),basket,fruit,looking at viewer,jewelry,earrings,closed mouth,bangs,feet out of frame,(dark,shade,Shadow of the Wolf,silhouette_wolf:1.4),red background,light smile,\n<lora:add-detail-xl:1>,<lora:Fixhands_anime_bdsqlsz_V1:1>,<lora:Hyper-SDXL-8steps-lora:1>,'},
+        {f:'00009-157262918.jpg'},
+        {f:'00021-1724344601.png',p:'shiranui mai,masterpiece,best quality,amazing quality,very aesthetic,high resolution,ultra-detailed,absurdres,<lora:add-detail-xl:1>,<lora:Hyper-SDXL-8steps-lora:1>,\n1girl,bloody eyes,highres,(gigantic breasts:0.7),\n(blood on face:1.4),(blood on clothes:1.4),(torn clothes:1.6),(blood on body:1.4),\nmuscles,(scar on face:1.5),(scar on body:1.4),blood on hair,\nwind,jewelry,earrings,particle,\nspark,close-up,dutch angle,splatter,lens_flare,depth of field,<lora:748cmSDXL:0.8>,(burn scar on face:1.3),wearing a flame,evil grin,(burn scar:1.4),burning body,dynamic pose,'},
+        {f:'00025-1245244157.jpg'},
+        {f:'00047-1155355004.jpg'},
+        {f:'00091-1559335581.png',p:'masterpiece,best quality,amazing quality,very aesthetic,\nsolo,perfect face,\n1girl,long hair,white hair,bloody eyes,high collar,cloak,hood down ,scarlet capelet,frilled skirt,belt,high heels,white thighhighs,garter belt,garter steaps,cleavage,single claws,single gauntlets,absurdres,highres,slit pupils,\n(blood on face:1.4),(blood on clothes:1.4),(torn clothes:1.4),(blood on body:1.4),\nmuscles,(scar on face:1.6),(scar on body:1.6),wolf ears,mechanical arms,blood on hair,\nnight,fangs,wind,jewelry,earrings,(hair over eye:0.6),particle,red lighting,\nchainsaw,dynamic pose,holding saw,spark,close-up,dutch angle,splatter,fisheye,drool,castle,standing,from behind,crazy smile,war,yakinohara,battleground,motion_lines,motion_blur,lens_flare,depth of field,chromatic_aberration,overexposure,contour_deepening,<lora:748cmSDXL:1>,'},
+        {f:'00094-2040902608.jpg'},
+        {f:'00131-1510472608.png',p:'masterpiece,violence,brutality,tragedy,fear,cruelty,disappointment,give up,detail,desire,ego,hope,flower,envy,peace,affection,the world,injuries,disease,polar colors,drugs,creative evolution,relativism,the phenomenon world,you,me,raw,death,life,the abyss,void,dream,justice,evil,water surface,light,holy,time,madness,god,smile,despair,colorful,'},
+        {f:'00132-1605973877.png',p:'1girl,\nviper\\(nikke\\),\nholding gun,from_back,all fours,'},
+        {f:'00143-2312524295.jpg'},
+        {f:'00145-628581587.png',p:'1girl,animal ears,pink hair,pointy ears,green eyes,solo,cat ears,looking at viewer,capelet,white capelet,animal ear fluff,long hair,bangs,hood,pink belt,virtual youtuber,hood down,extra ears,dress,bow,animal,(white robe,red neck ribbon,red lining),put the white chick on the shoulder,v over eye,(gigantic breasts:0.5),narrow waist,wide hips,impossible clothes,(puffy nipples:0.3),<lora:748cmSDXL:1>,sitting gaming chair,<lora:PCMR:0.7>,PCMR,computer,desk,rgb,monitor,watercooling,case,graphics cards,wide screen,headset,speakers,mouse,keyboard,holding money,evil smile,pink lighting,miniskirt,'},
+        {f:'00204-2856678802.png',p:'masterpiece,best quality,amazing quality,very aesthetic,newest,general,\nsolo,anis (nikke),short hair,ahoge,huge breasts,faceless,heart symbol,\neyepatch bikini,squatting,looking back,v,\nfrom behind,cowboy shot,\nminimalism,vector art,white theme,limited palette,orange background,'},
+        {f:'00222-82027428.png',p:'perfect face,1girl,(wind:1.4),school uniform,white collared shirt,long sleeves,plaid skirt,miniskirt,\nred string neck ribbon,score_9,score_8_up,score_7_up,seduce smile,blush,black hair,blunt bangs,long hair,<lora:PONY-Ishihama Mei:0.5>,mole,real skin texture,pores,classroom,lens_flare,depth of field,chromatic_aberration,bokeh,dim lighting,backlighting,body texture,vinet,1990s \\(style\\),film grain,curtains,<lora:komoshuai_pony_1:0.3>,16yo,gigantic breasts,looking_at_viewer,(impossible clothes:1.3),standing,narrow waist,wide hips,thighhighs,hair ornament,all fours,dynamic angle,braid,absurdly long hair,lower body,'},
+        {f:'00263-149675431.jpg'},
+        {f:'00292-1356125396.jpg'},
+        {f:'00310-344750521.png',p:'space,flower,(alien girl:0.7),octopus hair,stars,blunt bangs,'},
+        {f:'00328-538045175.jpg'},
+        {f:'00347-355768714.jpg'},
+        {f:'00350-3976575478.jpg'},
+        {f:'00385-860873817.jpg'},
+        {f:'00393-1855998489.jpg'},
+        {f:'00410-676427402.jpg'},
+        {f:'00419-603007551.png',p:'masterpiece,best quality,high resolution,super fine Illustration,(ultraｰdetailed:1.2),line art,line style(as style),(Alice in Wonderland style:1.2),Victorian fantasy theme,(pastel colors palette:1.2),\nBREAK\nperfect composition,Victorian era flora background,fantasy setting,wonderland atmosphere,soft pastel lighting,(simple_background:1.2),\nBREAK\nsolo,1girl,(bunny girl outfit:1.4),rabbit ears,light brown hair,red brown eyes,elegant pose,holding pocket watch,(happy expression:1.2),\nBREAK\n(white bunny suit:1.4),Victorian-inspired design,Victorian dress elements,pocket watch accessories,(fantasy costume details:1.2),gloves,white_thighhighs,high_heel_boots,'},
+        {f:'00434-4286841969.jpg'},
+        {f:'00455-1639988763.jpg'},
+        {f:'00467-4239455837.png',p:'masterpiece,volumetric lighting,2024,newest,\nwhite serafuku,1 girl,black mini skirt,(crane game:1.1),stuffed toys,hand on glass,dynamic angle,large breasts,\n(breasts press against glass:1.1),crane game show case,\n(ecstasy:1),embarrassing,blush,\n(tareme:1),beautiful dark blue eyes,(long eyelash:1),(blush:1.2),anime,illustration,anime face,light smile,eye highlight,\nphoto-realistic,\nblack long hair,straight hair,\nseductive pose,Rim Lighting,\nlight and shadow,ray trace,strong backlit,\n[:see through clothes:0.2],see through silhouette,\nholding 1 leg,'},
+      ];
+      var grid=document.getElementById('ps-grid');
+      var lb=document.getElementById('kw-lightbox');
+      var lbImg=document.getElementById('kw-lb-img');
+      var lbLabel=document.getElementById('kw-lb-label');
+      var TRUNC=180;
+      SAMPLES.forEach(function(s){
+        var src='./chara/promptSample/'+s.f;
+        var card=document.createElement('div');
+        card.style.cssText='background:#f7f7f7;border:1px solid #e2e2e2;border-radius:4px;overflow:hidden;cursor:pointer';
+        var wrap=document.createElement('div');
+        wrap.style.cssText='background:#ececec;aspect-ratio:3/4;overflow:hidden;display:flex;align-items:center;justify-content:center';
+        var img=document.createElement('img');
+        img.src=src; img.loading='lazy';
+        img.style.cssText='width:100%;height:100%;object-fit:cover;display:block;transition:opacity .15s';
+        img.onerror=function(){this.style.display='none';wrap.innerHTML+='<span style="color:#888;font-size:20px">📷</span>';};
+        img.onmouseenter=function(){this.style.opacity='.8';};
+        img.onmouseleave=function(){this.style.opacity='1';};
+        card.addEventListener('click',function(e){
+          if(e.target.tagName==='BUTTON')return;
+          if(img.complete&&img.naturalWidth){lbImg.src=src;lbLabel.textContent=s.f;lb.style.display='flex';document.body.style.overflow='hidden';}
+        });
+        wrap.appendChild(img);
+        card.appendChild(wrap);
+        if(s.p){
+          var pd=document.createElement('div');
+          pd.style.cssText='padding:8px;font-size:10px;color:#555;line-height:1.5;border-top:1px solid #e2e2e2';
+          var isLong=s.p.length>TRUNC;
+          var span=document.createElement('span');
+          span.textContent=isLong?s.p.slice(0,TRUNC)+'…':s.p;
+          pd.appendChild(span);
+          if(isLong){
+            var btn=document.createElement('button');
+            btn.textContent='展開';
+            btn.style.cssText='display:block;margin-top:4px;font-size:10px;background:none;border:1px solid #ccc;border-radius:3px;padding:2px 8px;cursor:pointer;color:#555';
+            var expanded=false;
+            btn.addEventListener('click',function(){
+              expanded=!expanded;
+              span.textContent=expanded?s.p:s.p.slice(0,TRUNC)+'…';
+              btn.textContent=expanded?'閉じる':'展開';
+            });
+            pd.appendChild(btn);
+          }
+          card.appendChild(pd);
+        }
         grid.appendChild(card);
       });
     })();
