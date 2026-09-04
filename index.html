@@ -2378,5 +2378,33 @@
     })();
   </script>
 
+  <!-- ── セクションスクリーンショット自動挿入 ── -->
+  <script>
+  (function(){
+    var SHOTS=['sec-cmdgen','sec-features','sec-pet','sec-equip','sec-boss','sec-ageru-boss','sec-game','sec-char','sec-bubble','sec-deco','sec-color','sec-settings','sec-effects','sec-motion','sec-style','sec-font','sec-media','sec-ageru','sec-titles','sec-examples','sec-cmdref'];
+    var lb=document.getElementById('kw-lightbox');
+    var lbImg=document.getElementById('kw-lb-img');
+    var lbLabel=document.getElementById('kw-lb-label');
+    SHOTS.forEach(function(id){
+      var sec=document.getElementById(id);
+      if(!sec) return;
+      var title=sec.querySelector('.section-title');
+      if(!title) return;
+      var src='./chara/screenshots/'+id+'.png';
+      var img=document.createElement('img');
+      img.src=src; img.alt=id; img.loading='lazy';
+      img.style.cssText='width:100%;border-radius:8px;border:1px solid var(--border);box-shadow:0 2px 10px rgba(0,0,0,.07);margin:12px 0 20px;display:block;cursor:zoom-in;transition:opacity .15s';
+      img.onerror=function(){this.style.display='none';};
+      img.onmouseenter=function(){this.style.opacity='.88';};
+      img.onmouseleave=function(){this.style.opacity='1';};
+      img.addEventListener('click',function(){
+        lbImg.src=src; lbLabel.textContent=id;
+        lb.style.display='flex'; document.body.style.overflow='hidden';
+      });
+      title.insertAdjacentElement('afterend',img);
+    });
+  })();
+  </script>
+
 </body>
 </html>
