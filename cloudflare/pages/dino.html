@@ -129,6 +129,47 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   border: 1px solid rgba(255,255,255,.3); border-radius: 4px; padding: 5px 12px;
 }
 
+/* ── 歌詞の背景（スコア5000超で出す） ──
+   ゲーム画面の裏には文字を置かない。盤面の上下左右の余白に
+   4つの領域を作って、そこだけに敷き詰める。 */
+#lyrics {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 2.2s ease;
+  overflow: hidden;
+}
+#lyrics.on { opacity: 1; }
+.ly-zone {
+  position: absolute;
+  overflow: hidden;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: .28em .7em;
+  padding: 6px 10px;
+  line-height: 1.35;
+  color: #1b2130;                 /* 背景(#0b0d12)より少し明るいだけ */
+  font-weight: 400;
+  user-select: none;
+}
+.ly-zone span { white-space: nowrap; }
+.ly-s  { font-size: clamp(10px, 1.1vw, 15px); }
+.ly-m  { font-size: clamp(13px, 1.7vw, 24px); color: #202737; }
+.ly-l  { font-size: clamp(18px, 2.9vw, 44px); color: #262f43; font-weight: 500; letter-spacing: .04em; }
+.ly-xl {
+  font-size: clamp(26px, 5.2vw, 82px);
+  color: #2c374e;
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  letter-spacing: .06em;
+}
+#stage { position: relative; z-index: 1; }
+#bar   { position: relative; z-index: 2; }
+
 /* ── ロード画面（tatie を回す） ── */
 #loading {
   position: absolute; inset: 0; z-index: 5;
@@ -164,7 +205,15 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
     <span class="bar-hint">SPACE / ↑ / タップ でジャンプ</span>
     <button class="bar-btn" id="btn-rank">Ranking</button>
     <button class="bar-btn" id="btn-bgm" aria-pressed="false">♪ BGM</button>
+    <span class="bar-btn" id="bot-tag" hidden style="color:#ffd34d;border-color:#ffd34d">BOT</span>
   </div>
+</div>
+
+<div id="lyrics" aria-hidden="true">
+  <div class="ly-zone" id="ly-top"></div>
+  <div class="ly-zone" id="ly-bottom"></div>
+  <div class="ly-zone" id="ly-left"></div>
+  <div class="ly-zone" id="ly-right"></div>
 </div>
 
 <div id="stage">
@@ -289,6 +338,9 @@ const state = {
   frame: 0, frameT: 0,
   obstacles: [], clouds: [], flying: [],
   gameT: 0,               // プレイ中の経過時間(秒)。速度上昇の検算用
+  reach: null,            // 直前の障害物を抜けた時点で取りうる状態（詰み防止）
+  nextKind: null,         // 次に出す種類（間隔を先に決めるため）
+  curGap: 520,            // 直前から今回までの距離
   sinceSpawn: 0,          // 前の障害物からの距離(px)。時間ではなく距離で管理する
   nextGap: 520,
   lastKind: null,
@@ -353,10 +405,10 @@ function makeCloud(x) {
    1回のジャンプで進む距離 D = speed × 滞空時間 を基準に、
    直前と今回の種類の組み合わせごとに必要な間隔を変える。          */
 const KINDS = {
-  hugu:    { needJump: true,  weight: 42 },                    // 陸。飛び越える
-  hosiLow: { needJump: true,  weight: 26 },                    // 低い空中。飛び越える
-  hosiHi:  { needJump: false, weight: 10, mustGround: true },  // 高い空中。走って抜ける
-  kani:    { needJump: false, weight: 22 },                    // 当たっても平気
+  hugu:    { weight: 38 },   // 陸。飛び越える
+  hosiLow: { weight: 24 },   // 低い空中。飛び越える
+  hosiHi:  { weight: 14 },   // 高い空中。跳ぶと当たるので走って抜ける
+  kani:    { weight: 24 },   // 当たっても平気。置き場所の制約なし
 };
 
 function pickKind() {
@@ -367,48 +419,197 @@ function pickKind() {
   return 'hugu';
 }
 
-/** 直前の種類と次の種類から、最低限あけるべき距離を返す */
-function requiredGap(prev, next) {
-  const D = state.speed * AIRTIME;      // 1回のジャンプで進む距離
-  const p = prev && KINDS[prev], n = KINDS[next];
-  let f = 1.10;
-  // 飛び越えた直後に「跳んだら当たる」ものが来ると詰むので、
-  // 着地しきるまでの距離をしっかり空ける
-  if (p && p.needJump && n.mustGround) f = 1.90;
-  else if (n.needJump) f = 1.45;        // 跳ぶ準備の余裕
-  else if (p && p.mustGround) f = 1.25;
-  return Math.max(260, D * f);
-}
+/* ── どれだけ詰めても避けられるか、ジャンプの軌道から計算する ────────
 
+   ジャンプの高さ:  y(t) = jumpV·t − gravity·t²/2   （0 ≤ t ≤ 滞空時間）
+
+   各障害物には「その高さにいると当たる帯」 [yLow, yHigh] がある。
+   当たり判定の箱から逆算して求めるので、絵のサイズを変えても追従する。
+     ・フグ / 低い星 … 帯が地面側にある → 上を跳び越せば避けられる
+     ・高い星        … 帯が上にあり、頂点(150px)でも越えられない
+                       → 跳ばずに走って下を通るしかない
+     ・カニ          … 当たっても平気なので帯なし＝どこに置いてもいい
+
+   障害物は「一瞬」ではなく、絵の幅ぶんの時間ずっと当たり判定を持つので、
+   その区間のあいだずっと安全でいられるかで判定する。               */
+
+/** 種類ごとの見た目・位置。当たり判定の計算もここを基準にする */
 function makeObstacle(kind) {
   let o;
   if (kind === 'hugu') {
     const sc = 0.42;
-    o = { kind, im: img.hugu, w: img.hugu.width * sc, h: img.hugu.height * sc, deadly: true };
+    o = { kind: kind, im: img.hugu, w: img.hugu.width * sc, h: img.hugu.height * sc, deadly: true };
     o.y = GROUND - o.h;
   } else if (kind === 'hosiLow') {
     const sc = 0.40;
-    o = { kind, im: img.hosi, w: img.hosi.width * sc, h: img.hosi.height * sc, deadly: true };
+    o = { kind: kind, im: img.hosi, w: img.hosi.width * sc, h: img.hosi.height * sc, deadly: true };
     o.y = GROUND - o.h - 26;
   } else if (kind === 'hosiHi') {
     const sc = 0.40;
-    o = { kind, im: img.hosi, w: img.hosi.width * sc, h: img.hosi.height * sc, deadly: true };
+    o = { kind: kind, im: img.hosi, w: img.hosi.width * sc, h: img.hosi.height * sc, deadly: true };
     o.y = GROUND - charH() - 30 - o.h;   // 走っていれば頭上を通せる。跳ぶと当たる
   } else {
     const sc = 0.40;
-    o = { kind, im: img.kani, w: img.kani.width * sc, h: img.kani.height * sc, deadly: false };
+    o = { kind: kind, im: img.kani, w: img.kani.width * sc, h: img.kani.height * sc, deadly: false };
     o.y = GROUND - o.h;
   }
   o.x = W + 40;
   return o;
 }
 
+function jumpYAt(t) {
+  if (t < 0 || t > AIRTIME) return 0;
+  return CFG.jumpV * t - CFG.gravity * t * t / 2;
+}
+
+/* 判定の時間刻み。0.02 だと「1回のジャンプで2つ跳び越せる限界(0.762秒)」を
+   0.008秒だけ超える配置を見分けられず、詰みを通してしまう。
+   刻みを細かくしたうえで、区間の前後に PAD の余裕も持たせる。 */
+const DT = 0.01;
+const PH = Math.round(AIRTIME / DT);              // ジャンプ位相の段数
+const ALL_STATES = () => {
+  const a = new Set([-1]);                        // -1 = 地上
+  for (let ph = 0; ph <= PH; ph++) a.add(ph);     // 0..PH = ジャンプ中の位相
+  return a;
+};
+const stateY = st => (st === -1 ? 0 : jumpYAt(st * DT));
+
+/** 実際に置かれた障害物の「当たる高さの帯」。当たらないもの（カニ）は null */
+function bandOf(o) {
+  if (!o.deadly) return null;
+  const m = 0.18;                                  // hit() と同じ内側マージン
+  const ch = charH();
+  // ジャンプ高さ y のときのキャラ判定箱: 上端 GROUND−y−0.9ch / 下端 GROUND−y−0.04ch
+  // 重なる条件を y について解くと下の2式になる
+  return [GROUND - 0.9 * ch - (o.y + o.h * (1 - m)), GROUND - 0.04 * ch - (o.y + o.h * m)];
+}
+const collisionBand = kind => bandOf(makeObstacle(kind));
+const safeAt = (band, y) => !band || !(y > band[0] && y < band[1]);
+
+/* 障害物の x がどの範囲にあるとキャラと重なるか。
+   障害物は「一瞬」ではなく、この幅ぶんの時間ずっと当たり判定を持つ。
+   幅は種類ごとに違うので、enter/exit をそれぞれ正確に出す
+   （半分ずつの近似で済ませると、幅の違う組み合わせでズレて詰みを通す）。 */
+function overlapRange(kind) {
+  const o = makeObstacle(kind);
+  const cw = img.run_01.width * CFG.charScale;
+  const cL = 150 - cw / 2 + cw * 0.22, cR = cL + cw * 0.56;   // charBox と同じ
+  const m = 0.18;
+  return { enter: cR - o.w * m, exit: cL - o.w * (1 - m) };
+}
+const overlapSpan = kind => { const r = overlapRange(kind); return r.enter - r.exit; };
+
+/** dt 秒ぶん、取りうる状態を進める（地上なら走り続けるか跳ぶかを選べる） */
+function advance(cur, dt) {
+  let s2 = cur;
+  const steps = Math.max(0, Math.round(dt / DT));
+  for (let i = 0; i < steps; i++) {
+    const n = new Set();
+    for (const st of s2) {
+      if (st === -1) { n.add(-1); n.add(0); }
+      else if (st >= PH) n.add(-1);
+      else n.add(st + 1);
+    }
+    s2 = n;
+  }
+  return s2;
+}
+
+/** その高さ帯に当たらない状態だけ残す */
+function filterSafe(cur, band) {
+  const n = new Set();
+  for (const st of cur) if (safeAt(band, stateY(st))) n.add(st);
+  return n;
+}
+
+/** 重なっているあいだ「ずっと」安全でなければならない。
+    区間の全ステップで判定しながら状態集合を進める。 */
+function passThrough(cur, dtBefore, dur, band) {
+  let s2 = filterSafe(advance(cur, dtBefore), band);
+  const steps = Math.max(1, Math.round(dur / DT));
+  for (let i = 0; i < steps && s2.size; i++) {
+    s2 = filterSafe(advance(s2, DT), band);
+  }
+  return s2;
+}
+
+/* ── 障害物を置く ───────────────────────────────────────────
+   「絶対に避けられない配置」を出さないために、直前の障害物を抜けた時点で
+   取りうる状態(state.reach)を持ち回る。次の障害物を置いたときに
+   選択肢が MIN_CHOICES 個以上残るところまで間隔を広げる。
+   窓で区切って毎回判定し直すと窓をまたいだ詰みを見逃すが、
+   状態集合を引き継げば何個続いても正しく判定できる。            */
+/* 障害物を抜けた時点で残る選択肢の数。判定は 0.01 秒刻みなので
+   14 なら「ジャンプ開始を 0.14 秒ぶん自由に選べる」ことになる。 */
+const MIN_CHOICES = 14;
+
+/** 最低限の間隔(px)。フグ同士は重なってよい（判定の区間がひとつにまとまる） */
+function minVisualGap(prev, next) {
+  if (prev === 'hugu' && next === 'hugu') return makeObstacle('hugu').w * 0.5;
+  const wPrev = prev ? makeObstacle(prev).w : 0;
+  return wPrev / 2 + makeObstacle(next).w / 2 + 34;
+}
+
+/* 間隔は「直前 → 今回」で決まるが、spawn() が設定する nextGap は
+   「今回 → 次」までの距離になる。そこで**次に出す種類を先に決めて**、
+   その組み合わせで必要な距離を求める。こうしないと、あるペアのために
+   計算した距離が別のペアに適用されてしまう。                       */
+/* 重なり区間を前後にこれだけ広げて厳しめに見る。
+   人はボットのように最適なタイミングでは跳べないので、
+   刻みの誤差ぶんだけでなく操作の余裕としても効かせる。 */
+const PAD = 0.10;
+
+/** cur の状態から、距離 gap を空けて種類 kind を置いたときに残る選択肢。
+    prevKind が null なら列の先頭あつかい。 */
+function tryPlace(cur, gap, prevKind, kind) {
+  const r = overlapRange(kind);
+  const span = r.enter - r.exit;
+  const mv = state.speed;
+  // 直前が抜けた位置(x=prev.exit)から、今回が重なり始める位置までの距離。
+  // 障害物どうしは gap だけ離れているので、その差を引く
+  const prevExit = prevKind ? overlapRange(prevKind).exit : r.enter;
+  const b = gap + prevExit - r.enter;
+  // b < 0 は、直前が抜けきる前に今回が重なり始めている状態（フグ同士がくっつく等）。
+  // その場合は「直前が抜けた時点から今回が抜けるまで」を通しで見る
+  const before = Math.max(0, b);
+  const dur = b >= 0 ? span : span + b;
+  return passThrough(cur, Math.max(0, before / mv - PAD), Math.max(0, dur) / mv + PAD * 2, collisionBand(kind));
+}
+
 function spawn() {
-  const kind = pickKind();
+  const kind = state.nextKind || pickKind();
+  // ここに来た時点で、直前からの距離は前回決めた nextGap になっている。
+  // その距離で今回を抜けた状態に更新する
+  const passed = tryPlace(state.reach, state.curGap, state.lastKind, kind);
+  state.reach = passed.size ? passed : ALL_STATES();
   state.obstacles.push(makeObstacle(kind));
-  state.nextGap = requiredGap(state.lastKind, kind) + Math.random() * 420;
+
+  // 次に出す種類を決め、そこまでに必要な距離を求める
+  const nk = pickKind();
+  let gap = minVisualGap(kind, nk) + Math.random() * 170;
+  for (let i = 0; i < 80; i++) {
+    if (tryPlace(state.reach, gap, kind, nk).size >= MIN_CHOICES) break;
+    gap += 40;
+  }
+
+  state.nextKind = nk;
+  state.curGap = gap;
+  state.nextGap = gap;
   state.lastKind = kind;
   state.sinceSpawn = 0;
+}
+
+/** 検証用。並び全体（先頭は自由に入れる前提）が避けられるか */
+function solvable(seq) {
+  let cur = ALL_STATES();
+  let prevExit = 0;
+  for (const e of seq) {
+    const before = Math.max(0, e.enter - prevExit);
+    cur = passThrough(cur, before, e.exit - e.enter, e.band);
+    if (!cur.size) return false;
+    prevExit = e.exit;
+  }
+  return true;
 }
 
 const charH = () => img.run_01.height * CFG.charScale;
@@ -448,10 +649,12 @@ function reset() {
   Object.assign(state, {
     mode: 'playing', speed: CFG.speed0, dist: 0, score: 0,
     y: 0, vy: 0, onGround: true, frame: 0, frameT: 0,
-    obstacles: [], flying: [], sinceSpawn: 0, nextGap: 520, gameT: 0,
+    obstacles: [], flying: [], reach: ALL_STATES(),
+    nextKind: null, curGap: 520, sinceSpawn: 0, nextGap: 520, gameT: 0,
     lastKind: null, deadT: 0, last: performance.now(),
   });
   overOv.classList.remove('show');
+  lyricsEl.classList.remove('on');
   regEl.classList.remove('hide');
   sendEl.disabled = false;
   regMsg.textContent = '';
@@ -548,6 +751,159 @@ document.getElementById('btn-rank').addEventListener('click', () => {
   fetchRanking();
 });
 document.getElementById('rank-close').addEventListener('click', () => rankOv.classList.remove('show'));
+
+/* ── 歌詞の背景（スコア5000超）─────────────────────────── */
+const LYRICS_AT = 5000;
+const LYRICS = [
+  ['まだかな？', 'xl'], ['まだかな？', 'l'], ['今日もここで待ってる', 'm'],
+  ['トコトコ', 'l'], ['走って', 's'], ['時間を飛び越えよう！', 'm'],
+  ['配信は　まだお休み', 's'], ['画面は　静かなまま', 's'],
+  ['じゃあちょっと　遊ぼうか', 'm'], ['小さな恐竜と', 'l'],
+  ['前からフグが　やってきた', 's'], ['ぴょん！', 'xl'], ['と飛び越えて', 's'],
+  ['次は何が　来るのかな', 'm'], ['暇つぶしは　続いてく', 's'],
+  ['君が戻ってくるまで', 'm'], ['走って', 'l'], ['跳んで', 'l'], ['避けて', 'l'],
+  ['もう少しだけ待ってよう', 'm'],
+  ['時計なんて見ないで', 's'], ['気づけば　こんな時間', 'm'], ['今日も待ってるよ', 'l'],
+  ['誰もいない　静かな部屋', 's'], ['恐竜だけが　走ってる', 'm'],
+  ['ハイスコアを　更新して', 's'], ['君に見せられるかな？', 'm'],
+  ['あっ！', 'l'], ['危ない！', 'l'], ['ジャンプ！', 'xl'],
+  ['今のはギリギリセーフ', 's'], ['もう一回', 'm'], ['もう一回', 'm'],
+  ['配信まで　もう一回！', 'l'],
+  ['何度だって遊べるさ', 'm'], ['君が「始めるよ」って言うまで', 's'], ['ここで走ってる', 'm'],
+  ['静かな夜も', 'm'], ['長い待ち時間も', 's'],
+  ['ひとりじゃないよ', 'l'], ['小さな足音がする', 'm'],
+  ['トコトコ', 'xl'], ['トコトコ', 'l'], ['まだまだ　行けるよ', 'm'],
+  ['いつか画面が光ったら', 's'], ['「おかえり！」', 'xl'], ['って言おう', 's'],
+  ['そろそろ来るのかな？', 'm'], ['今日も記録を伸ばそう', 's'],
+  ['小さな恐竜と一緒に', 'm'], ['ここで待ってるよ', 'l'],
+  ['……もう一回！', 'xl'],
+];
+
+const lyricsEl = document.getElementById('lyrics');
+let lyricsBuilt = false;
+
+function buildLyrics() {
+  if (lyricsBuilt) return;
+  lyricsBuilt = true;
+  const zones = ['ly-top', 'ly-bottom', 'ly-left', 'ly-right'].map(id => document.getElementById(id));
+  // 上下は広いので長い行を、左右は細いので短い行を多めに配る
+  const order = LYRICS.slice();
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = order[i]; order[i] = order[j]; order[j] = t;
+  }
+  // 左右は細いので短い語だけ。長い行を入れると盤面の縁で切れて見える
+  const shortOnes = order.filter(x => x[0].length <= 7);
+  const longOnes  = order.filter(x => x[0].length > 7);
+  const put = (z, item) => {
+    const el = document.createElement('span');
+    el.className = 'ly-' + item[1];
+    el.textContent = item[0];
+    z.appendChild(el);
+  };
+  longOnes.forEach((item, i) => put(zones[i % 2], item));            // 上下
+  shortOnes.forEach((item, i) => {
+    put(zones[i % 4], item);                                          // 全体に散らす
+    if (i % 2 === 0) put(zones[2 + (i % 2)], item);                   // 左右は隙間が空くので厚めに
+  });
+  layoutLyrics();
+}
+
+/** 盤面の外側だけに歌詞の領域を置く（盤面の裏には文字を出さない） */
+let lyRectKey = '';
+function layoutLyrics() {
+  const r = wrap.getBoundingClientRect();
+  const W2 = innerWidth, H2 = innerHeight;
+  const key = [r.left, r.top, r.right, r.bottom, W2, H2].map(Math.round).join(',');
+  if (key === lyRectKey) return;
+  lyRectKey = key;
+  const G = 4;                       // 盤面との隙間。端で1pxかぶるのを防ぐ
+  const set = (id, x, y, w2, h2) => {
+    const el = document.getElementById(id);
+    el.style.left = Math.max(0, x) + 'px';
+    el.style.top = Math.max(0, y) + 'px';
+    el.style.width = Math.max(0, w2) + 'px';
+    el.style.height = Math.max(0, h2) + 'px';
+  };
+  set('ly-top', 0, 0, W2, r.top - G);
+  set('ly-bottom', 0, r.bottom + G, W2, H2 - r.bottom - G);
+  set('ly-left', 0, r.top, r.left - G, r.height);
+  set('ly-right', r.right + G, r.top, W2 - r.right - G, r.height);
+
+  // 念のため、レイヤー全体を「盤面をくり抜いた形」に切り抜く。
+  // 領域の置き方だけに頼ると、画面幅によっては端でわずかにかぶる
+  const x1 = Math.max(0, r.left - G), x2 = Math.min(W2, r.right + G);
+  const y1 = Math.max(0, r.top - G),  y2 = Math.min(H2, r.bottom + G);
+  lyricsEl.style.clipPath =
+    `polygon(0px 0px, 0px ${H2}px, ${x1}px ${H2}px, ${x1}px ${y1}px, ${x2}px ${y1}px, ` +
+    `${x2}px ${y2}px, ${x1}px ${y2}px, ${x1}px ${H2}px, ${W2}px ${H2}px, ${W2}px 0px)`;
+}
+addEventListener('resize', layoutLyrics);
+
+function updateLyrics() {
+  const on = state.score >= LYRICS_AT && state.mode !== 'ready';
+  if (on && !lyricsBuilt) buildLyrics();
+  if (on) layoutLyrics();          // 盤面の大きさが変わっても追従させる（変化時のみ再配置）
+  lyricsEl.classList.toggle('on', on);
+}
+
+/* ── ボット（キーボードで dinobot と打つと切り替え）───────────
+   見本用。ゲーム本体と同じ「到達可能な状態」で先を読み、
+   待てるうちは待って、待てなくなったら跳ぶ。                  */
+const BOT_CODE = 'dinobot';
+let botBuf = '', botOn = false;
+
+function survivesSeq(start, spans) {
+  let cur = start, pe = 0;
+  for (const sp of spans) {
+    cur = passThrough(cur, Math.max(0, sp.a - pe), sp.b - sp.a, sp.band);
+    if (!cur.size) return false;
+    pe = Math.max(pe, sp.b);
+  }
+  return true;
+}
+
+function botThink() {
+  if (!botOn || state.mode !== 'playing' || !state.onGround) return;
+  const mv = state.speed * SPD();
+  const cw = img.run_01.width * CFG.charScale;
+  const cL = 150 - cw / 2 + cw * 0.22, cR = cL + cw * 0.56;
+  const M = 0.18;
+
+  const spans = [];
+  for (const o of state.obstacles) {
+    if (!o.deadly) continue;
+    const a = (o.x - (cR - o.w * M)) / mv;
+    const b2 = (o.x - (cL - o.w * (1 - M))) / mv;
+    if (b2 < 0 || a > 1.8) continue;            // 遠すぎる先は見ない（負荷対策）
+    spans.push({ a: Math.max(0, a), b: b2, band: bandOf(o) });
+  }
+  if (!spans.length) return;
+  spans.sort((x, y) => x.a - y.a);
+  spans.length = Math.min(spans.length, 3);
+
+  // 判定は 0.01 秒刻み、画面は 60fps なので、ぎりぎりを狙うと取りこぼす。
+  // 少しだけ早めに踏み切る
+  const F = 0.035;
+  const later = spans.map(sp => ({ a: Math.max(0, sp.a - F), b: sp.b - F, band: sp.band }))
+                     .filter(sp => sp.b > 0);
+  if (survivesSeq(new Set([-1]), later)) return;   // まだ待てる
+  if (survivesSeq(new Set([0]), spans)) jump();    // 待てないので跳ぶ
+}
+
+function setBot(on) {
+  botOn = on;
+  const el = document.getElementById('bot-tag');
+  el.hidden = !on;
+  if (on && state.mode === 'ready') jump();        // 見本なので勝手に始める
+}
+
+addEventListener('keydown', e => {
+  if (document.activeElement === nameEl) return;
+  if (!e.key || e.key.length !== 1) return;
+  botBuf = (botBuf + e.key.toLowerCase()).slice(-BOT_CODE.length);
+  if (botBuf === BOT_CODE) { botBuf = ''; setBot(!botOn); }
+});
 
 /* ── 更新 ─────────────────────────────────────────────── */
 function update(dt) {
@@ -697,7 +1053,9 @@ function draw() {
 function loop(now) {
   const dt = Math.min(0.05, (now - state.last) / 1000) || 0;
   state.last = now;
+  botThink();
   update(dt);
+  updateLyrics();
   draw();
   requestAnimationFrame(loop);
 }
@@ -705,12 +1063,19 @@ function loop(now) {
 load().then(() => {
   loading.classList.add('hide');
   fit();
+  state.reach = ALL_STATES();
   for (let i = 0; i < 4; i++) state.clouds.push(makeCloud(Math.random() * W));
   state.last = performance.now();
   requestAnimationFrame(loop);
 });
 
 // テスト用フック（本番動作には影響しない）
-window.__dino = { state: state, CFG: CFG, KINDS: KINDS, requiredGap: requiredGap, AIRTIME: AIRTIME, APEX: APEX };
+window.__dino = {
+  state: state, CFG: CFG, KINDS: KINDS, minVisualGap: minVisualGap,
+  AIRTIME: AIRTIME, APEX: APEX, solvable: solvable, passThrough: passThrough,
+  advance: advance, filterSafe: filterSafe, ALL_STATES: ALL_STATES, MIN_CHOICES: MIN_CHOICES,
+  tryPlace: tryPlace,
+  collisionBand: collisionBand, overlapSpan: overlapSpan, jumpYAt: jumpYAt,
+};
 })();
 </script>
