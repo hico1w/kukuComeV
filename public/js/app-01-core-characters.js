@@ -321,8 +321,6 @@ bgClearBtn?.addEventListener('click', async () => {
   const h = localStorage.getItem('hash')   || '';
   document.getElementById('apikey').value = k;
   document.getElementById('hash').value   = h;
-  apikey = k;
-  hash   = h;
 })();
 
 // ── サーバー側永続化ヘルパー ─────────────────────────────────────────
@@ -424,8 +422,8 @@ function applyCharFontSizes() {
   r.setProperty('--fs-bubble',     charFontSizes.bubble + 'px');
 }
 applyCharFontSizes();
-let apikey    = '';
-let hash      = '';
+let apikey    = localStorage.getItem('apikey') || '';
+let hash      = localStorage.getItem('hash')   || '';
 let petGachaDrumAudio = null;
 let dragState      = null;
 let trashDragState = null;
