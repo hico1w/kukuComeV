@@ -613,7 +613,14 @@ a.link-item:hover { opacity: .5; }
 .up-close:hover { color: #111; transform: rotate(90deg); }
 .up-close svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; }
 
-/* LIVE badge */
+/* LIVE title + badge */
+.live-title {
+  display: none; font-size: 11px; color: #555;
+  max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.live-title.on { display: block; }
+
+
 .live-badge {
   display: none; align-items: center; gap: 5px;
   background: #e53935; color: #fff;
@@ -780,6 +787,7 @@ body.screensaver #footer      { opacity: 0; pointer-events: none; }
     <li><a href="#tab-info">About</a></li>
     <li><a href="#" id="open-kuku">kukuCome</a></li>
   </ul>
+  <span class="live-title" id="live-title"></span>
   <a href="https://live.erinn.biz/u/x" target="_blank" rel="noopener" class="live-badge" id="live-badge" aria-label="配信中">LIVE</a>
   <button class="hd-upload-btn" id="open-upload" aria-label="キャラ画像をアップロード">Upload</button>
   <div class="hd-lang">
@@ -1734,12 +1742,15 @@ ssOver.addEventListener('touchstart', exitSS, {passive:true});
 (function(){
   const WORKER = 'https://kukucome-chara-worker.chikamakoo.workers.dev';
   const badge  = document.getElementById('live-badge');
+  const title  = document.getElementById('live-title');
   async function check() {
     try {
       const r = await fetch(WORKER + '/live-status');
       const d = await r.json();
       badge.classList.toggle('on', !!d.live);
-      if (d.live && d.url) badge.href = d.url;
+      title.classList.toggle('on', !!d.live);
+      if (d.live && d.url)   badge.href = d.url;
+      if (d.live && d.title) title.textContent = d.title;
     } catch {}
   }
   check();

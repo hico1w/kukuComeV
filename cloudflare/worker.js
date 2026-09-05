@@ -179,7 +179,7 @@ export default {
         const streams = Array.isArray(data.live) ? data.live : [];
         const stream = streams.find(s => s.profile_page === 'https://live.erinn.biz/u/x');
         return json(
-          stream ? { live: true, url: stream.url } : { live: false },
+          stream ? { live: true, url: stream.url, title: stream.title || '' } : { live: false },
           200, { ...cors, 'Cache-Control': 'public, max-age=60' }
         );
       } catch {
