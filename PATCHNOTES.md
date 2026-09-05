@@ -19,6 +19,21 @@
 - 参考: アニメ画像を原本配信するようになったことによる増分は、`85a6b.png` が 5,463→51,178バイト、`1788613801024-zta1v15.png`（APNG 400x266・52コマ・20.8秒ループ）が 82,237→1,890,156バイト。いずれも初回のみで、以降は 304（本文なし）
 
 ---
+## v2.903.0 — 2026-09-05
+
+### chore: 使われていない単独アップロードページ `upload.html` を削除
+
+キャラアップロードはギャラリー（`index.html`）のモーダルに一本化されており、単独ページは使われていないため削除。
+
+- **削除**: `cloudflare/pages/upload.html`（公開中だった `/upload`）、`cloudflare/upload.html`（Pages 移行前の旧コピー）
+- **依存関係の確認**: リポジトリ全体（html/js/md/json/toml/yml）を検索し、`href` / `location` / `window.open` からの参照が**ゼロ**であることを確認済み。ギャラリーの Upload ボタンは同一ページ内のモーダルを開くだけ
+- **紛らわしい点**: `fetch(WORKER_URL + '/upload')` は Worker の API エンドポイントであり、削除したページとは別物。`index.html` と `puru.html` が使っているので **Worker 側の `/upload` は残す**
+- **`/upload` は 404 にならない**: Cloudflare Pages は未知のパスに `index.html` を返すため、直リンクを踏むとギャラリーが表示される（旧ページの内容は消えている）
+- **ハマりどころ**: `wrangler pages deploy` は**カレントの git ブランチ名を拾う**ため、作業ブランチ上で実行すると Production ではなく **Preview 環境**にデプロイされる。本番に上げるときは **`--branch=main` を明示**すること（今回これで一度 Preview に入った）
+- **デプロイ**: 本番 `9f748567`。`/` `/puru` `/upload-admin` の生存とモーダルの表記を実 URL で確認済み
+
+---
+
 ## v2.902.0 — 2026-09-05
 
 ### fix: WebP除外・1MB制限の修正漏れ（実際に見えている画面は index.html のモーダルだった）
