@@ -2,6 +2,46 @@
 
 ---
 
+## v2.904.0 — 2026-09-06
+
+### feat: サイトに PATCHNOTES ページを追加（ヘッダー共有＋左からスライド）
+
+https://kukucome-chara.pages.dev/ に、PATCHNOTES.md を読める一覧ページを追加。arkreis.jp の WORKS セクションのような全幅リスト形式。
+
+#### 表示
+
+- **`cloudflare/pages/index.html`** にビュー `#pn-view` を追加。ヘッダー（60px）はそのまま残し、**その下の領域だけを左から `translateX(-100%)` → `0` でスライド**させる（mimeyoi.co のようにヘッダーを共有したまま遷移させるため）
+- 一覧の1行 = PATCHNOTES.md の `##` 行1件。行のタイトルにはその版の最初の `###` を出す
+- 行をクリックすると本文をアコーディオンで展開。`grid-template-rows: 0fr → 1fr` で高さを測らずにアニメする
+- URL は `history.pushState` で `/patchnotes` に変える。Cloudflare Pages は未知パスに index.html を返すので、**直接 `/patchnotes` を開いても一覧が開く**。ブラウザの戻る／進む（popstate）と Esc にも対応
+- ヘッダーの他のリンク（Top / Gallery / About / kukuCome / ロゴ）を押すと閉じる
+
+#### 右下の画像
+
+- 行を開くたびに `public/saitoImg` の画像を右下に1枚出す。**テキストより後ろ**に置くため、`#pn-art` を `z-index: 0`、本文側 `#pn-scroll` を `z-index: 1` にしている
+- 画像は `#pn-view`（`transform` を持つ＝`position: fixed` の基準になってしまう）の直下に `position: absolute` で置き、スクロールする `#pn-scroll` とは別レイヤーにして右下に固定
+- 左上に向かって薄くなる `mask-image` と `opacity: .62` で、重なった文字が読めるようにしている
+
+#### データの作り方（重要）
+
+- **`scripts/build-patchnotes.js`**: PATCHNOTES.md → `cloudflare/pages/patchnotes.json`（946版 / 811KB）。`- ` 箇条書き・`####`・`**太字**`・`` `code` ``・リンク・コードフェンスだけを変換する最小の実装
+- **`scripts/build-saito-img.js`**: `public/saitoImg` の PNG 150枚（25MB）を幅560px の webp に変換して `cloudflare/pages/img-saito/` へ（11.2MB）。一覧を出すための `manifest.json` も書く
+- **ページは PATCHNOTES.md を直接読まない。** md を更新したら `node scripts/build-patchnotes.js` を実行してからデプロイしないと、サイト側が古いままになる
+- 本文HTMLは行を開いた瞬間に初めて差し込む（811KB分を最初に全部パースすると重いため）
+
+#### ついでに直したもの
+
+- **JA/EN 切り替えを削除**（`.hd-lang`）。機能していなかったため、マークアップと CSS の両方を削除
+- ヘッダーのナビが5項目になり、狭い画面で右にはみ出す量が増えた（右端 429px → 442px）。`@media (max-width: 900px)` で `.hd-nav` の間隔と文字サイズを詰め、**変更前と同じ幅（429px）に戻した**
+- なお、このヘッダーは元から 390px 幅に収まっていない（`window.innerWidth` が 469 に広がる）。これは今回の変更以前からの状態で、手は入れていない
+- v2.902.0 の本文に実際の改行が混入していて markdown が壊れていたので1行に修正
+
+#### 動作確認
+
+- Playwright（Chromium）で実際に操作して確認: ナビが `Top / Gallery / About / kukuCome / Patchnotes` で JA/EN が消えていること、946行が並ぶこと、行を開くと本文が出ること、開くたびに右下の画像が入れ替わること（`z-index` は画像0・本文1）、直接 `/patchnotes` を開いても開くこと、モバイル幅で横スクロールが出ないこと、コンソールエラーが無いこと
+
+---
+
 ## v2.903.0 — 2026-09-05
 
 ### chore: 使われていない単独アップロードページ `upload.html` を削除
@@ -26,9 +66,7 @@ v2.899.0 / v2.900.0 で `cloudflare/pages/upload.html` を直したが、**ユ�
 - **`cloudflare/pages/index.html`**: モーダル側に同じ修正を適用（`accept` から webp 除外＋`image/apng` 追加、`.up-drop-hint` を「PNG · APNG · JPG · GIF ／ 最大 1 MB」、注意事項2行、`setFile()` の MIME 判定とサイズ上限 `2*1024*1024` → `1*1024*1024`）
 - **`cloudflare/pages/puru.html`**: 同じ Worker の `/upload` に投げる別入口なので同様に修正。放置すると表示と Worker 側の実挙動がズレる
 - **`public/admin.html` / `public/help.html`** の WebP 記述は配信者がローカルの `public/chara/` から割り当てる別機能の説明なので**対象外**（今回の視聴者アップロードとは経路が違う）
-- **作業ミスの記録**: Python の `io.open(p,'w')` で書き戻したため index.html / puru.html が全行 CRLF に変換され、`wrangler pages deploy` の差分が 3576 行・1188 行に膨らんだ。バイナリで `
-` → `
-` に戻して実変更6箇所のみに修正。**このリポジトリのファイルは LF なので、書き戻すときは `newline=''` かバイナリで扱うこと**
+- **作業ミスの記録**: Python の `io.open(p,'w')` で書き戻したため index.html / puru.html が全行 CRLF に変換され、`wrangler pages deploy` の差分が 3576 行・1188 行に膨らんだ。バイナリで CRLF を LF に戻して実変更6箇所のみに修正。**このリポジトリのファイルは LF なので、書き戻すときは `newline=''` かバイナリで扱うこと**
 - **デプロイ**: `npx wrangler pages deploy pages --project-name=kukucome-chara` → デプロイ ID `b560b1b1`。`/` と `/puru` で表示を実際に取得して確認済み
 
 ---

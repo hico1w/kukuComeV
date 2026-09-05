@@ -152,15 +152,6 @@ button { cursor: pointer; background: none; border: none; font: inherit; color: 
   transition: color .18s;
 }
 .hd-nav a:hover, .hd-nav a.active { color: #111; }
-.hd-lang {
-  display: flex;
-  gap: 4px;
-  font-size: 10px;
-  letter-spacing: .16em;
-  color: #aaa;
-}
-.hd-lang .active { color: #111; }
-.hd-lang .sep { color: #ccc; }
 
 /* ── Hero (filmstrip, auto-scroll) ──────────────────────── */
 #hero {
@@ -763,6 +754,211 @@ body.screensaver #footer      { opacity: 0; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) {
   .hero-strip, .scroll-track-page, #ss-fullimg { animation: none; }
 }
+/* ナビ項目が5つになったぶん、狭い画面で詰める
+   （このヘッダーは元々 390px 幅で収まっておらず、Patchnotes 追加で
+     さらに広がってしまうため、増えた分だけ間隔を詰めて元の幅に戻す） */
+@media (max-width: 900px) {
+  .hd-nav { gap: 18px; }
+  .hd-nav a { font-size: 9px; letter-spacing: .14em; }
+}
+
+/* ── Patchnotes view ─────────────────────────────────────── */
+/* ヘッダー(60px)は共有したまま、その下の領域を左からスライドさせる */
+#pn-view {
+  position: fixed;
+  inset: 60px 0 0 0;
+  z-index: 150;
+  background: #fff;
+  overflow: hidden;
+  visibility: hidden;
+  transform: translateX(-100%);
+  transition: transform .72s cubic-bezier(.76,0,.24,1), visibility 0s linear .72s;
+  will-change: transform;
+}
+#pn-view.open {
+  visibility: visible;
+  transform: translateX(0);
+  transition: transform .72s cubic-bezier(.76,0,.24,1), visibility 0s;
+}
+body.pn-open { overflow: hidden; }
+
+/* 右下の装飾画像。#pn-scroll より z-index が下＝テキストの後ろに入る */
+#pn-art {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  width: min(42vw, 440px);
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+  transition: opacity .55s ease, transform .55s cubic-bezier(.22,1,.36,1);
+  transform: translateY(14px);
+  -webkit-mask-image: linear-gradient(to top left, #000 38%, rgba(0,0,0,.35) 72%, transparent 100%);
+          mask-image: linear-gradient(to top left, #000 38%, rgba(0,0,0,.35) 72%, transparent 100%);
+}
+#pn-art.show { opacity: .62; transform: none; }
+
+#pn-scroll {
+  position: relative;
+  z-index: 1;   /* 画像より前 */
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 40px 140px;
+}
+
+.pn-head-block {
+  padding: 72px 0 36px;
+  border-bottom: 1px solid #111;
+}
+.pn-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: clamp(40px, 7vw, 92px);
+  line-height: .95;
+  letter-spacing: .02em;
+}
+.pn-meta {
+  margin-top: 14px;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 10px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: #888;
+}
+
+/* ── list ── */
+#pn-list { list-style: none; }
+.pn-row { border-bottom: 1px solid #e2e2e2; }
+.pn-head {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 92px 1fr auto 28px;
+  align-items: baseline;
+  gap: 24px;
+  padding: 22px 4px;
+  text-align: left;
+  transition: background .25s ease, padding-left .25s ease;
+}
+.pn-head:hover { background: #f6f6f6; padding-left: 14px; }
+.pn-row.open .pn-head { background: #f6f6f6; }
+.pn-v {
+  font-size: 10px;
+  letter-spacing: .14em;
+  color: #aaa;
+  font-variant-numeric: tabular-nums;
+  transition: color .25s;
+}
+.pn-head:hover .pn-v, .pn-row.open .pn-v { color: #111; }
+.pn-t {
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #111;
+}
+.pn-d {
+  font-size: 10px;
+  letter-spacing: .14em;
+  color: #aaa;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pn-x {
+  justify-self: end;
+  font-size: 15px;
+  color: #bbb;
+  line-height: 1;
+  transition: transform .35s cubic-bezier(.76,0,.24,1), color .25s;
+}
+.pn-row.open .pn-x { transform: rotate(45deg); color: #111; }
+
+/* 開閉。grid-template-rows の 0fr→1fr で高さを測らずにアニメする */
+.pn-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows .55s cubic-bezier(.76,0,.24,1);
+}
+.pn-row.open .pn-body { grid-template-rows: 1fr; }
+.pn-body-in { overflow: hidden; }
+.pn-body-pad {
+  padding: 4px 4px 34px calc(92px + 24px);
+  max-width: 900px;
+  font-size: 13px;
+  line-height: 1.95;
+  color: #444;
+}
+.pn-body-pad > :first-child { margin-top: 0; }
+.pn-body-pad p { margin: 0 0 12px; }
+.pn-body-pad h4 {
+  margin: 20px 0 8px;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: #111;
+}
+.pn-body-pad ul { margin: 0 0 12px; padding-left: 1.15em; list-style: none; }
+.pn-body-pad ul ul { margin: 4px 0 4px; }
+.pn-body-pad li { position: relative; margin: 0 0 5px; }
+.pn-body-pad > ul > li::before {
+  content: '—';
+  position: absolute;
+  left: -1.15em;
+  color: #ccc;
+}
+.pn-body-pad ul ul > li::before {
+  content: '·';
+  position: absolute;
+  left: -1.15em;
+  color: #ccc;
+}
+.pn-body-pad strong { font-weight: 400; color: #111; }
+.pn-body-pad code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .88em;
+  background: #f1f1f1;
+  padding: .12em .4em;
+  border-radius: 3px;
+  color: #111;
+  word-break: break-word;
+}
+.pn-body-pad pre {
+  background: #f7f7f7;
+  border: 1px solid #ececec;
+  border-radius: 4px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  margin: 0 0 12px;
+}
+.pn-body-pad pre code { background: none; padding: 0; font-size: 12px; line-height: 1.7; }
+.pn-body-pad a { border-bottom: 1px solid #ccc; }
+.pn-body-pad a:hover { border-bottom-color: #111; }
+.pn-empty { color: #bbb; }
+.pn-msg { padding: 40px 4px; color: #888; font-size: 13px; }
+
+@media (max-width: 720px) {
+  #pn-scroll { padding: 0 20px 120px; }
+  .pn-head-block { padding: 44px 0 26px; }
+  .pn-head {
+    grid-template-columns: 1fr 20px;
+    gap: 4px 12px;
+    padding: 18px 2px;
+  }
+  .pn-v  { grid-column: 1; order: 1; }
+  .pn-x  { grid-column: 2; grid-row: 1 / span 3; align-self: center; }
+  .pn-t  { grid-column: 1; order: 2; font-size: 14px; }
+  .pn-d  { grid-column: 1; order: 3; }
+  .pn-head:hover { padding-left: 2px; }
+  .pn-body-pad { padding-left: 2px; }
+  #pn-art { width: 62vw; }
+  #pn-art.show { opacity: .42; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #pn-view, .pn-body, .pn-x, #pn-art, .pn-head { transition: none; }
+}
 </style>
 </head>
 <body>
@@ -790,16 +986,29 @@ body.screensaver #footer      { opacity: 0; pointer-events: none; }
     <li><a href="#gallery">Gallery</a></li>
     <li><a href="#tab-info">About</a></li>
     <li><a href="#" id="open-kuku">kukuCome</a></li>
+    <li><a href="/patchnotes" id="open-pn">Patchnotes</a></li>
   </ul>
   <div class="hd-live">
     <a class="live-title" id="live-title" href="#" target="_blank" rel="noopener"></a>
     <a href="https://live.erinn.biz/u/x" target="_blank" rel="noopener" class="live-badge" id="live-badge" aria-label="配信中">LIVE</a>
   </div>
   <button class="hd-upload-btn" id="open-upload" aria-label="キャラ画像をアップロード">Upload</button>
-  <div class="hd-lang">
-    <span class="active">JA</span><span class="sep">/</span><span>EN</span>
-  </div>
 </header>
+
+<!-- PATCHNOTES view（ヘッダーを共有し、その下だけを左からスライドさせる） -->
+<section id="pn-view" aria-hidden="true" aria-label="パッチノート">
+  <img id="pn-art" alt="" aria-hidden="true">
+  <div id="pn-scroll">
+    <div class="pn-head-block">
+      <h1 class="pn-title">Patchnotes</h1>
+      <div class="pn-meta">
+        <span id="pn-count"></span>
+        <span id="pn-latest"></span>
+      </div>
+    </div>
+    <ol id="pn-list"></ol>
+  </div>
+</section>
 
 <!-- kukuCome overlay panel -->
 <div id="kuku-backdrop" aria-hidden="true"></div>
@@ -1783,6 +1992,142 @@ function updateClock(){
 }
 updateClock();
 setInterval(updateClock,1000);
+</script>
+<script>
+/* ── Patchnotes ───────────────────────────────────────────
+   PATCHNOTES.md → scripts/build-patchnotes.js → ./patchnotes.json を読む。
+   md を更新したらビルドし直さないとここは古いまま。               */
+(function () {
+  const view    = document.getElementById('pn-view');
+  const scroll  = document.getElementById('pn-scroll');
+  const listEl  = document.getElementById('pn-list');
+  const artEl   = document.getElementById('pn-art');
+  const countEl = document.getElementById('pn-count');
+  const latestEl= document.getElementById('pn-latest');
+  const navLink = document.getElementById('open-pn');
+  const PATH    = '/patchnotes';
+
+  let items = null, imgs = [], loading = false, artN = 0;
+
+  const isPnPath = () => location.pathname.replace(/\/+$/, '') === PATH;
+
+  /* ---- 右下の画像。行を開くたびに次の1枚へ ---- */
+  function nextArt() {
+    if (!imgs.length) return;
+    const src = './img-saito/' + imgs[artN++ % imgs.length];
+    const pre = new Image();
+    pre.onload = () => { artEl.src = src; artEl.classList.add('show'); };
+    pre.onerror = () => { artEl.classList.remove('show'); };
+    artEl.classList.remove('show');
+    pre.src = src;
+  }
+
+  function loadImgs() {
+    fetch('./img-saito/manifest.json')
+      .then(r => r.ok ? r.json() : [])
+      .then(a => {
+        imgs = Array.isArray(a) ? a.slice() : [];
+        for (let i = imgs.length - 1; i > 0; i--) {      // 毎回同じ順だと単調なので混ぜる
+          const j = Math.floor(Math.random() * (i + 1));
+          [imgs[i], imgs[j]] = [imgs[j], imgs[i]];
+        }
+      })
+      .catch(() => { imgs = []; });
+  }
+
+  /* ---- 一覧を描画。本文は開いたときに初めて差し込む（811KBぶんの
+         HTMLを最初に全部パースすると重いため） ---- */
+  function render() {
+    const frag = document.createDocumentFragment();
+    items.forEach((it, i) => {
+      const li = document.createElement('li');
+      li.className = 'pn-row';
+      const head = document.createElement('button');
+      head.className = 'pn-head';
+      head.type = 'button';
+      head.setAttribute('aria-expanded', 'false');
+      head.innerHTML =
+        '<span class="pn-v"></span><span class="pn-t"></span>' +
+        '<span class="pn-d"></span><span class="pn-x">+</span>';
+      head.children[0].textContent = it.v;
+      head.children[1].textContent = it.title;
+      head.children[2].textContent = it.date;
+
+      const body = document.createElement('div');
+      body.className = 'pn-body';
+      body.innerHTML = '<div class="pn-body-in"><div class="pn-body-pad"></div></div>';
+
+      head.addEventListener('click', () => toggle(li, head, body, i));
+      li.appendChild(head);
+      li.appendChild(body);
+      frag.appendChild(li);
+    });
+    listEl.textContent = '';
+    listEl.appendChild(frag);
+    countEl.textContent = items.length + ' versions';
+    latestEl.textContent = 'Latest ' + items[0].v + ' / ' + items[0].date;
+  }
+
+  function toggle(li, head, body, i) {
+    const willOpen = !li.classList.contains('open');
+    if (willOpen) {
+      const pad = body.querySelector('.pn-body-pad');
+      if (!pad.dataset.filled) {
+        pad.innerHTML = items[i].html || '<p class="pn-empty">（このバージョンには記載がありません）</p>';
+        pad.dataset.filled = '1';
+      }
+      nextArt();
+    }
+    li.classList.toggle('open', willOpen);
+    head.setAttribute('aria-expanded', String(willOpen));
+  }
+
+  function loadData() {
+    if (items || loading) return;
+    loading = true;
+    listEl.innerHTML = '<li class="pn-msg">読み込み中…</li>';
+    fetch('./patchnotes.json')
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(d => { items = d.items || []; render(); })
+      .catch(e => {
+        listEl.innerHTML = '<li class="pn-msg">パッチノートを読み込めませんでした（' + e.message + '）</li>';
+      })
+      .finally(() => { loading = false; });
+  }
+
+  function openPn(push) {
+    if (view.classList.contains('open')) return;
+    view.classList.add('open');
+    view.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('pn-open');
+    document.querySelectorAll('.hd-nav a').forEach(a => a.classList.remove('active'));
+    navLink.classList.add('active');
+    if (push && !isPnPath()) history.pushState({ pn: 1 }, '', PATH);
+    if (!imgs.length) loadImgs();
+    loadData();
+  }
+
+  function closePn(push) {
+    if (!view.classList.contains('open')) return;
+    view.classList.remove('open');
+    view.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('pn-open');
+    navLink.classList.remove('active');
+    if (push && isPnPath()) history.pushState({}, '', '/');
+  }
+
+  navLink.addEventListener('click', e => { e.preventDefault(); openPn(true); });
+
+  /* ヘッダーの他のリンクを押したら閉じる（ヘッダーは共有しているため） */
+  document.querySelectorAll('.hd-nav a:not(#open-pn), .hd-logo').forEach(a => {
+    a.addEventListener('click', () => closePn(true));
+  });
+
+  window.addEventListener('popstate', () => { isPnPath() ? openPn(false) : closePn(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closePn(true); });
+
+  if (isPnPath()) openPn(false);
+})();
 </script>
 </body>
 </html>
