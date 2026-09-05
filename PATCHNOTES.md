@@ -2,6 +2,18 @@
 
 ---
 
+## v2.879.0 — 2026-09-05
+
+### feat: ステータス画面に預金MP（オリジナルポイント）表示
+
+- `app-03-boss-pets.js` : `updateStatsDisplay` に `🏦${user.op}` 行追加（MPの直下、`user.op` が設定済みの場合のみ表示）
+- `app-06-comment-handler.js` : `_loadOpOnce` 関数追加 — コメントの cnum を初回取得時に `/api/mypoint/get` でOP残高を取得し `user.op` へ格納
+- `_mypointDeposit` / `_mypointWithdraw` 成功後に `user.op = d.after` を更新してステータスに即反映
+- `server.js` : `GET /api/mypoint/get` エンドポイント追加（pid または hash+cnum 対応）
+- 配信ハッシュ未設定時は `_loadOpOnce` がスキップされ、OP行は非表示のまま
+
+---
+
 ## v2.878.0 — 2026-09-05
 
 ### feat: MPとオリジナルポイントの相互変換コマンド追加

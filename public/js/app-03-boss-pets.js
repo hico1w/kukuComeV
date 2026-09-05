@@ -322,6 +322,7 @@ function updateStatsDisplay(user) {
     titleHtml +
     `<span class="cs-row"><span class="cs-hpbar"><span class="cs-hpfill" style="width:${hpPct}%;background:${hpColor}"></span><span class="cs-hpnum">${hp}</span></span></span>` +
     `<span class="cs-row">💎${mp}</span>` +
+    (user.op != null ? `<span class="cs-row cs-op">🏦${user.op}</span>` : '') +
     `<span class="cs-row">⚔️${atk}</span>` +
     `<span class="cs-row">⭐${expToNext}</span>`;
   if (agruBattleActive) updateBattleGrayscale(user);

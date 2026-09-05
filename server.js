@@ -330,6 +330,19 @@ function _mypointIdQs(pid, h, cnum) {
   return null;
 }
 
+// GET /api/mypoint/get?hash=X&cnum=Y または ?pid=P
+app.get('/api/mypoint/get', async (req, res) => {
+  const apikey = _kukuluApikey();
+  if (!apikey) return res.status(503).json({ error: 'kukuluApikey 未設定' });
+  const { hash: h, cnum, pid } = req.query;
+  const qs = _mypointIdQs(pid, h, cnum);
+  if (!qs) return res.status(400).json({ error: 'pid または hash+cnum が必要' });
+  try {
+    const data = await fetchJSON(`https://live.erinn.biz/api/?category=comment&apikey=${encodeURIComponent(apikey)}&type=mypoint_list${qs}`);
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // POST /api/mypoint/deposit  { pid?, hash?, cnum, amount }
 // ゲーム内MPを渡してオリジナルポイントを増やす
 app.post('/api/mypoint/deposit', async (req, res) => {

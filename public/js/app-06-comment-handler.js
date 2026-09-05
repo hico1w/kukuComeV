@@ -106,6 +106,24 @@ function resolveColor(v) {
 // ──────────────────────────────────────────────────────────────────
 // kukuluLIVE オリジナルポイント預け/引き出し
 // ──────────────────────────────────────────────────────────────────
+function _loadOpOnce(user, cnum) {
+  if (user.opLoaded || !hash || !cnum) return;
+  user.opLoaded = true;
+  const params = user.pid
+    ? `pid=${encodeURIComponent(user.pid)}`
+    : `hash=${encodeURIComponent(hash)}&cnum=${encodeURIComponent(cnum)}`;
+  fetch(`/api/mypoint/get?${params}`)
+    .then(r => r.json())
+    .then(d => {
+      const entry = Array.isArray(d.users) && d.users[0];
+      if (!entry) return;
+      user.op = entry.point ?? null;
+      if (entry.pid) user.pid = entry.pid;
+      updateStatsDisplay(user);
+    })
+    .catch(() => {});
+}
+
 function _mypointDeposit(user, amount, cnum) {
   if (!hash) { showBubble(user, `❌ 配信ハッシュ未設定`, {}); return; }
   if ((user.mp ?? 0) < amount) { showBubble(user, `MP不足… (${user.mp ?? 0}/${amount})`, {}); return; }
@@ -117,7 +135,9 @@ function _mypointDeposit(user, amount, cnum) {
     .then(r => r.json()).then(d => {
       if (d.ok) {
         if (d.pid) user.pid = d.pid;
-        showBubble(user, `💰 ${amount}MP を預けた！(OP: ${d.after})`, {});
+        user.op = d.after;
+        updateStatsDisplay(user);
+        showBubble(user, `💰 ${amount}MP を預けた！(預金: ${d.after})`, {});
       } else {
         user.mp += amount;
         updateStatsDisplay(user);
@@ -134,6 +154,7 @@ function _mypointWithdraw(user, amount, cnum) {
     .then(r => r.json()).then(d => {
       if (d.ok) {
         if (d.pid) user.pid = d.pid;
+        user.op = d.after;
         user.mp += amount;
         updateStatsDisplay(user);
         showBubble(user, `💎 ${amount}OP 引き出し！(+${amount}MP)`, {});
@@ -152,6 +173,7 @@ function handleComment(comment) {
   const type  = comment.type || 'comment';
   const ipid  = comment.ipid || comment.from || 'master';
   const user  = getUser(ipid);
+  if (comment.cnum) _loadOpOnce(user, String(comment.cnum));
   if (comment.from === 'master') user.isMaster = true;
   // icon_num がある場合はセーブキーを更新し、icon_numキーの既存セーブでキャラを上書き
   if (comment.icon_num) {
