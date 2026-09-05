@@ -2017,9 +2017,16 @@ app.get('/chara-s/:filename', async (req, res) => {
     const halfW = Math.max(1, Math.round(meta.width / 2));
     const s = sharp(filepath).resize(halfW);
 
-    // PNG/JPEG/WebP はすべて WebP で返す（圧縮率向上・透過保持）
-    const buf = await s.webp({ quality: 85 }).toBuffer();
-    const ct = 'image/webp';
+    let buf, ct;
+    if (ext === '.png') {
+      buf = await s.png().toBuffer(); ct = 'image/png';
+    } else if (ext === '.jpg' || ext === '.jpeg') {
+      buf = await s.jpeg({ quality: 85 }).toBuffer(); ct = 'image/jpeg';
+    } else if (ext === '.webp') {
+      buf = await s.webp({ quality: 85 }).toBuffer(); ct = 'image/webp';
+    } else {
+      return res.sendFile(filepath);
+    }
 
     _charaSCache.set(filename, { buf, ct });
     res.setHeader('Content-Type', ct);
