@@ -104,6 +104,46 @@ function resolveColor(v) {
 }
 
 // ──────────────────────────────────────────────────────────────────
+// kukuluLIVE オリジナルポイント預け/引き出し
+// ──────────────────────────────────────────────────────────────────
+function _mypointDeposit(user, amount, cnum) {
+  if (!hash) { showBubble(user, `❌ 配信ハッシュ未設定`, {}); return; }
+  if ((user.mp ?? 0) < amount) { showBubble(user, `MP不足… (${user.mp ?? 0}/${amount})`, {}); return; }
+  user.mp -= amount;
+  updateStatsDisplay(user);
+  showBubble(user, `⏳ ${amount}MP 預け中…`, {});
+  const body = user.pid ? { pid: user.pid, amount } : { hash, cnum, amount };
+  fetch('/api/mypoint/deposit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    .then(r => r.json()).then(d => {
+      if (d.ok) {
+        if (d.pid) user.pid = d.pid;
+        showBubble(user, `💰 ${amount}MP を預けた！(OP: ${d.after})`, {});
+      } else {
+        user.mp += amount;
+        updateStatsDisplay(user);
+        showBubble(user, `❌ ${d.error || '預け失敗'}`, {});
+      }
+    }).catch(() => { user.mp += amount; updateStatsDisplay(user); showBubble(user, `❌ 通信エラー`, {}); });
+}
+
+function _mypointWithdraw(user, amount, cnum) {
+  if (!hash) { showBubble(user, `❌ 配信ハッシュ未設定`, {}); return; }
+  showBubble(user, `⏳ ${amount}OP 引き出し中…`, {});
+  const body = user.pid ? { pid: user.pid, amount } : { hash, cnum, amount };
+  fetch('/api/mypoint/withdraw', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    .then(r => r.json()).then(d => {
+      if (d.ok) {
+        if (d.pid) user.pid = d.pid;
+        user.mp += amount;
+        updateStatsDisplay(user);
+        showBubble(user, `💎 ${amount}OP 引き出し！(+${amount}MP)`, {});
+      } else {
+        showBubble(user, `❌ ${d.error || '引き出し失敗'}`, {});
+      }
+    }).catch(() => showBubble(user, `❌ 通信エラー`, {}));
+}
+
+// ──────────────────────────────────────────────────────────────────
 // コメント処理
 // ──────────────────────────────────────────────────────────────────
 function handleComment(comment) {
@@ -402,6 +442,14 @@ function handleComment(comment) {
           });
       }
     }
+  }
+
+  // ── オリジナルポイント預け/引き出し ──
+  {
+    const depM = trimmedMsg.match(/^MPを預ける[：:]\s*(\d+)$/);
+    const witM = trimmedMsg.match(/^MPを引き出す[：:]\s*(\d+)$/);
+    if (depM) { _mypointDeposit(user, parseInt(depM[1], 10), String(comment.cnum || '')); return; }
+    if (witM) { _mypointWithdraw(user, parseInt(witM[1], 10), String(comment.cnum || '')); return; }
   }
 
   // ── ボスアゲルバトル攻撃 ──

@@ -2,6 +2,20 @@
 
 ---
 
+## v2.878.0 — 2026-09-05
+
+### feat: MPとオリジナルポイントの相互変換コマンド追加
+
+- `app-06-comment-handler.js` : `_mypointDeposit` / `_mypointWithdraw` ヘルパー関数追加
+- コマンド `MPを預ける：N` — ゲーム内MPをN減らしてOPをN増やす（サーバー経由）
+- コマンド `MPを引き出す：N` — OPをN減らしてゲーム内MPをN増やす（OP残高確認→失敗時はMP返還）
+- `server.js` : `POST /api/mypoint/deposit` / `POST /api/mypoint/withdraw` エンドポイント追加
+  - 両エンドポイントとも `mypoint_list` で現在残高を取得してから `mypoint_change` で絶対値を設定
+  - 識別: `pid` 優先、なければ `hash + cnum` を使用
+- 配信ハッシュ未入力時はバブルにエラー表示
+
+---
+
 ## v2.875.0 — 2026-09-05
 
 ### feat: kukuCome ナビリンクを上スライドパネルに変更 (Cloudflare Pages)

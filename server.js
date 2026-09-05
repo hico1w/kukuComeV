@@ -316,6 +316,68 @@ app.get('/api/raw', async (req, res) => {
   }
 });
 
+// ── kukuluLIVE オリジナルポイント変換 ──────────────────────────────
+function _kukuluApikey() {
+  try {
+    const s = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'secrets.json'), 'utf8'));
+    return s.kukuluApikey || '';
+  } catch { return ''; }
+}
+
+function _mypointIdQs(pid, h, cnum) {
+  if (pid)       return `&pid=${encodeURIComponent(pid)}`;
+  if (h && cnum) return `&hash=${encodeURIComponent(h)}&cnum=${encodeURIComponent(cnum)}`;
+  return null;
+}
+
+// POST /api/mypoint/deposit  { pid?, hash?, cnum, amount }
+// ゲーム内MPを渡してオリジナルポイントを増やす
+app.post('/api/mypoint/deposit', async (req, res) => {
+  const apikey = _kukuluApikey();
+  if (!apikey) return res.status(503).json({ error: 'kukuluApikey 未設定' });
+  const { hash: h, cnum, pid, amount } = req.body || {};
+  const amt = Math.round(Number(amount));
+  if (!amt || amt <= 0) return res.status(400).json({ error: '正の整数が必要' });
+  const qs = _mypointIdQs(pid, h, cnum);
+  if (!qs) return res.status(400).json({ error: 'pid または hash+cnum が必要' });
+  const base = `https://live.erinn.biz/api/?category=comment&apikey=${encodeURIComponent(apikey)}`;
+  try {
+    const got = await fetchJSON(`${base}&type=mypoint_list${qs}`);
+    const entry = Array.isArray(got.users) && got.users[0];
+    const current = entry ? (entry.point || 0) : 0;
+    const usePid = entry?.pid || null;
+    const changeQs = usePid ? `&pid=${encodeURIComponent(usePid)}` : qs;
+    await fetchJSON(`${base}&type=mypoint_change&point=${encodeURIComponent(current + amt)}${changeQs}`);
+    res.json({ ok: true, before: current, after: current + amt, pid: usePid });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/mypoint/withdraw  { pid?, hash?, cnum, amount }
+// オリジナルポイントを消費してゲーム内MPを増やす
+app.post('/api/mypoint/withdraw', async (req, res) => {
+  const apikey = _kukuluApikey();
+  if (!apikey) return res.status(503).json({ error: 'kukuluApikey 未設定' });
+  const { hash: h, cnum, pid, amount } = req.body || {};
+  const amt = Math.round(Number(amount));
+  if (!amt || amt <= 0) return res.status(400).json({ error: '正の整数が必要' });
+  const qs = _mypointIdQs(pid, h, cnum);
+  if (!qs) return res.status(400).json({ error: 'pid または hash+cnum が必要' });
+  const base = `https://live.erinn.biz/api/?category=comment&apikey=${encodeURIComponent(apikey)}`;
+  try {
+    const got = await fetchJSON(`${base}&type=mypoint_list${qs}`);
+    const entry = Array.isArray(got.users) && got.users[0];
+    if (!entry || !entry.pid) return res.status(400).json({ error: 'OPアカウントが見つかりません', current: 0 });
+    const current = entry.point || 0;
+    if (current < amt) return res.status(400).json({ error: `OP不足 (現在: ${current})`, current });
+    await fetchJSON(`${base}&type=mypoint_change&point=${encodeURIComponent(current - amt)}&pid=${encodeURIComponent(entry.pid)}`);
+    res.json({ ok: true, before: current, after: current - amt, pid: entry.pid });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ageru/oto/bgm フォルダの会話モードBGM一覧（ランダム再生用）
 app.get('/api/ageru-bgm', (req, res) => {
   const dir = path.join(__dirname, 'public', 'ageru', 'oto', 'bgm');
