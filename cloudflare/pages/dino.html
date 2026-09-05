@@ -320,6 +320,7 @@ const CFG = {
   speedRate: 1.005,       // 1秒あたり +0.5%
   gravity: 1200,          // 頂点150px / 滞空1.0秒 になる組み合わせ
   jumpV: 600,
+  dropV: 2600,            // 空中でもう一度押したときの落下速度（頂点150pxから約3フレームで着地）
   runFps: 10,
   jumpFps: 11,
   deadFps: 9,
@@ -632,7 +633,13 @@ function jump() {
   startBgm();
   if (state.mode === 'ready') { start(); return; }
   if (state.mode === 'over')  { reset(); return; }
-  if (state.mode !== 'playing' || !state.onGround) return;
+  if (state.mode !== 'playing') return;
+  if (!state.onGround) {
+    // 空中でもう一度押したら急降下してすぐ着地する。
+    // 「跳ぶのをやめられる」だけなので、避けられる配置が減ることはない
+    if (state.vy < CFG.dropV) state.vy = CFG.dropV;
+    return;
+  }
   state.vy = -CFG.jumpV;
   state.onGround = false;
   state.frame = 0; state.frameT = 0;
