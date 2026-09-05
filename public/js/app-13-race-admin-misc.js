@@ -1521,10 +1521,9 @@ function handleAdminMessage(d, replyFn) {
   } else if (d.type === 'giveMp') {
     const u = users[d.ipid];
     if (u) {
-      const delta = parseInt(d.amount) || 0;
-      u.mp = (u.mp ?? 0) + delta;
+      u.mp = parseInt(d.amount) || 0;
       updateStatsDisplay(u);
-      showBubble(u, `MP ${delta >= 0 ? '+' : ''}${delta}！（現在 ${u.mp} MP）`, {});
+      showBubble(u, `MP → ${u.mp}！`, {});
     }
   } else if (d.type === 'raceStart') {
     startRace(parseInt(d.numHorses)||5, parseInt(d.betSeconds)||60);
