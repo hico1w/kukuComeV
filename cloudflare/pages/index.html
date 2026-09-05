@@ -137,9 +137,10 @@ button { cursor: pointer; background: none; border: none; font: inherit; color: 
   display: block;
 }
 .hd-nav {
-  flex: 1;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  justify-content: center;
   list-style: none;
   gap: 36px;
 }
@@ -614,11 +615,14 @@ a.link-item:hover { opacity: .5; }
 .up-close svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; }
 
 /* LIVE title + badge */
+.hd-live { display: flex; align-items: center; gap: 1ch; margin-left: auto; }
 .live-title {
   display: none; font-size: 11px; color: #555;
   max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-decoration: none;
 }
 .live-title.on { display: block; }
+.live-title:hover { color: #111; }
 
 
 .live-badge {
@@ -787,8 +791,10 @@ body.screensaver #footer      { opacity: 0; pointer-events: none; }
     <li><a href="#tab-info">About</a></li>
     <li><a href="#" id="open-kuku">kukuCome</a></li>
   </ul>
-  <span class="live-title" id="live-title"></span>
-  <a href="https://live.erinn.biz/u/x" target="_blank" rel="noopener" class="live-badge" id="live-badge" aria-label="配信中">LIVE</a>
+  <div class="hd-live">
+    <a class="live-title" id="live-title" href="#" target="_blank" rel="noopener"></a>
+    <a href="https://live.erinn.biz/u/x" target="_blank" rel="noopener" class="live-badge" id="live-badge" aria-label="配信中">LIVE</a>
+  </div>
   <button class="hd-upload-btn" id="open-upload" aria-label="キャラ画像をアップロード">Upload</button>
   <div class="hd-lang">
     <span class="active">JA</span><span class="sep">/</span><span>EN</span>
@@ -1749,7 +1755,7 @@ ssOver.addEventListener('touchstart', exitSS, {passive:true});
       const d = await r.json();
       badge.classList.toggle('on', !!d.live);
       title.classList.toggle('on', !!d.live);
-      if (d.live && d.url)   badge.href = d.url;
+      if (d.live && d.url)   { badge.href = d.url; title.href = d.url; }
       if (d.live && d.title) title.textContent = d.title;
     } catch {}
   }
