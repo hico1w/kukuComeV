@@ -130,7 +130,7 @@ function _loadOpOnce(user, cnum) {
     .catch(() => {});
 }
 
-function _mypointDeposit(user, amount, cnum) {
+function _mypointDeposit(user, amount, cnum, commentNumber) {
   if ((user.mp ?? 0) < amount) { showBubble(user, `MP不足… (${user.mp ?? 0}/${amount})`, {}); return; }
   const b = _mypointBody(user, cnum);
   if (!b) { showBubble(user, `❌ cnum が取得できません`, {}); return; }
@@ -144,6 +144,8 @@ function _mypointDeposit(user, amount, cnum) {
         user.op = d.after;
         updateStatsDisplay(user);
         showBubble(user, `💰 ${amount}MP を預けた！(預金: ${d.after})`, {});
+        const anchor = commentNumber ? `>>${commentNumber} ` : '';
+        postAIReply(`${anchor}💰 ${amount}MPを預けました。預金MP: ${d.after}`);
       } else {
         user.mp += amount;
         updateStatsDisplay(user);
@@ -152,7 +154,7 @@ function _mypointDeposit(user, amount, cnum) {
     }).catch(() => { user.mp += amount; updateStatsDisplay(user); showBubble(user, `❌ 通信エラー`, {}); });
 }
 
-function _mypointWithdraw(user, amount, cnum) {
+function _mypointWithdraw(user, amount, cnum, commentNumber) {
   const b = _mypointBody(user, cnum);
   if (!b) { showBubble(user, `❌ cnum が取得できません`, {}); return; }
   showBubble(user, `⏳ ${amount}OP 引き出し中…`, {});
@@ -164,6 +166,8 @@ function _mypointWithdraw(user, amount, cnum) {
         user.mp += amount;
         updateStatsDisplay(user);
         showBubble(user, `💎 ${amount}OP 引き出し！(+${amount}MP)`, {});
+        const anchor = commentNumber ? `>>${commentNumber} ` : '';
+        postAIReply(`${anchor}💎 ${amount}OPを引き出しました。預金MP: ${d.after}`);
       } else {
         showBubble(user, `❌ ${d.error || '引き出し失敗'}`, {});
       }
@@ -476,8 +480,8 @@ function handleComment(comment) {
   {
     const depM = trimmedMsg.match(/^MPを預ける[：:]\s*(\d+)$/);
     const witM = trimmedMsg.match(/^MPを引き出す[：:]\s*(\d+)$/);
-    if (depM) { _mypointDeposit(user, parseInt(depM[1], 10), String(comment.cnum || '')); return; }
-    if (witM) { _mypointWithdraw(user, parseInt(witM[1], 10), String(comment.cnum || '')); return; }
+    if (depM) { _mypointDeposit(user, parseInt(depM[1], 10), String(comment.cnum || ''), comment.number); return; }
+    if (witM) { _mypointWithdraw(user, parseInt(witM[1], 10), String(comment.cnum || ''), comment.number); return; }
   }
 
   // ── ボスアゲルバトル攻撃 ──
