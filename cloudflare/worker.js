@@ -140,6 +140,28 @@ export default {
         }
       }
 
+      // DELETE /admin/dino-ranking — ランキングから消す
+      //   { name, score } で1件、{ clear: true } で全消し
+      if (request.method === 'DELETE' && url.pathname === '/admin/dino-ranking') {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const cur = await getRankingRaw(env);
+          const next = body.clear
+            ? []
+            : cur.list.filter(e => !(e.name === body.name && Number(e.score) === Number(body.score)));
+          const res = await ghPut(
+            env, RANKING_PATH,
+            encodeContent(JSON.stringify(next, null, 1)),
+            body.clear ? 'dino ranking: clear' : `dino ranking: remove ${body.name} ${body.score}`,
+            cur.sha
+          );
+          if (!res.ok) return json({ error: 'GitHub ' + res.status }, 500, cors);
+          return json({ ok: true, removed: cur.list.length - next.length, ranking: next.map(({ ip, ...r }) => r) }, 200, cors);
+        } catch (e) {
+          return json({ error: e.message }, 500, cors);
+        }
+      }
+
       // GET /admin/image?key={filename} — GitHubからプライベート画像をプロキシ
       if (request.method === 'GET' && url.pathname === '/admin/image') {
         try {
@@ -168,6 +190,67 @@ export default {
           return new Response(e.message, { status: 500, headers: cors });
         }
       }
+    }
+
+    // ── DINO ハイスコアランキング ────────────────────────────────
+    // 保存先は _blocklist.json と同じ非公開リポジトリ（_dino_ranking.json）。
+    // 専用のKVなどは用意していないので、既存の置き場に合わせている。
+    if (url.pathname === '/dino-ranking') {
+      if (request.method === 'GET') {
+        const list = await getRanking(env);
+        return json({ ranking: list }, 200, { ...cors, 'Cache-Control': 'no-store' });
+      }
+
+      if (request.method === 'POST') {
+        let body;
+        try { body = await request.json(); } catch { return json({ error: 'JSON が不正です' }, 400, cors); }
+
+        // 名前: 15文字以内。改行や制御文字は落とす
+        const name = String(body.name ?? '')
+          .replace(/[\u0000-\u001f\u007f]/g, '')
+          .trim()
+          .slice(0, 15);
+        if (!name) return json({ error: '名前を入力してください' }, 400, cors);
+
+        const score = Math.floor(Number(body.score));
+        if (!Number.isFinite(score) || score < 0 || score > 9999999) {
+          return json({ error: 'スコアが不正です' }, 400, cors);
+        }
+
+        const entry = {
+          name,
+          score,
+          date: jstDate(),        // UTC のままだと深夜〜朝が前日になるので日本時間で持つ
+          ip,                                   // 荒らし対応用。GET では返さない
+        };
+
+        // 読み込み→追記→書き戻し。同時投稿で sha が衝突したら数回やり直す
+        let saved = null;
+        for (let i = 0; i < 4; i++) {
+          const cur = await getRankingRaw(env);
+          const next = cur.list.concat([entry])
+            .sort((a, b) => b.score - a.score || String(a.date).localeCompare(String(b.date)))
+            .slice(0, RANKING_MAX);
+          const res = await ghPut(
+            env, RANKING_PATH,
+            encodeContent(JSON.stringify(next, null, 1)),
+            `dino ranking: ${name} ${score}`,
+            cur.sha
+          );
+          if (res.ok) { saved = next; break; }
+          if (res.status !== 409 && res.status !== 422) {
+            return json({ error: '保存に失敗しました (' + res.status + ')' }, 500, cors);
+          }
+          await new Promise(r => setTimeout(r, 120 * (i + 1)));   // 競合。少し待って再試行
+        }
+        if (!saved) return json({ error: '混み合っています。少し待って再度お試しください' }, 503, cors);
+
+        const pub = saved.map(({ ip: _ip, ...rest }) => rest);
+        const rank = pub.findIndex(e => e.name === name && e.score === score) + 1;
+        return json({ ok: true, rank: rank || null, ranking: pub }, 200, cors);
+      }
+
+      return json({ error: 'Method not allowed' }, 405, cors);
     }
 
     // ── GET /live-status — kukuluLIVE 配信中チェック ──────────────
@@ -226,6 +309,39 @@ function decodeContent(b64) {
   const bytes = new Uint8Array(binaryStr.length);
   for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
   return new TextDecoder().decode(bytes);
+}
+
+// ── DINO ランキング (_dino_ranking.json) ──────────────────────────
+
+const RANKING_PATH = '_dino_ranking.json';
+
+/** 日本時間の YYYY-MM-DD */
+function jstDate() {
+  return new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+}
+
+const RANKING_MAX = 100;          // 保持する件数（表示はフロント側で絞る）
+
+// sha も一緒に返す。書き戻しの競合検出に使う
+async function getRankingRaw(env) {
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/contents/${RANKING_PATH}`,
+      { headers: ghHeaders(env), cf: { cacheTtl: 0 } }
+    );
+    if (!res.ok) return { list: [], sha: undefined };   // 未作成なら新規で作る
+    const data = await res.json();
+    const list = JSON.parse(decodeContent(data.content));
+    return { list: Array.isArray(list) ? list : [], sha: data.sha };
+  } catch {
+    return { list: [], sha: undefined };
+  }
+}
+
+// 公開用。IP は落とす
+async function getRanking(env) {
+  const { list } = await getRankingRaw(env);
+  return list.map(({ ip, ...rest }) => rest);
 }
 
 // ── Blocklist (_blocklist.json) ───────────────────────────────────
