@@ -357,7 +357,7 @@ app.post('/api/mypoint/deposit', async (req, res) => {
   try {
     const got = await fetchJSON(`${base}&type=mypoint_list${qs}`);
     const entry = Array.isArray(got.users) && got.users[0];
-    const current = entry ? (entry.point || 0) : 0;
+    const current = entry ? (parseInt(entry.point, 10) || 0) : 0;
     const usePid = entry?.pid || null;
     const changeQs = usePid ? `&pid=${encodeURIComponent(usePid)}` : qs;
     await fetchJSON(`${base}&type=mypoint_change&point=${encodeURIComponent(current + amt)}${changeQs}`);
@@ -382,7 +382,7 @@ app.post('/api/mypoint/withdraw', async (req, res) => {
     const got = await fetchJSON(`${base}&type=mypoint_list${qs}`);
     const entry = Array.isArray(got.users) && got.users[0];
     if (!entry || !entry.pid) return res.status(400).json({ error: 'OPアカウントが見つかりません', current: 0 });
-    const current = entry.point || 0;
+    const current = parseInt(entry.point, 10) || 0;
     if (current < amt) return res.status(400).json({ error: `OP不足 (現在: ${current})`, current });
     await fetchJSON(`${base}&type=mypoint_change&point=${encodeURIComponent(current - amt)}&pid=${encodeURIComponent(entry.pid)}`);
     res.json({ ok: true, before: current, after: current - amt, pid: entry.pid });
