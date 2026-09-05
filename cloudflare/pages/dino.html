@@ -206,6 +206,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
     <button class="bar-btn" id="btn-rank">Ranking</button>
     <button class="bar-btn" id="btn-bgm" aria-pressed="false">♪ BGM</button>
     <span class="bar-btn" id="bot-tag" hidden style="color:#ffd34d;border-color:#ffd34d">BOT</span>
+    <span class="bar-btn" id="muteki-tag" hidden style="color:#7ee6a0;border-color:#7ee6a0">無敵</span>
   </div>
 </div>
 
@@ -858,7 +859,8 @@ function updateLyrics() {
    見本用。ゲーム本体と同じ「到達可能な状態」で先を読み、
    待てるうちは待って、待てなくなったら跳ぶ。                  */
 const BOT_CODE = 'dinobot';
-let botBuf = '', botOn = false;
+const MUTEKI_CODE = 'mutekiman';   // デバッグ用。当たっても死ななくなる
+let keyBuf = '', botOn = false, muteki = false;
 
 function survivesSeq(start, spans) {
   let cur = start, pe = 0;
@@ -900,16 +902,21 @@ function botThink() {
 
 function setBot(on) {
   botOn = on;
-  const el = document.getElementById('bot-tag');
-  el.hidden = !on;
+  document.getElementById('bot-tag').hidden = !on;
   if (on && state.mode === 'ready') jump();        // 見本なので勝手に始める
+}
+
+function setMuteki(on) {
+  muteki = on;
+  document.getElementById('muteki-tag').hidden = !on;
 }
 
 addEventListener('keydown', e => {
   if (document.activeElement === nameEl) return;
   if (!e.key || e.key.length !== 1) return;
-  botBuf = (botBuf + e.key.toLowerCase()).slice(-BOT_CODE.length);
-  if (botBuf === BOT_CODE) { botBuf = ''; setBot(!botOn); }
+  keyBuf = (keyBuf + e.key.toLowerCase()).slice(-Math.max(BOT_CODE.length, MUTEKI_CODE.length));
+  if (keyBuf.endsWith(BOT_CODE))    { keyBuf = ''; setBot(!botOn); }
+  if (keyBuf.endsWith(MUTEKI_CODE)) { keyBuf = ''; setMuteki(!muteki); }
 });
 
 /* ── 更新 ─────────────────────────────────────────────── */
@@ -965,7 +972,10 @@ function update(dt) {
     o.x -= mv * dt;
     if (o.x + o.w < -60) { state.obstacles.splice(i, 1); continue; }
     if (!hit(box, o)) continue;
-    if (o.deadly) { die(); return; }
+    if (o.deadly) {
+      if (muteki) continue;          // デバッグ用の無敵。すり抜ける
+      die(); return;
+    }
     // カニ: 弾き飛ばす
     state.obstacles.splice(i, 1);
     state.flying.push({
