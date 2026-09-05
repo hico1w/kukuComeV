@@ -2,6 +2,27 @@
 
 ---
 
+## v2.905.0 — 2026-09-06
+
+### feat: サイトのファビコン（タブアイコン）を設定
+
+これまで `cloudflare/pages/` のどの HTML にも `<link rel="icon">` がなく、`favicon.ico` も置いていなかった。ブラウザが `/favicon.ico` を取りに行くと**未知パス→index.html のフォールバックで HTML が返り**（`Content-Type: text/html`）、画像として読めずタブは白いままだった。
+
+- **`scripts/build-favicon.js`** を追加。原本1枚から必要なサイズを全部書き出す
+  - `favicon.ico`（16/32/48 を1ファイルに格納）… PC のタブ・古い環境
+  - `favicon-32.png`（32x32）… 現行ブラウザのタブ
+  - `apple-touch-icon.png`（180x180）… iOS のホーム画面
+  - `icon-192.png` / `icon-512.png` … Android のホーム画面、PWA
+  - ICO は sharp が書けないので、ICONDIR + ICONDIRENTRY を自前で組んで PNG をそのまま格納している（ICO は PNG を格納できる）
+  - **`apple-touch-icon.png` だけ白地に焼いている。** iOS は透過部分を黒く塗るため、透過のまま渡すと黒い四角になる
+- **原本を `assets/favicon-src.png` に保存**（1254x1254 / 透過PNG）。作り直すときは `node scripts/build-favicon.js` を実行する
+- **`index.html` / `puru.html` / `upload-admin.html`** の3ページに `<link rel="icon">` を追加。パスは**絶対パス**にした（`/patchnotes` を直接開いたときも解決できるように）
+  - `puru.html` と `upload-admin.html` は `<head>` を持たず `<title>` から始まる書き方だったので、`<title>` の直前に挿入している
+- **確認**: Playwright で4ページとも `link[rel*=icon]` が3つ入っていることを確認。各ファイルを直接取得してマジックナンバーが ICO / PNG になっていること、自作 ICO の3エントリ（16/32/48）が宣言サイズと実データサイズで一致し、末尾に余りバイトが無いことを検証済み
+- **見え方**: 64px・32px は絵柄が判別できる。**16px では線が飛んでピンクの円形にしか見えない**（元絵が細い線画のため）。色で判別はできる状態
+
+---
+
 ## v2.904.0 — 2026-09-06
 
 ### feat: サイトに PATCHNOTES ページを追加（ヘッダー共有＋左からスライド）
