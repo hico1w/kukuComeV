@@ -109,11 +109,28 @@ function setStatus(type, text) { statusEl.textContent = text; statusEl.className
 // ──────────────────────────────────────────────────────────────────
 // コントロール
 // ──────────────────────────────────────────────────────────────────
-document.getElementById('startBtn').addEventListener('click', () => {
+// 配信番号(hash)を mylive/port_info から自動取得する
+// hash が無いと mypoint 系APIが cnum を無視して全員同じ口座を返すため必須
+async function autoFillHash() {
+  if (hash || !apikey) return;
+  try {
+    const d = await (await fetch(`/api/live-info?apikey=${encodeURIComponent(apikey)}`)).json();
+    if (d && d.hash) {
+      hash = String(d.hash);
+      const el = document.getElementById('hash');
+      if (el) el.value = hash;
+      localStorage.setItem('hash', hash);
+      addSystemLog(`📡 配信番号を自動取得: ${hash}`, '#4ade80');
+    }
+  } catch {}
+}
+
+document.getElementById('startBtn').addEventListener('click', async () => {
   apikey = document.getElementById('apikey').value.trim();
   hash   = document.getElementById('hash').value.trim();
   if (!apikey) { alert('APIキーを入力してください'); return; }
   localStorage.setItem('apikey', apikey);
+  await autoFillHash();
   localStorage.setItem('hash', hash);
   lastCnum = null;
   document.getElementById('startBtn').disabled = true;

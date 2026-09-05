@@ -316,7 +316,10 @@ app.get('/api/raw', async (req, res) => {
   }
 });
 
-// ── kukuluLIVE オリジナルポイント変換 ──────────────────────────────
+// ── kukuluLIVE オリジナルポイント管理 ────────────────────────────────
+// mypoint_list?hash=LIVE_NUMBER&cnum=COMMENT_CNUM でそのコメントを書いたユーザーのOP取得
+// mypoint_change?pid=POINT_ID&point=N でそのユーザーのOPを変更
+
 function _kukuluApikey() {
   try {
     const s = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'secrets.json'), 'utf8'));
@@ -324,71 +327,84 @@ function _kukuluApikey() {
   } catch { return ''; }
 }
 
-function _mypointIdQs(pid, h, cnum) {
-  if (pid)  return `&pid=${encodeURIComponent(pid)}`;
-  if (cnum) return (h ? `&hash=${encodeURIComponent(h)}` : '') + `&cnum=${encodeURIComponent(cnum)}`;
-  return null;
+const _KUKULU_BASE = () => {
+  const apikey = _kukuluApikey();
+  return apikey ? `https://live.erinn.biz/api/?category=comment&apikey=${encodeURIComponent(apikey)}` : null;
+};
+
+// 視聴者のOP残高と pid を取得（hash+cnum または pid で特定）
+// hash 無しで cnum だけ渡すと kukuluLIVE は cnum を無視して常に同一口座を返すため必ず両方要求する
+async function _fetchMypointEntry(base, pid, h, cnum) {
+  let qs;
+  if (pid)               qs = `&pid=${encodeURIComponent(pid)}`;
+  else if (h && cnum)    qs = `&hash=${encodeURIComponent(h)}&cnum=${encodeURIComponent(cnum)}`;
+  else throw new Error('pid、または hash と cnum の両方が必要です');
+  const got = await fetchJSON(`${base}&type=mypoint_list${qs}`);
+  return (Array.isArray(got.users) && got.users[0]) || null;
 }
 
-// GET /api/mypoint/get?hash=X&cnum=Y または ?pid=P
+// GET /api/mypoint/get?hash=H&cnum=C または ?pid=P
 app.get('/api/mypoint/get', async (req, res) => {
-  const apikey = _kukuluApikey();
-  if (!apikey) return res.status(503).json({ error: 'kukuluApikey 未設定' });
+  const base = _KUKULU_BASE();
+  if (!base) return res.status(503).json({ error: 'kukuluApikey 未設定' });
   const { hash: h, cnum, pid } = req.query;
-  const qs = _mypointIdQs(pid, h, cnum);
-  if (!qs) return res.status(400).json({ error: 'pid または cnum が必要' });
   try {
-    const data = await fetchJSON(`https://live.erinn.biz/api/?category=comment&apikey=${encodeURIComponent(apikey)}&type=mypoint_list${qs}`);
-    res.json(data);
+    const entry = await _fetchMypointEntry(base, pid, h, cnum);
+    if (!entry) return res.json({ users: [] });
+    res.json({ users: [entry] });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// POST /api/mypoint/deposit  { pid?, hash?, cnum, amount }
-// ゲーム内MPを渡してオリジナルポイントを増やす
+// POST /api/mypoint/deposit  { pid?, hash?, cnum?, amount }
 app.post('/api/mypoint/deposit', async (req, res) => {
-  const apikey = _kukuluApikey();
-  if (!apikey) return res.status(503).json({ error: 'kukuluApikey 未設定' });
+  const base = _KUKULU_BASE();
+  if (!base) return res.status(503).json({ error: 'kukuluApikey 未設定' });
   const { hash: h, cnum, pid, amount } = req.body || {};
   const amt = Math.round(Number(amount));
   if (!amt || amt <= 0) return res.status(400).json({ error: '正の整数が必要' });
-  const qs = _mypointIdQs(pid, h, cnum);
-  if (!qs) return res.status(400).json({ error: 'pid または cnum が必要' });
-  const base = `https://live.erinn.biz/api/?category=comment&apikey=${encodeURIComponent(apikey)}`;
+  if (!pid && !cnum) return res.status(400).json({ error: 'pid または cnum が必要' });
   try {
-    const got = await fetchJSON(`${base}&type=mypoint_list${qs}`);
-    const entry = Array.isArray(got.users) && got.users[0];
+    const entry = await _fetchMypointEntry(base, pid, h, cnum);
     const current = entry ? (parseInt(entry.point, 10) || 0) : 0;
-    const usePid = entry?.pid || null;
-    const changeQs = usePid ? `&pid=${encodeURIComponent(usePid)}` : qs;
-    await fetchJSON(`${base}&type=mypoint_change&point=${encodeURIComponent(current + amt)}${changeQs}`);
-    res.json({ ok: true, before: current, after: current + amt, pid: usePid });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    const usePid  = entry?.pid || null;
+    if (!usePid) return res.status(400).json({ error: 'ポイントIDが取得できません' });
+    const newPoint = current + amt;
+    const changeRes = await fetchJSON(`${base}&type=mypoint_change&point=${encodeURIComponent(newPoint)}&pid=${encodeURIComponent(usePid)}`);
+    if (changeRes.success !== 1) {
+      console.warn('[deposit] mypoint_change failed:', changeRes);
+      return res.status(500).json({ error: changeRes.error_display || changeRes.error || 'mypoint_change失敗' });
+    }
+    res.json({ ok: true, before: current, after: newPoint, pid: usePid });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// POST /api/mypoint/withdraw  { pid?, hash?, cnum, amount }
-// オリジナルポイントを消費してゲーム内MPを増やす
+// POST /api/mypoint/withdraw  { pid?, hash?, cnum?, amount }
 app.post('/api/mypoint/withdraw', async (req, res) => {
-  const apikey = _kukuluApikey();
-  if (!apikey) return res.status(503).json({ error: 'kukuluApikey 未設定' });
-  const { hash: h, cnum, pid, amount } = req.body || {};
-  const amt = Math.round(Number(amount));
-  if (!amt || amt <= 0) return res.status(400).json({ error: '正の整数が必要' });
-  const qs = _mypointIdQs(pid, h, cnum);
-  if (!qs) return res.status(400).json({ error: 'pid または cnum が必要' });
-  const base = `https://live.erinn.biz/api/?category=comment&apikey=${encodeURIComponent(apikey)}`;
+  const base = _KUKULU_BASE();
+  if (!base) return res.status(503).json({ error: 'kukuluApikey 未設定' });
+  const { hash: h, cnum, pid, amount, all } = req.body || {};
+  const reqAmt = all ? null : Math.round(Number(amount));
+  if (!all && (!reqAmt || reqAmt <= 0)) return res.status(400).json({ error: '正の整数が必要' });
+  if (!pid && !cnum) return res.status(400).json({ error: 'pid または cnum が必要' });
   try {
-    const got = await fetchJSON(`${base}&type=mypoint_list${qs}`);
-    const entry = Array.isArray(got.users) && got.users[0];
-    if (!entry || !entry.pid) return res.status(400).json({ error: 'OPアカウントが見つかりません', current: 0 });
+    const entry = await _fetchMypointEntry(base, pid, h, cnum);
+    if (!entry?.pid) return res.status(400).json({ error: '預金アカウントが見つかりません', current: 0 });
     const current = parseInt(entry.point, 10) || 0;
-    if (current < amt) return res.status(400).json({ error: `OP不足 (現在: ${current})`, current });
-    await fetchJSON(`${base}&type=mypoint_change&point=${encodeURIComponent(current - amt)}&pid=${encodeURIComponent(entry.pid)}`);
-    res.json({ ok: true, before: current, after: current - amt, pid: entry.pid });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    // all 指定時は取得した残高の全額を引き出す
+    const amt = all ? current : reqAmt;
+    if (amt <= 0) return res.status(400).json({ error: '預金がありません', current });
+    if (current < amt) return res.status(400).json({ error: `預金MP不足 (現在: ${current})`, current });
+    // kukuluLIVE は point=0 を受け付けない（error:1）ため必ず1以上を残す。
+    // 実際に引き出せた額は current - newPoint となり、応答の before/after から算出される
+    const newPoint = Math.max(1, current - amt);
+    if (newPoint >= current) return res.status(400).json({ error: '預金がありません', current });
+    const changeRes = await fetchJSON(`${base}&type=mypoint_change&point=${encodeURIComponent(newPoint)}&pid=${encodeURIComponent(entry.pid)}`);
+    if (changeRes.success !== 1) {
+      console.warn('[withdraw] mypoint_change failed:', changeRes);
+      return res.status(500).json({ error: changeRes.error_display || changeRes.error || 'mypoint_change失敗' });
+    }
+    res.json({ ok: true, before: current, after: newPoint, pid: entry.pid });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // ageru/oto/bgm フォルダの会話モードBGM一覧（ランダム再生用）

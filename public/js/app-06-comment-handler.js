@@ -108,11 +108,16 @@ const _commentNumMap = new Map();
 
 // ──────────────────────────────────────────────────────────────────
 // kukuluLIVE オリジナルポイント預け/引き出し
+//
+// 必ず hash（配信番号）+ cnum（コメントID）の両方でコメント主を特定する。
+// hash を省くと kukuluLIVE 側が cnum を無視して常に同一口座を返すため、
+// 全員の残高が同じに見え、全員の預け引き出しが同じ口座を操作してしまう。
+// pid はキャッシュしない（誤った pid を掴むと以降ずっと他人の口座を操作するため）。
+// OP残高は毎回APIから取得し、charSave には保存しない。
 // ──────────────────────────────────────────────────────────────────
 function _mypointBody(user, cnum) {
-  if (user.pid) return { pid: user.pid };
-  if (!cnum)    return null;
-  return hash ? { hash, cnum } : { cnum };
+  if (!hash || !cnum) return null;
+  return { hash, cnum };
 }
 
 function _loadOpOnce(user, cnum) {
@@ -127,26 +132,30 @@ function _loadOpOnce(user, cnum) {
       const entry = Array.isArray(d.users) && d.users[0];
       if (!entry) return;
       user.op = entry.point ?? null;
-      if (entry.pid) user.pid = entry.pid;
       updateStatsDisplay(user);
     })
     .catch(() => {});
 }
 
 function _mypointDeposit(user, amount, cnum, commentNumber) {
+  // タイマン参加者は預け入れ禁止。敗者は所持MP全額を失うため、
+  // 直前に預けて退避されると賭けが成立しなくなる
+  if (taimanState && (taimanState.challenger === user.ipid || taimanState.target === user.ipid)) {
+    showBubble(user, `⚔️ タイマン中は預けられません`, {});
+    return;
+  }
   if ((user.mp ?? 0) < amount) { showBubble(user, `MP不足… (${user.mp ?? 0}/${amount})`, {}); return; }
   const b = _mypointBody(user, cnum);
-  if (!b) { showBubble(user, `❌ cnum が取得できません`, {}); return; }
+  if (!b) { showBubble(user, `❌ 配信番号(hash)未設定のため利用できません`, {}); return; }
   user.mp -= amount;
   updateStatsDisplay(user);
   showBubble(user, `⏳ ${amount}MP 預け中…`, {});
   fetch('/api/mypoint/deposit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...b, amount }) })
     .then(r => r.json()).then(d => {
       if (d.ok) {
-        if (d.pid) user.pid = d.pid;
         user.op = d.after;
         updateStatsDisplay(user);
-        showBubble(user, `💰 ${amount}MP を預けた！(預金: ${d.after})`, {});
+        showBubble(user, `💰 ${amount}MP を預けた！(預金MP: ${d.after})`, {});
         const anchor = commentNumber ? `>>${commentNumber} ` : '';
         postAIReply(`${anchor}💰 ${amount}MPを預けました。預金MP: ${d.after}`);
       } else {
@@ -157,20 +166,23 @@ function _mypointDeposit(user, amount, cnum, commentNumber) {
     }).catch(() => { user.mp += amount; updateStatsDisplay(user); showBubble(user, `❌ 通信エラー`, {}); });
 }
 
-function _mypointWithdraw(user, amount, cnum, commentNumber) {
+// all=true のときは金額を指定せず、サーバー側が預金残高の全額を引き出す
+function _mypointWithdraw(user, amount, cnum, commentNumber, all = false) {
   const b = _mypointBody(user, cnum);
-  if (!b) { showBubble(user, `❌ cnum が取得できません`, {}); return; }
-  showBubble(user, `⏳ ${amount}OP 引き出し中…`, {});
-  fetch('/api/mypoint/withdraw', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...b, amount }) })
+  if (!b) { showBubble(user, `❌ 配信番号(hash)未設定のため利用できません`, {}); return; }
+  showBubble(user, all ? `⏳ 全額引き出し中…` : `⏳ ${amount}MP 引き出し中…`, {});
+  const payload = all ? { ...b, all: true } : { ...b, amount };
+  fetch('/api/mypoint/withdraw', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
     .then(r => r.json()).then(d => {
       if (d.ok) {
-        if (d.pid) user.pid = d.pid;
+        // 実際に引き出せた額はサーバーの残高差分を正とする（全額引き出し時は事前に金額が分からないため）
+        const got = (d.before ?? 0) - (d.after ?? 0);
         user.op = d.after;
-        user.mp += amount;
+        user.mp = (user.mp ?? 0) + got;
         updateStatsDisplay(user);
-        showBubble(user, `💎 ${amount}OP 引き出し！(+${amount}MP)`, {});
+        showBubble(user, `💎 ${got}MP 引き出し！(預金MP: ${d.after})`, {});
         const anchor = commentNumber ? `>>${commentNumber} ` : '';
-        postAIReply(`${anchor}💎 ${amount}OPを引き出しました。預金MP: ${d.after}`);
+        postAIReply(`${anchor}💎 ${got}MPを引き出しました。預金MP: ${d.after}`);
       } else {
         showBubble(user, `❌ ${d.error || '引き出し失敗'}`, {});
       }
@@ -184,7 +196,9 @@ function handleComment(comment) {
   if (comment.from === 'admin') return;
 
   const type  = comment.type || 'comment';
-  const ipid  = comment.ipid || comment.from || 'master';
+  const ipid  = comment.ipid || comment.pid ||
+                (comment.icon_num ? String(comment.icon_num) : null) ||
+                comment.from || 'master';
   const user  = getUser(ipid);
   if (comment.number != null) _commentNumMap.set(Number(comment.number), user);
   if (comment.cnum) _loadOpOnce(user, String(comment.cnum));
@@ -482,16 +496,35 @@ function handleComment(comment) {
 
   // ── オリジナルポイント預け/引き出し ──
   {
+    // 全額版（金額指定なし）を先に判定する
+    if (/^全MPを?預ける$/.test(trimmedMsg)) {
+      ensureCharOnStage(user);
+      const allMp = user.mp ?? 0;
+      if (allMp <= 0) { showBubble(user, `預けるMPがありません`, {}); return; }
+      _mypointDeposit(user, allMp, String(comment.cnum || ''), comment.number);
+      return;
+    }
+    if (/^全MPを?引き出す$/.test(trimmedMsg)) {
+      ensureCharOnStage(user);
+      _mypointWithdraw(user, 0, String(comment.cnum || ''), comment.number, true);
+      return;
+    }
     const depM = trimmedMsg.match(/^MPを預ける[：:]\s*(\d+)$/);
     const witM = trimmedMsg.match(/^MPを引き出す[：:]\s*(\d+)$/);
-    if (depM) { _mypointDeposit(user, parseInt(depM[1], 10), String(comment.cnum || ''), comment.number); return; }
-    if (witM) { _mypointWithdraw(user, parseInt(witM[1], 10), String(comment.cnum || ''), comment.number); return; }
-    const giveM = trimmedMsg.match(/^MPを渡す[：:]\s*(\d+)[：:]\s*(\d+)$/);
+    if (depM) { ensureCharOnStage(user); _mypointDeposit(user, parseInt(depM[1], 10), String(comment.cnum || ''), comment.number); return; }
+    if (witM) { ensureCharOnStage(user); _mypointWithdraw(user, parseInt(witM[1], 10), String(comment.cnum || ''), comment.number); return; }
+    const giveM = trimmedMsg.match(/^MPを渡す[：:]\s*(.+?)\s*[：:]\s*(\d+)$/);
     if (giveM) {
-      const targetNum = parseInt(giveM[1], 10);
+      ensureCharOnStage(user);
+      const targetKey = giveM[1].trim();
       const amount    = parseInt(giveM[2], 10);
-      const target = _commentNumMap.get(targetNum);
-      if (!target)        { showBubble(user, `❌ コメント${targetNum}のユーザーが見つかりません`, {}); return; }
+      let target;
+      if (/^\d+$/.test(targetKey)) {
+        target = _commentNumMap.get(parseInt(targetKey, 10));
+      } else {
+        target = Object.values(users).find(u => u.el && (u.name || '').includes(targetKey));
+      }
+      if (!target)        { showBubble(user, `❌ 「${targetKey}」のユーザーが見つかりません`, {}); return; }
       if (target === user) { showBubble(user, `❌ 自分には渡せません`, {}); return; }
       if ((user.mp ?? 0) < amount) { showBubble(user, `MP不足… (${user.mp ?? 0}/${amount})`, {}); return; }
       user.mp = (user.mp ?? 0) - amount;
@@ -1440,6 +1473,10 @@ function handleComment(comment) {
 }
 
 function stripPrefix(msg) {
-  return (msg ?? '').replace(/^\d+:\s*/, '').trim();
+  // 【】で囲まれた部分（コメント末尾に付く名前タグ等）はコマンド判定・表示ともに無視する
+  return (msg ?? '')
+    .replace(/^\d+:\s*/, '')
+    .replace(/【[^】]*】/g, '')
+    .trim();
 }
 
