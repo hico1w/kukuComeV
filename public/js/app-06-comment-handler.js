@@ -135,7 +135,7 @@ function _loadMypointOnce(user, cnum) {
     .then(r => r.json())
     .then(d => {
       const entry = Array.isArray(d.users) && d.users[0];
-      if (!entry) return;
+      if (!entry) { _syncMypoint(user); return; } // 未登録ならゲームの現在値で初期化
       user.mp  = entry.point ?? user.mp;
       user.pid = entry.pid  ?? user.pid;
       updateStatsDisplay(user);
