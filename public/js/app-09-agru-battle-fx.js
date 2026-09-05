@@ -1252,7 +1252,8 @@ function endAgruBattle(result) {
     }
   } else if (result === 'wipe') {
     // 全滅 — アゲルちゃんの完全勝利
-    _agruAddSystemMsg('☠️ 全滅…アゲルちゃんの完全勝利！');
+    _agruAddSystemMsg('☠️ 全滅…アゲルちゃんの完全勝利！全員のMPを奪われた…');
+    Object.values(users).forEach(u => { u.mp = 0; updateStatsDisplay(u); });
     if (!agruActive) { agruActive = true; agruIdle = true; }
     _agruRestoreModal();
   } else if (result === 'force') {
@@ -1260,8 +1261,9 @@ function endAgruBattle(result) {
     _agruAddSystemMsg('⚠️ バトルを強制終了しました。');
   } else {
     // アゲルちゃん勝利（タイムアップ） — 会話モーダルを再起動
-    _agruAddSystemMsg('😈 アゲルちゃんの勝利！');
+    _agruAddSystemMsg('😈 アゲルちゃんの勝利！全員のMPを奪われた…');
     _agruBattleGetSpeech('battleLose');
+    Object.values(users).forEach(u => { u.mp = 0; updateStatsDisplay(u); });
     if (!agruActive) { agruActive = true; agruIdle = true; }
     _agruRestoreModal();
   }
