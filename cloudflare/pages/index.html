@@ -570,13 +570,6 @@ a.link-item:hover { opacity: .5; }
 }
 #kuku-panel.open { transform: translateY(0); }
 
-#kuku-header {
-  height: 52px; flex-shrink: 0;
-  display: flex; align-items: center; padding: 0 72px 0 20px;
-  border-bottom: 1px solid rgba(0,0,0,.08);
-  font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: #aaa;
-}
-
 #kuku-iframe {
   width: 100%; flex: 1; min-height: 0; border: none; display: block;
   opacity: 0; transition: opacity .3s ease;
@@ -585,7 +578,7 @@ a.link-item:hover { opacity: .5; }
 
 /* loading spinner */
 #kuku-loading {
-  position: absolute; inset: 52px 0 0 0;
+  position: absolute; inset: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 14px; pointer-events: none;
 }
@@ -781,7 +774,6 @@ body.screensaver #footer      { opacity: 0; pointer-events: none; }
   <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 </button>
 <div id="kuku-panel" role="dialog" aria-modal="true" aria-label="kukuCome">
-  <div id="kuku-header">kukuCome</div>
   <div id="kuku-loading">
     <svg class="kuku-spinner" viewBox="0 0 36 36" fill="none">
       <circle class="track" cx="18" cy="18" r="14" stroke-width="3"/>
@@ -791,7 +783,7 @@ body.screensaver #footer      { opacity: 0; pointer-events: none; }
     </svg>
     <p>Loading</p>
   </div>
-  <iframe id="kuku-iframe" title="kukuCome"></iframe>
+  <iframe id="kuku-iframe" title="kukuCome" allowtransparency="true"></iframe>
 </div>
 
 <!-- UPLOAD SLIDE PANEL -->
