@@ -10,6 +10,16 @@
 - 変更内容は機能単位でセクションに分けて記載する
 - ファイル・関数名など具体的な情報を含める
 
+**`PATCHNOTES.md` を更新したら `node scripts/build-patchnotes.js` を実行すること。**
+公開サイトの Patchnotes ページは md を直接読まず `cloudflare/pages/patchnotes.json` を読むので、
+ビルドを忘れるとサイトだけ古いまま残る。サイトに反映するところまでやるなら `/deploy-pages` を参照。
+
+## 公開サイト（kukucome-chara.pages.dev）
+
+`cloudflare/pages/` が公開サイト、`cloudflare/worker.js` が画像アップロードの受け口。
+**Git 連携ではないので push しても反映されない。** デプロイ手順とハマりどころは
+`.claude/commands/deploy-pages.md`（`/deploy-pages`）にまとめてある。
+
 ## フロントエンドの構成
 
 - メインのフロントロジックは旧 `public/app.js`（約14,900行）を機能単位で **`public/js/app-01〜13-*.js` に分割** したもの。`public/index.html` が番号順に読み込む。
