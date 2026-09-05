@@ -548,27 +548,29 @@ a.link-item:hover { opacity: .5; }
 }
 #upload-panel.open { transform: translateX(0); }
 
-/* ── kukuCome top slide panel ────────────────────────────── */
+/* ── kukuCome overlay panel ──────────────────────────────── */
 #kuku-backdrop {
   position: fixed; inset: 0; z-index: 598;
   background: rgba(0,0,0,0); pointer-events: none;
-  transition: background .45s ease;
+  transition: background .4s ease;
 }
-#kuku-backdrop.open { background: rgba(0,0,0,.18); pointer-events: auto; }
+#kuku-backdrop.open { background: rgba(0,0,0,.32); pointer-events: auto; }
 
 #kuku-panel {
-  position: fixed; top: 0; left: 0; right: 0;
-  height: 100dvh;
-  background: rgba(255,255,255,.82);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
+  position: fixed;
+  top: 4dvh; left: 50%;
+  width: min(1020px, 92vw); height: 88dvh;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 32px 80px rgba(0,0,0,.22);
   z-index: 599;
-  transform: translateY(-100%);
+  transform: translateX(-50%) translateY(calc(-100% - 4dvh - 20px));
   will-change: transform;
   transition: transform .52s cubic-bezier(.4,0,.2,1);
   display: flex; flex-direction: column;
+  overflow: hidden;
 }
-#kuku-panel.open { transform: translateY(0); }
+#kuku-panel.open { transform: translateX(-50%) translateY(0); }
 
 #kuku-iframe {
   width: 100%; flex: 1; min-height: 0; border: none; display: block;
@@ -590,16 +592,15 @@ a.link-item:hover { opacity: .5; }
 @keyframes kuku-spin { to { transform: rotate(360deg); } }
 
 .kuku-close {
-  position: fixed; top: 18px; right: 22px; z-index: 600;
-  background: rgba(255,255,255,.85); backdrop-filter: blur(6px);
-  border: 1px solid #e2e2e2; border-radius: 50%; cursor: pointer;
-  color: #999;
-  width: 40px; height: 40px;
+  position: absolute; top: 12px; right: 12px; z-index: 1;
+  background: rgba(0,0,0,.06); border: none; border-radius: 50%; cursor: pointer;
+  color: #888;
+  width: 36px; height: 36px;
   display: flex; align-items: center; justify-content: center;
-  transition: color .15s, transform .22s;
+  transition: color .15s, background .15s, transform .22s;
 }
-.kuku-close:hover { color: #111; transform: rotate(90deg); }
-.kuku-close svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; }
+.kuku-close:hover { color: #111; background: rgba(0,0,0,.12); transform: rotate(90deg); }
+.kuku-close svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; }
 
 .up-close {
   position: fixed; top: 18px; right: 22px; z-index: 601;
@@ -768,12 +769,12 @@ body.screensaver #footer      { opacity: 0; pointer-events: none; }
   </div>
 </header>
 
-<!-- kukuCome top slide panel -->
+<!-- kukuCome overlay panel -->
 <div id="kuku-backdrop" aria-hidden="true"></div>
-<button class="kuku-close" id="kuku-close" aria-label="閉じる" hidden>
-  <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-</button>
 <div id="kuku-panel" role="dialog" aria-modal="true" aria-label="kukuCome">
+  <button class="kuku-close" id="kuku-close" aria-label="閉じる">
+    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
   <div id="kuku-loading">
     <svg class="kuku-spinner" viewBox="0 0 36 36" fill="none">
       <circle class="track" cx="18" cy="18" r="14" stroke-width="3"/>
@@ -783,7 +784,7 @@ body.screensaver #footer      { opacity: 0; pointer-events: none; }
     </svg>
     <p>Loading</p>
   </div>
-  <iframe id="kuku-iframe" title="kukuCome" allowtransparency="true"></iframe>
+  <iframe id="kuku-iframe" title="kukuCome"></iframe>
 </div>
 
 <!-- UPLOAD SLIDE PANEL -->
@@ -1693,9 +1694,7 @@ ssOver.addEventListener('touchstart', exitSS, {passive:true});
     panel.classList.add('open');
     backdrop.classList.add('open');
     backdrop.setAttribute('aria-hidden','false');
-    closeBtn.hidden = false;
     document.body.style.overflow = 'hidden';
-    // start iframe load after slide animation to avoid jitter
     if (!iframe.hasAttribute('src')) {
       setTimeout(() => { iframe.src = KUKU_URL; }, ANIM_MS);
     }
@@ -1704,7 +1703,6 @@ ssOver.addEventListener('touchstart', exitSS, {passive:true});
     panel.classList.remove('open');
     backdrop.classList.remove('open');
     backdrop.setAttribute('aria-hidden','true');
-    closeBtn.hidden = true;
     document.body.style.overflow = '';
   }
 
