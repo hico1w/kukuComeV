@@ -248,7 +248,7 @@ function handleComment(comment) {
   if (type === 'visualchat') {
     if (comment.visualchat_url) {
       ensureCharOnStage(user);
-      showImageBubble(user, comment.visualchat_url, comment.message ? stripPrefix(comment.message) : '');
+      showImageBubble(user, comment.visualchat_url, comment.message ? stripPrefix(decodePercent(decodeHtml(comment.message))) : '');
       addToLog(user, '[お絵描き]', '#7dd3fc');
     }
     return;
@@ -285,7 +285,7 @@ function handleComment(comment) {
     }
   }
 
-  const rawMessage = decodeHtml(comment.message ?? '');
+  const rawMessage = decodePercent(decodeHtml(comment.message ?? ''));
   const message    = stripPrefix(rawMessage);
   const trimmedMsg = message.trim(); // message は const のため一度だけ算出して再利用
 

@@ -42,6 +42,15 @@ function decodeHtml(s) {
   t.innerHTML = String(s);
   return t.value;
 }
+// コメント元(kukuluLIVE)は一部のURL予約文字をパーセントエンコードしたまま返す。
+// 実データで確認: # → %23（改行マーカー %23BR%23 を含む）／+ → %2B。
+// & ? / : , . ! ( ) [ ] _ | は素通り、> は &gt;（decodeHtml 側で処理）。
+// 有効な %XX の連続だけを復号し、"50%" のような単独の % や不正シーケンスは原文のまま残す。
+function decodePercent(s) {
+  return String(s).replace(/(?:%[0-9A-Fa-f]{2})+/g, m => {
+    try { return decodeURIComponent(m); } catch { return m; }
+  });
+}
 function escapeAttr(s) {
   return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }

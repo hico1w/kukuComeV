@@ -2412,7 +2412,7 @@ async function _loadAgruTypeImgGrid() {
     });
     if (cb.checked) { cell.style.borderColor = '#a78bfa'; cell.style.background = 'rgba(167,139,250,0.15)'; }
     const img = document.createElement('img');
-    img.src = '/chara-s/' + encodeURIComponent(fname);
+    img.src = '/chara-s/' + encodeURIComponent(fname) + '?v=2'; // 旧キャッシュ回避（app-01 の CHARA_S_VER と同じ値）
     img.alt = fname;
     img.style.cssText = 'width:64px;height:64px;object-fit:contain;border-radius:4px';
     img.onerror = () => { img.style.display = 'none'; };

@@ -795,6 +795,15 @@ function createCharacter(user) {
   setTimeout(() => gatherCharactersBottom(), 500);
 }
 
+// /chara-s/ 画像のURL生成。?v= を付けて旧実装が残した壊れたキャッシュを無視させる。
+// v2.896.0 以前は max-age=86400 で「アニメを1コマ目に潰した画像」を配信していたため、
+// OBSブラウザソース等が最大24時間その静止画を握り続ける。番号を上げると別URL扱いで再取得される。
+// 以降はサーバーが no-cache + ETag を返すので、通常の差し替えではこの番号を上げる必要はない。
+const CHARA_S_VER = 2;
+function charaSrc(file) {
+  return `/chara-s/${encodeURIComponent(file)}?v=${CHARA_S_VER}`;
+}
+
 function applyAvatarStyle(user) {
   const a = document.getElementById('a-' + user.ipid);
   if (!a || !user.charDef) return;
@@ -804,7 +813,7 @@ function applyAvatarStyle(user) {
   a.style.width  = px + 'px';
   a.style.height = px + 'px';
   a.style.transform = '';
-  const imgSrc = user.charImageData || `/chara-s/${encodeURIComponent(imgFile)}`;
+  const imgSrc = user.charImageData || charaSrc(imgFile);
   a.innerHTML      = `<img src="${imgSrc}" alt="${escapeHtml(user.name)}">`;
   a.style.fontSize = '0';
   const img = a.querySelector('img');
@@ -1328,7 +1337,7 @@ function renderPetBadge(user) {
     if (!petObj) { slot.className = baseCls; slot.innerHTML = ''; return; }
     slot.className = `${baseCls} ${petObj.rarityCls || ''}`;
     const img = document.createElement('img');
-    img.src          = `/chara-s/${encodeURIComponent(petObj.img)}`;
+    img.src          = charaSrc(petObj.img);
     img.alt          = 'pet';
     img.title        = `${escapeHtml(petObj.abilityName)}: ${escapeHtml(petObj.abilityDesc)}`;
     img.style.width  = px + 'px';

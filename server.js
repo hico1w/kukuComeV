@@ -2081,6 +2081,57 @@ app.get('/api/news', async (req, res) => {
 // キャラ画像を半サイズにリサイズして配信（軽量化用）
 const _charaDir   = path.join(__dirname, 'public', 'chara');
 const _charaSCache = new Map(); // filename → { buf, ct }
+const _charaKindCache = new Map(); // filename → { mime, animated } | null
+
+// キャッシュキーは "ファイル名:mtime"。同じファイルの古い世代を捨てて増え続けないようにする
+function _dropOldGenerations(map, cacheKey) {
+  const prefix = cacheKey.slice(0, cacheKey.lastIndexOf(':') + 1);
+  for (const k of map.keys()) if (k !== cacheKey && k.startsWith(prefix)) map.delete(k);
+}
+
+// APNG は IDAT より前に acTL チャンクを持つ
+function _pngHasActl(buf) {
+  let off = 8;
+  while (off + 8 <= buf.length) {
+    const len  = buf.readUInt32BE(off);
+    const type = buf.toString('latin1', off + 4, off + 8);
+    if (type === 'acTL') return true;
+    if (type === 'IDAT' || type === 'IEND') return false;
+    off += 12 + len;
+  }
+  return false;
+}
+
+// 画像種別をマジックバイトで判定する（拡張子は信用しない）。
+// public/chara には拡張子 .png でも中身が GIF のファイルが実在するため。
+function _sniffImageKind(buf) {
+  if (buf.length >= 6  && buf.toString('latin1', 0, 3) === 'GIF')
+    return { mime: 'image/gif',  animated: true };
+  if (buf.length >= 8  && buf.toString('hex', 0, 8) === '89504e470d0a1a0a')
+    return { mime: 'image/png',  animated: _pngHasActl(buf) };
+  if (buf.length >= 16 && buf.toString('latin1', 0, 4) === 'RIFF' && buf.toString('latin1', 8, 12) === 'WEBP')
+    return { mime: 'image/webp', animated: buf.toString('latin1', 12, Math.min(buf.length, 4096)).includes('ANIM') };
+  if (buf.length >= 3  && buf.toString('hex', 0, 3) === 'ffd8ff')
+    return { mime: 'image/jpeg', animated: false };
+  return null; // 判定不能（SVG等）は拡張子ベースにフォールバック
+}
+
+// 先頭64KBだけ読んで種別判定（結果は "ファイル名:mtime" でキャッシュ）
+function _charaImageKind(cacheKey, filepath) {
+  if (_charaKindCache.has(cacheKey)) return _charaKindCache.get(cacheKey);
+  let kind = null;
+  let fd   = null;
+  try {
+    fd = fs.openSync(filepath, 'r');
+    const buf = Buffer.alloc(65536);
+    const n   = fs.readSync(fd, buf, 0, 65536, 0);
+    kind = _sniffImageKind(buf.subarray(0, n));
+  } catch {} finally {
+    if (fd !== null) { try { fs.closeSync(fd); } catch {} }
+  }
+  _charaKindCache.set(cacheKey, kind);
+  return kind;
+}
 
 app.get('/chara-s/:filename', async (req, res) => {
   const filename = req.params.filename;
@@ -2089,17 +2140,31 @@ app.get('/chara-s/:filename', async (req, res) => {
   const filepath = path.join(_charaDir, filename);
   if (!fs.existsSync(filepath)) return res.status(404).end();
 
-  const ext = path.extname(filename).toLowerCase();
+  const ext  = path.extname(filename).toLowerCase();
+  // 画像を差し替えたら作り直すよう、キャッシュキーに更新時刻を含める
+  let mtime = 0;
+  try { mtime = fs.statSync(filepath).mtimeMs; } catch {}
+  const cacheKey = filename + ":" + mtime;
+  // 差し替え前の世代をここで破棄しておく（メモリキャッシュが増え続けないように）
+  _dropOldGenerations(_charaSCache,    cacheKey);
+  _dropOldGenerations(_charaKindCache, cacheKey);
+  const kind = _charaImageKind(cacheKey, filepath);
 
-  // GIF・SVGはリサイズ不要のままそのまま返す
-  if (ext === '.gif' || ext === '.svg') {
+  // SVGはリサイズ不要のままそのまま返す
+  if (ext === '.svg') return res.sendFile(filepath);
+
+  // アニメ画像（GIF / APNG / アニメWebP）はリサイズすると1コマ目の静止画になるため原本を返す。
+  // sharp/libvips は GIF の1フレーム目しか読まず、APNG のフレームは読めない。
+  if (kind && kind.animated) {
+    // 中身と拡張子が食い違うファイル用に Content-Type を明示（sendFile は設定済みなら上書きしない）
+    res.setHeader('Content-Type', kind.mime);
     return res.sendFile(filepath);
   }
 
-  if (_charaSCache.has(filename)) {
-    const { buf, ct } = _charaSCache.get(filename);
+  if (_charaSCache.has(cacheKey)) {
+    const { buf, ct } = _charaSCache.get(cacheKey);
     res.setHeader('Content-Type', ct);
-    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.setHeader('Cache-Control', 'no-cache'); // ETagで毎回検証（差し替えが即反映される）
     return res.send(buf);
   }
 
@@ -2108,20 +2173,22 @@ app.get('/chara-s/:filename', async (req, res) => {
     const halfW = Math.max(1, Math.round(meta.width / 2));
     const s = sharp(filepath).resize(halfW);
 
+    // 出力形式は中身の判定を優先し、判定不能なときだけ拡張子で決める
+    const mime = kind ? kind.mime : null;
     let buf, ct;
-    if (ext === '.png') {
+    if (mime === 'image/png' || (!mime && ext === '.png')) {
       buf = await s.png().toBuffer(); ct = 'image/png';
-    } else if (ext === '.jpg' || ext === '.jpeg') {
+    } else if (mime === 'image/jpeg' || (!mime && (ext === '.jpg' || ext === '.jpeg'))) {
       buf = await s.jpeg({ quality: 85 }).toBuffer(); ct = 'image/jpeg';
-    } else if (ext === '.webp') {
+    } else if (mime === 'image/webp' || (!mime && ext === '.webp')) {
       buf = await s.webp({ quality: 85 }).toBuffer(); ct = 'image/webp';
     } else {
       return res.sendFile(filepath);
     }
 
-    _charaSCache.set(filename, { buf, ct });
+    _charaSCache.set(cacheKey, { buf, ct });
     res.setHeader('Content-Type', ct);
-    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.setHeader('Cache-Control', 'no-cache'); // ETagで毎回検証（差し替えが即反映される）
     res.send(buf);
   } catch (err) {
     console.error('[chara-s] resize error:', err.message);

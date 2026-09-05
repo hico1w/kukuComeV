@@ -289,7 +289,7 @@ function clearCommentPhys() {
 // キャラの表示画像URL（ステージのアバターと同じ解決ロジック）
 function _userImgUrl(u) {
   const file = (u && (u.charImage || (u.charDef && typeof charImages !== 'undefined' && charImages[u.charDef.id]))) || 'kisyokeee.png';
-  return '/chara-s/' + encodeURIComponent(file);
+  return charaSrc(file);
 }
 
 function _collectStreamStats() {
@@ -383,7 +383,7 @@ async function _streamReview() {
       const raw  = Array.isArray(data.comments) ? data.comments : [];
       comments = raw
         .filter(c => c.message && String(c.message).replace(/<[^>]+>/g, '').trim())
-        .map(c => ({ name: c.icon_name || '名無し', text: String(c.message).replace(/<[^>]+>/g, '').trim() }));
+        .map(c => ({ name: c.icon_name || '名無し', text: decodePercent(String(c.message).replace(/<[^>]+>/g, '')).trim() }));
     } catch(e) { comments = null; }
   }
   // API未設定・失敗時はメモリ上のコメントにフォールバック

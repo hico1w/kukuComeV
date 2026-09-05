@@ -389,7 +389,7 @@ function endTaiman(winner, loser) {
     // 敗者の画像を敗北画像に変更
     const loserAvatar = document.getElementById('a-' + loser.ipid);
     if (loserAvatar) {
-      loserAvatar.innerHTML = `<img src="/chara-s/248106.png" alt="${escapeHtml(loser.name)}">`;
+      loserAvatar.innerHTML = `<img src="${charaSrc('248106.png')}" alt="${escapeHtml(loser.name)}">`;
     }
     loser._taimanDefeated = true;
 
@@ -784,7 +784,7 @@ function spawnBoss(maxHp) {
     ? _bossImgPool[Math.floor(Math.random() * _bossImgPool.length)]
     : (availableImages.length > 0 ? availableImages[Math.floor(Math.random() * availableImages.length)] : null);
   const avatarInner = bossImg
-    ? `<img src="/chara-s/${encodeURIComponent(bossImg)}" alt="boss">`
+    ? `<img src="${charaSrc(bossImg)}" alt="boss">`
     : '🐉';
 
   const bossSize = Math.round(200 * bossSizeScale);
@@ -861,7 +861,7 @@ function spawnSpikiBoss() {
   // 画像をスピキ専用に差し替え
   const ba = bossState.el.querySelector('#bossAvatar');
   if (ba) {
-    ba.innerHTML = `<img src="/chara-s/img_-0002-2607607172.png" alt="スピキ">`;
+    ba.innerHTML = `<img src="${charaSrc('img_-0002-2607607172.png')}" alt="スピキ">`;
     const spikiImg = ba.querySelector('img');
     if (spikiImg && !spikiImg.complete) {
       spikiImg.addEventListener('load', () => applyBossAvatarAspect(bossState.origSize), { once: true });
