@@ -33,15 +33,18 @@ export default {
         const file = form.get('file');
         if (!file) return json({ error: 'ファイルがありません' }, 400, cors);
 
-        const allowed = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+        // APNG は実体が PNG なので image/png で届くことがほとんどだが、
+        // .apng 拡張子だと image/apng で来るブラウザがあるため両方許可する
+        const allowed = ['image/png', 'image/apng', 'image/jpeg', 'image/gif'];
         if (!allowed.includes(file.type)) {
-          return json({ error: '対応形式: PNG / JPG / WebP / GIF のみ' }, 400, cors);
+          return json({ error: '対応形式: PNG / APNG / JPG / GIF のみ' }, 400, cors);
         }
-        if (file.size > 2 * 1024 * 1024) {
-          return json({ error: 'ファイルは2MB以下にしてください' }, 400, cors);
+        if (file.size > 1 * 1024 * 1024) {
+          return json({ error: 'ファイルは1MB以下にしてください' }, 400, cors);
         }
 
-        const ext = file.type === 'image/jpeg' ? 'jpg' : file.type.split('/')[1];
+        const extMap = { 'image/jpeg': 'jpg', 'image/apng': 'png' };
+        const ext = extMap[file.type] || file.type.split('/')[1];
         const key = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${ext}`;
 
         // base64 encode (chunked)
@@ -144,7 +147,7 @@ export default {
           if (!key) return new Response('key が必要です', { status: 400, headers: cors });
 
           const ext = key.split('.').pop().toLowerCase();
-          const ctMap = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' };
+          const ctMap = { png: 'image/png', apng: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' };
           const ct = ctMap[ext] || 'image/jpeg';
 
           // Contents API はファイルサイズ制限があるため raw エンドポイントから直接取得

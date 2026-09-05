@@ -307,7 +307,7 @@ input[type="file"] {
   </header>
 
   <!-- File input -->
-  <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none">
+  <input type="file" id="fileInput" accept="image/png,image/apng,image/jpeg,image/gif" style="display:none">
 
   <!-- Drop zone: label要素でfileInputと紐付け → クリックでネイティブにファイルピッカーが開く -->
   <label class="drop-zone" id="dropZone" for="fileInput" tabindex="0" role="button" aria-label="画像ファイルを選択またはドロップ">
@@ -319,7 +319,7 @@ input[type="file"] {
       </svg>
     </div>
     <p class="drop-label">ドラッグ＆ドロップ または <em>クリックして選択</em></p>
-    <p class="drop-hint">PNG · JPG · WebP · GIF &nbsp;／&nbsp; 最大 2 MB</p>
+    <p class="drop-hint">PNG · APNG · JPG · GIF &nbsp;／&nbsp; 最大 1 MB</p>
   </label>
 
   <!-- Preview -->
@@ -352,8 +352,8 @@ input[type="file"] {
     <p class="rules-title">注意事項</p>
     <ul class="rules-list">
       <li>他の人や実在のキャラの画像は使わないでください</li>
-      <li>ファイルは PNG / JPG / WebP / GIF のみ対応です</li>
-      <li>2 MB を超えるファイルはアップロードできません</li>
+      <li>ファイルは PNG / APNG / JPG / GIF のみ対応です</li>
+      <li>1 MB を超えるファイルはアップロードできません</li>
       <li>内容によっては配信者の判断で削除されます</li>
     </ul>
   </div>
@@ -401,13 +401,13 @@ function fmtSize(bytes) {
 function setFile(file) {
   if (!file) return;
 
-  const allowed = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+  const allowed = ['image/png', 'image/apng', 'image/jpeg', 'image/gif'];
   if (!allowed.includes(file.type)) {
-    showStatus('err', '❌', '対応していない形式です。PNG / JPG / WebP / GIF を選んでください。');
+    showStatus('err', '❌', '対応していない形式です。PNG / APNG / JPG / GIF を選んでください。');
     return;
   }
-  if (file.size > 2 * 1024 * 1024) {
-    showStatus('err', '❌', `ファイルが大きすぎます（${fmtSize(file.size)}）。2MB以下にしてください。`);
+  if (file.size > 1 * 1024 * 1024) {
+    showStatus('err', '❌', `ファイルが大きすぎます（${fmtSize(file.size)}）。1MB以下にしてください。`);
     return;
   }
 

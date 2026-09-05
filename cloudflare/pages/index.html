@@ -830,13 +830,13 @@ body.screensaver #footer      { opacity: 0; pointer-events: none; }
     <h2 class="up-title">キャラ画像を<br><em>追加しよう</em></h2>
   </div>
   <div class="up-divider"></div>
-  <input type="file" id="up-file-input" accept="image/png,image/jpeg,image/webp,image/gif">
+  <input type="file" id="up-file-input" accept="image/png,image/apng,image/jpeg,image/gif">
   <label class="up-drop" id="up-drop-zone" for="up-file-input" tabindex="0" role="button" aria-label="画像ファイルを選択またはドロップ">
     <div class="up-drop-icon">
       <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
     </div>
     <p class="up-drop-label">ドラッグ＆ドロップ または <em>クリックして選択</em></p>
-    <p class="up-drop-hint">PNG · JPG · WebP · GIF &nbsp;／&nbsp; 最大 2 MB</p>
+    <p class="up-drop-hint">PNG · APNG · JPG · GIF &nbsp;／&nbsp; 最大 1 MB</p>
   </label>
   <div class="up-preview" id="up-preview-wrap">
     <img class="up-preview-img" id="up-preview-img" src="" alt="プレビュー">
@@ -881,8 +881,8 @@ body.screensaver #footer      { opacity: 0; pointer-events: none; }
   <div class="up-rules">
     <p class="up-rules-label">注意事項</p>
     <ul class="up-rules-list">
-      <li>PNG / JPG / WebP / GIF のみ対応です</li>
-      <li>2 MB を超えるファイルはアップロードできません</li>
+      <li>PNG / APNG / JPG / GIF のみ対応です</li>
+      <li>1 MB を超えるファイルはアップロードできません</li>
       <li>背景透過されていない画像は削除される場合があります</li>
     </ul>
   </div>
@@ -1303,11 +1303,11 @@ ssOver.addEventListener('touchstart', exitSS, {passive:true});
 
   function setFile(file) {
     if (!file) return;
-    if (!['image/png','image/jpeg','image/webp','image/gif'].includes(file.type)) {
-      showStatus('err','❌','対応していない形式です。PNG / JPG / WebP / GIF を選んでください。'); return;
+    if (!['image/png','image/apng','image/jpeg','image/gif'].includes(file.type)) {
+      showStatus('err','❌','対応していない形式です。PNG / APNG / JPG / GIF を選んでください。'); return;
     }
-    if (file.size > 2*1024*1024) {
-      showStatus('err','❌',`ファイルが大きすぎます（${fmtSize(file.size)}）。2MB以下にしてください。`); return;
+    if (file.size > 1*1024*1024) {
+      showStatus('err','❌',`ファイルが大きすぎます（${fmtSize(file.size)}）。1MB以下にしてください。`); return;
     }
     selectedFile = file; hideStatus();
     const r = new FileReader();

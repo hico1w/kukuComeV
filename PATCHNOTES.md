@@ -2,6 +2,166 @@
 
 ---
 
+## v2.901.0 — 2026-09-05
+
+### perf: /chara-s のメモリキャッシュが画像差し替えのたびに増えないようにする
+
+- v2.897.0 でキャッシュキーを `ファイル名` → `ファイル名:mtime` に変えたため、画像を差し替えるたびに旧世代のエントリ（リサイズ済みバッファ）がメモリに残り続ける状態だった
+- **`server.js`**: `_dropOldGenerations(map, cacheKey)` を新設し、`/chara-s/:filename` のリクエスト冒頭で `_charaSCache` / `_charaKindCache` の**同じファイル名の古い世代を破棄**する。リクエスト冒頭で行うことで、静止画→アニメ画像に差し替わって以降リサイズ経路を通らなくなった場合も確実に消える
+  - これでキャッシュ件数の上限は従来どおり「`public/chara` のファイル数」に戻る
+- **動作確認**
+  - 一時ファイルを静止PNG→GIFに差し替えて検証：差し替え後のリサイズキャッシュ 0件・種別キャッシュ 1件（古い世代が残らない）
+  - 実測ベンチ（3996番ポートにルートを切り出し、各300回／APNGは100回）に差は出ず
+    - 静止PNG キャッシュヒット 0.33ms・304再検証 0.22ms
+    - GIF 51KB 原本配信 0.45ms・304再検証 0.25ms
+    - APNG 1.8MB 原本配信 3.46ms・304再検証 0.25ms
+    - 静止PNGの初回リサイズのみ 19ms（サーバー起動後にファイルごとに1回だけ）
+- 参考: アニメ画像を原本配信するようになったことによる増分は、`85a6b.png` が 5,463→51,178バイト、`1788613801024-zta1v15.png`（APNG 400x266・52コマ・20.8秒ループ）が 82,237→1,890,156バイト。いずれも初回のみで、以降は 304（本文なし）
+
+---
+## v2.902.0 — 2026-09-05
+
+### fix: WebP除外・1MB制限の修正漏れ（実際に見えている画面は index.html のモーダルだった）
+
+v2.899.0 / v2.900.0 で `cloudflare/pages/upload.html` を直したが、**ユーザーが実際に使っているアップロード画面は `cloudflare/pages/index.html` 内のモーダル**（`#open-upload` ボタン → `#up-file-input` / `.up-drop-hint` / `.up-rules-list`）で、そちらが未修正のままだった。単独ページ `/upload` は同等機能の別入口。
+
+- **`cloudflare/pages/index.html`**: モーダル側に同じ修正を適用（`accept` から webp 除外＋`image/apng` 追加、`.up-drop-hint` を「PNG · APNG · JPG · GIF ／ 最大 1 MB」、注意事項2行、`setFile()` の MIME 判定とサイズ上限 `2*1024*1024` → `1*1024*1024`）
+- **`cloudflare/pages/puru.html`**: 同じ Worker の `/upload` に投げる別入口なので同様に修正。放置すると表示と Worker 側の実挙動がズレる
+- **`public/admin.html` / `public/help.html`** の WebP 記述は配信者がローカルの `public/chara/` から割り当てる別機能の説明なので**対象外**（今回の視聴者アップロードとは経路が違う）
+- **作業ミスの記録**: Python の `io.open(p,'w')` で書き戻したため index.html / puru.html が全行 CRLF に変換され、`wrangler pages deploy` の差分が 3576 行・1188 行に膨らんだ。バイナリで `
+` → `
+` に戻して実変更6箇所のみに修正。**このリポジトリのファイルは LF なので、書き戻すときは `newline=''` かバイナリで扱うこと**
+- **デプロイ**: `npx wrangler pages deploy pages --project-name=kukucome-chara` → デプロイ ID `b560b1b1`。`/` と `/puru` で表示を実際に取得して確認済み
+
+---
+
+## v2.900.0 — 2026-09-05
+
+### change: キャラアップロード画面に APNG 対応を明記（v2.899.0 の続き）
+
+APNG は実体が PNG なので v2.899.0 の時点でも通っていたが、注意書きに書かれておらず「使えない」と誤解される状態だった。表記の追加に加えて、`.apng` 拡張子で `image/apng` を返すブラウザからのアップロードも通るようにした。
+
+- **`cloudflare/pages/upload.html`**（本番）
+  - `accept` に `image/apng` を追加
+  - ドロップゾーンの案内を「PNG · APNG · JPG · GIF ／ 最大 1 MB」に変更
+  - 注意事項を「PNG / APNG / JPG / GIF のみ対応です」に変更
+  - `setFile()` の許可 MIME に `image/apng` を追加、エラーメッセージも APNG を含む表記に
+- **`cloudflare/worker.js`**
+  - `POST /upload` の `allowed` に `'image/apng'` を追加、エラーメッセージを「対応形式: PNG / APNG / JPG / GIF のみ」に
+  - 保存キーの拡張子導出を `extMap = { 'image/jpeg': 'jpg', 'image/apng': 'png' }` に変更。従来の `file.type.split('/')[1]` のままだと `image/apng` が `.apng` として保存され、ゲーム側で読めないファイルになるため **`.png` に正規化**する
+  - `GET /admin/image` の `ctMap` に `apng: 'image/png'` を追加（過去に `.apng` で入ったファイルがあっても正しい Content-Type で返せるように）
+- **`cloudflare/upload.html`**（旧コピー）も同内容に追従
+- **デプロイ済み**（v2.899.0 と合わせて反映）
+  - Worker: `cloudflare/` で `npx wrangler deploy` → Version ID `2d876fe8-b060-43bb-83c6-49480122e4c4`
+  - Pages: `cloudflare/` で `npx wrangler pages deploy pages --project-name=kukucome-chara` → https://kukucome-chara.pages.dev/upload に反映済み（デプロイ ID `cff57ef0`）
+  - **同デプロイで `/`(index.html) も更新された**: 前回の Pages デプロイ `dab235ab` がコミット `6fa011e`（KUKUCOMEパネルのロード画面を1秒で消す / v2.894.0）より前の内容だったため、`cloudflare/pages/` 一式を上げる `pages deploy` でその12行分が一緒に公開された。内容はコミット済みの正規の変更なのでそのまま採用。`/puru` `/upload-admin` は変更なし
+  - **教訓**: `wrangler pages deploy` はディレクトリ丸ごと上書きなので、公開前に前回デプロイ（`wrangler pages deployment list` のプレビュー URL）とローカルを diff して、意図しないファイルが混ざらないか確認すること
+
+---
+
+## v2.899.0 — 2026-09-05
+
+### change: キャラアップロード画面の対応形式から WebP を除外＋最大サイズを 1MB に
+
+対象は視聴者向けアップロードページ（https://kukucome-chara.pages.dev/upload.html）とその受け口の Cloudflare Worker。注意書きだけでなく実際のバリデーションも変更。
+
+- **`cloudflare/pages/upload.html`**（Pages で配信中の本番ファイル）
+  - `<input type="file">` の `accept` から `image/webp` を削除
+  - ドロップゾーンの案内を「PNG · JPG · GIF ／ 最大 1 MB」に変更
+  - 注意事項リストを「PNG / JPG / GIF のみ対応です」「1 MB を超えるファイルはアップロードできません」に変更
+  - `setFile()` のクライアント側チェック: 許可 MIME から `image/webp` を除外、サイズ上限を `2*1024*1024` → `1*1024*1024`、エラーメッセージも 1MB 表記に
+- **`cloudflare/worker.js`**（`POST /upload` のサーバー側チェック。ここを直さないとクライアント側を迂回して投げられる）
+  - `allowed` から `'image/webp'` を削除、エラーメッセージを「対応形式: PNG / JPG / GIF のみ」に
+  - サイズ上限を `2 * 1024 * 1024` → `1 * 1024 * 1024`、エラーメッセージを「ファイルは1MB以下にしてください」に
+  - 画像配信側（`GET` の `ctMap`）の `webp: 'image/webp'` は**そのまま残す**。既にアップ済みの webp ファイルが配信できなくなるのを防ぐため
+- **`cloudflare/upload.html`**（Pages 移行前の旧コピー）も同内容に追従させ、表記のズレを防止
+- **デプロイ手順の訂正（重要）**: Cloudflare Pages プロジェクト `kukucome-chara` は **Git 連携なしの直接アップロード方式**（`npx wrangler pages project list` の Git Provider が `No`）。**git push しても公開サイトには反映されない**ので、`cloudflare/` で `npx wrangler pages deploy pages --project-name=kukucome-chara` を実行すること。Worker は `cloudflare/` で `npx wrangler deploy`
+- また `https://kukucome-chara.pages.dev/upload.html` は 308 で `/upload` にリダイレクトされる（拡張子なしが正）。curl で確認するときは `-L` を付けないと0バイトが返る
+
+---
+
+## v2.898.0 — 2026-09-05
+
+### fix: OBSブラウザソースに残った壊れたキャッシュを ?v= で確実に無視させる
+
+- **症状**: v2.896.0 / v2.897.0 でサーバー側は直ったのに、OBSブラウザソースでは `85a6b.png`（中身GIF）も `1788613801024-zta1v15.png`（APNG）も静止画のまま。OBS側でキャッシュ更新をしても変わらない
+- **原因の裏取り**: OBSブラウザソースのキャッシュ（`%APPDATA%\obs-studio\plugin_config\obs-browser\Cache\Cache_Data`）を実際に調べたところ
+  - キャッシュキー `http://localhost:3000/chara-s/85a6b.png` が存在し、その本文は **48x48・5,463バイトのPNG**。これは旧実装の `sharp(...).resize(48).png()` 出力と**バイト数まで一致**（＝アニメを1コマ目に潰した画像）
+  - 修正後のサイズ（GIF 51,178バイト／APNG 1,890,156バイト）の本文はキャッシュ内に存在しない＝**OBSは再取得していない**
+  - 一方、動いている `.gif` 群は原本サイズ（31,616／182,879／1,202,384／1,751,065／1,929,555／1,560,824バイト）でキャッシュ済み。これが「gifだけ動く」の正体
+  - 旧レスポンスの `Cache-Control: public, max-age=86400` により最大24時間再検証されないため、ページを再読み込みしても静止画が出続ける
+- **`app-01-core-characters.js`**: `charaSrc(file)` と `CHARA_S_VER = 2` を新設し、`/chara-s/<file>?v=2` を返すよう変更。URLが変わるので旧キャッシュエントリは参照されず、必ず新しいレスポンスを取りに行く
+- 呼び出し箇所をすべて `charaSrc()` 経由に統一
+  - `app-01-core-characters.js`: `applyAvatarStyle()` のアバター、ペット画像
+  - `app-05-taiman-boss.js`: タイマン敗者アバター、ボスアバター、スピキ画像
+  - `app-14-stream-physics.js`: `_userImgUrl()`（エンドカード）
+  - `public/ageru-boss.html`: app-01 を読み込まない独立ページのため `?v=2` を直書き
+- サーバーは v2.897.0 で `no-cache` + ETag 配信になっているため、**今後の画像差し替えでこの番号を上げる必要はない**（この `?v=` は旧キャッシュの一掃が目的）
+- **動作確認**: 実ステージページ（`http://127.0.0.1:3000/`）を Playwright の Chromium で開き、`85a6b.png` と `1788613801024-zta1v15.png` を割り当てたキャラを実際に立てて検証。約1.1秒で6コマ／5コマの別画像を取得＝両方アニメ再生、`.jiggle-overlay` / `.puru-canvas` の重なりなし、`charSave.json` への副作用なしを確認
+
+---
+
+## v2.897.0 — 2026-09-05
+
+### fix: /chara-s の1日キャッシュをやめて画像差し替えを即反映（アニメ画像が静止のままになる件の後始末）
+
+- **症状**: v2.896.0 でサーバー側は直った（`/chara-s/85a6b.png` が `image/gif` 51,178バイト・30フレームで配信され、Chromium実機でもアニメすることを確認）のに、ステージ側では静止画のままだった
+- **原因**: 旧実装がリサイズ画像を `Cache-Control: public, max-age=86400` で返していたため、ブラウザ／OBSブラウザソースが**1コマ目に潰れた旧レスポンスを最大24時間保持**する。Chrome の通常リロード（F5）はサブリソースを再検証しないので、ページを更新しても古い静止画が出続ける
+- **`server.js`**: `/chara-s/:filename` のキャッシュ制御を見直し
+  - `Cache-Control: public, max-age=86400` → `no-cache`（Express が付ける ETag で毎回条件付きリクエスト＝差分なしなら 304 が返る）。画像を差し替えた瞬間から反映される
+  - サーバー内メモリキャッシュ `_charaSCache` / `_charaKindCache` のキーを `filename` → `filename + ':' + mtimeMs` に変更。ファイルを上書きしてもサーバー再起動なしで作り直される
+- **動作確認**（3999/3997番ポートにルートを切り出して実HTTP検証）
+  - `85a6b.png` → `image/gif` 51,178バイト・30フレーム／`1788613801024-zta1v15.png` → APNG原本／`248106.png` → 半サイズ 31,091バイト（いずれも従来どおり）
+  - 2回目のリクエストに `If-None-Match` を付けると **304**（アニメ原本・リサイズ画像とも）
+  - 存在しないファイル → 404、`..%2Fserver.js` → 400
+- 既にキャッシュ済みのクライアントには効かないため、**一度だけ**ハードリロード（Chrome: Ctrl+Shift+R／OBS: ブラウザソースのプロパティ →「現在のページのキャッシュを更新」）が必要。以降は自動で再検証される
+- 反映には `server.js` の再起動が必要
+
+---
+
+## v2.896.0 — 2026-09-05
+
+### fix: アニメPNG（APNG）と拡張子偽装GIFがステージ上で動かない問題を修正
+
+- **症状**: `public/chara/85a6b.png` のようなアニメ画像をキャラに割り当てても、ステージ上では静止画になる（`.gif` は動く）
+- **原因**: ステージのキャラ画像は `/chara-s/:filename`（半サイズ配信）経由で表示される（`app-01-core-characters.js` の `imgSrc`、ペット、タイマン、`app-14-stream-physics.js` など）。このルートが**拡張子だけ**で分岐しており、`.gif` / `.svg` のみ原本を返し、それ以外は sharp でリサイズしていた
+  - sharp/libvips は GIF を1フレーム目しか読まず、この環境の pngload は APNG のフレームを読めない（`sharp(f,{animated:true}).metadata()` でも `pages: undefined`）ため、リサイズ＝1コマ目の静止画化になる
+  - 実測: `85a6b.png`（中身は GIF89a・96x96・30フレーム・51,178バイト）→ `/chara-s/` の応答は静止PNG 5,463バイト
+  - `public/chara` 317件を調査した結果、影響を受けるのは中身がGIFの `85a6b.png` と、本物のAPNG `1788613801024-zta1v15.png` の2件
+- **`server.js`**: `/chara-s/:filename` を拡張子ベースから**中身（マジックバイト）ベース**の判定に変更
+  - `_sniffImageKind()` を新設。GIF / PNG（`acTL` チャンクの有無でAPNG判定＝`_pngHasActl()`） / WebP（`ANIM` チャンクでアニメ判定） / JPEG を先頭64KBから判定し、`_charaKindCache` にファイル名でキャッシュ
+  - アニメ画像（GIF・APNG・アニメWebP）はリサイズせず原本を `sendFile`。拡張子と中身が食い違うファイル向けに `Content-Type` を明示設定（`send` は設定済みなら上書きしないため有効）
+  - リサイズ時の出力形式も中身の判定を優先し、判定不能なときだけ拡張子にフォールバック
+  - 従来の `.gif` 早期リターンは中身判定に統合。`.svg` は従来どおり素通し
+- **動作確認**（3999番ポートに `/chara-s` ルートだけ切り出して実HTTP検証）
+  - `85a6b.png` → `image/gif` 51,178バイト・30フレームで原本配信
+  - `1788613801024-zta1v15.png`（APNG） → `image/png` 1,890,156バイトで原本配信
+  - `1788325521210-7sqcl2u.gif` → 従来どおり原本配信（5フレーム）
+  - `248106.png`（静止PNG） → 従来どおり半サイズ 79,359 → 31,091バイト
+  - 存在しないファイル → 404
+- 注意: アニメ画像は半サイズ化されず原本サイズで配信される（`.gif` の従来仕様と同じ）。反映には `server.js` の再起動が必要
+
+---
+
+## v2.895.0 — 2026-09-05
+
+### fix: コメントの `+` が `%2B` のまま画像生成プロンプトに渡る問題を修正
+
+- **症状**: 画像生成コマンド（`生成` / `エコ生成` / `超生成` / `出ろ` / `出して` / `gen` / `キャラ作成`）で `6+girls` のように `+` を含むコメントを投げると、SDプロンプトに `6%2Bgirls` がそのまま渡り、翻訳・生成が意図どおりに効かなかった
+- **原因**: コメント元の kukuluLIVE API（`live.erinn.biz` `category=comment&type=list`）が一部のURL予約文字をパーセントエンコードしたまま `message` に入れて返す。実データ（コメント843件）で確認した結果は以下のとおり
+  - エンコードされる: `#` → `%23`（改行マーカー `%23BR%23` を含む）、`+` → `%2B`（生の `#` `+` は1件も出現しない）
+  - 素通り: `& ? / : , . ! ( ) [ ] _ |`
+  - `>` は HTML エンティティ `&gt;` で届く（従来どおり `decodeHtml()` が処理）
+  - `url` フィールドは `=` → `%3D`（既存の `decodeURIComponent` で処理済み）
+  - 従来は `#`（吹き出し4倍コマンド）だけを `/^(?:[#＃]|%23)/` で個別対応していたため、他の記号は未対応のまま残っていた
+- **`app-07-ui-stage-ai.js`**: `decodePercent()` を新設（`decodeHtml()` の直後）。有効な `%XX` の連続だけを `decodeURIComponent` で復号し、`50%` のような単独の `%` や `%zz` などの不正シーケンスは原文のまま残す（`try/catch` で `URIError` を握りつぶす）
+- **`app-06-comment-handler.js`**: `handleComment()` の `rawMessage` を `decodePercent(decodeHtml(...))` に変更。これで `message` / `trimmedMsg` 経由の全コマンド判定・吹き出し・ログ・SDプロンプトが復号後の文字列を使う
+- **`app-06-comment-handler.js`**: お絵描き（`visualchat`）の添え字テキストも `stripPrefix(decodePercent(decodeHtml(comment.message)))` に変更（従来は `decodeHtml` すら通っていなかった）
+- **`app-14-stream-physics.js`**: `_streamReview()` のコメント総評用テキストにも `decodePercent()` を適用
+- 既存の `%23` 個別対応（`app-06-comment-handler.js` の吹き出し4倍コマンド）は復号後に `#` でマッチするためそのまま動作する（防御的に残置）
+
+---
+
 ## v2.894.0 — 2026-09-05
 
 ### fix: KUKUCOMEパネルのロード画面を1秒で消して途中表示にする
