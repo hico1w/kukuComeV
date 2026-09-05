@@ -1,3 +1,4 @@
 data/secrets.json
 node_modules/
 public/ageru/oto/bgm/
+data/charSave.json
