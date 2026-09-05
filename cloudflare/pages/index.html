@@ -549,32 +549,53 @@ a.link-item:hover { opacity: .5; }
 #upload-panel.open { transform: translateX(0); }
 
 /* ── kukuCome top slide panel ────────────────────────────── */
+/* backdrop: frosted glass layer (no transform = backdrop-filter works reliably) */
 #kuku-backdrop {
   position: fixed; inset: 0; z-index: 598;
-  background: rgba(0,0,0,0); pointer-events: none;
-  transition: background .5s ease;
+  background: rgba(255,255,255,.78);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  opacity: 0; pointer-events: none;
+  transition: opacity .45s ease;
 }
-#kuku-backdrop.open { background: rgba(0,0,0,.38); pointer-events: auto; }
+#kuku-backdrop.open { opacity: 1; pointer-events: auto; }
 
+/* panel: transparent bg so frosted backdrop shows through */
 #kuku-panel {
   position: fixed; top: 0; left: 0; right: 0;
   height: 100dvh;
-  background: rgba(255,255,255,.72);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: transparent;
   z-index: 599;
   transform: translateY(-100%);
-  transition: transform .65s cubic-bezier(.76,0,.24,1);
+  will-change: transform;
+  transition: transform .55s cubic-bezier(.4,0,.2,1);
   display: flex; flex-direction: column;
 }
 #kuku-panel.open { transform: translateY(0); }
 
 #kuku-bar {
   height: 48px; flex-shrink: 0;
-  border-bottom: 1px solid rgba(0,0,0,.08);
+  border-bottom: 1px solid rgba(0,0,0,.1);
 }
 
-#kuku-iframe { width: 100%; flex: 1; min-height: 0; border: none; display: block; }
+#kuku-iframe {
+  width: 100%; flex: 1; min-height: 0; border: none; display: block;
+  opacity: 0; transition: opacity .3s ease;
+}
+#kuku-iframe.loaded { opacity: 1; }
+
+/* loading spinner */
+#kuku-loading {
+  position: absolute; inset: 48px 0 0 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; pointer-events: none;
+}
+#kuku-loading.hidden { display: none; }
+#kuku-loading p { font-size: 12px; letter-spacing: .14em; color: #999; }
+.kuku-spinner { width: 36px; height: 36px; animation: kuku-spin 1s linear infinite; }
+.kuku-spinner circle { stroke: #bbb; }
+.kuku-spinner circle.track { stroke: #e8e8e8; }
+@keyframes kuku-spin { to { transform: rotate(360deg); } }
 
 .kuku-close {
   position: fixed; top: 18px; right: 22px; z-index: 600;
@@ -762,6 +783,15 @@ body.screensaver #footer      { opacity: 0; pointer-events: none; }
 </button>
 <div id="kuku-panel" role="dialog" aria-modal="true" aria-label="kukuCome">
   <div id="kuku-bar"></div>
+  <div id="kuku-loading">
+    <svg class="kuku-spinner" viewBox="0 0 36 36" fill="none">
+      <circle class="track" cx="18" cy="18" r="14" stroke-width="3"/>
+      <circle cx="18" cy="18" r="14" stroke="#888" stroke-width="3"
+              stroke-dasharray="44 44" stroke-linecap="round"
+              transform-origin="18 18"/>
+    </svg>
+    <p>Loading</p>
+  </div>
   <iframe id="kuku-iframe" title="kukuCome"></iframe>
 </div>
 
@@ -1655,19 +1685,29 @@ ssOver.addEventListener('touchstart', exitSS, {passive:true});
 
 /* ── kukuCome top slide panel ────────────────────────────── */
 (function(){
-  const KUKU_URL = 'https://hico1w.github.io/kukuComeV/';
-  const panel    = document.getElementById('kuku-panel');
-  const iframe   = document.getElementById('kuku-iframe');
-  const backdrop = document.getElementById('kuku-backdrop');
-  const closeBtn = document.getElementById('kuku-close');
+  const KUKU_URL  = 'https://hico1w.github.io/kukuComeV/';
+  const panel     = document.getElementById('kuku-panel');
+  const iframe    = document.getElementById('kuku-iframe');
+  const backdrop  = document.getElementById('kuku-backdrop');
+  const closeBtn  = document.getElementById('kuku-close');
+  const loading   = document.getElementById('kuku-loading');
+  const ANIM_MS   = 550; // matches transition duration
+
+  iframe.addEventListener('load', () => {
+    loading.classList.add('hidden');
+    iframe.classList.add('loaded');
+  });
 
   function openKuku() {
-    if (!iframe.hasAttribute('src')) iframe.src = KUKU_URL;
     panel.classList.add('open');
     backdrop.classList.add('open');
     backdrop.setAttribute('aria-hidden','false');
     closeBtn.hidden = false;
     document.body.style.overflow = 'hidden';
+    // start iframe load after slide animation to avoid jitter
+    if (!iframe.hasAttribute('src')) {
+      setTimeout(() => { iframe.src = KUKU_URL; }, ANIM_MS);
+    }
   }
   function closeKuku() {
     panel.classList.remove('open');
