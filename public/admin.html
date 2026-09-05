@@ -1201,8 +1201,8 @@
     <button onclick="giveMpRefreshUsers()" style="margin-left:4px">↺</button>
   </div>
   <div class="input-row" style="margin-top:6px">
-    <input type="number" id="giveMpAmount" value="10" min="1" max="9999" style="width:70px;background:#0f1117;border:1px solid #374151;color:#e2e8f0;border-radius:4px;padding:3px 6px;font-size:13px">
-    <span style="color:#94a3b8;font-size:12px;margin:0 4px">MP</span>
+    <input type="number" id="giveMpAmount" value="10" min="-9999" max="9999" style="width:70px;background:#0f1117;border:1px solid #374151;color:#e2e8f0;border-radius:4px;padding:3px 6px;font-size:13px">
+    <span style="color:#94a3b8;font-size:12px;margin:0 4px">MP（マイナス可）</span>
     <button onclick="sendGiveMp()">付与</button>
   </div>
 </div>
@@ -3725,7 +3725,7 @@
     const ipid = document.getElementById('giveMpUserSelect').value;
     if (!ipid) { alert('キャラを選択してください'); return; }
     const amount = parseInt(document.getElementById('giveMpAmount').value);
-    if (isNaN(amount) || amount < 1) { alert('付与量を正の整数で入力してください'); return; }
+    if (isNaN(amount) || amount === 0) { alert('0以外の整数を入力してください'); return; }
     adminSend({ type: 'giveMp', ipid, amount });
   }
 
