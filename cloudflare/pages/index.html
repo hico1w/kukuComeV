@@ -559,15 +559,22 @@ a.link-item:hover { opacity: .5; }
 #kuku-panel {
   position: fixed; top: 0; left: 0; right: 0;
   height: 100dvh;
-  background: #fff;
+  background: rgba(255,255,255,.72);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   z-index: 599;
   transform: translateY(-100%);
-  opacity: 0;
-  transition: transform .65s cubic-bezier(.76,0,.24,1), opacity .65s ease;
+  transition: transform .65s cubic-bezier(.76,0,.24,1);
+  display: flex; flex-direction: column;
 }
-#kuku-panel.open { transform: translateY(0); opacity: .88; }
+#kuku-panel.open { transform: translateY(0); }
 
-#kuku-iframe { width: 100%; height: 100%; border: none; display: block; }
+#kuku-bar {
+  height: 48px; flex-shrink: 0;
+  border-bottom: 1px solid rgba(0,0,0,.08);
+}
+
+#kuku-iframe { width: 100%; flex: 1; min-height: 0; border: none; display: block; }
 
 .kuku-close {
   position: fixed; top: 18px; right: 22px; z-index: 600;
@@ -754,6 +761,7 @@ body.screensaver #footer      { opacity: 0; pointer-events: none; }
   <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 </button>
 <div id="kuku-panel" role="dialog" aria-modal="true" aria-label="kukuCome">
+  <div id="kuku-bar"></div>
   <iframe id="kuku-iframe" title="kukuCome"></iframe>
 </div>
 
