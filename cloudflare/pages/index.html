@@ -1716,11 +1716,18 @@ ssOver.addEventListener('touchstart', exitSS, {passive:true});
   const closeBtn  = document.getElementById('kuku-close');
   const loading   = document.getElementById('kuku-loading');
   const ANIM_MS   = 550; // matches transition duration
+  const SPINNER_MS = 1000; // hide spinner after 1s regardless of load state
+  let revealTimer = null;
 
-  iframe.addEventListener('load', () => {
+  // iframe は上から届いた分だけ順に描画されるので、
+  // load 完了を待たずに 1 秒で表示へ切り替える
+  function revealKuku() {
+    clearTimeout(revealTimer); revealTimer = null;
     loading.classList.add('hidden');
     iframe.classList.add('loaded');
-  });
+  }
+
+  iframe.addEventListener('load', revealKuku);
 
   function openKuku() {
     panel.classList.add('open');
@@ -1729,6 +1736,7 @@ ssOver.addEventListener('touchstart', exitSS, {passive:true});
     document.body.style.overflow = 'hidden';
     if (!iframe.hasAttribute('src')) {
       setTimeout(() => { iframe.src = KUKU_URL; }, ANIM_MS);
+      revealTimer = setTimeout(revealKuku, ANIM_MS + SPINNER_MS);
     }
   }
   function closeKuku() {

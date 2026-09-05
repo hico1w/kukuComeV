@@ -2,6 +2,19 @@
 
 ---
 
+## v2.894.0 — 2026-09-05
+
+### fix: KUKUCOMEパネルのロード画面を1秒で消して途中表示にする
+
+`cloudflare/pages/index.html`（kukucome-chara.pages.dev）の上部リンク「KUKUCOME」で開くスライドパネルの挙動を変更。
+
+- 従来は `iframe` の `load` イベント完了まで `#kuku-loading` のスピナーを表示し、`#kuku-iframe` を `opacity:0` で隠していたため、読み込みが終わるまで中身が一切見えなかった
+- `revealKuku()` を新設し、`load` イベントと 1 秒タイマー（`SPINNER_MS = 1000`）のどちらか早い方でスピナー非表示＋`iframe.loaded` 付与に変更
+- タイマーは `iframe.src` をセットするタイミング（`ANIM_MS = 550` のスライドアニメ後）を起点にし、`revealTimer` を `clearTimeout` して二重発火を防止
+- iframe は HTML が届いた分から上から順に描画されるため、読み込み途中でも表示されるようになる
+
+---
+
 ## v2.893.0 — 2026-09-05
 
 ### docs: index.html をコマンド実装に同期（/update-index）
