@@ -503,6 +503,7 @@ function showStatusModal(user, autoClose = true, triggerCnum = null) {
                 <div class="sm-ol-stats">
                   <div class="sm-ol-stat">HP <span>${hp} / ${mhp}</span></div>
                   <div class="sm-ol-stat">MP <span>${mp}</span></div>
+                  ${user.op != null ? `<div class="sm-ol-stat">預金MP <span>🏦${user.op}</span></div>` : ''}
                   <div class="sm-ol-stat">ATK <span>${atk}</span></div>
                   <div class="sm-ol-stat">CRT <span>${critRate}%</span></div>
                   <div class="sm-ol-stat">EXP <span>${user.exp || 0}</span></div>
