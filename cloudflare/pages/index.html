@@ -548,6 +548,38 @@ a.link-item:hover { opacity: .5; }
 }
 #upload-panel.open { transform: translateX(0); }
 
+/* ── kukuCome top slide panel ────────────────────────────── */
+#kuku-backdrop {
+  position: fixed; inset: 0; z-index: 598;
+  background: rgba(0,0,0,0); pointer-events: none;
+  transition: background .5s ease;
+}
+#kuku-backdrop.open { background: rgba(0,0,0,.38); pointer-events: auto; }
+
+#kuku-panel {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 100dvh;
+  background: #fff;
+  z-index: 599;
+  transform: translateY(-100%);
+  transition: transform .65s cubic-bezier(.76,0,.24,1);
+}
+#kuku-panel.open { transform: translateY(0); }
+
+#kuku-iframe { width: 100%; height: 100%; border: none; display: block; }
+
+.kuku-close {
+  position: fixed; top: 18px; right: 22px; z-index: 600;
+  background: rgba(255,255,255,.85); backdrop-filter: blur(6px);
+  border: 1px solid #e2e2e2; border-radius: 50%; cursor: pointer;
+  color: #999;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color .15s, transform .22s;
+}
+.kuku-close:hover { color: #111; transform: rotate(90deg); }
+.kuku-close svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; }
+
 .up-close {
   position: fixed; top: 18px; right: 22px; z-index: 601;
   background: none; border: none; cursor: pointer;
@@ -707,13 +739,22 @@ body.screensaver #footer      { opacity: 0; pointer-events: none; }
     <li><a href="#" class="active">Top</a></li>
     <li><a href="#gallery">Gallery</a></li>
     <li><a href="#tab-info">About</a></li>
-    <li><a href="https://hico1w.github.io/kukuComeV/" target="_blank" rel="noopener">kukuCome</a></li>
+    <li><a href="#" id="open-kuku">kukuCome</a></li>
   </ul>
   <button class="hd-upload-btn" id="open-upload" aria-label="キャラ画像をアップロード">Upload</button>
   <div class="hd-lang">
     <span class="active">JA</span><span class="sep">/</span><span>EN</span>
   </div>
 </header>
+
+<!-- kukuCome top slide panel -->
+<div id="kuku-backdrop" aria-hidden="true"></div>
+<button class="kuku-close" id="kuku-close" aria-label="閉じる" hidden>
+  <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+</button>
+<div id="kuku-panel" role="dialog" aria-modal="true" aria-label="kukuCome">
+  <iframe id="kuku-iframe" src="" title="kukuCome"></iframe>
+</div>
 
 <!-- UPLOAD SLIDE PANEL -->
 <div id="upload-backdrop" aria-hidden="true"></div>
@@ -1601,6 +1642,36 @@ ssOver.addEventListener('touchstart', exitSS, {passive:true});
   document.getElementById('up-puru-enabled').addEventListener('change',function(){
     if(_upPuruCfg) _upPuruCfg.enabled=this.checked;
   });
+})();
+
+/* ── kukuCome top slide panel ────────────────────────────── */
+(function(){
+  const KUKU_URL = 'https://hico1w.github.io/kukuComeV/';
+  const panel    = document.getElementById('kuku-panel');
+  const iframe   = document.getElementById('kuku-iframe');
+  const backdrop = document.getElementById('kuku-backdrop');
+  const closeBtn = document.getElementById('kuku-close');
+
+  function openKuku() {
+    if (!iframe.src) iframe.src = KUKU_URL;
+    panel.classList.add('open');
+    backdrop.classList.add('open');
+    backdrop.setAttribute('aria-hidden','false');
+    closeBtn.hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+  function closeKuku() {
+    panel.classList.remove('open');
+    backdrop.classList.remove('open');
+    backdrop.setAttribute('aria-hidden','true');
+    closeBtn.hidden = true;
+    document.body.style.overflow = '';
+  }
+
+  document.getElementById('open-kuku').addEventListener('click', e => { e.preventDefault(); openKuku(); });
+  closeBtn.addEventListener('click', closeKuku);
+  backdrop.addEventListener('click', closeKuku);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeKuku(); });
 })();
 
 /* ── Screensaver: clock ──────────────────────────────────── */

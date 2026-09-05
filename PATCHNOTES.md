@@ -2,6 +2,16 @@
 
 ---
 
+## v2.875.0 — 2026-09-05
+
+### feat: kukuCome ナビリンクを上スライドパネルに変更 (Cloudflare Pages)
+
+- `cloudflare/pages/index.html` : nav の kukuCome リンクをクリックすると外部遷移ではなく上からスライドするパネルで開くように変更
+- パネル内に `https://hico1w.github.io/kukuComeV/` を iframe で表示
+- ×ボタン・背景クリック・Escape キーで閉じる
+
+---
+
 ## v2.874.0 — 2026-09-05
 
 ### perf: Cloudflare Pages サイト画像をWebPに変換
