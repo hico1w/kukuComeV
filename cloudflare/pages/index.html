@@ -780,7 +780,7 @@ body.screensaver #footer      { opacity: 0; pointer-events: none; }
     <li><a href="#tab-info">About</a></li>
     <li><a href="#" id="open-kuku">kukuCome</a></li>
   </ul>
-  <a href="https://live.erinn.biz/u/x" target="_blank" rel="noopener" class="live-badge" id="live-badge">LIVE</a>
+  <a href="https://live.erinn.biz/u/x" target="_blank" rel="noopener" class="live-badge" id="live-badge" aria-label="配信中">LIVE</a>
   <button class="hd-upload-btn" id="open-upload" aria-label="キャラ画像をアップロード">Upload</button>
   <div class="hd-lang">
     <span class="active">JA</span><span class="sep">/</span><span>EN</span>
@@ -1739,6 +1739,7 @@ ssOver.addEventListener('touchstart', exitSS, {passive:true});
       const r = await fetch(WORKER + '/live-status');
       const d = await r.json();
       badge.classList.toggle('on', !!d.live);
+      if (d.live && d.url) badge.href = d.url;
     } catch {}
   }
   check();

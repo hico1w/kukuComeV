@@ -177,8 +177,11 @@ export default {
         if (!res.ok) return json({ live: false }, 200, cors);
         const data = await res.json();
         const streams = Array.isArray(data.live) ? data.live : [];
-        const isLive = streams.some(s => s.profile_page === 'https://live.erinn.biz/u/x');
-        return json({ live: isLive }, 200, { ...cors, 'Cache-Control': 'public, max-age=60' });
+        const stream = streams.find(s => s.profile_page === 'https://live.erinn.biz/u/x');
+        return json(
+          stream ? { live: true, url: stream.url } : { live: false },
+          200, { ...cors, 'Cache-Control': 'public, max-age=60' }
+        );
       } catch {
         return json({ live: false }, 200, cors);
       }
