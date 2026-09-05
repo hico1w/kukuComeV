@@ -1,0 +1,551 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>DINO — hico1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Cormorant+Garamond:wght@300;600&family=Noto+Sans+JP:wght@300;400&display=swap">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { color-scheme: light; }
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 300;
+  background: #0b0d12;
+  color: #ede0d4;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+a { color: inherit; text-decoration: none; }
+
+/* ── header ── */
+#bar {
+  height: 52px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+.bar-home {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: .05em;
+}
+.bar-back {
+  font-size: 10px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: rgba(237,224,212,.5);
+  transition: color .15s;
+}
+.bar-back:hover { color: #ede0d4; }
+.bar-hint {
+  margin-left: auto;
+  font-size: 10px;
+  letter-spacing: .12em;
+  color: rgba(237,224,212,.42);
+}
+
+/* ── stage ── */
+#stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+#wrap {
+  position: relative;
+  width: 100%;
+  max-width: 1200px;
+  /* 縦横比は画面幅で変える。スマホで 3:1 のままだと
+     盤面が 374x125 になって遊べないため、縦を使う */
+  aspect-ratio: 3 / 1;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(0,0,0,.5);
+  touch-action: manipulation;
+}
+#game {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;          /* ドット絵をぼかさない */
+  image-rendering: crisp-edges;
+}
+
+/* ── overlays ── */
+.ov {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4.2%;
+  background: rgba(10,12,18,.52);
+  text-align: center;
+}
+.ov.show { display: flex; }
+
+.pix {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  color: #fff;
+  line-height: 1.6;
+  text-shadow: 3px 3px 0 #1b2a4a, -1px -1px 0 #1b2a4a, 1px -1px 0 #1b2a4a, -1px 1px 0 #1b2a4a;
+}
+#over-title { font-size: clamp(16px, 4.2vw, 44px); letter-spacing: .06em; }
+.ov-score   { font-size: clamp(8px, 1.7vw, 15px); color: #ffe9a8; }
+
+#retry {
+  width: clamp(140px, 22%, 230px);
+  cursor: pointer;
+  filter: drop-shadow(0 6px 14px rgba(0,0,0,.45));
+  transition: transform .12s ease;
+  background: none;
+  border: none;
+  padding: 0;
+  display: block;
+}
+#retry:hover  { transform: translateY(-2px) scale(1.03); }
+#retry:active { transform: translateY(1px) scale(.99); }
+#retry img { width: 100%; display: block; }
+
+#start-title { font-size: clamp(13px, 3vw, 30px); }
+.ov-sub {
+  font-size: clamp(9px, 1.5vw, 13px);
+  letter-spacing: .1em;
+  color: rgba(255,255,255,.8);
+}
+
+#loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #7fd4f5;
+  font-size: 11px;
+  letter-spacing: .2em;
+  color: #17384d;
+}
+#loading.hide { display: none; }
+
+@media (max-width: 900px) { #wrap { aspect-ratio: 2 / 1; } }
+@media (max-width: 640px) {
+  #bar { padding: 0 14px; gap: 12px; height: 46px; }
+  .bar-hint { display: none; }
+  #stage { padding: 8px; }
+  #wrap { aspect-ratio: 1.45 / 1; }
+}
+</style>
+
+<div id="bar">
+  <a href="/" class="bar-home">hico1</a>
+  <a href="/" class="bar-back">← back to site</a>
+  <span class="bar-hint">SPACE / ↑ / タップ でジャンプ</span>
+</div>
+
+<div id="stage">
+  <div id="wrap">
+    <canvas id="game" width="1200" height="400" aria-label="DINO ゲーム"></canvas>
+
+    <div class="ov show" id="start-ov">
+      <p class="pix" id="start-title">DINO</p>
+      <p class="ov-sub">SPACE / ↑ / タップ でスタート</p>
+    </div>
+
+    <div class="ov" id="over-ov">
+      <p class="pix" id="over-title">GAME OVER</p>
+      <p class="pix ov-score" id="over-score"></p>
+      <button id="retry" aria-label="リトライ"><img src="./img-dino/retry.webp" alt="リトライ"></button>
+    </div>
+
+    <div id="loading">LOADING…</div>
+  </div>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+// ── 論理解像度。背景 back.webp(2172x724) を高さ400に合わせると幅ちょうど1200になり、
+//    1枚で画面1つ分になるのでタイリングが素直になる
+const TILE = 1200;      // 背景1枚ぶんの幅。絵の縦横比から決まる固定値
+let W = 1200;           // 実際に映す幅。画面の縦横比に合わせて変える
+const H = 400;
+// 背景の空と地面の境目。原寸 y=551/724 を実測して求めた位置
+const GROUND = Math.round(H * 0.7611) + 4;   // 足を置く高さ（草の上）
+
+const DIR = './img-dino/';
+const NAMES = [
+  'back', 'sun', 'cloud1', 'cloud2', 'cloud3', 'cloud4', 'cloud5',
+  'hugu', 'hosi', 'kani', 'kaniyarare',
+  'run_01','run_02','run_03','run_04','run_05','run_06','run_07','run_08',
+  'jump_01','jump_02','jump_03','jump_04','jump_05','jump_06',
+];
+
+const cv   = document.getElementById('game');
+const wrap = document.getElementById('wrap');
+const ctx  = cv.getContext('2d', { alpha: false });
+ctx.imageSmoothingEnabled = false;
+
+/* 表示領域の縦横比に合わせて論理幅を決める。
+   横が狭いほど見える範囲も狭くなるので、そのぶん速度も落として
+   「障害物が見えてから反応できる時間」をどの画面でも揃える（SPD）。 */
+function fit() {
+  const r = wrap.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  W = Math.max(420, Math.round(H * (r.width / r.height)));
+  cv.width = W; cv.height = H;
+  ctx.imageSmoothingEnabled = false;
+}
+const SPD = () => W / TILE;
+addEventListener('resize', fit);
+
+const startOv = document.getElementById('start-ov');
+const overOv  = document.getElementById('over-ov');
+const overSc  = document.getElementById('over-score');
+const loading = document.getElementById('loading');
+const retryBtn= document.getElementById('retry');
+
+const img = {};
+let jumpSfx = null;
+
+// ── バランス調整用の数値をここに集約 ──────────────────────
+const CFG = {
+  charScale: 0.50,        // 原寸220px → 約110px
+  speed0: 420,            // 開始スピード(px/秒)
+  speedMax: 980,
+  speedUp: 9,             // 1秒あたりの加速
+  gravity: 1900,
+  jumpV: 620,             // 頂点で約100px上がる
+  spawnMin: 0.72,         // 障害物の間隔(秒)。速度が上がると縮む
+  spawnMax: 1.45,
+  runFps: 14,
+  jumpFps: 12,
+};
+
+const state = {
+  mode: 'ready',          // ready | playing | over
+  t: 0, last: 0,
+  speed: CFG.speed0,
+  dist: 0, score: 0,
+  best: +(localStorage.getItem('dino-best') || 0) || 0,
+  bgScroll: 0, sunX: 0,
+  y: 0, vy: 0, onGround: true,
+  frame: 0, frameT: 0,
+  obstacles: [],
+  clouds: [],
+  flying: [],             // はじき飛ばされたカニ
+  nextSpawn: 0,
+};
+
+/* ── 読み込み ─────────────────────────────────────────── */
+function load() {
+  let left = NAMES.length;
+  return new Promise(resolve => {
+    NAMES.forEach(n => {
+      const im = new Image();
+      im.onload = im.onerror = () => { if (--left === 0) resolve(); };
+      im.src = DIR + n + '.webp';
+      img[n] = im;
+    });
+    try {
+      jumpSfx = new Audio(DIR + 'jump.mp3');
+      jumpSfx.preload = 'auto';
+      jumpSfx.volume = 0.45;
+    } catch (e) { jumpSfx = null; }
+  });
+}
+
+function playJump() {
+  if (!jumpSfx) return;
+  try { jumpSfx.currentTime = 0; jumpSfx.play().catch(() => {}); } catch (e) {}
+}
+
+/* ── 雲 ───────────────────────────────────────────────── */
+function makeCloud(x) {
+  const n = 1 + Math.floor(Math.random() * 5);
+  const im = img['cloud' + n];
+  const sc = 0.42 + Math.random() * 0.38;
+  return {
+    im,
+    x: x !== undefined ? x : W + Math.random() * 260,
+    y: 14 + Math.random() * 150,          // 空の範囲に収める
+    w: im.width * sc,
+    h: im.height * sc,
+    sp: 0.20 + Math.random() * 0.16,       // 背景に対する速さ（視差）
+  };
+}
+
+/* ── 障害物 ───────────────────────────────────────────── */
+function spawn() {
+  const r = Math.random();
+  let o;
+  if (r < 0.42) {
+    // フグ（陸）: 飛び越える
+    const sc = 0.42;
+    o = { kind: 'hugu', im: img.hugu, w: img.hugu.width * sc, h: img.hugu.height * sc, deadly: true };
+    o.y = GROUND - o.h;
+  } else if (r < 0.68) {
+    // 星（空中・低い）: 飛び越える
+    const sc = 0.40;
+    o = { kind: 'hosi', im: img.hosi, w: img.hosi.width * sc, h: img.hosi.height * sc, deadly: true };
+    o.y = GROUND - o.h - 26;
+  } else if (r < 0.82) {
+    // 星（空中・高い）: ジャンプすると当たる。地上を走って抜ける
+    const sc = 0.40;
+    o = { kind: 'hosi-hi', im: img.hosi, w: img.hosi.width * sc, h: img.hosi.height * sc, deadly: true };
+    o.y = GROUND - charH() - 78;
+  } else {
+    // カニ: 当たってもゲームオーバーにならない
+    const sc = 0.40;
+    o = { kind: 'kani', im: img.kani, w: img.kani.width * sc, h: img.kani.height * sc, deadly: false };
+    o.y = GROUND - o.h;
+  }
+  o.x = W + 40;
+  state.obstacles.push(o);
+
+  const f = CFG.speed0 / state.speed;      // 速いほど間隔を詰める
+  state.nextSpawn = (CFG.spawnMin + Math.random() * (CFG.spawnMax - CFG.spawnMin)) * f;
+}
+
+const charH = () => img.run_01.height * CFG.charScale;
+
+/* ── 当たり判定。見た目より内側に取る（理不尽な死を減らす） ── */
+function charBox() {
+  const w = img.run_01.width * CFG.charScale;
+  const h = charH();
+  const cx = 150, bottom = GROUND - state.y;
+  return { x: cx - w / 2 + w * 0.22, y: bottom - h + h * 0.10, w: w * 0.56, h: h * 0.86 };
+}
+function hit(a, b) {
+  const m = 0.16;   // 障害物側も少し内側に
+  const bx = b.x + b.w * m, by = b.y + b.h * m, bw = b.w * (1 - m * 2), bh = b.h * (1 - m * 2);
+  return a.x < bx + bw && a.x + a.w > bx && a.y < by + bh && a.y + a.h > by;
+}
+
+/* ── 操作 ─────────────────────────────────────────────── */
+function jump() {
+  if (state.mode === 'ready') { start(); return; }
+  if (state.mode === 'over') { reset(); return; }
+  if (!state.onGround) return;
+  state.vy = -CFG.jumpV;
+  state.onGround = false;
+  state.frame = 0; state.frameT = 0;
+  playJump();
+}
+
+function start() {
+  state.mode = 'playing';
+  startOv.classList.remove('show');
+  state.last = performance.now();
+}
+
+function reset() {
+  Object.assign(state, {
+    mode: 'playing', speed: CFG.speed0, dist: 0, score: 0,
+    y: 0, vy: 0, onGround: true, frame: 0, frameT: 0,
+    obstacles: [], flying: [], nextSpawn: 0.9, last: performance.now(),
+  });
+  overOv.classList.remove('show');
+}
+
+function gameOver() {
+  state.mode = 'over';
+  if (state.score > state.best) {
+    state.best = state.score;
+    try { localStorage.setItem('dino-best', String(state.best)); } catch (e) {}
+  }
+  overSc.textContent = 'SCORE ' + pad(state.score) + '   BEST ' + pad(state.best);
+  overOv.classList.add('show');
+}
+
+const pad = n => String(n).padStart(5, '0');
+
+addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'ArrowUp' || e.key === ' ' || e.key === 'ArrowUp') {
+    e.preventDefault(); jump();
+  }
+}, { passive: false });
+
+document.getElementById('wrap').addEventListener('pointerdown', e => {
+  if (e.target.closest('#retry')) return;   // リトライボタンは自前で処理
+  jump();
+});
+retryBtn.addEventListener('click', e => { e.stopPropagation(); reset(); });
+
+/* ── 更新 ─────────────────────────────────────────────── */
+function update(dt) {
+  if (state.mode !== 'playing') {
+    // 待機中だけ背景を流す。ゲームオーバー中に地面が動くと
+    // キャラだけ止まって見えるので、そのときは完全に止める
+    if (state.mode === 'ready') {
+      const idle = CFG.speed0 * 0.35 * SPD();
+      state.bgScroll += idle * dt;
+      state.sunX     += idle * 0.06 * dt;
+      updateClouds(dt, idle);
+    }
+    return;
+  }
+
+  state.speed = Math.min(CFG.speedMax, state.speed + CFG.speedUp * dt);
+  state.dist += state.speed * dt;
+  state.score = Math.floor(state.dist / 12);
+
+  const mv = state.speed * SPD();          // 実際の移動量
+  state.bgScroll += mv * dt;
+  state.sunX     += mv * 0.06 * dt;
+  updateClouds(dt, mv);
+
+  // ジャンプ
+  if (!state.onGround) {
+    state.vy += CFG.gravity * dt;
+    state.y -= state.vy * dt;
+    if (state.y <= 0) { state.y = 0; state.vy = 0; state.onGround = true; state.frame = 0; }
+  }
+
+  // コマ送り
+  state.frameT += dt;
+  const spf = 1 / (state.onGround ? CFG.runFps : CFG.jumpFps);
+  while (state.frameT >= spf) {
+    state.frameT -= spf;
+    if (state.onGround) state.frame = (state.frame + 1) % 8;
+    else state.frame = Math.min(5, state.frame + 1);   // ジャンプは最後のコマで止める
+  }
+
+  // 障害物
+  state.nextSpawn -= dt;
+  if (state.nextSpawn <= 0) spawn();
+
+  const box = charBox();
+  for (let i = state.obstacles.length - 1; i >= 0; i--) {
+    const o = state.obstacles[i];
+    o.x -= mv * dt;
+    if (o.x + o.w < -60) { state.obstacles.splice(i, 1); continue; }
+    if (o.hitDone) continue;
+    if (hit(box, o)) {
+      if (o.deadly) { gameOver(); return; }
+      // カニ: はじき飛ばす
+      o.hitDone = true;
+      state.obstacles.splice(i, 1);
+      state.flying.push({
+        im: img.kaniyarare,
+        x: o.x, y: o.y,
+        w: img.kaniyarare.width * 0.40, h: img.kaniyarare.height * 0.40,
+        vx: 210 + Math.random() * 90,
+        vy: -430 - Math.random() * 110,
+        rot: 0, vr: 7 + Math.random() * 4,
+      });
+      state.score += 25;
+      state.dist += 25 * 12;
+    }
+  }
+
+  // 飛んでいくカニ
+  for (let i = state.flying.length - 1; i >= 0; i--) {
+    const f = state.flying[i];
+    f.vy += CFG.gravity * 0.55 * dt;
+    f.x += f.vx * SPD() * dt;
+    f.y += f.vy * dt;
+    f.rot += f.vr * dt;
+    if (f.y > H + 200) state.flying.splice(i, 1);
+  }
+}
+
+function updateClouds(dt, baseSpeed) {
+  for (let i = state.clouds.length - 1; i >= 0; i--) {
+    const c = state.clouds[i];
+    c.x -= baseSpeed * c.sp * dt;
+    if (c.x + c.w < -40) state.clouds.splice(i, 1);
+  }
+  if (state.clouds.length < 5 && Math.random() < dt * 0.85) state.clouds.push(makeCloud());
+}
+
+/* ── 描画 ─────────────────────────────────────────────── */
+function drawTile(x, mirror) {
+  if (!mirror) { ctx.drawImage(img.back, x, 0, TILE, H); return; }
+  ctx.save();
+  ctx.translate(x + TILE, 0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(img.back, 0, 0, TILE, H);
+  ctx.restore();
+}
+
+function draw() {
+  // 背景（1枚おきに反転して無限ループ。つなぎ目対策）
+  const tile = Math.floor(state.bgScroll / TILE);
+  const off  = state.bgScroll - tile * TILE;
+  const n    = Math.ceil((W + off) / TILE) + 1;
+  for (let i = 0; i < n; i++) drawTile(-off + i * TILE, ((tile + i) & 1) === 1);
+
+  // 太陽（いちばん遅い）
+  const sw = img.sun.width * 0.62, sh = img.sun.height * 0.62;
+  const period = W + sw + 700;
+  let sx = W - 180 - (state.sunX % period);
+  if (sx + sw < 0) sx += period;
+  ctx.globalAlpha = 0.92;
+  ctx.drawImage(img.sun, sx, 26, sw, sh);
+  ctx.globalAlpha = 1;
+
+  // 雲（太陽より速い）
+  for (const c of state.clouds) ctx.drawImage(c.im, c.x, c.y, c.w, c.h);
+
+  // 障害物
+  for (const o of state.obstacles) ctx.drawImage(o.im, o.x, o.y, o.w, o.h);
+
+  // はじかれたカニ
+  for (const f of state.flying) {
+    ctx.save();
+    ctx.translate(f.x + f.w / 2, f.y + f.h / 2);
+    ctx.rotate(f.rot);
+    ctx.drawImage(f.im, -f.w / 2, -f.h / 2, f.w, f.h);
+    ctx.restore();
+  }
+
+  // キャラ（下端を接地させる。コマごとに高さが違うので下揃え）
+  const frames = state.onGround
+    ? ['run_01','run_02','run_03','run_04','run_05','run_06','run_07','run_08']
+    : ['jump_01','jump_02','jump_03','jump_04','jump_05','jump_06'];
+  const im = img[frames[Math.min(state.frame, frames.length - 1)]];
+  const cw = im.width * CFG.charScale, ch = im.height * CFG.charScale;
+  ctx.drawImage(im, 150 - cw / 2, GROUND - state.y - ch, cw, ch);
+
+  // スコア（右上）
+  ctx.font = '16px "Press Start 2P", monospace';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'top';
+  const label = (state.best ? 'HI ' + pad(state.best) + '   ' : '') + pad(state.score);
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = 'rgba(20,40,70,.85)';
+  ctx.strokeText(label, W - 18, 16);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(label, W - 18, 16);
+}
+
+/* ── ループ ───────────────────────────────────────────── */
+function loop(now) {
+  const dt = Math.min(0.05, (now - state.last) / 1000) || 0;
+  state.last = now;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+load().then(() => {
+  loading.classList.add('hide');
+  fit();                                   // 盤面サイズを画面に合わせる（resize でも呼ばれる）
+  for (let i = 0; i < 4; i++) state.clouds.push(makeCloud(Math.random() * W));
+  state.last = performance.now();
+  requestAnimationFrame(loop);
+});
+})();
+</script>

@@ -419,7 +419,10 @@ button { cursor: pointer; background: none; border: none; font: inherit; color: 
   font-weight: 300;
   letter-spacing: .1em;
   color: rgba(255,255,255,.7);
+  align-self: flex-start;      /* リンクなので当たり判定を文字幅に収める */
+  transition: color .18s;
 }
+.footer-logo:hover { color: #fff; }
 .footer-copy {
   font-size: 10px;
   letter-spacing: .14em;
@@ -632,6 +635,20 @@ a.link-item:hover { opacity: .5; }
   background: #fff; border-radius: 50%;
   animation: live-dot 1.8s ease infinite;
 }
+/* 配信していないとき、LIVE バッジの位置に出す DINO リンク */
+.dino-badge {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 500; letter-spacing: .14em;
+  color: #555; background: #f0f0f0;
+  border: 1px solid #dcdcdc; border-radius: 4px;
+  padding: 3px 8px;
+  transition: color .18s, background .18s, border-color .18s;
+}
+.dino-badge::before { content: '🦖'; font-size: 11px; line-height: 1; }
+.dino-badge:hover { color: #111; background: #e6e6e6; border-color: #c8c8c8; }
+/* 配信中は LIVE バッジに席をゆずる */
+#hd-live.is-live .dino-badge { display: none; }
+
 @keyframes live-pulse { 0%,100%{ opacity:1 } 50%{ opacity:.75 } }
 @keyframes live-dot   { 0%,100%{ transform:scale(1) } 50%{ transform:scale(1.3) } }
 
@@ -991,9 +1008,10 @@ body.pn-open { overflow: hidden; }
     <li><a href="#" id="open-kuku">kukuCome</a></li>
     <li><a href="/patchnotes" id="open-pn">Patchnotes</a></li>
   </ul>
-  <div class="hd-live">
+  <div class="hd-live" id="hd-live">
     <a class="live-title" id="live-title" href="#" target="_blank" rel="noopener"></a>
     <a href="https://live.erinn.biz/u/x" target="_blank" rel="noopener" class="live-badge" id="live-badge" aria-label="配信中">LIVE</a>
+    <a href="/dino" class="dino-badge" id="dino-badge">DINO</a>
   </div>
   <button class="hd-upload-btn" id="open-upload" aria-label="キャラ画像をアップロード">Upload</button>
 </header>
@@ -1223,7 +1241,7 @@ body.pn-open { overflow: hidden; }
 
 <!-- ⑨ FOOTER -->
 <footer id="footer">
-  <p class="footer-logo">hico1</p>
+  <a class="footer-logo" href="/dino">hico1</a>
   <p class="footer-copy">© 2026 hico1 / 星井野アゲル — kukuCome</p>
 </footer>
 
@@ -1969,12 +1987,14 @@ ssOver.addEventListener('touchstart', exitSS, {passive:true});
   const WORKER = 'https://kukucome-chara-worker.chikamakoo.workers.dev';
   const badge  = document.getElementById('live-badge');
   const title  = document.getElementById('live-title');
+  const wrap   = document.getElementById('hd-live');
   async function check() {
     try {
       const r = await fetch(WORKER + '/live-status');
       const d = await r.json();
       badge.classList.toggle('on', !!d.live);
       title.classList.toggle('on', !!d.live);
+      wrap.classList.toggle('is-live', !!d.live);   // DINO リンクの出し分け
       if (d.live && d.url)   { badge.href = d.url; title.href = d.url; }
       if (d.live && d.title) title.textContent = d.title;
     } catch {}
