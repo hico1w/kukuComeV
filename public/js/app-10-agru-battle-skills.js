@@ -828,7 +828,7 @@ function _agruBattleDoCounter(forceSkillId) {
       const target = alive[Math.floor(Math.random() * alive.length)];
       if (!target) break;
       const stolen = target.mp || 0;
-      target.mp = 0; updateStatsDisplay(target);
+      addMp(target, -stolen);
       _agruAddSystemMsg(`🌀 MP吸収！${target.name || '名無し'} の MP ${stolen} を全部奪った！`);
       _agruBattlePlayEffect(skill.id, [target]);
       _agruBattleGetSpeech('mp_absorb');
@@ -836,7 +836,7 @@ function _agruBattleDoCounter(forceSkillId) {
     }
     case 'all_mp_drain': {
       _agruAddSystemMsg('💸 全体MP吸収！全員のMP -10！');
-      alive.forEach(u => { u.mp = Math.max(0, (u.mp || 0) - 10); updateStatsDisplay(u); });
+      alive.forEach(u => { addMp(u, -10); });
       _agruBattlePlayEffect(skill.id, alive);
       _agruBattleGetSpeech('all_mp_drain');
       break;

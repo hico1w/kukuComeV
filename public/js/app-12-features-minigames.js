@@ -1478,8 +1478,7 @@ function handleQuizAnswer(user, message) {
   renderQuizPanel();
 
   user.hp = Math.min(calcMaxHp(user), (user.hp ?? 30) + 20);
-  user.mp = (user.mp ?? 0) + 20;
-  updateStatsDisplay(user);
+  addMp(user, 20);
   const { x, y } = getCharCenter(user);
   showDamageNumber(x, y - 30, '💊+20', false, 20, '#86efac');
   showDamageNumber(x, y - 60, 'MP+20', false, 20, '#60a5fa');
@@ -1626,8 +1625,7 @@ function playSlot(user) {
     if (slotSoundEnabled) playLocalSound(result.sound);
 
     if (result.mp > 0) {
-      user.mp = (user.mp ?? 0) + result.mp;
-      updateStatsDisplay(user);
+      addMp(user, result.mp);
       const { x, y } = getCharCenter(user);
       showDamageNumber(x, y - 50, `🎰 MP+${result.mp}`, false, 18, '#fbbf24');
       if (result.jackpot) {
@@ -1654,8 +1652,7 @@ function playSlot(user) {
     // 自動モード継続
     if (user.slotAutoMode) {
       if ((user.mp ?? 0) >= 3) {
-        user.mp -= 3;
-        updateStatsDisplay(user);
+        addMp(user, -3);
         playSlot(user);
       } else {
         user.slotAutoMode = false;
@@ -1916,8 +1913,7 @@ document.getElementById('slotAllStartBtn')?.addEventListener('click', () => {
   Object.values(users).filter(u => u.el && !u.slotAutoMode && !u.slotSpinning).forEach(u => {
     if ((u.mp ?? 0) < 1) return;
     u.slotAutoMode = true;
-    u.mp -= 1;
-    updateStatsDisplay(u);
+    addMp(u, -1);
     playSlot(u);
   });
 });

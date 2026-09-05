@@ -2,6 +2,20 @@
 
 ---
 
+## v2.877.0 — 2026-09-05
+
+### feat: MP → kukuluLIVE オリジナルポイント同期
+
+- `server.js` : `/api/mypoint/get` (GET) と `/api/mypoint/set` (POST) エンドポイントを追加。配信者APIキーはサーバー側の `data/secrets.json` の `kukuluApikey` フィールドに設定。
+- `public/js/app-06-comment-handler.js` : `addMp(user, delta)` ヘルパーを追加。MP変更をすべてこれ経由に統一し、fire-and-forget で kukuluLIVE のオリジナルポイントと同期する。
+- `handleComment` にてコメント受信時に `user.cnum` を更新し、初回コメント時に `_loadMypointOnce` でポイント残高とpidをロード。
+- `app-06` / `app-09` / `app-10` / `app-12` / `app-13` の `user.mp ±= X` 直接書き込みをすべて `addMp(user, X)` に置き換え。
+- `app-09` : ボスアゲル勝利時の「全員MP0」処理を削除（ユーザー要望：負けてもMP0にしない）。
+- `app-10` : `mp_absorb` スキルと `all_mp_drain` スキルも `addMp` 経由に変更。
+- **設定**: `data/secrets.json` の `kukuluApikey` に配信者のAPIキーを入力してサーバー再起動。
+
+---
+
 ## v2.875.0 — 2026-09-05
 
 ### feat: kukuCome ナビリンクを上スライドパネルに変更 (Cloudflare Pages)

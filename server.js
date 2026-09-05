@@ -316,6 +316,49 @@ app.get('/api/raw', async (req, res) => {
   }
 });
 
+// ── kukuluLIVE オリジナルポイント（mypoint）プロキシ ────────────────
+function _kukuluApikey() {
+  try {
+    const s = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'secrets.json'), 'utf8'));
+    return s.kukuluApikey || '';
+  } catch { return ''; }
+}
+
+// GET /api/mypoint/get?hash=X&cnum=Y  または  ?pid=P
+app.get('/api/mypoint/get', async (req, res) => {
+  const apikey = _kukuluApikey();
+  if (!apikey) return res.status(503).json({ error: 'kukuluApikey が未設定です' });
+  const { hash: h, cnum, pid } = req.query;
+  let url = `https://live.erinn.biz/api/?category=comment&type=mypoint_list&apikey=${encodeURIComponent(apikey)}`;
+  if (pid)  url += `&pid=${encodeURIComponent(pid)}`;
+  else if (h && cnum) url += `&hash=${encodeURIComponent(h)}&cnum=${encodeURIComponent(cnum)}`;
+  else return res.status(400).json({ error: 'hash+cnum または pid が必要です' });
+  try {
+    const data = await fetchJSON(url);
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/mypoint/set  body: { hash, cnum, point } または { pid, point }
+app.post('/api/mypoint/set', async (req, res) => {
+  const apikey = _kukuluApikey();
+  if (!apikey) return res.status(503).json({ error: 'kukuluApikey が未設定です' });
+  const { hash: h, cnum, pid, point } = req.body || {};
+  if (point === undefined || point === null) return res.status(400).json({ error: 'point が必要です' });
+  let url = `https://live.erinn.biz/api/?category=comment&type=mypoint_change&apikey=${encodeURIComponent(apikey)}&point=${encodeURIComponent(point)}`;
+  if (pid)  url += `&pid=${encodeURIComponent(pid)}`;
+  else if (h && cnum) url += `&hash=${encodeURIComponent(h)}&cnum=${encodeURIComponent(cnum)}`;
+  else return res.status(400).json({ error: 'hash+cnum または pid が必要です' });
+  try {
+    const data = await fetchJSON(url);
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ageru/oto/bgm フォルダの会話モードBGM一覧（ランダム再生用）
 app.get('/api/ageru-bgm', (req, res) => {
   const dir = path.join(__dirname, 'public', 'ageru', 'oto', 'bgm');
