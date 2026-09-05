@@ -103,6 +103,9 @@ function resolveColor(v) {
   return COLOR_NAMES[v] || null;
 }
 
+// コメント番号 → ユーザー の逆引きマップ（handleComment で随時更新）
+const _commentNumMap = new Map();
+
 // ──────────────────────────────────────────────────────────────────
 // kukuluLIVE オリジナルポイント預け/引き出し
 // ──────────────────────────────────────────────────────────────────
@@ -183,6 +186,7 @@ function handleComment(comment) {
   const type  = comment.type || 'comment';
   const ipid  = comment.ipid || comment.from || 'master';
   const user  = getUser(ipid);
+  if (comment.number != null) _commentNumMap.set(Number(comment.number), user);
   if (comment.cnum) _loadOpOnce(user, String(comment.cnum));
   if (comment.from === 'master') user.isMaster = true;
   // icon_num がある場合はセーブキーを更新し、icon_numキーの既存セーブでキャラを上書き
@@ -482,6 +486,24 @@ function handleComment(comment) {
     const witM = trimmedMsg.match(/^MPを引き出す[：:]\s*(\d+)$/);
     if (depM) { _mypointDeposit(user, parseInt(depM[1], 10), String(comment.cnum || ''), comment.number); return; }
     if (witM) { _mypointWithdraw(user, parseInt(witM[1], 10), String(comment.cnum || ''), comment.number); return; }
+    const giveM = trimmedMsg.match(/^MPを渡す[：:]\s*(\d+)[：:]\s*(\d+)$/);
+    if (giveM) {
+      const targetNum = parseInt(giveM[1], 10);
+      const amount    = parseInt(giveM[2], 10);
+      const target = _commentNumMap.get(targetNum);
+      if (!target)        { showBubble(user, `❌ コメント${targetNum}のユーザーが見つかりません`, {}); return; }
+      if (target === user) { showBubble(user, `❌ 自分には渡せません`, {}); return; }
+      if ((user.mp ?? 0) < amount) { showBubble(user, `MP不足… (${user.mp ?? 0}/${amount})`, {}); return; }
+      user.mp = (user.mp ?? 0) - amount;
+      target.mp = (target.mp ?? 0) + amount;
+      updateStatsDisplay(user);
+      updateStatsDisplay(target);
+      showBubble(user,   `💸 ${target.name || '名無し'} に ${amount}MP 渡した！`, {});
+      showBubble(target, `🎁 ${user.name   || '名無し'} から ${amount}MP もらった！`, {});
+      const anchor = comment.number ? `>>${comment.number} ` : '';
+      postAIReply(`${anchor}💸 ${amount}MPを${target.name || '名無し'}さんに渡しました`);
+      return;
+    }
   }
 
   // ── ボスアゲルバトル攻撃 ──
