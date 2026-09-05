@@ -4,12 +4,14 @@
 
 ## v2.874.0 — 2026-09-05
 
-### perf: アップロード画像をWebPに変換して送信
+### perf: Cloudflare Pages サイト画像をWebPに変換
 
-#### `cloudflare/pages/upload.html`
-- PNG/JPG アップロード時にCanvas APIでWebP(quality 85)に変換してからWorkerへ送信
-- GIF・WebP はそのまま送信
-- Worker側の拡張子処理は `file.type` ベースなので変更不要
+#### `cloudflare/pages/img/`
+- JPG 97枚・PNG 41枚（ss01〜ss41・an・cos・v89・ph・cover）をWebP(quality 85)に変換・元ファイル削除
+- `cursors.png`・`logo.png` はUIパーツのため変換対象外
+
+#### `cloudflare/pages/index.html`
+- 画像参照を `.jpg`→`.webp`・`.png`→`.webp` に更新（cos01, AN/COS/V89/PH配列, SZ1/SZ2配列）
 
 ---
 

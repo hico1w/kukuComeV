@@ -808,7 +808,7 @@ body.screensaver #footer      { opacity: 0; pointer-events: none; }
     <div class="viewer-row">
       <button class="viewer-arrow" id="btn-prev" aria-label="前の写真">←</button>
       <div class="viewer-center">
-        <img id="main-photo" src="./img/cos01.jpg" alt="星井野アゲル">
+        <img id="main-photo" src="./img/cos01.webp" alt="星井野アゲル">
       </div>
       <button class="viewer-arrow" id="btn-next" aria-label="次の写真">→</button>
     </div>
@@ -919,14 +919,14 @@ body.screensaver #footer      { opacity: 0; pointer-events: none; }
    vrageru89  → v8901-v8920  (photo index grid + hero strip)
    PHOTOAGERU → ph01-ph15    (page strip 2 + hero strip + screensaver)
    ════════════════════════════════════════════════════════════ */
-const AN  = Array.from({length:20}, (_,i) => `./img/an${String(i+1).padStart(2,'0')}.jpg`);
-const COS = Array.from({length:25}, (_,i) => `./img/cos${String(i+1).padStart(2,'0')}.jpg`);
-const V89 = Array.from({length:20}, (_,i) => `./img/v89${String(i+1).padStart(2,'0')}.jpg`);
-const PH  = Array.from({length:15}, (_,i) => `./img/ph${String(i+1).padStart(2,'0')}.jpg`);
+const AN  = Array.from({length:20}, (_,i) => `./img/an${String(i+1).padStart(2,'0')}.webp`);
+const COS = Array.from({length:25}, (_,i) => `./img/cos${String(i+1).padStart(2,'0')}.webp`);
+const V89 = Array.from({length:20}, (_,i) => `./img/v89${String(i+1).padStart(2,'0')}.webp`);
+const PH  = Array.from({length:15}, (_,i) => `./img/ph${String(i+1).padStart(2,'0')}.webp`);
 // sozai/ → strip1 (sz01-sz10) and strip2 (sz11-sz19)
 // seleSozai → ss01-ss41 (strip1: 01-21, strip2: 22-41)
-const SZ1 = Array.from({length:21}, (_,i) => `./img/ss${String(i+1).padStart(2,'0')}.png`);
-const SZ2 = Array.from({length:20}, (_,i) => `./img/ss${String(i+22).padStart(2,'0')}.png`);
+const SZ1 = Array.from({length:21}, (_,i) => `./img/ss${String(i+1).padStart(2,'0')}.webp`);
+const SZ2 = Array.from({length:20}, (_,i) => `./img/ss${String(i+22).padStart(2,'0')}.webp`);
 
 /* ── Helpers ─────────────────────────────────────────────── */
 function buildStrip(trackEl, srcs, lazy=true) {
