@@ -102,3 +102,18 @@ console.log("◆ 別形式の重複候補(同名.pngが登録済み・削除候�
 - 手順4の未登録ファイル（新規キャラ候補／重複候補）を報告
 - 不一致があれば警告
 
+### 6. chara/ の PNG/JPG を WebP に変換
+
+`chara/` への補完で PNG ファイルが増えるため、**手順2が完了したら必ず**以下を実行して WebP に変換する。GitHub Pages はサーバーサイド処理がないため、`chara/` の画像は WebP ファイルとして配置する必要がある（`public/chara/` はゲームサーバー側で別管理のため変換不要）。
+
+```powershell
+cd E:\claude\kukuCome
+node convert-chara-webp.js
+```
+
+- `convert-chara-webp.js`（プロジェクトルート）が `chara/` 以下の PNG/JPG を WebP（quality 85）に変換し、元ファイルを削除する
+- GIF はアニメーション保持のため変換しない
+- 変換済みの WebP がある場合はスキップされる
+
+変換後、`index.html` の STANDALONE_CHARS に新しいキャラを追加した場合は拡張子を `.webp` で記載すること（`update-index-webp.js` を実行すると既存参照の `.png`→`.webp` 一括置換ができる）。
+
