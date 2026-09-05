@@ -143,28 +143,44 @@ export default {
           const key = url.searchParams.get('key');
           if (!key) return new Response('key が必要です', { status: 400, headers: cors });
 
-          const ghRes = await fetch(
-            `https://api.github.com/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/contents/${encodeURIComponent(key)}`,
-            { headers: ghHeaders(env) }
-          );
-          if (!ghRes.ok) return new Response('Not found', { status: 404, headers: cors });
-
-          const data = await ghRes.json();
-          const binary = atob(data.content.replace(/\n/g, ''));
-          const bytes = new Uint8Array(binary.length);
-          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-
           const ext = key.split('.').pop().toLowerCase();
           const ctMap = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' };
           const ct = ctMap[ext] || 'image/jpeg';
 
-          return new Response(bytes, {
+          // Contents API はファイルサイズ制限があるため raw エンドポイントから直接取得
+          const rawUrl = `https://raw.githubusercontent.com/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/main/${encodeURIComponent(key)}`;
+          const dlRes = await fetch(rawUrl, {
+            headers: {
+              'Authorization': `token ${env.GITHUB_TOKEN}`,
+              'User-Agent': 'kukuCome-Worker',
+            },
+          });
+          if (!dlRes.ok) return new Response('Not found', { status: dlRes.status, headers: cors });
+
+          return new Response(dlRes.body, {
             status: 200,
             headers: { ...cors, 'Content-Type': ct, 'Cache-Control': 'public, max-age=86400' },
           });
         } catch (e) {
           return new Response(e.message, { status: 500, headers: cors });
         }
+      }
+    }
+
+    // ── GET /live-status — kukuluLIVE 配信中チェック ──────────────
+    if (request.method === 'GET' && url.pathname === '/live-status') {
+      try {
+        const res = await fetch('https://live.erinn.biz/api/?category=live', {
+          headers: { 'User-Agent': 'kukuCome-Worker' },
+          cf: { cacheTtl: 60, cacheEverything: true },
+        });
+        if (!res.ok) return json({ live: false }, 200, cors);
+        const data = await res.json();
+        const streams = Array.isArray(data.live) ? data.live : [];
+        const isLive = streams.some(s => s.profile_page === 'https://live.erinn.biz/u/x');
+        return json({ live: isLive }, 200, { ...cors, 'Cache-Control': 'public, max-age=60' });
+      } catch {
+        return json({ live: false }, 200, cors);
       }
     }
 
