@@ -325,8 +325,8 @@ function _kukuluApikey() {
 }
 
 function _mypointIdQs(pid, h, cnum) {
-  if (pid)       return `&pid=${encodeURIComponent(pid)}`;
-  if (h && cnum) return `&hash=${encodeURIComponent(h)}&cnum=${encodeURIComponent(cnum)}`;
+  if (pid)  return `&pid=${encodeURIComponent(pid)}`;
+  if (cnum) return (h ? `&hash=${encodeURIComponent(h)}` : '') + `&cnum=${encodeURIComponent(cnum)}`;
   return null;
 }
 
@@ -336,7 +336,7 @@ app.get('/api/mypoint/get', async (req, res) => {
   if (!apikey) return res.status(503).json({ error: 'kukuluApikey 未設定' });
   const { hash: h, cnum, pid } = req.query;
   const qs = _mypointIdQs(pid, h, cnum);
-  if (!qs) return res.status(400).json({ error: 'pid または hash+cnum が必要' });
+  if (!qs) return res.status(400).json({ error: 'pid または cnum が必要' });
   try {
     const data = await fetchJSON(`https://live.erinn.biz/api/?category=comment&apikey=${encodeURIComponent(apikey)}&type=mypoint_list${qs}`);
     res.json(data);
@@ -352,7 +352,7 @@ app.post('/api/mypoint/deposit', async (req, res) => {
   const amt = Math.round(Number(amount));
   if (!amt || amt <= 0) return res.status(400).json({ error: '正の整数が必要' });
   const qs = _mypointIdQs(pid, h, cnum);
-  if (!qs) return res.status(400).json({ error: 'pid または hash+cnum が必要' });
+  if (!qs) return res.status(400).json({ error: 'pid または cnum が必要' });
   const base = `https://live.erinn.biz/api/?category=comment&apikey=${encodeURIComponent(apikey)}`;
   try {
     const got = await fetchJSON(`${base}&type=mypoint_list${qs}`);
@@ -376,7 +376,7 @@ app.post('/api/mypoint/withdraw', async (req, res) => {
   const amt = Math.round(Number(amount));
   if (!amt || amt <= 0) return res.status(400).json({ error: '正の整数が必要' });
   const qs = _mypointIdQs(pid, h, cnum);
-  if (!qs) return res.status(400).json({ error: 'pid または hash+cnum が必要' });
+  if (!qs) return res.status(400).json({ error: 'pid または cnum が必要' });
   const base = `https://live.erinn.biz/api/?category=comment&apikey=${encodeURIComponent(apikey)}`;
   try {
     const got = await fetchJSON(`${base}&type=mypoint_list${qs}`);

@@ -321,6 +321,8 @@ bgClearBtn?.addEventListener('click', async () => {
   const h = localStorage.getItem('hash')   || '';
   document.getElementById('apikey').value = k;
   document.getElementById('hash').value   = h;
+  apikey = k;
+  hash   = h;
 })();
 
 // ── サーバー側永続化ヘルパー ─────────────────────────────────────────

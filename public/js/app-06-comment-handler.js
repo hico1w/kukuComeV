@@ -106,12 +106,18 @@ function resolveColor(v) {
 // ──────────────────────────────────────────────────────────────────
 // kukuluLIVE オリジナルポイント預け/引き出し
 // ──────────────────────────────────────────────────────────────────
+function _mypointBody(user, cnum) {
+  if (user.pid) return { pid: user.pid };
+  if (!cnum)    return null;
+  return hash ? { hash, cnum } : { cnum };
+}
+
 function _loadOpOnce(user, cnum) {
-  if (user.opLoaded || !hash || !cnum) return;
+  if (user.opLoaded) return;
+  const b = _mypointBody(user, cnum);
+  if (!b) return;
   user.opLoaded = true;
-  const params = user.pid
-    ? `pid=${encodeURIComponent(user.pid)}`
-    : `hash=${encodeURIComponent(hash)}&cnum=${encodeURIComponent(cnum)}`;
+  const params = new URLSearchParams(b).toString();
   fetch(`/api/mypoint/get?${params}`)
     .then(r => r.json())
     .then(d => {
@@ -125,13 +131,13 @@ function _loadOpOnce(user, cnum) {
 }
 
 function _mypointDeposit(user, amount, cnum) {
-  if (!hash) { showBubble(user, `❌ 配信ハッシュ未設定`, {}); return; }
   if ((user.mp ?? 0) < amount) { showBubble(user, `MP不足… (${user.mp ?? 0}/${amount})`, {}); return; }
+  const b = _mypointBody(user, cnum);
+  if (!b) { showBubble(user, `❌ cnum が取得できません`, {}); return; }
   user.mp -= amount;
   updateStatsDisplay(user);
   showBubble(user, `⏳ ${amount}MP 預け中…`, {});
-  const body = user.pid ? { pid: user.pid, amount } : { hash, cnum, amount };
-  fetch('/api/mypoint/deposit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  fetch('/api/mypoint/deposit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...b, amount }) })
     .then(r => r.json()).then(d => {
       if (d.ok) {
         if (d.pid) user.pid = d.pid;
@@ -147,10 +153,10 @@ function _mypointDeposit(user, amount, cnum) {
 }
 
 function _mypointWithdraw(user, amount, cnum) {
-  if (!hash) { showBubble(user, `❌ 配信ハッシュ未設定`, {}); return; }
+  const b = _mypointBody(user, cnum);
+  if (!b) { showBubble(user, `❌ cnum が取得できません`, {}); return; }
   showBubble(user, `⏳ ${amount}OP 引き出し中…`, {});
-  const body = user.pid ? { pid: user.pid, amount } : { hash, cnum, amount };
-  fetch('/api/mypoint/withdraw', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  fetch('/api/mypoint/withdraw', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...b, amount }) })
     .then(r => r.json()).then(d => {
       if (d.ok) {
         if (d.pid) user.pid = d.pid;

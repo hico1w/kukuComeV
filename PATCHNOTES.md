@@ -2,6 +2,16 @@
 
 ---
 
+## v2.880.0 — 2026-09-05
+
+### fix: mypoint を hash なし・cnum だけで動作するよう修正
+
+- `app-01-core-characters.js` : `initSavedCredentials` で `apikey`/`hash` 変数を即時代入（Start 押し直し不要に）
+- `app-06-comment-handler.js` : `_mypointBody` ヘルパー導入 — pid > hash+cnum > cnum のみ の順で識別情報を構築
+- `server.js` : `_mypointIdQs` を hash 省略可に変更。deposit/withdraw/get の全エンドポイントも cnum のみで受け付ける
+
+---
+
 ## v2.879.0 — 2026-09-05
 
 ### feat: ステータス画面に預金MP（オリジナルポイント）表示
