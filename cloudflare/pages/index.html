@@ -753,7 +753,7 @@ body.screensaver #footer      { opacity: 0; pointer-events: none; }
   <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 </button>
 <div id="kuku-panel" role="dialog" aria-modal="true" aria-label="kukuCome">
-  <iframe id="kuku-iframe" src="" title="kukuCome"></iframe>
+  <iframe id="kuku-iframe" title="kukuCome"></iframe>
 </div>
 
 <!-- UPLOAD SLIDE PANEL -->
@@ -1653,7 +1653,7 @@ ssOver.addEventListener('touchstart', exitSS, {passive:true});
   const closeBtn = document.getElementById('kuku-close');
 
   function openKuku() {
-    if (!iframe.src) iframe.src = KUKU_URL;
+    if (!iframe.hasAttribute('src')) iframe.src = KUKU_URL;
     panel.classList.add('open');
     backdrop.classList.add('open');
     backdrop.setAttribute('aria-hidden','false');
