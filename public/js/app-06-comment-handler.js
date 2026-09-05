@@ -104,46 +104,6 @@ function resolveColor(v) {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// kukuluLIVE オリジナルポイント同期
-// ──────────────────────────────────────────────────────────────────
-function _syncMypoint(user) {
-  const pt = Math.max(0, Math.round(user.mp ?? 0));
-  const body = user.pid
-    ? { pid: user.pid, point: pt }
-    : (user.cnum && hash ? { hash, cnum: user.cnum, point: pt } : null);
-  if (!body) return;
-  fetch('/api/mypoint/set', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  }).catch(() => {});
-}
-
-function addMp(user, delta) {
-  user.mp = (user.mp ?? 0) + delta;
-  updateStatsDisplay(user);
-  _syncMypoint(user);
-}
-
-function _loadMypointOnce(user, cnum) {
-  if (user.mpLoaded || !hash) return;
-  user.mpLoaded = true;
-  const params = user.pid
-    ? `pid=${encodeURIComponent(user.pid)}`
-    : `hash=${encodeURIComponent(hash)}&cnum=${encodeURIComponent(cnum)}`;
-  fetch(`/api/mypoint/get?${params}`)
-    .then(r => r.json())
-    .then(d => {
-      const entry = Array.isArray(d.users) && d.users[0];
-      if (!entry) { _syncMypoint(user); return; } // 未登録ならゲームの現在値で初期化
-      user.mp  = entry.point ?? user.mp;
-      user.pid = entry.pid  ?? user.pid;
-      updateStatsDisplay(user);
-    })
-    .catch(() => {});
-}
-
-// ──────────────────────────────────────────────────────────────────
 // コメント処理
 // ──────────────────────────────────────────────────────────────────
 function handleComment(comment) {
@@ -152,10 +112,6 @@ function handleComment(comment) {
   const type  = comment.type || 'comment';
   const ipid  = comment.ipid || comment.from || 'master';
   const user  = getUser(ipid);
-  if (comment.cnum) {
-    user.cnum = String(comment.cnum);
-    _loadMypointOnce(user, user.cnum);
-  }
   if (comment.from === 'master') user.isMaster = true;
   // icon_num がある場合はセーブキーを更新し、icon_numキーの既存セーブでキャラを上書き
   if (comment.icon_num) {
@@ -311,9 +267,10 @@ function handleComment(comment) {
       } else {
         // 既存ベットを返金してから再ベット
         const prev = taimanState.bets[user.ipid];
-        if (prev) addMp(user, prev.amount);
-        addMp(user, -amount);
+        if (prev) user.mp = (user.mp ?? 0) + prev.amount;
+        user.mp = (user.mp ?? 0) - amount;
         taimanState.bets[user.ipid] = { side, amount };
+        updateStatsDisplay(user);
         const sideName = side === 'challenger' ? users[taimanState.challenger]?.name : users[taimanState.target]?.name;
         showBubble(user, `🎰 ${escapeHtml(sideName)} に ${amount}MP ベット！`, {});
         renderTaimanHpBars();
@@ -360,7 +317,8 @@ function handleComment(comment) {
           showBubble(user, `MPが足りない… (${user.mp ?? 0}/30)`, {});
         } else {
           if (agruYtEnabled) _agruPlayYouTube(videoId, startTime);
-          addMp(user, -30);
+          user.mp = (user.mp ?? 0) - 30;
+          updateStatsDisplay(user);
           ensureCharOnStage(user);
           showBubble(user, '📺 YouTube共有！ MP-30', {});
           const { x: yx, y: yy } = getCharCenter(user);
@@ -410,7 +368,8 @@ function handleComment(comment) {
     if ((user.mp ?? 0) < 50) {
       showBubble(user, `MPが足りない… (${user.mp ?? 0}/50)`, {});
     } else {
-      addMp(user, -50);
+      user.mp -= 50;
+      updateStatsDisplay(user);
       closeAgruYtModal();
     }
   }
@@ -423,19 +382,22 @@ function handleComment(comment) {
       if ((user.mp ?? 0) < 20) {
         showBubble(user, `MPが足りない… (${user.mp ?? 0}/20)`, {});
       } else {
-        addMp(user, -20);
+        user.mp -= 20;
+        updateStatsDisplay(user);
         fetch(`https://live.erinn.biz/api/?category=comment&type=speech&apikey=${encodeURIComponent(apikey)}&text=${encodeURIComponent(ccText)}`)
           .then(r => r.json())
           .then(data => {
             if (data.success === 1) {
               showBubble(user, `🎤 字幕送信！`, {});
             } else {
-              addMp(user, 20);
+              user.mp += 20;
+              updateStatsDisplay(user);
               showBubble(user, `字幕エラー: ${data.error_display || data.error || '不明'}`, {});
             }
           })
           .catch(() => {
-            addMp(user, 20);
+            user.mp += 20;
+            updateStatsDisplay(user);
             showBubble(user, `字幕送信失敗`, {});
           });
       }
@@ -450,7 +412,8 @@ function handleComment(comment) {
     if ((user.mp ?? 0) < 50) {
       showBubble(user, `MPが足りない… (${user.mp ?? 0}/50)`, {});
     } else {
-      addMp(user, -50);
+      user.mp -= 50;
+      updateStatsDisplay(user);
       agruAffinity = Math.min(1000, agruAffinity + 20);
       _agruUpdateAffinityDisplay(20);
       _agruAddSystemMsg(`${user.name || '名無し'}がカフェオレをプレゼントした！好感度あがった！`);
@@ -459,7 +422,8 @@ function handleComment(comment) {
     if ((user.mp ?? 0) < 10) {
       showBubble(user, `MPが足りない… (${user.mp ?? 0}/10)`, {});
     } else {
-      addMp(user, -10);
+      user.mp -= 10;
+      updateStatsDisplay(user);
       agruAffinity = Math.max(0, agruAffinity - 5);
       _agruUpdateAffinityDisplay(-5);
       _agruAddSystemMsg(`${user.name || '名無し'}が水道水を投与した…好感度さがった…`);
@@ -477,7 +441,8 @@ function handleComment(comment) {
     if ((user.mp ?? 0) < 20) {
       showBubble(user, `MPが足りない… (${user.mp ?? 0}/20)`, {});
     } else {
-      addMp(user, -20);
+      user.mp -= 20;
+      updateStatsDisplay(user);
       _agruPoisonTurns = 0;                              // 現在の毒状態を解除
       _agruAntidoteUntil = Date.now() + 5 * 60 * 1000;   // 5分間は毒投与を無効化
       _agruRevertStateImage();
@@ -510,7 +475,7 @@ function handleComment(comment) {
       ensureCharOnStage(user);
       const _mp = user.mp ?? 10;
       if (_mp >= 2) {
-        addMp(user, -2);
+        user.mp = _mp - 2;
         if (!user.tc) user.tc = {};
         user.tc.healCount = (user.tc.healCount || 0) + 1;
         Object.values(users).forEach(u => {
@@ -520,6 +485,7 @@ function handleComment(comment) {
           showDamageNumber(x, y - 30, '♥+2', false, 20, '#7dd3fc');
           updateStatsDisplay(u);
         });
+        updateStatsDisplay(user);
         spawnHeartShower(stage.clientWidth / 2, stage.clientHeight / 2);
         showBubble(user, message, {});
       } else {
@@ -700,7 +666,8 @@ function handleComment(comment) {
       showBubble(user, 'そのキャラは作れません', { color: '#ef4444' });
       return;
     }
-    if (!isMasterUser(user)) addMp(user, -50);
+    if (!isMasterUser(user)) user.mp -= 50;
+    updateStatsDisplay(user);
     createCharImage(user, charPrompt, comment.number);
     return;
   }
@@ -716,7 +683,7 @@ function handleComment(comment) {
       showBubble(user, `MPが足りません（${user.mp ?? 0}/5）`, {});
       return;
     }
-    if (!isMasterUser(user)) addMp(user, -5);
+    if (!isMasterUser(user)) user.mp -= 5;
     showBubble(user, message, {});
     const prompt = message.replace(/エコ生成/g, '').trim();
     generateSDImageGomi(user, prompt, comment.number);
@@ -734,7 +701,7 @@ function handleComment(comment) {
       showBubble(user, `MPが足りません（${user.mp ?? 0}/500）`, {});
       return;
     }
-    if (!isMasterUser(user)) addMp(user, -500);
+    if (!isMasterUser(user)) user.mp -= 500;
     showBubble(user, message, {});
     const prompt = message.replace(/超生成/g, '').trim();
     generateSDImageCho(user, prompt, comment.number);
@@ -753,7 +720,7 @@ function handleComment(comment) {
       postAIReply(`${user.name || '名無し'} MPが足りません（${user.mp ?? 0}/20）`);
       return;
     }
-    if (!isMasterUser(user)) addMp(user, -20);
+    if (!isMasterUser(user)) user.mp -= 20;
     showBubble(user, message, {});
     const prompt = message.replace(/出ろ|出して|生成|gen/gi, '').trim();
     generateSDImage(user, prompt, comment.number);
@@ -801,7 +768,8 @@ function handleComment(comment) {
       showBubble(user, `MPが足りない… (${user.mp ?? 0}/200)`, {});
       return;
     }
-    addMp(user, -200);
+    user.mp -= 200;
+    updateStatsDisplay(user);
     if (!user.tc) user.tc = {};
     const _RARITY_ORD = {'rarity-myth':4,'rarity-legend':3,'rarity-epic':2,'rarity-rare':1,'':0};
     const _10pets = [];
@@ -829,7 +797,8 @@ function handleComment(comment) {
       showBubble(user, `MPが足りない… (${user.mp ?? 0}/20)`, {});
       return;
     }
-    addMp(user, -20);
+    user.mp -= 20;
+    updateStatsDisplay(user);
     if (!user.tc) user.tc = {};
     user.tc.petGachas = (user.tc.petGachas || 0) + 1;
     const pet = rollPetGacha();
@@ -871,7 +840,8 @@ function handleComment(comment) {
       return;
     }
     user.slotAutoMode = true;
-    addMp(user, -3);
+    user.mp -= 3;
+    updateStatsDisplay(user);
     playSlot(user);
     addToLog(user, '🎰 スロット開始（自動）', '#fbbf24');
     return;
@@ -886,7 +856,8 @@ function handleComment(comment) {
       showBubble(user, `MPが足りない… (${user.mp ?? 0}/3)`, {});
       return;
     }
-    addMp(user, -3);
+    user.mp -= 3;
+    updateStatsDisplay(user);
     playSlot(user);
     addToLog(user, '🎰 スロット！', '#fbbf24');
     return;
@@ -1022,7 +993,8 @@ function handleComment(comment) {
       if ((user.mp ?? 0) < 200) {
         showBubble(user, `❌ MP不足 (${user.mp ?? 0}/200)`, {});
       } else {
-        addMp(user, -200);
+        user.mp = (user.mp ?? 0) - 200;
+        updateStatsDisplay(user);
         user.movement = moveM[1];
         if (!user.tc) user.tc = {};
         user.tc.moveChanges = (user.tc.moveChanges || 0) + 1;
@@ -1099,7 +1071,8 @@ function handleComment(comment) {
           showBubble(user, `MPが足りない… (${user.mp ?? 0}/200)`, {});
           return;
         }
-        addMp(user, -200);
+        user.mp -= 200;
+        updateStatsDisplay(user);
       }
       user.size = sz;
       ensureCharOnStage(user);
@@ -1277,7 +1250,7 @@ function handleComment(comment) {
     ensureCharOnStage(user);
     const mp = user.mp ?? 10;
     if (mp >= 2) {
-      addMp(user, -2);
+      user.mp = mp - 2;
       if (!user.tc) user.tc = {};
       user.tc.healCount = (user.tc.healCount || 0) + 1;
       Object.values(users).forEach(u => {
@@ -1287,6 +1260,7 @@ function handleComment(comment) {
         showDamageNumber(x, y - 30, '♥+2', false, 20, '#7dd3fc');
         updateStatsDisplay(u);
       });
+      updateStatsDisplay(user);
       spawnHeartShower(stage.clientWidth / 2, stage.clientHeight / 2);
       showBubble(user, display, commentStyle);
     } else {
@@ -1327,7 +1301,8 @@ function handleComment(comment) {
       addToLog(user, message, user.textColor === '#111111' ? '#e2e8f0' : user.textColor);
       return;
     }
-    addMp(user, -20);
+    user.mp -= 20;
+    updateStatsDisplay(user);
     commentStyle.fontSize = (charFontSizes.bubble * 4) + 'px';
     display = display.replace(/^(?:[#＃]|%23)/i, '').trim() || display;
     _gatagata = true;

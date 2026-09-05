@@ -738,7 +738,7 @@ function _adminBtnDispatch(id) {
     debugMode = !debugMode;
     Object.values(users).forEach(u => updateStatsDisplay(u));
   } else if (id === 'debugMpBtn') {
-    Object.values(users).forEach(u => { addMp(u, 30); });
+    Object.values(users).forEach(u => { u.mp = (u.mp ?? 0) + 30; updateStatsDisplay(u); });
     _showMpAllCelebration();
     playLocalSound('/sound/char/maplestory-lvl-up.mp3');
   } else if (id === 'battleRoyaleBtn') { startBattleRoyale(); }
@@ -777,7 +777,7 @@ function _adminBtnDispatch(id) {
   } else if (id === 'slotAllStartBtn') {
     Object.values(users).filter(u => u.el && !u.slotAutoMode && !u.slotSpinning).forEach(u => {
       if ((u.mp ?? 0) < 1) return;
-      u.slotAutoMode = true; addMp(u, -1); playSlot(u);
+      u.slotAutoMode = true; u.mp -= 1; updateStatsDisplay(u); playSlot(u);
     });
   } else if (id === 'slotAllStopBtn') {
     Object.values(users).filter(u => u.el).forEach(u => { u.slotAutoMode = false; });
@@ -1521,9 +1521,8 @@ function handleAdminMessage(d, replyFn) {
   } else if (d.type === 'giveMp') {
     const u = users[d.ipid];
     if (u) {
-      const _gain = parseInt(d.amount) || 0;
-      addMp(u, _gain);
-      showBubble(u, `MP +${_gain}！（現在 ${u.mp} MP）`, {});
+      u.mp = (u.mp ?? 0) + (parseInt(d.amount) || 0);
+      showBubble(u, `MP +${parseInt(d.amount) || 0}！（現在 ${u.mp} MP）`, {});
     }
   } else if (d.type === 'raceStart') {
     startRace(parseInt(d.numHorses)||5, parseInt(d.betSeconds)||60);
@@ -2034,7 +2033,7 @@ function finishRace() {
     localStorage.setItem('raceJackpot', 0);
     raceState.payouts.forEach(({ ipid, payout }) => {
       const u = users[ipid];
-      if (u) { addMp(u, payout); showBubble(u, `🏆 +${payout}MP！`, {}); }
+      if (u) { u.mp = (u.mp??0) + payout; updateStatsDisplay(u); showBubble(u, `🏆 +${payout}MP！`, {}); }
     });
   }
   const top3 = resultOrder.slice(0,3).map(no => `${no}番${raceState.horses.find(h=>h.no===no)?.name||''}`).join('→');
@@ -2077,7 +2076,8 @@ function handleRaceBet(user, picksStr, mp) {
   if (type !== 'tan' && n < 2) return;
   if (type === 'san' && n < 3) return;
   if ((user.mp??0) < mp) { showBubble(user, '💸 MPが足りない！', {}); return; }
-  addMp(user, -mp);
+  user.mp -= mp;
+  updateStatsDisplay(user);
   raceState.bets.push({ ipid: user.ipid, name: user.name || '名無し', type, picks, mp });
   raceState.pool += mp;
   const label = type === 'tan' ? '単勝' : type === 'umatan' ? '馬単' : '3連単';
@@ -2091,7 +2091,7 @@ function cancelRace() {
   if (raceState._confettiTimerId) { clearInterval(raceState._confettiTimerId); raceState._confettiTimerId = null; }
   stopRaceFanfare();
   raceState.bets.forEach(bet => {
-    const u = users[bet.ipid]; if (u) { addMp(u, bet.mp); }
+    const u = users[bet.ipid]; if (u) { u.mp = (u.mp??0)+bet.mp; updateStatsDisplay(u); }
   });
   document.getElementById('racePanel')?.remove();
   raceState = null;
