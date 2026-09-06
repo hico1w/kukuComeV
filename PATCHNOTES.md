@@ -2,6 +2,29 @@
 
 ---
 
+## v2.917.0 — 2026-09-06
+
+### fix: 前回配信の hash が残っているとコメントが1件も届かない（キャラが出ない）問題を修正
+
+- **症状**: コメントしてもキャラがステージに出てこない。ステータスは「● 受信中」のままでエラーも出ない
+- **原因**: `autoFillHash()` が `if (hash || !apikey) return;` で**hash が空のときしか取得していなかった**。hash（配信番号）は配信ごとに変わるのに、一度 `localStorage` に入ると二度と更新されないため、配信を立て直すと**終了済み配信のコメントを見に行き続ける**
+  - 実際にOBSブラウザソースの localStorage（`%APPDATA%\obs-studio\plugin_config\obs-browser\Local Storage\leveldb`）を読むと `hash = 575865268` が保存されていた
+  - `/api/comments` をその hash で叩くと最新コメントが「配信を終了しました。(プッシュ接続未確立で120分経過)」（cnum 323504223）で止まる＝新着ゼロ
+  - 現在の配信 hash は `658382893`（`/api/live-info` から取得）で、こちらは新着コメントが取れる
+  - `lastCnum` も旧配信の値で固定されるため、`fetchComments()` は永久に0件を返す
+- **`app-07-ui-stage-ai.js`**: `autoFillHash()` を「空のときだけ埋める」から「**常に現在の配信番号へ追従する**」に変更
+  - `/api/live-info` の hash と違っていたら更新し、入力欄・`localStorage` も書き換えてログに `📡 配信番号が変わったので更新: 旧 → 新` を出す
+  - 取得失敗・hash が空のレスポンスのときは現在の hash を維持（配信していないときに消さない）
+  - 変更があったときだけ `true` を返す
+- **`app-07-ui-stage-ai.js`**: `fetchComments()` の先頭に60秒ごと（2秒間隔×30回）の配信番号チェックを追加。`_hashCheckTicks` で計測し、hash が変わったら `lastCnum = null`（新配信のコメントを基準に貼り直す）＋ `fetchRegisteredEmotions()` を再取得。**配信中に立て直しても自動で追従する**
+- **動作確認**（Playwright の Chromium で実ページを操作。`handleComment` はスタブ化して実データへの副作用なし）
+  - 起動時: `app-13-race-admin-misc.js` の `autoStart()` が1秒後に自動でスタートし、hash が現在の配信番号に更新されることを確認
+  - 定期チェック: hash を旧配信の値に戻して `_hashCheckTicks=29` から `fetchComments()` を1回呼ぶと、`658382893` に自動復帰
+  - 新しい hash で `/api/comments` にリクエストが飛び、`lastCnum` が現配信の値（323561017）で基準合わせされることを確認
+- 反映にはOBSブラウザソースの再読み込みが必要（サーバー再起動は不要）
+
+---
+
 ## v2.916.0 — 2026-09-06
 
 ### change: DINO — 歌詞は2500点から、ボットは死ななくなった

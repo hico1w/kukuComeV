@@ -81,7 +81,17 @@ async function fetchRegisteredEmotions() {
 // ──────────────────────────────────────────────────────────────────
 // API ポーリング
 // ──────────────────────────────────────────────────────────────────
+// 配信を立て直すと hash が変わるため、ポーリング中も60秒ごとに配信番号を確認する
+let _hashCheckTicks = 0;
+
 async function fetchComments() {
+  if (++_hashCheckTicks >= 30) { // 2秒間隔 × 30 = 60秒
+    _hashCheckTicks = 0;
+    if (await autoFillHash()) {
+      lastCnum = null;            // 新しい配信のコメントを基準に貼り直す
+      fetchRegisteredEmotions();  // エモーションも配信単位で取り直す
+    }
+  }
   let url = `/api/comments?apikey=${encodeURIComponent(apikey)}`;
   if (hash)     url += `&hash=${encodeURIComponent(hash)}`;
   if (lastCnum) url += `&cnum=${lastCnum}`;
@@ -118,20 +128,28 @@ function setStatus(type, text) { statusEl.textContent = text; statusEl.className
 // ──────────────────────────────────────────────────────────────────
 // コントロール
 // ──────────────────────────────────────────────────────────────────
-// 配信番号(hash)を mylive/port_info から自動取得する
-// hash が無いと mypoint 系APIが cnum を無視して全員同じ口座を返すため必須
+// 配信番号(hash)を mylive/port_info から取得する
+// hash が無いと mypoint 系APIが cnum を無視して全員同じ口座を返すため必須。
+// さらに hash は配信ごとに変わるので、localStorage に前回配信の hash が残っていると
+// 終了済み配信のコメントを見に行き続け、新しいコメントが1件も届かない＝キャラが出なくなる。
+// そのため「空のときだけ埋める」のをやめ、常に現在の配信番号へ追従させる。
+// 変わったときだけ true を返す（呼び出し側で lastCnum を貼り直すため）。
 async function autoFillHash() {
-  if (hash || !apikey) return;
+  if (!apikey) return false;
   try {
     const d = await (await fetch(`/api/live-info?apikey=${encodeURIComponent(apikey)}`)).json();
-    if (d && d.hash) {
-      hash = String(d.hash);
-      const el = document.getElementById('hash');
-      if (el) el.value = hash;
-      localStorage.setItem('hash', hash);
-      addSystemLog(`📡 配信番号を自動取得: ${hash}`, '#4ade80');
-    }
-  } catch {}
+    const live = d && d.hash ? String(d.hash) : '';
+    if (!live || live === hash) return false; // 取得できないときは今の hash を維持
+    const prev = hash;
+    hash = live;
+    const el = document.getElementById('hash');
+    if (el) el.value = hash;
+    localStorage.setItem('hash', hash);
+    addSystemLog(prev
+      ? `📡 配信番号が変わったので更新: ${prev} → ${hash}`
+      : `📡 配信番号を自動取得: ${hash}`, '#4ade80');
+    return true;
+  } catch { return false; }
 }
 
 document.getElementById('startBtn').addEventListener('click', async () => {
