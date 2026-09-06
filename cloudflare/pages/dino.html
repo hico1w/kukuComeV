@@ -80,6 +80,18 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 .ov-score { font-size: clamp(8px, 1.5vw, 14px); color: #ffe9a8; }
 #start-title { font-size: clamp(13px, 3vw, 30px); }
 .ov-sub { font-size: clamp(9px, 1.4vw, 13px); letter-spacing: .1em; color: rgba(255,255,255,.82); }
+.ov-keys {
+  font-size: clamp(9px, 1.25vw, 12px);
+  color: rgba(255,255,255,.6);
+  letter-spacing: .04em;
+}
+.ov-keys b {
+  font-family: 'Press Start 2P', monospace; font-size: .8em; font-weight: 400;
+  color: #ffe9a8;
+  border: 1px solid rgba(255,233,168,.42); border-radius: 3px;
+  padding: 3px 5px; margin: 0 2px;
+}
+.ov-keys em { font-style: normal; color: rgba(255,255,255,.92); }
 
 #retry { width: clamp(120px, 17%, 190px); filter: drop-shadow(0 6px 14px rgba(0,0,0,.45)); transition: transform .12s ease; padding: 0; display: block; }
 #retry:hover { transform: translateY(-2px) scale(1.03); }
@@ -202,7 +214,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   <a href="/" class="bar-home">hico1</a>
   <a href="/" class="bar-back">← back to site</a>
   <div class="bar-right">
-    <span class="bar-hint">SPACE / ↑ / タップ でジャンプ</span>
+    <span class="bar-hint">SPACE / ↑ / タップ でジャンプ　・　ジャンプ中にもう一度で急降下</span>
     <button class="bar-btn" id="btn-rank">Ranking</button>
     <button class="bar-btn" id="btn-bgm" aria-pressed="false">♪ BGM</button>
     <span class="bar-btn" id="bot-tag" hidden style="color:#ffd34d;border-color:#ffd34d">BOT</span>
@@ -224,6 +236,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
     <div class="ov show" id="start-ov">
       <p class="pix" id="start-title">DINO</p>
       <p class="ov-sub">SPACE / ↑ / タップ でスタート</p>
+      <p class="ov-keys">ジャンプ中に <b>SPACE</b> をもう一度で <em>急降下して着地</em></p>
     </div>
 
     <div class="ov" id="over-ov">
