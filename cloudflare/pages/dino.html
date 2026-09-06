@@ -866,7 +866,7 @@ document.getElementById('btn-rank').addEventListener('click', () => {
 document.getElementById('rank-close').addEventListener('click', () => rankOv.classList.remove('show'));
 
 /* ── 歌詞の背景（スコア5000超）─────────────────────────── */
-const LYRICS_AT = 5000;
+const LYRICS_AT = 2500;
 const LYRICS = [
   ['まだかな？', 'xl'], ['まだかな？', 'l'], ['今日もここで待ってる', 'm'],
   ['トコトコ', 'l'], ['走って', 's'], ['時間を飛び越えよう！', 'm'],
@@ -977,32 +977,57 @@ function survivesSeq(start, spans) {
   return true;
 }
 
-function botThink() {
-  if (!botOn || state.mode !== 'playing' || !state.onGround) return;
+/** 今の状態から見た、各障害物の重なり区間（秒）と当たる高さの帯 */
+function botSpans() {
   const mv = state.speed * SPD();
   const cw = img.run_01.width * CFG.charScale;
   const cL = 150 - cw / 2 + cw * 0.22, cR = cL + cw * 0.56;
   const M = 0.18;
-
   const spans = [];
   for (const o of state.obstacles) {
     if (!o.deadly) continue;
     const a = (o.x - (cR - o.w * M)) / mv;
     const b2 = (o.x - (cL - o.w * (1 - M))) / mv;
-    if (b2 < 0 || a > 1.8) continue;            // 遠すぎる先は見ない（負荷対策）
+    if (b2 < 0 || a > 2.2) continue;            // 遠すぎる先は見ない（負荷対策）
     spans.push({ a: Math.max(0, a), b: b2, band: bandOf(o) });
   }
-  if (!spans.length) return;
   spans.sort((x, y) => x.a - y.a);
-  spans.length = Math.min(spans.length, 3);
+  spans.length = Math.min(spans.length, 5);
+  return spans;
+}
 
-  // 判定は 0.01 秒刻み、画面は 60fps なので、ぎりぎりを狙うと取りこぼす。
-  // 少しだけ早めに踏み切る
-  const F = 0.035;
-  const later = spans.map(sp => ({ a: Math.max(0, sp.a - F), b: sp.b - F, band: sp.band }))
-                     .filter(sp => sp.b > 0);
-  if (survivesSeq(new Set([-1]), later)) return;   // まだ待てる
-  if (survivesSeq(new Set([0]), spans)) jump();    // 待てないので跳ぶ
+/* 空中にいるとき、すぐ急降下しても当たらないなら降りる。
+   早く地上に戻るほど次の障害物に自由に対応できるので、詰みにくくなる。 */
+function botTryDrop() {
+  const spans = botSpans();
+  if (!spans.length) return;
+  const tLand = state.y / CFG.dropV;             // 落下にかかる時間（重力ぶんは無視＝安全側）
+  for (const sp of spans) {
+    if (sp.a >= tLand) break;                    // 着地後の分はあとでまとめて見る
+    // 降下中に重なる区間。始点と終点の高さで見る（単調に下がるので両端で足りる）
+    const y1 = Math.max(0, state.y - CFG.dropV * sp.a);
+    const y2 = Math.max(0, state.y - CFG.dropV * Math.min(sp.b, tLand));
+    if (!safeAt(sp.band, y1) || !safeAt(sp.band, y2)) return;
+  }
+  // 着地後は地上から自由に動けるか
+  const after = spans.filter(sp => sp.b > tLand)
+    .map(sp => ({ a: Math.max(0, sp.a - tLand), b: sp.b - tLand, band: sp.band }));
+  if (!survivesSeq(new Set([-1]), after)) return;
+  if (state.vy < CFG.dropV) state.vy = CFG.dropV;
+}
+
+function botThink() {
+  if (!botOn || state.mode !== 'playing') return;
+  if (!state.onGround) { botTryDrop(); return; }
+
+  const spans = botSpans();
+  if (!spans.length) return;
+
+  // 「跳ぶ必要があり、かつ今跳んでも先が続く」なら早めに踏み切る。
+  // 「この1回で必ず越せること」まで求めると、待ちすぎて手遅れになりやすい
+  const needJump = spans.some(sp => sp.a <= AIRTIME && !safeAt(sp.band, 0));
+  if (!needJump) return;                            // 走ったままで抜けられる
+  if (survivesSeq(new Set([0]), spans)) jump();
 }
 
 function setBot(on) {
@@ -1078,7 +1103,9 @@ function update(dt) {
     if (o.x + o.w < -60) { state.obstacles.splice(i, 1); continue; }
     if (!hit(box, o)) continue;
     if (o.deadly) {
-      if (muteki) continue;          // デバッグ用の無敵。すり抜ける
+      // muteki はデバッグ用。botOn は見本を途切れさせないための保険で、
+      // ボットの判断が間に合わなかったときだけ効く
+      if (muteki || botOn) continue;
       die(); return;
     }
     // カニ: 弾き飛ばす
