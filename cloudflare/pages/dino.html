@@ -118,7 +118,8 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 #reg-msg { font-size: 11px; color: #ffe9a8; min-height: 1.2em; }
 
 /* ── ランキング表 ── */
-.rank-box { width: min(460px, 94%); }
+.rank-wrap { display: flex; gap: 22px; justify-content: center; flex-wrap: wrap; width: 100%; }
+.rank-box { width: min(420px, 94%); flex: 1 1 300px; max-width: 420px; }
 .rank-head { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: rgba(255,255,255,.6); margin-bottom: 6px; }
 .rank-list { list-style: none; font-size: 12px; }
 .rank-list li {
@@ -135,6 +136,8 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 .rank-score { font-family: 'Press Start 2P', monospace; font-size: 10px; color: #fff; }
 .rank-date { font-size: 10px; color: rgba(255,255,255,.42); text-align: right; }
 .rank-empty { font-size: 11px; color: rgba(255,255,255,.5); padding: 10px 0; }
+/* 最新プレイは順位ではなく新しい順なので、番号は出さない */
+.rank-list.recent li { grid-template-columns: 1fr auto 5.6em; }
 
 #rank-close {
   font-size: 11px; letter-spacing: .12em; color: rgba(255,255,255,.7);
@@ -244,23 +247,35 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
       <p class="pix ov-score" id="over-score"></p>
 
       <div id="reg">
-        <input id="name" type="text" maxlength="15" placeholder="なまえ（15文字まで）" autocomplete="off">
+        <input id="name" type="text" maxlength="15" placeholder="なまえ（未入力なら きしょ犬）" autocomplete="off">
         <button id="send">ランキングに登録</button>
       </div>
       <p id="reg-msg"></p>
 
-      <div class="rank-box">
-        <p class="rank-head">Ranking — Top 10</p>
-        <ol class="rank-list" id="rank-list"></ol>
+      <div class="rank-wrap">
+        <div class="rank-box">
+          <p class="rank-head">High Score — Top 10</p>
+          <ol class="rank-list" id="rank-list"></ol>
+        </div>
+        <div class="rank-box">
+          <p class="rank-head">最新のプレイ — 10件</p>
+          <ol class="rank-list recent" id="recent-list"></ol>
+        </div>
       </div>
 
       <button id="retry" aria-label="リトライ"><img src="./img-dino/retry.webp" alt="リトライ"></button>
     </div>
 
     <div class="ov" id="rank-ov">
-      <div class="rank-box">
-        <p class="rank-head">Ranking — Top 10</p>
-        <ol class="rank-list" id="rank-list2"></ol>
+      <div class="rank-wrap">
+        <div class="rank-box">
+          <p class="rank-head">High Score — Top 10</p>
+          <ol class="rank-list" id="rank-list2"></ol>
+        </div>
+        <div class="rank-box">
+          <p class="rank-head">最新のプレイ — 10件</p>
+          <ol class="rank-list recent" id="recent-list2"></ol>
+        </div>
       </div>
       <button id="rank-close">とじる</button>
     </div>
@@ -695,7 +710,7 @@ function showOver() {
   overSc.textContent = 'SCORE ' + pad(state.score) + '   BEST ' + pad(state.best);
   overOv.classList.add('show');
   try { nameEl.value = localStorage.getItem('dino-name') || ''; } catch (e) {}
-  fetchRanking();
+  postRecent(state.score);        // 最新プレイは自動で登録し、その結果で一覧も更新する
 }
 
 const pad = n => String(n).padStart(5, '0');
@@ -716,7 +731,8 @@ retryBtn.addEventListener('click', e => { e.stopPropagation(); reset(); });
 /* ── ランキング ───────────────────────────────────────── */
 let myEntry = null;
 
-function renderRank(el, list) {
+/** withNo=false なら順位を出さない（最新プレイ一覧） */
+function renderRank(el, list, withNo) {
   el.innerHTML = '';
   if (!list || !list.length) {
     el.innerHTML = '<li class="rank-empty">まだ登録がありません</li>';
@@ -725,22 +741,54 @@ function renderRank(el, list) {
   list.slice(0, 10).forEach((e, i) => {
     const li = document.createElement('li');
     if (myEntry && e.name === myEntry.name && e.score === myEntry.score) li.className = 'me';
-    const no = document.createElement('span'); no.className = 'rank-no'; no.textContent = String(i + 1).padStart(2, '0');
+    if (withNo !== false) {
+      const no = document.createElement('span'); no.className = 'rank-no';
+      no.textContent = String(i + 1).padStart(2, '0');
+      li.appendChild(no);
+    }
     const nm = document.createElement('span'); nm.className = 'rank-name'; nm.textContent = e.name;
     const sc = document.createElement('span'); sc.className = 'rank-score'; sc.textContent = pad(e.score);
     const dt = document.createElement('span'); dt.className = 'rank-date'; dt.textContent = e.date || '';
-    li.append(no, nm, sc, dt);
+    li.append(nm, sc, dt);
     el.appendChild(li);
   });
 }
 
+function renderAll(d) {
+  renderRank(document.getElementById('rank-list'), d.ranking, true);
+  renderRank(document.getElementById('rank-list2'), d.ranking, true);
+  renderRank(document.getElementById('recent-list'), d.recent, false);
+  renderRank(document.getElementById('recent-list2'), d.recent, false);
+}
+
+const RANK_LISTS = ['rank-list', 'rank-list2', 'recent-list', 'recent-list2'];
+
 function fetchRanking() {
-  const targets = [document.getElementById('rank-list'), document.getElementById('rank-list2')];
-  targets.forEach(t => { t.innerHTML = '<li class="rank-empty">読み込み中…</li>'; });
+  RANK_LISTS.forEach(id => {
+    document.getElementById(id).innerHTML = '<li class="rank-empty">読み込み中…</li>';
+  });
   return fetch(WORKER + '/dino-ranking')
     .then(r => r.json())
-    .then(d => { targets.forEach(t => renderRank(t, d.ranking)); })
-    .catch(() => { targets.forEach(t => { t.innerHTML = '<li class="rank-empty">ランキングを取得できませんでした</li>'; }); });
+    .then(d => renderAll(d))
+    .catch(() => {
+      RANK_LISTS.forEach(id => {
+        document.getElementById(id).innerHTML = '<li class="rank-empty">取得できませんでした</li>';
+      });
+    });
+}
+
+/** ゲームオーバーのたびに自動で「最新のプレイ」に積む（名前が空なら既定名） */
+function postRecent(score) {
+  let name = '';
+  try { name = (nameEl.value || localStorage.getItem('dino-name') || '').trim().slice(0, 15); } catch (e) {}
+  return fetch(WORKER + '/dino-ranking', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'recent', name: name, score: score }),
+  })
+    .then(r => r.json())
+    .then(d => { if (d && d.ranking) renderAll(d); })
+    .catch(() => {});
 }
 
 sendEl.addEventListener('click', () => {
@@ -760,8 +808,7 @@ sendEl.addEventListener('click', () => {
       myEntry = { name: name, score: state.score };
       regMsg.textContent = res.d.rank ? '登録しました（' + res.d.rank + '位）' : '登録しました';
       regEl.classList.add('hide');
-      renderRank(document.getElementById('rank-list'), res.d.ranking);
-      renderRank(document.getElementById('rank-list2'), res.d.ranking);
+      renderAll(res.d);
     })
     .catch(err => { regMsg.textContent = err.message; sendEl.disabled = false; });
 });

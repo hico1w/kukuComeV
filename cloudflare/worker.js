@@ -146,9 +146,21 @@ export default {
         try {
           const body = await request.json().catch(() => ({}));
           const cur = await getRankingRaw(env);
-          const next = body.clear
-            ? []
-            : cur.list.filter(e => !(e.name === body.name && Number(e.score) === Number(body.score)));
+          // 消し方は3通り: clear=全部 / index=順位で1件 / name+score で該当を全部
+          const keep = e => !(e.name === body.name && Number(e.score) === Number(body.score));
+          const which = body.list === 'recent' ? 'recent' : 'ranking';
+          let next;
+          if (body.clear) {
+            next = { ranking: [], recent: [] };
+          } else if (Number.isInteger(body.index)) {
+            // 1始まり。文字化けした名前など、指定しづらいものを順位で消せるように
+            next = { ranking: cur.ranking.slice(), recent: cur.recent.slice() };
+            next[which].splice(body.index - 1, 1);
+          } else {
+            next = { ranking: cur.ranking.filter(keep), recent: cur.recent.filter(keep) };
+          }
+          const before = cur.ranking.length + cur.recent.length;
+          const after = next.ranking.length + next.recent.length;
           const res = await ghPut(
             env, RANKING_PATH,
             encodeContent(JSON.stringify(next, null, 1)),
@@ -156,7 +168,8 @@ export default {
             cur.sha
           );
           if (!res.ok) return json({ error: 'GitHub ' + res.status }, 500, cors);
-          return json({ ok: true, removed: cur.list.length - next.length, ranking: next.map(({ ip, ...r }) => r) }, 200, cors);
+          return json({ ok: true, removed: before - after,
+                        ranking: stripIp(next.ranking), recent: stripIp(next.recent) }, 200, cors);
         } catch (e) {
           return json({ error: e.message }, 500, cors);
         }
@@ -197,19 +210,22 @@ export default {
     // 専用のKVなどは用意していないので、既存の置き場に合わせている。
     if (url.pathname === '/dino-ranking') {
       if (request.method === 'GET') {
-        const list = await getRanking(env);
-        return json({ ranking: list }, 200, { ...cors, 'Cache-Control': 'no-store' });
+        const cur = await getRankingRaw(env);
+        return json({ ranking: stripIp(cur.ranking), recent: stripIp(cur.recent) },
+          200, { ...cors, 'Cache-Control': 'no-store' });
       }
 
       if (request.method === 'POST') {
         let body;
         try { body = await request.json(); } catch { return json({ error: 'JSON が不正です' }, 400, cors); }
 
-        // 名前: 15文字以内。改行や制御文字は落とす
+        // 名前: 15文字以内。改行や制御文字は落とす。
+        // 自動登録(type:'recent')は名前が無くても既定名で通す
+        const isRecent = body.type === 'recent';
         const name = String(body.name ?? '')
           .replace(/[\u0000-\u001f\u007f]/g, '')
           .trim()
-          .slice(0, 15);
+          .slice(0, 15) || (isRecent ? DEFAULT_NAME : '');
         if (!name) return json({ error: '名前を入力してください' }, 400, cors);
 
         const score = Math.floor(Number(body.score));
@@ -228,13 +244,20 @@ export default {
         let saved = null;
         for (let i = 0; i < 4; i++) {
           const cur = await getRankingRaw(env);
-          const next = cur.list.concat([entry])
-            .sort((a, b) => b.score - a.score || String(a.date).localeCompare(String(b.date)))
-            .slice(0, RANKING_MAX);
+          const next = { ranking: cur.ranking, recent: cur.recent };
+          if (isRecent) {
+            // 自動登録: 最新プレイに積む（新しい順に RECENT_MAX 件）
+            next.recent = [entry].concat(cur.recent).slice(0, RECENT_MAX);
+          } else {
+            // 手動登録: ハイスコアに積む
+            next.ranking = cur.ranking.concat([entry])
+              .sort((a, b) => b.score - a.score || String(a.date).localeCompare(String(b.date)))
+              .slice(0, RANKING_MAX);
+          }
           const res = await ghPut(
             env, RANKING_PATH,
             encodeContent(JSON.stringify(next, null, 1)),
-            `dino ranking: ${name} ${score}`,
+            `dino ${isRecent ? 'recent' : 'ranking'}: ${name} ${score}`,
             cur.sha
           );
           if (res.ok) { saved = next; break; }
@@ -245,9 +268,10 @@ export default {
         }
         if (!saved) return json({ error: '混み合っています。少し待って再度お試しください' }, 503, cors);
 
-        const pub = saved.map(({ ip: _ip, ...rest }) => rest);
-        const rank = pub.findIndex(e => e.name === name && e.score === score) + 1;
-        return json({ ok: true, rank: rank || null, ranking: pub }, 200, cors);
+        const pubR = stripIp(saved.ranking), pubN = stripIp(saved.recent);
+        const rank = isRecent ? null
+          : pubR.findIndex(e => e.name === name && e.score === score) + 1 || null;
+        return json({ ok: true, rank, ranking: pubR, recent: pubN }, 200, cors);
       }
 
       return json({ error: 'Method not allowed' }, 405, cors);
@@ -320,29 +344,33 @@ function jstDate() {
   return new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
 }
 
-const RANKING_MAX = 100;          // 保持する件数（表示はフロント側で絞る）
+const RANKING_MAX = 100;          // ハイスコアの保持件数（表示はフロント側で絞る）
+const RECENT_MAX = 10;            // 最新プレイの保持件数
+const DEFAULT_NAME = 'きしょ犬';   // 名前未入力のときの既定
 
-// sha も一緒に返す。書き戻しの競合検出に使う
+// sha も一緒に返す。書き戻しの競合検出に使う。
+// 中身は { ranking, recent }。以前は配列だけだったので、その形も読めるようにする
 async function getRankingRaw(env) {
   try {
     const res = await fetch(
       `https://api.github.com/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/contents/${RANKING_PATH}`,
       { headers: ghHeaders(env), cf: { cacheTtl: 0 } }
     );
-    if (!res.ok) return { list: [], sha: undefined };   // 未作成なら新規で作る
+    if (!res.ok) return { ranking: [], recent: [], sha: undefined };   // 未作成なら新規で作る
     const data = await res.json();
-    const list = JSON.parse(decodeContent(data.content));
-    return { list: Array.isArray(list) ? list : [], sha: data.sha };
+    const parsed = JSON.parse(decodeContent(data.content));
+    if (Array.isArray(parsed)) return { ranking: parsed, recent: [], sha: data.sha };  // 旧形式
+    return {
+      ranking: Array.isArray(parsed.ranking) ? parsed.ranking : [],
+      recent: Array.isArray(parsed.recent) ? parsed.recent : [],
+      sha: data.sha,
+    };
   } catch {
-    return { list: [], sha: undefined };
+    return { ranking: [], recent: [], sha: undefined };
   }
 }
 
-// 公開用。IP は落とす
-async function getRanking(env) {
-  const { list } = await getRankingRaw(env);
-  return list.map(({ ip, ...rest }) => rest);
-}
+const stripIp = list => list.map(({ ip, ...rest }) => rest);   // 公開用。IP は落とす
 
 // ── Blocklist (_blocklist.json) ───────────────────────────────────
 
