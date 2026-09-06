@@ -77,14 +77,16 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   background: rgba(8,10,15,.88);
 }
 #over-ov {
-  flex-direction: row;
+  /* 表示は「表 → 情報」の順にしたいが、HTML は情報を先に置いて
+     タブ移動と読み上げの順序を保つ。並びだけ row-reverse で入れ替える */
+  flex-direction: row-reverse;
   align-items: center;
   justify-content: center;
   gap: 2.4%;
   padding: 2.2% 2.6%;
 }
 .rank-head { text-align: left; padding-left: 4px; }
-.over-left {
+.over-info {
   flex: 0 0 auto;
   width: clamp(150px, 25%, 290px);
   display: flex; flex-direction: column; align-items: center;
@@ -235,7 +237,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
     padding: 16px 14px;
   }
   #over-ov { flex-direction: column; gap: 10px; }
-  .over-left { width: 100%; max-width: 320px; }
+  .over-info { width: 100%; max-width: 320px; }
   .rank-wrap { flex-direction: column; gap: 12px; align-items: center; }
   .rank-box { width: 100%; max-width: 340px; flex: 0 0 auto; }
   .rank-list { font-size: 11px; }
@@ -286,11 +288,11 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
     </div>
 
     <div class="ov" id="over-ov">
-      <div class="over-left">
+      <div class="over-info">
         <p class="pix" id="over-title">GAME OVER</p>
         <p class="pix ov-score" id="over-score"></p>
         <div id="reg">
-          <input id="name" type="text" maxlength="15" placeholder="なまえ（未入力なら きしょ犬）" autocomplete="off">
+          <input id="name" type="text" maxlength="15" placeholder="なまえ（未入力なら 名無し）" autocomplete="off">
           <button id="send">ランキングに登録</button>
         </div>
         <p id="reg-msg"></p>

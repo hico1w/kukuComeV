@@ -346,7 +346,7 @@ function jstDate() {
 
 const RANKING_MAX = 100;          // ハイスコアの保持件数（表示はフロント側で絞る）
 const RECENT_MAX = 10;            // 最新プレイの保持件数
-const DEFAULT_NAME = 'きしょ犬';   // 名前未入力のときの既定
+const DEFAULT_NAME = '名無し';     // 名前未入力のときの既定
 
 // sha も一緒に返す。書き戻しの競合検出に使う。
 // 中身は { ranking, recent }。以前は配列だけだったので、その形も読めるようにする
