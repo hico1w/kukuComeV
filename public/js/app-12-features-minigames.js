@@ -885,6 +885,10 @@ function applyPanelSettings() {
   s.style.setProperty('--quiz-bg',    (quizPanelBgOpacity    / 100).toFixed(2));
   s.style.setProperty('--bo-scale',   (boPanelScale          / 100).toFixed(2));
   s.style.setProperty('--bo-z',       String(boPanelZ));
+  s.style.setProperty('--bo-w',       boPanelWidth  + 'px');
+  s.style.setProperty('--bo-chart-h', boChartHeight + 'px');
+  s.style.setProperty('--bo-fs',      (boFontScale / 100).toFixed(2));
+  if (typeof boState !== 'undefined' && boState) renderBoPanel(); // チャート高さの変更を即反映
   const _p = (id, val, txt) => {
     const el = document.getElementById(id); if (!el) return;
     if (el.tagName === 'INPUT') el.value = val;
@@ -896,6 +900,9 @@ function applyPanelSettings() {
   _p('quizPanelBgSlider',        quizPanelBgOpacity,    quizPanelBgOpacity + '%');
   _p('boPanelScaleSlider',       boPanelScale,          boPanelScale + '%');
   _p('boPanelZSlider',           boPanelZ,              String(boPanelZ));
+  _p('boPanelWidthSlider',       boPanelWidth,          boPanelWidth + 'px');
+  _p('boChartHeightSlider',      boChartHeight,         boChartHeight + 'px');
+  _p('boFontScaleSlider',        boFontScale,           boFontScale + '%');
 }
 
 // ── ニューステッカー ────────────────────────────────────────────────
@@ -1866,6 +1873,15 @@ document.getElementById('toggleNewsTickerBtn')?.addEventListener('click', () => 
   document.getElementById('boPanelZSlider')?.addEventListener('input', function() {
     boPanelZ = parseInt(this.value); ppSave('boPanelZ', boPanelZ); applyPanelSettings();
   });
+  document.getElementById('boPanelWidthSlider')?.addEventListener('input', function() {
+    boPanelWidth = parseInt(this.value); ppSave('boPanelWidth', boPanelWidth); applyPanelSettings();
+  });
+  document.getElementById('boChartHeightSlider')?.addEventListener('input', function() {
+    boChartHeight = parseInt(this.value); ppSave('boChartHeight', boChartHeight); applyPanelSettings();
+  });
+  document.getElementById('boFontScaleSlider')?.addEventListener('input', function() {
+    boFontScale = parseInt(this.value); ppSave('boFontScale', boFontScale); applyPanelSettings();
+  });
   document.getElementById('quizPanelBgSlider')?.addEventListener('input', function() {
     quizPanelBgOpacity = parseInt(this.value); ppSave('quizPanelBgOpacity', quizPanelBgOpacity); applyPanelSettings();
   });
@@ -2146,7 +2162,7 @@ const BO_TICK_MS      = 100;  // チャートの更新間隔
 const BO_START_PRICE  = 1500; // 開始レート（架空の通貨ペア）
 const BO_CHART_W      = 450;  // SVG座標系の幅（パネル幅570pxに合わせて1.5倍）
 const BO_WINDOW_MULT  = 1.5;  // 表示する期間の倍率（幅1.5倍ぶん長い期間を見せる）
-const BO_CHART_H      = 110;  // SVG座標系の高さ＝実表示px
+const BO_CHART_H      = 110;  // チャート高さの既定値（設定が無いときの目安）
 const BO_MARKER_MAX   = 24;   // 同時に描くエントリーマーカーの上限（多いときは新しい順）
 const BO_RESULT_MAX   = 8;    // 「直近の結果」に残す件数
 const BO_START_COST   = 100;  // コメントから起動するときの消費MP
@@ -2190,6 +2206,7 @@ function startBo(judgeSeconds, payoutRate) {
     prices: [BO_START_PRICE],
     tick: 0,          // 開始からの総ティック数（マーカーのX位置計算に使う）
     entries: [],      // 判定待ちのエントリー
+    ghosts: [],       // 判定済み（画面から流れて消えるまで残すマーカー）
     results: [],      // 判定済み（直近 BO_RESULT_MAX 件）
     seq: 0,
     stats: { win: 0, lose: 0, draw: 0, paid: 0, taken: 0 },
@@ -2297,7 +2314,8 @@ function settleBoEntry(e) {
   boState.results.unshift({ ...e, exitPrice: exit, payout, profit: payout - e.mp });
   if (boState.results.length > BO_RESULT_MAX) boState.results.pop();
   playLocalSound(payout > e.mp ? SOUND_QUIZ_CORRECT : SOUND_SLOT_MISS, 0.45);
-  document.querySelector(`#boPanel .bo-marker[data-id="${e.id}"]`)?.remove();
+  // マーカーは消さず、画面から流れて消えるまで残す（結果を表示する）
+  boState.ghosts.push({ ...e, settleTick: boState.tick, exitPrice: exit, payout, profit: payout - e.mp });
   // コメント通知用の1行を返す
   return `${e.name} ${e.side === 'high' ? 'HIGH' : 'LOW'} ${e.entryPrice.toFixed(2)}→${exit.toFixed(2)} ${win === 'draw' ? '引き分け返金' + payout + 'MP' : payout > 0 ? '的中 +' + payout + 'MP' : 'ハズレ -' + e.mp + 'MP'}`;
 }
@@ -2331,7 +2349,7 @@ function _boGeo() {
   return { min, max, span: Math.max(0.01, max - min) };
 }
 function _boY(price, geo) {
-  return BO_CHART_H - ((price - geo.min) / geo.span) * BO_CHART_H;
+  return boChartHeight - ((price - geo.min) / geo.span) * boChartHeight;
 }
 // 表示窓の左端は「現在ティック −（保持しているティック数−1）」
 function _boXPct(tick) {
@@ -2371,31 +2389,48 @@ function updateBoChart() {
 
 // エントリー地点のマーカー（名前・金額・残り秒数）をチャート上に配置する。
 // ラベル同士が重ならないよう、X が近いものは段（レーン）をずらして積む。
-const BO_LABEL_W    = 23; // ラベル幅の目安（チャート幅に対する％。最大122px÷内幅約546px）
-const BO_LANE_PX    = 13; // 1段ずらす量
-const BO_LANE_MAX   = 3;  // これを超えたらラベルを出さない（点だけ）
 
 function _boSyncMarkers(geo) {
   const wrap = document.querySelector('#boPanel .bo-chart-wrap');
   if (!wrap) return;
-  // 表示対象を X 昇順に並べ、貪欲にレーンを割り当てる
-  const shown = boState.entries.slice(-BO_MARKER_MAX)
-    .map(e => ({ e, x: _boXPct(e.entryTick) }))
+  const wrapW = Math.max(1, wrap.clientWidth);
+  const nowPct = _boXPct(boState.tick); // 現在レートの位置（線の右端）
+
+  // 画面から流れ切った判定済みマーカーは捨てる
+  boState.ghosts = boState.ghosts.filter(g => _boXPct(g.entryTick) >= -5);
+
+  // 判定待ち＋判定済みをまとめて、X 昇順にレーンを割り当てる
+  const items = [
+    ...boState.entries.slice(-BO_MARKER_MAX).map(e => ({ e, done: false })),
+    ...boState.ghosts.slice(-BO_MARKER_MAX).map(e => ({ e, done: true })),
+  ]
+    .map(o => ({ ...o, x: _boXPct(o.e.entryTick) }))
     .filter(o => o.x >= 0)
     .sort((a, b) => a.x - b.x);
-  const laneRight = []; // レーンごとの「直近ラベルの右端X」
-  shown.forEach(o => {
-    o.right = o.x < 28;                                    // 左端付近はラベルを右側に出す
-    const left  = o.right ? o.x : o.x - BO_LABEL_W;
-    const right = o.right ? o.x + BO_LABEL_W : o.x;
-    let lane = 0;
-    while (lane <= BO_LANE_MAX && laneRight[lane] != null && laneRight[lane] > left) lane++;
-    if (lane <= BO_LANE_MAX) laneRight[lane] = right;
-    o.lane = lane;
+
+  // ラベル幅の目安（％）はチャート実幅と文字サイズ設定から求める
+  const labelPct = Math.min(60, (122 * (boFontScale / 100) + 14) / wrapW * 100);
+  const labelH   = Math.max(12, Math.round(14 * boFontScale / 100)); // ラベル1行の高さ
+  const placed   = []; // 置いたラベルの矩形（X範囲＋Y）
+  items.forEach(o => {
+    o.right = o.x < 28;                       // 左端付近はラベルを右側に出す
+    const left  = o.right ? o.x : o.x - labelPct;
+    const right = o.right ? o.x + labelPct : o.x;
+    const y     = _boY(o.e.entryPrice, geo);
+    const dir   = o.e.side === 'high' ? -1 : 1; // 上向きは上へ、下向きは下へ逃がす
+    let top = o.e.side === 'high' ? y - labelH - 1 : y + 4;
+    // X範囲が重なっているラベルとY方向でぶつかる間はずらす
+    for (let i = 0; i < 8; i++) {
+      const hit = placed.some(p => !(p.right <= left || p.left >= right) && Math.abs(p.top - top) < labelH);
+      if (!hit) break;
+      top += dir * labelH;
+    }
+    o.labelTop = Math.max(1, Math.min(boChartHeight - labelH, top));
+    placed.push({ left, right, top: o.labelTop });
   });
 
   const alive = new Set();
-  shown.forEach(({ e, x, lane, right }) => {
+  items.forEach(({ e, x, labelTop, right, done }) => {
     alive.add(String(e.id));
     let el = wrap.querySelector(`.bo-marker[data-id="${e.id}"]`);
     if (!el) {
@@ -2403,29 +2438,37 @@ function _boSyncMarkers(geo) {
       el.className = 'bo-marker bo-marker-' + e.side;
       el.dataset.id = e.id;
       el.innerHTML =
+        `<span class="bo-marker-line"></span>` +
         `<span class="bo-marker-label">${e.side === 'high' ? '▲' : '▼'} ${escapeHtml(e.name)} <b>${e.mp}MP</b>` +
         `<span class="bo-marker-left"></span></span><span class="bo-marker-dot"></span>`;
       wrap.appendChild(el);
     }
+    const y = _boY(e.entryPrice, geo);
     el.style.left = Math.min(99, x) + '%';
-    el.style.top  = _boY(e.entryPrice, geo) + 'px';
-    // 現在レートが有利かどうかで色を変える（勝ちそうなら光る）
-    const winning = e.side === 'high' ? boState.price > e.entryPrice : boState.price < e.entryPrice;
+    el.style.top  = y + 'px';
+    // 賭けた値段から右へ伸びる白い横線（判定済みは判定時点で止める）
+    const endPct = done ? _boXPct(e.settleTick) : nowPct;
+    const lineEl = el.querySelector('.bo-marker-line');
+    if (lineEl) lineEl.style.width = Math.max(0, (endPct - x) / 100 * wrapW) + 'px';
+    // 現在レートが有利かどうかで色を変える（判定済みは勝敗で固定）
+    const winning = done ? e.profit > 0 : (e.side === 'high' ? boState.price > e.entryPrice : boState.price < e.entryPrice);
     el.classList.toggle('bo-winning', winning);
+    el.classList.toggle('bo-done', done);
     el.classList.toggle('bo-label-right', right);
-    el.classList.toggle('bo-label-hidden', lane > BO_LANE_MAX);
     const label = el.querySelector('.bo-marker-label');
     if (label) {
-      // 上向きは上に、下向きは下に段を伸ばす。はみ出す場合はチャート内に収める
-      const y = _boY(e.entryPrice, geo);
-      const want = e.side === 'high' ? y - 15 - lane * BO_LANE_PX : y + 4 + lane * BO_LANE_PX;
-      const clamped = Math.max(1, Math.min(BO_CHART_H - 13, want));
-      label.style.top = (clamped - y) + 'px';
+      // 重なり回避で決めた位置に置く（マーカー基点からの相対）
+      label.style.top = (labelTop - y) + 'px';
       label.style.transform = 'none';
     }
-    const leftSec = Math.max(0, Math.ceil((e.expireTick - boState.tick) * BO_TICK_MS / 1000));
     const leftEl = el.querySelector('.bo-marker-left');
-    if (leftEl) leftEl.textContent = ' ⏱' + leftSec + '秒';
+    if (leftEl) {
+      // 判定前は残り時間、判定後は結果を出す
+      const leftSec = Math.max(0, Math.ceil((e.expireTick - boState.tick) * BO_TICK_MS / 1000));
+      leftEl.textContent = done
+        ? (e.payout > 0 ? ' +' + e.payout + 'MP' : ' -' + e.mp + 'MP')
+        : ' ⏱' + leftSec + '秒';
+    }
   });
   wrap.querySelectorAll('.bo-marker').forEach(el => { if (!alive.has(el.dataset.id)) el.remove(); });
 }
@@ -2469,7 +2512,7 @@ function renderBoPanel() {
       <span class="bo-payout">${boState.judgeSeconds}秒後判定 / 配当${boState.payoutRate}倍</span>
     </div>
     <div class="bo-chart-wrap">
-      <svg class="bo-chart" viewBox="0 0 ${BO_CHART_W} ${BO_CHART_H}" preserveAspectRatio="none">
+      <svg class="bo-chart" viewBox="0 0 ${BO_CHART_W} ${boChartHeight}" preserveAspectRatio="none">
         <polyline class="bo-line" points="${_boLineSvg(geo)}" fill="none" stroke="#38bdf8" stroke-width="2"></polyline>
         <circle class="bo-dot" cx="${lastX.toFixed(1)}" cy="${_boY(boState.price, geo).toFixed(1)}" r="3.5"></circle>
       </svg>

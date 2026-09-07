@@ -5513,7 +5513,7 @@ body.compact-mode .title-tag         { display: none !important; }
   border: 2px solid #38bdf8;
   border-radius: 12px;
   padding: 10px 12px;
-  width: 570px;
+  width: var(--bo-w, 570px);
   z-index: var(--bo-z, 200);
   user-select: none;
   box-shadow: 0 8px 32px rgba(0,0,0,0.7);
@@ -5530,20 +5530,20 @@ body.compact-mode .title-tag         { display: none !important; }
   border-bottom: 1px solid rgba(56,189,248,0.3);
   padding-bottom: 6px;
 }
-.bo-title  { font-size: 15px; font-weight: 800; color: #38bdf8; }
-.bo-phase  { font-size: 11px; color: #cbd5e1; background: rgba(56,189,248,0.15); border-radius: 4px; padding: 1px 6px; }
-.bo-payout { font-size: 11px; color: #94a3b8; margin-left: auto; }
+.bo-title  { font-size: calc(15px * var(--bo-fs, 1)); font-weight: 800; color: #38bdf8; }
+.bo-phase  { font-size: calc(11px * var(--bo-fs, 1)); color: #cbd5e1; background: rgba(56,189,248,0.15); border-radius: 4px; padding: 1px 6px; }
+.bo-payout { font-size: calc(11px * var(--bo-fs, 1)); color: #94a3b8; margin-left: auto; }
 
 /* チャート（マーカーを重ねるので relative） */
 .bo-chart-wrap {
   position: relative;
-  height: 110px;
+  height: var(--bo-chart-h, 110px);
   background: linear-gradient(180deg, rgba(56,189,248,0.06), rgba(56,189,248,0));
   border: 1px solid rgba(148,163,184,0.2);
   border-radius: 6px;
   overflow: hidden;
 }
-.bo-chart { display: block; width: 100%; height: 110px; }
+.bo-chart { display: block; width: 100%; height: var(--bo-chart-h, 110px); }
 .bo-line  { stroke: #38bdf8; }
 .bo-dot   { fill: #38bdf8; }
 
@@ -5560,7 +5560,7 @@ body.compact-mode .title-tag         { display: none !important; }
   position: absolute;
   right: 7px;
   white-space: nowrap;
-  font-size: 9px;
+  font-size: calc(9px * var(--bo-fs, 1));
   line-height: 1.4;
   padding: 0 4px;
   border-radius: 4px;
@@ -5569,7 +5569,7 @@ body.compact-mode .title-tag         { display: none !important; }
 }
 .bo-marker-label b { font-weight: 800; }
 .bo-marker-label {
-  max-width: 122px;
+  max-width: calc(122px * var(--bo-fs, 1));
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -5581,6 +5581,20 @@ body.compact-mode .title-tag         { display: none !important; }
 .bo-marker-low  .bo-marker-label { color: #f87171; border-color: rgba(248,113,113,0.45); top: 4px; }
 .bo-marker.bo-winning .bo-marker-label { background: rgba(56,189,248,0.22); border-color: #38bdf8; }
 .bo-marker-left { color: #e2e8f0; font-weight: 700; }
+/* 賭けた値段から右へ伸びる白い横線 */
+.bo-marker-line {
+  position: absolute;
+  left: 0;
+  top: -0.5px;
+  height: 1px;
+  background: rgba(255,255,255,0.85);
+  pointer-events: none;
+}
+/* 判定済みは少し落ち着かせる（流れて消えるまで残る） */
+.bo-marker.bo-done .bo-marker-line  { background: rgba(255,255,255,0.45); }
+.bo-marker.bo-done .bo-marker-label { opacity: 0.75; }
+.bo-marker.bo-done.bo-winning .bo-marker-left { color: #4ade80; }
+.bo-marker.bo-done:not(.bo-winning) .bo-marker-left { color: #94a3b8; }
 
 .bo-price-row {
   display: flex;
@@ -5588,14 +5602,14 @@ body.compact-mode .title-tag         { display: none !important; }
   gap: 10px;
   margin: 6px 0 2px;
 }
-.bo-price { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; color: #e2e8f0; }
-.bo-sides-inline { display: flex; gap: 10px; font-size: 11px; font-weight: 700; margin-left: auto; }
+.bo-price { font-size: calc(20px * var(--bo-fs, 1)); font-weight: 800; font-variant-numeric: tabular-nums; color: #e2e8f0; }
+.bo-sides-inline { display: flex; gap: 10px; font-size: calc(11px * var(--bo-fs, 1)); font-weight: 700; margin-left: auto; }
 .bo-up   { color: #4ade80; }
 .bo-down { color: #f87171; }
 
 .bo-list { margin-top: 4px; }
 .bo-result-item {
-  font-size: 10.5px;
+  font-size: calc(10.5px * var(--bo-fs, 1));
   color: #94a3b8;
   padding: 1px 0;
   white-space: nowrap;
@@ -5607,7 +5621,7 @@ body.compact-mode .title-tag         { display: none !important; }
 .bo-result-item.bo-lose b { color: #cbd5e1; }
 .bo-hint {
   margin-top: 6px;
-  font-size: 10px;
+  font-size: calc(10px * var(--bo-fs, 1));
   color: #64748b;
   border-top: 1px solid rgba(148,163,184,0.15);
   padding-top: 5px;

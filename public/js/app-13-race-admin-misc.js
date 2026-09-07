@@ -959,6 +959,12 @@ function handleAdminMessage(d, replyFn) {
       boPanelScale = parseInt(d.value); localStorage.setItem('boPanelScale', boPanelScale); saveSettingsToServer(); applyPanelSettings();
     } else if (d.id === 'boPanelZSlider') {
       boPanelZ = parseInt(d.value); localStorage.setItem('boPanelZ', boPanelZ); saveSettingsToServer(); applyPanelSettings();
+    } else if (d.id === 'boPanelWidthSlider') {
+      boPanelWidth = parseInt(d.value); localStorage.setItem('boPanelWidth', boPanelWidth); saveSettingsToServer(); applyPanelSettings();
+    } else if (d.id === 'boChartHeightSlider') {
+      boChartHeight = parseInt(d.value); localStorage.setItem('boChartHeight', boChartHeight); saveSettingsToServer(); applyPanelSettings();
+    } else if (d.id === 'boFontScaleSlider') {
+      boFontScale = parseInt(d.value); localStorage.setItem('boFontScale', boFontScale); saveSettingsToServer(); applyPanelSettings();
     } else if (d.id === 'quizPanelBgSlider') {
       quizPanelBgOpacity = parseInt(d.value); localStorage.setItem('quizPanelBgOpacity', quizPanelBgOpacity); saveSettingsToServer(); applyPanelSettings();
     } else if (d.id === 'afkOpacitySlider') {
@@ -1008,7 +1014,7 @@ function handleAdminMessage(d, replyFn) {
                        'slotProbCherry','slotProbBell','slotProbStar','slotProbDiamond','slotProbJackpot',
                        'afkOpacitySlider','afkGrayscaleSlider','afkBrightnessSlider',
                        'kaiSpeedSlider','kaiRestitutionSlider','kaiGravitySlider','kaiBulletSizeSlider',
-                       'dmgFontScaleSlider','wordlePanelWidthSlider','wordlePanelBgSlider','rankingPanelBgSlider','quizPanelBgSlider','boPanelScaleSlider','boPanelZSlider','newsTickerIntervalSlider'];
+                       'dmgFontScaleSlider','wordlePanelWidthSlider','wordlePanelBgSlider','rankingPanelBgSlider','quizPanelBgSlider','boPanelScaleSlider','boPanelZSlider','boPanelWidthSlider','boChartHeightSlider','boFontScaleSlider','newsTickerIntervalSlider'];
     const state = {};
     sliderIds.forEach(sid => { const el = document.getElementById(sid); if (el) state[sid] = el.value; });
     state.bgColor    = document.getElementById('bgColor')?.value;
@@ -1183,6 +1189,9 @@ function handleAdminMessage(d, replyFn) {
     state.quizPanelBgSlider        = quizPanelBgOpacity;
     state.boPanelScaleSlider       = boPanelScale;
     state.boPanelZSlider           = boPanelZ;
+    state.boPanelWidthSlider       = boPanelWidth;
+    state.boChartHeightSlider      = boChartHeight;
+    state.boFontScaleSlider        = boFontScale;
     state.afkOpacitySlider         = afkOpacity;
     state.afkGrayscaleSlider       = afkGrayscale;
     state.afkBrightnessSlider      = afkBrightness;

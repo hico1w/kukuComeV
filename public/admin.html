@@ -563,8 +563,23 @@
   </div>
   <div class="size-row">
     <span class="size-label">BO 重なり順</span>
-    <input id="boPanelZSlider" type="range" min="0" max="1000" step="10" value="200" class="size-slider" oninput="syncSlider(this,'boPanelZVal',v=>v)">
+    <input id="boPanelZSlider" type="range" min="-1000" max="1000" step="10" value="200" class="size-slider" oninput="syncSlider(this,'boPanelZVal',v=>v)">
     <span id="boPanelZVal">200</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">BO 横幅</span>
+    <input id="boPanelWidthSlider" type="range" min="300" max="1200" step="10" value="570" class="size-slider" oninput="syncSlider(this,'boPanelWidthVal',v=>v+'px')">
+    <span id="boPanelWidthVal">570px</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">BO 縦幅</span>
+    <input id="boChartHeightSlider" type="range" min="60" max="400" step="5" value="110" class="size-slider" oninput="syncSlider(this,'boChartHeightVal',v=>v+'px')">
+    <span id="boChartHeightVal">110px</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">BO 文字サイズ</span>
+    <input id="boFontScaleSlider" type="range" min="60" max="200" step="5" value="100" class="size-slider" oninput="syncSlider(this,'boFontScaleVal',v=>v+'%')">
+    <span id="boFontScaleVal">100%</span>
   </div>
   <div class="size-row">
     <span class="size-label">クイズ 背景</span>
@@ -2406,6 +2421,9 @@
     quizPanelBgSlider:        {key:'quizPanelBgOpacity',  save:v=>parseInt(v)},
     boPanelScaleSlider:       {key:'boPanelScale',        save:v=>parseInt(v)},
     boPanelZSlider:           {key:'boPanelZ',            save:v=>parseInt(v)},
+    boPanelWidthSlider:       {key:'boPanelWidth',        save:v=>parseInt(v)},
+    boChartHeightSlider:      {key:'boChartHeight',       save:v=>parseInt(v)},
+    boFontScaleSlider:        {key:'boFontScale',         save:v=>parseInt(v)},
     afkOpacitySlider:         {key:'afkOpacity',          save:v=>parseInt(v)},
     afkGrayscaleSlider:       {key:'afkGrayscale',        save:v=>parseInt(v)},
     afkBrightnessSlider:      {key:'afkBrightness',       save:v=>parseInt(v)},
@@ -2521,6 +2539,7 @@
       _m('wordlePanelWidth','wordlePanelWidthSlider'); _m('wordlePanelBgOpacity','wordlePanelBgSlider');
       _m('rankingPanelBgOpacity','rankingPanelBgSlider'); _m('quizPanelBgOpacity','quizPanelBgSlider');
       _m('boPanelScale','boPanelScaleSlider'); _m('boPanelZ','boPanelZSlider');
+      _m('boPanelWidth','boPanelWidthSlider'); _m('boChartHeight','boChartHeightSlider'); _m('boFontScale','boFontScaleSlider');
       _m('afkOpacity','afkOpacitySlider'); _m('afkGrayscale','afkGrayscaleSlider'); _m('afkBrightness','afkBrightnessSlider');
       _m('gatherRowMax','gatherRowMaxSlider'); _m('gatherMarginLeft','gatherMarginLeftSlider');
       _m('gatherMarginRight','gatherMarginRightSlider'); _m('gatherMarginBottom','gatherMarginBottomSlider');
@@ -2948,6 +2967,9 @@
       { id:'quizPanelBgSlider',        valId:'quizPanelBgVal',        fmt: v=>v+'%'  },
       { id:'boPanelScaleSlider',       valId:'boPanelScaleVal',       fmt: v=>v+'%'  },
       { id:'boPanelZSlider',           valId:'boPanelZVal',           fmt: v=>v      },
+      { id:'boPanelWidthSlider',       valId:'boPanelWidthVal',       fmt: v=>v+'px' },
+      { id:'boChartHeightSlider',      valId:'boChartHeightVal',      fmt: v=>v+'px' },
+      { id:'boFontScaleSlider',        valId:'boFontScaleVal',        fmt: v=>v+'%'  },
       { id:'newsTickerIntervalSlider', valId:'newsTickerIntervalVal',  fmt: v=>v+'秒' },
       { id:'newsTickerHeightSlider',   valId:'newsTickerHeightVal',    fmt: v=>v==0?'自動':v+'px' },
     ];
