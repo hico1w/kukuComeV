@@ -370,7 +370,10 @@ function handleComment(comment) {
       const side   = betMatch[1] === '1' ? 'challenger' : 'target';
       const amount = parseInt(betMatch[2]);
       const hasMp  = (user.mp ?? 0);
-      if (amount < 1 || hasMp < amount) {
+      if (user.ipid === taimanState.challenger || user.ipid === taimanState.target) {
+        // 当事者のベットは禁止（自分の負けに賭ける八百長を防ぐ）
+        showBubble(user, '⚔️ 対戦中の2人はベットできません', {});
+      } else if (amount < 1 || hasMp < amount) {
         showBubble(user, amount < 1 ? 'ベット額は1以上で' : `MPが足りません（所持:${hasMp}）`, {});
       } else {
         // 既存ベットを返金してから再ベット

@@ -660,7 +660,9 @@
           <b>タイマン:相手名</b> または <b>ランダムタイマン</b> で他のキャラに1v1決闘を申し込みます。<br>
           申し込まれた側は<b>次のコメントで自動参加</b>。お互いのATK・装備・ペット・称号を総合判定して勝敗決定。<br>
           勝者は敗者の<b>MP全額を奪取</b>。ただし挑戦者がレベルで上回っている場合、1Lv差ごとに奪えるMP量が5%ずつ減少します（レベル差20以上で0%）。<br>
-          クールダウンはデフォルト<b>5分</b>（管理パネルで変更可）。敗北時コマンドも管理パネルで設定可能。
+          クールダウンはデフォルト<b>5分</b>（管理パネルで変更可）。敗北時コマンドも管理パネルで設定可能。<br>
+          🎰 <b>ベット</b>：タイマン開始から<b>30秒</b>はベット受付。<b>ベット 1 10</b>（1＝挑戦者 / 2＝挑まれた側 に10MP）でMPを賭けられます。<b>対戦中の2人はベット不可</b>。配当は<b>パリミュチュエル方式</b>で、的中者が負け側のMPを賭け金比で山分けします（最低1.1倍）。現在のオッズは受付中のHPバーに表示されます。<br>
+          💪 <b>応援</b>：タイマン中に戦っているキャラの名前をコメントすると、そのキャラのHPが<b>最大値の30%</b>回復（自分自身への応援は無効）。
         </div>
       </div>
 
@@ -770,8 +772,15 @@
         'アドベンチャー','meme','グリッチ','バナナ','ピクト','ストンプ','紙袋','パネル','インク','VHS',
         'サイコ','アクスタ','例のプール','スマホ','冷蔵庫','スタイルA','アイ','I字','キャミィポーズ','水',
         '壁','ミソロジー','透明','スタイルB','スタイルC','ジャックO','秤','ガラス','ぎふ','スタイルD',
-        '墓','整列','スタイルE','催眠術','sample'
+        '墓','整列','スタイルE','催眠術','sample',
+        // ここから下はサンプル画像が1枚だけのキーワード（KW_SINGLE 参照）
+        'アリス','グラス','ジョジョ','スタイルF','スタイルG','スタイルH','スヌート','スプリット','スライム',
+        'デコピン','ネトフリ','ハートチャレンジ','ハートデュオ','フィギュ2','ペルソナ','リファ','塊',
+        'soi','waoo','十字架','大神','掴み','瓶','穴','肉食い','虚式紫','足','鏡撮り'
       ];
+      // サンプルが「ベース+キーワード」の1枚だけのもの（_plain が無い）
+      var KW_SINGLE=['アリス','グラス','ジョジョ','スタイルF','スタイルG','スタイルH','スヌート','スプリット','スライム','デコピン','ネトフリ','ハートチャレンジ','ハートデュオ','フィギュ2','ペルソナ','リファ','塊',
+        'soi','waoo','十字架','大神','掴み','瓶','穴','肉食い','虚式紫','足','鏡撮り'];
       var grid=document.getElementById('kwsamples-grid');
       var lb=document.getElementById('kw-lightbox');
       var lbImg=document.getElementById('kw-lb-img');
@@ -812,8 +821,12 @@
         label.title=kw; label.textContent=kw;
         var imgs=document.createElement('div');
         imgs.style.cssText='display:flex;gap:1px';
-        imgs.appendChild(mkImg('./chara/keyword-samples/'+enc+'.webp', kw+' ／ ベース+キーワード'));
-        imgs.appendChild(mkImg('./chara/keyword-samples/'+enc+'_plain.webp', kw+' ／ キーワードのみ'));
+        if(KW_SINGLE.indexOf(kw)>=0){
+          imgs.appendChild(mkImg('./chara/keyword-samples/'+enc+'.webp', kw));
+        }else{
+          imgs.appendChild(mkImg('./chara/keyword-samples/'+enc+'.webp', kw+' ／ ベース+キーワード'));
+          imgs.appendChild(mkImg('./chara/keyword-samples/'+enc+'_plain.webp', kw+' ／ キーワードのみ'));
+        }
         card.appendChild(label);
         card.appendChild(imgs);
         grid.appendChild(card);
@@ -2209,6 +2222,8 @@
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">スロット停止</span></div><div class="cmd-desc">★単独。自動連続スロットを停止。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code red">タイマン:名前</span></div><div class="cmd-desc">★単独。指定名のキャラに1v1決闘申し込み。申し込まれた側は次のコメントで自動参加。勝者が敗者のMP全額を奪取（挑戦者レベル優位時は1Lv差ごとに奪取量-5%）。クールダウン5分（管理パネルで変更可）。<br>奪われるのは<b>所持MPのみで預金MPは対象外</b>。ただし抜け道防止のため<b>タイマン参加中は預け入れ不可</b>。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code red">ランダムタイマン</span></div><div class="cmd-desc">★単独。ランダムなキャラに1v1決闘を申し込む。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code red">ベット N N</span></div><div class="cmd-desc">タイマン開始後<b>30秒</b>のベット受付中に「ベット 1or2 賭けMP」で参加（例: ベット 1 10）。1＝挑戦者・2＝挑まれた側。<b>対戦中の2人はベット不可</b>。的中者で負け側のプールを賭け金比で山分け（<b>最低1.1倍</b>）。受付中に再ベットすると前の分は返金。タイマンが中止された場合は全額返金。</div></div>
+      <div class="cmd-card"><div class="cmd-row"><span class="cmd-code red">（タイマン中に選手名）</span></div><div class="cmd-desc">タイマン中に戦っているキャラの名前をコメントすると、そのキャラのHPが最大値の30%回復。自分への応援は無効。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code red">ボス召喚</span><span style="color:var(--muted);font-size:11px;margin-left:6px">/ ボス召喚:HP数値</span></div><div class="cmd-desc">★単独。ボスを召喚。HP数値で強さ指定可。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">開ける</span></div><div class="cmd-desc">★単独。宝箱出現中（20秒間）に先着1名が取得。エピック以上装備確定＋HP+30回復。宝箱は配信中5分ごとに自動出現。</div></div>
       <div class="cmd-card"><div class="cmd-row"><span class="cmd-code yellow">ステータス確認</span></div><div class="cmd-desc">★単独。HP/MP/ATK/CRT/EXP・装備・ペット・称号・各種記録（スロット当選数・宝箱開封数など）を5秒間表示。Discord Webhook連携時はスクリーンショットを自動投稿（Ollama総評付き）。</div></div>

@@ -5139,6 +5139,15 @@ body.compact-mode .title-tag         { display: none !important; }
   font-size: 11px;
   color: #94a3b8;
 }
+.taiman-bet-note {
+  font-size: 10px;
+  color: #f87171;
+  margin-top: 2px;
+}
+.taiman-bet-odds-val {
+  color: #fde047;
+  font-weight: 700;
+}
 
 /* ─── 歌詞フロートエフェクト ────────────────────────────────────────────── */
 #lyricsFloatContainer {

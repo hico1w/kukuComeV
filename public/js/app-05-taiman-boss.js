@@ -1,4 +1,8 @@
 // ── タイマン ────────────────────────────────────────────────────────
+// ベットはパリミュチュエル方式（勝ち側で負け側のプールを賭け金比で山分け）。
+// 負け側が0のとき配当が元返しになるので、最低これだけは付ける倍率。
+const TAIMAN_BET_MIN_ODDS = 1.1;
+
 function startTaiman(challenger, target) {
   if (taimanState) return;
   if (brState?.active) return;
@@ -113,6 +117,21 @@ function startTaiman(challenger, target) {
   taimanState.attackTimer = setTimeout(() => taimanDoAttack(), 3200);
 }
 
+// ベットプールの集計（配当計算と受付中の表示で共用）
+function calcTaimanBetPools(bets) {
+  const pool = { challenger: 0, target: 0 };
+  Object.values(bets ?? {}).forEach(b => { pool[b.side] = (pool[b.side] ?? 0) + b.amount; });
+  pool.total = pool.challenger + pool.target;
+  return pool;
+}
+
+// side が的中したときの配当倍率。誰も賭けていない側は null
+function taimanBetOdds(pool, side) {
+  const mine = pool[side] ?? 0;
+  if (mine <= 0) return null;
+  return Math.max(TAIMAN_BET_MIN_ODDS, pool.total / mine);
+}
+
 function renderTaimanHpBars() {
   const prev = document.getElementById('taimanHpBars');
   if (prev) prev.remove();
@@ -124,9 +143,14 @@ function renderTaimanHpBars() {
   const tHp  = taimanState.hp[taimanState.target];
   const cMax = taimanState.maxHp[taimanState.challenger];
   const tMax = taimanState.maxHp[taimanState.target];
-  const cBets = Object.values(taimanState.bets).filter(b => b.side === 'challenger').reduce((s, b) => s + b.amount, 0);
-  const tBets = Object.values(taimanState.bets).filter(b => b.side === 'target').reduce((s, b) => s + b.amount, 0);
+  const pool     = calcTaimanBetPools(taimanState.bets);
+  const cBets    = pool.challenger;
+  const tBets    = pool.target;
   const betLabel = taimanState.betPhase ? '🎰 受付中' : '🎰';
+  const cOdds    = taimanBetOdds(pool, 'challenger');
+  const tOdds    = taimanBetOdds(pool, 'target');
+  const cOddsTxt = cOdds ? ` <span class="taiman-bet-odds-val">${cOdds.toFixed(1)}倍</span>` : '';
+  const tOddsTxt = tOdds ? ` <span class="taiman-bet-odds-val">${tOdds.toFixed(1)}倍</span>` : '';
   const el = document.createElement('div');
   el.id = 'taimanHpBars';
   el.className = 'taiman-hp-bars';
@@ -137,7 +161,7 @@ function renderTaimanHpBars() {
         <div class="taiman-hp-fill taiman-hp-fill-left" style="width:${Math.max(0, cHp / cMax * 100).toFixed(1)}%"></div>
       </div>
       <div class="taiman-hp-text">${cHp.toLocaleString()} / ${cMax.toLocaleString()}</div>
-      ${cBets > 0 || taimanState.betPhase ? `<div class="taiman-bet-total">${betLabel} ${cBets.toLocaleString()}MP</div>` : ''}
+      ${cBets > 0 || taimanState.betPhase ? `<div class="taiman-bet-total">${betLabel} ${cBets.toLocaleString()}MP${cOddsTxt}</div>` : ''}
     </div>
     <div class="taiman-vs-label">⚔️ VS ⚔️</div>
     <div class="taiman-hp-side">
@@ -146,7 +170,7 @@ function renderTaimanHpBars() {
         <div class="taiman-hp-fill taiman-hp-fill-right" style="width:${Math.max(0, tHp / tMax * 100).toFixed(1)}%"></div>
       </div>
       <div class="taiman-hp-text">${tHp.toLocaleString()} / ${tMax.toLocaleString()}</div>
-      ${tBets > 0 || taimanState.betPhase ? `<div class="taiman-bet-total">${betLabel} ${tBets.toLocaleString()}MP</div>` : ''}
+      ${tBets > 0 || taimanState.betPhase ? `<div class="taiman-bet-total">${betLabel} ${tBets.toLocaleString()}MP${tOddsTxt}</div>` : ''}
     </div>
   `;
   stage.appendChild(el);
@@ -166,7 +190,8 @@ function showTaimanBetBanner(challenger, target) {
       <span class="taiman-bet-vs-small">vs</span>
       <span>2️⃣ ${escapeHtml(target.name)}</span>
     </div>
-    <div class="taiman-bet-odds">的中で2倍返し</div>
+    <div class="taiman-bet-odds">的中者で負け側のMPを山分け（配当は賭け金の偏りで変動・最低${TAIMAN_BET_MIN_ODDS}倍）</div>
+    <div class="taiman-bet-note">※対戦中の2人はベットできません</div>
   `;
   stage.appendChild(el);
   setTimeout(() => el.remove(), 30000);
@@ -368,16 +393,24 @@ function endTaiman(winner, loser) {
   if (c) { c.hp = snapshot.savedHp[snapshot.challenger] ?? (c.hp ?? 30); updateStatsDisplay(c); }
   if (t) { t.hp = snapshot.savedHp[snapshot.target]     ?? (t.hp ?? 30); updateStatsDisplay(t); }
 
+  const _bets = snapshot.bets ?? {};
+
   if (winner && loser) {
     // 挑戦者のレベルが相手より高い場合、1Lvにつき10%ペナルティ
     const challengerLv = (c?.level || 1);
     const targetLv     = (t?.level || 1);
     const lvDiff       = challengerLv - targetLv;
     const mpMult       = lvDiff > 0 ? Math.max(0, 1 - lvDiff * 0.05) : 1;
-    const loserFullMp  = loser.mp ?? 0;
+    // ベットで退避中のMPも所持MP扱いにする（全額ベットして没収を回避する抜け道を塞ぐ）
+    const loserBet     = _bets[loser.ipid]?.amount ?? 0;
+    const loserFullMp  = (loser.mp ?? 0) + loserBet;
     const transferMp   = Math.floor(loserFullMp * mpMult);
+    // 手持ちから引き、足りない分はベット元金から没収する
+    const fromMp       = Math.min(transferMp, loser.mp ?? 0);
+    const fromBet      = transferMp - fromMp;
+    if (fromBet > 0 && _bets[loser.ipid]) _bets[loser.ipid].amount -= fromBet;
     winner.mp = (winner.mp ?? 0) + transferMp;
-    loser.mp  = loserFullMp - transferMp;
+    loser.mp  = (loser.mp ?? 0) - fromMp;
     updateStatsDisplay(winner);
     updateStatsDisplay(loser);
 
@@ -440,30 +473,32 @@ function endTaiman(winner, loser) {
     addToLog(loser,  `⚔️ タイマン敗北… MP→${loser.mp}`, '#f87171');
   }
 
-  // ── ベット払い戻し ──────────────────────────────────────────────────
+  // ── ベット払い戻し（パリミュチュエル：的中者で負け側のプールを賭け金比で山分け）──
   clearTimeout(snapshot.betTimer);
   document.getElementById('taimanBetBanner')?.remove();
-  const _bets = snapshot.bets ?? {};
   if (Object.keys(_bets).length > 0) {
     const winSide = winner ? (winner.ipid === snapshot.challenger ? 'challenger' : 'target') : null;
+    const pool    = calcTaimanBetPools(_bets);
+    const odds    = (winSide ? taimanBetOdds(pool, winSide) : null) ?? TAIMAN_BET_MIN_ODDS;
     Object.entries(_bets).forEach(([ipid, bet]) => {
       const bettor = users[ipid];
       if (!bettor) return;
+      if (bet.amount <= 0) return; // 敗北時の没収で元金が消えたケース
       if (winSide === null) {
         // キャンセル → 全額返金
         bettor.mp = (bettor.mp ?? 0) + bet.amount;
         updateStatsDisplay(bettor);
         showBubble(bettor, `🎰 返金 MP+${bet.amount}`, {});
       } else if (bet.side === winSide) {
-        // 的中 → 2倍
-        const payout = bet.amount * 2;
+        // 的中 → 賭け金 × オッズ（最低 TAIMAN_BET_MIN_ODDS 倍）
+        const payout = Math.max(bet.amount, Math.round(bet.amount * odds));
         bettor.mp = (bettor.mp ?? 0) + payout;
         updateStatsDisplay(bettor);
         setTimeout(() => {
           if (!bettor.el) return;
           const { x, y } = getCharCenter(bettor);
           showDamageNumber(x, y - 40, `🎰 的中！ MP+${payout}`, false, 16, '#fbbf24');
-          showBubble(bettor, `🎰 的中！ MP+${payout}`, {});
+          showBubble(bettor, `🎰 的中！ ${odds.toFixed(1)}倍 MP+${payout}`, {});
         }, 1500);
       } else {
         // 外れ → 吹き出しのみ（MPは既に引き去り済み）
