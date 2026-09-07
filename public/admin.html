@@ -42,6 +42,28 @@
       margin-bottom: 8px;
       text-transform: uppercase;
       letter-spacing: 0.08em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    /* セクションのアコーディオン（既定は全部閉じる） */
+    .section.acc > .section-title { cursor: pointer; user-select: none; }
+    .section.acc > .section-title::after {
+      content: '▾';
+      margin-left: auto;
+      font-size: 10px;
+      color: #64748b;
+      transition: transform 0.12s;
+    }
+    .section.acc.closed > .section-title::after { transform: rotate(-90deg); }
+    .section.acc.closed > .section-title { margin-bottom: 0; }
+    /* 最初の見出しだけ残し、それ以降（2つ目の見出しを含む）は隠す */
+    .section.acc.closed > .section-title ~ * { display: none !important; }
+    .section.acc > .section-title:hover { color: #bae6fd; }
+    #accAllBtn {
+      font-size: 11px;
+      padding: 3px 10px;
+      margin-bottom: 8px;
     }
     .btn-row { display: flex; flex-wrap: wrap; gap: 5px; }
     button, a.btn {
@@ -231,6 +253,7 @@
 <body>
 
 <h1>⚙️ kukuCome 管理 <span id="statusDot" title="メインウィンドウ接続状態"></span></h1>
+<button id="accAllBtn" onclick="toggleAllSections()">▾ すべて開く</button>
 
 <!-- 表示 -->
 <div class="section">
@@ -4632,6 +4655,38 @@
     _adminRenderSlots();
   });
 
+</script>
+
+<script>
+  // セクションをアコーディオン化する。読み込み時は必ず全部閉じた状態から始める
+  (function initAccordion() {
+    document.querySelectorAll('.section').forEach(function(sec) {
+      var title = sec.querySelector('.section-title');
+      if (!title || title.parentElement !== sec) return;
+      sec.classList.add('acc', 'closed');
+      title.addEventListener('click', function() {
+        sec.classList.toggle('closed');
+        syncAccAllBtn();
+      });
+    });
+    syncAccAllBtn();
+  })();
+
+  function syncAccAllBtn() {
+    var btn = document.getElementById('accAllBtn');
+    if (!btn) return;
+    var anyClosed = !!document.querySelector('.section.acc.closed');
+    btn.textContent = anyClosed ? '▾ すべて開く' : '▸ すべて閉じる';
+  }
+
+  // 全開/全閉のトグル（1つでも閉じていれば全部開く）
+  function toggleAllSections() {
+    var open = !!document.querySelector('.section.acc.closed');
+    document.querySelectorAll('.section.acc').forEach(function(sec) {
+      sec.classList.toggle('closed', !open);
+    });
+    syncAccAllBtn();
+  }
 </script>
 
 </body>
