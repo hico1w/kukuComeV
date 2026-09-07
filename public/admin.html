@@ -582,6 +582,11 @@
     <span id="boFontScaleVal">100%</span>
   </div>
   <div class="size-row">
+    <span class="size-label">BO 履歴件数</span>
+    <input id="boResultMaxSlider" type="range" min="0" max="30" step="1" value="8" class="size-slider" oninput="syncSlider(this,'boResultMaxVal',v=>v+'件')">
+    <span id="boResultMaxVal">8件</span>
+  </div>
+  <div class="size-row">
     <span class="size-label">クイズ 背景</span>
     <input id="quizPanelBgSlider" type="range" min="0" max="100" step="1" value="93" class="size-slider" oninput="syncSlider(this,'quizPanelBgVal',v=>v+'%')">
     <span id="quizPanelBgVal">93%</span>
@@ -2424,6 +2429,7 @@
     boPanelWidthSlider:       {key:'boPanelWidth',        save:v=>parseInt(v)},
     boChartHeightSlider:      {key:'boChartHeight',       save:v=>parseInt(v)},
     boFontScaleSlider:        {key:'boFontScale',         save:v=>parseInt(v)},
+    boResultMaxSlider:        {key:'boResultMax',         save:v=>parseInt(v)},
     afkOpacitySlider:         {key:'afkOpacity',          save:v=>parseInt(v)},
     afkGrayscaleSlider:       {key:'afkGrayscale',        save:v=>parseInt(v)},
     afkBrightnessSlider:      {key:'afkBrightness',       save:v=>parseInt(v)},
@@ -2539,7 +2545,7 @@
       _m('wordlePanelWidth','wordlePanelWidthSlider'); _m('wordlePanelBgOpacity','wordlePanelBgSlider');
       _m('rankingPanelBgOpacity','rankingPanelBgSlider'); _m('quizPanelBgOpacity','quizPanelBgSlider');
       _m('boPanelScale','boPanelScaleSlider'); _m('boPanelZ','boPanelZSlider');
-      _m('boPanelWidth','boPanelWidthSlider'); _m('boChartHeight','boChartHeightSlider'); _m('boFontScale','boFontScaleSlider');
+      _m('boPanelWidth','boPanelWidthSlider'); _m('boChartHeight','boChartHeightSlider'); _m('boFontScale','boFontScaleSlider'); _m('boResultMax','boResultMaxSlider');
       _m('afkOpacity','afkOpacitySlider'); _m('afkGrayscale','afkGrayscaleSlider'); _m('afkBrightness','afkBrightnessSlider');
       _m('gatherRowMax','gatherRowMaxSlider'); _m('gatherMarginLeft','gatherMarginLeftSlider');
       _m('gatherMarginRight','gatherMarginRightSlider'); _m('gatherMarginBottom','gatherMarginBottomSlider');
@@ -2970,6 +2976,7 @@
       { id:'boPanelWidthSlider',       valId:'boPanelWidthVal',       fmt: v=>v+'px' },
       { id:'boChartHeightSlider',      valId:'boChartHeightVal',      fmt: v=>v+'px' },
       { id:'boFontScaleSlider',        valId:'boFontScaleVal',        fmt: v=>v+'%'  },
+      { id:'boResultMaxSlider',        valId:'boResultMaxVal',        fmt: v=>v+'件' },
       { id:'newsTickerIntervalSlider', valId:'newsTickerIntervalVal',  fmt: v=>v+'秒' },
       { id:'newsTickerHeightSlider',   valId:'newsTickerHeightVal',    fmt: v=>v==0?'自動':v+'px' },
     ];

@@ -965,6 +965,8 @@ function handleAdminMessage(d, replyFn) {
       boChartHeight = parseInt(d.value); localStorage.setItem('boChartHeight', boChartHeight); saveSettingsToServer(); applyPanelSettings();
     } else if (d.id === 'boFontScaleSlider') {
       boFontScale = parseInt(d.value); localStorage.setItem('boFontScale', boFontScale); saveSettingsToServer(); applyPanelSettings();
+    } else if (d.id === 'boResultMaxSlider') {
+      boResultMax = parseInt(d.value); localStorage.setItem('boResultMax', boResultMax); saveSettingsToServer(); applyPanelSettings();
     } else if (d.id === 'quizPanelBgSlider') {
       quizPanelBgOpacity = parseInt(d.value); localStorage.setItem('quizPanelBgOpacity', quizPanelBgOpacity); saveSettingsToServer(); applyPanelSettings();
     } else if (d.id === 'afkOpacitySlider') {
@@ -1014,7 +1016,7 @@ function handleAdminMessage(d, replyFn) {
                        'slotProbCherry','slotProbBell','slotProbStar','slotProbDiamond','slotProbJackpot',
                        'afkOpacitySlider','afkGrayscaleSlider','afkBrightnessSlider',
                        'kaiSpeedSlider','kaiRestitutionSlider','kaiGravitySlider','kaiBulletSizeSlider',
-                       'dmgFontScaleSlider','wordlePanelWidthSlider','wordlePanelBgSlider','rankingPanelBgSlider','quizPanelBgSlider','boPanelScaleSlider','boPanelZSlider','boPanelWidthSlider','boChartHeightSlider','boFontScaleSlider','newsTickerIntervalSlider'];
+                       'dmgFontScaleSlider','wordlePanelWidthSlider','wordlePanelBgSlider','rankingPanelBgSlider','quizPanelBgSlider','boPanelScaleSlider','boPanelZSlider','boPanelWidthSlider','boChartHeightSlider','boFontScaleSlider','boResultMaxSlider','newsTickerIntervalSlider'];
     const state = {};
     sliderIds.forEach(sid => { const el = document.getElementById(sid); if (el) state[sid] = el.value; });
     state.bgColor    = document.getElementById('bgColor')?.value;
@@ -1192,6 +1194,7 @@ function handleAdminMessage(d, replyFn) {
     state.boPanelWidthSlider       = boPanelWidth;
     state.boChartHeightSlider      = boChartHeight;
     state.boFontScaleSlider        = boFontScale;
+    state.boResultMaxSlider        = boResultMax;
     state.afkOpacitySlider         = afkOpacity;
     state.afkGrayscaleSlider       = afkGrayscale;
     state.afkBrightnessSlider      = afkBrightness;

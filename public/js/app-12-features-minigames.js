@@ -903,6 +903,7 @@ function applyPanelSettings() {
   _p('boPanelWidthSlider',       boPanelWidth,          boPanelWidth + 'px');
   _p('boChartHeightSlider',      boChartHeight,         boChartHeight + 'px');
   _p('boFontScaleSlider',        boFontScale,           boFontScale + '%');
+  _p('boResultMaxSlider',        boResultMax,           boResultMax + '件');
 }
 
 // ── ニューステッカー ────────────────────────────────────────────────
@@ -1882,6 +1883,9 @@ document.getElementById('toggleNewsTickerBtn')?.addEventListener('click', () => 
   document.getElementById('boFontScaleSlider')?.addEventListener('input', function() {
     boFontScale = parseInt(this.value); ppSave('boFontScale', boFontScale); applyPanelSettings();
   });
+  document.getElementById('boResultMaxSlider')?.addEventListener('input', function() {
+    boResultMax = parseInt(this.value); ppSave('boResultMax', boResultMax); applyPanelSettings();
+  });
   document.getElementById('quizPanelBgSlider')?.addEventListener('input', function() {
     quizPanelBgOpacity = parseInt(this.value); ppSave('quizPanelBgOpacity', quizPanelBgOpacity); applyPanelSettings();
   });
@@ -2164,7 +2168,6 @@ const BO_CHART_W      = 450;  // SVG座標系の幅（パネル幅570pxに合わ
 const BO_WINDOW_MULT  = 1.5;  // 表示する期間の倍率（幅1.5倍ぶん長い期間を見せる）
 const BO_CHART_H      = 110;  // チャート高さの既定値（設定が無いときの目安）
 const BO_MARKER_MAX   = 24;   // 同時に描くエントリーマーカーの上限（多いときは新しい順）
-const BO_RESULT_MAX   = 8;    // 「直近の結果」に残す件数
 const BO_START_COST   = 100;  // コメントから起動するときの消費MP
 const BO_POST_MS      = 1200; // コメント通知の最短間隔（連投でAPIを叩きすぎないように）
 
@@ -2207,7 +2210,7 @@ function startBo(judgeSeconds, payoutRate) {
     tick: 0,          // 開始からの総ティック数（マーカーのX位置計算に使う）
     entries: [],      // 判定待ちのエントリー
     ghosts: [],       // 判定済み（画面から流れて消えるまで残すマーカー）
-    results: [],      // 判定済み（直近 BO_RESULT_MAX 件）
+    results: [],      // 判定済み（表示件数は boResultMax）
     seq: 0,
     stats: { win: 0, lose: 0, draw: 0, paid: 0, taken: 0 },
     panelX: parseInt(localStorage.getItem(panelKey('boPanelX'))) || 20,
@@ -2312,7 +2315,8 @@ function settleBoEntry(e) {
   else                           boState.stats.lose++;
   boState.stats.paid += payout;
   boState.results.unshift({ ...e, exitPrice: exit, payout, profit: payout - e.mp });
-  if (boState.results.length > BO_RESULT_MAX) boState.results.pop();
+  // 保持は上限30件（表示件数は boResultMax で、描画時に絞る）
+  if (boState.results.length > 30) boState.results.pop();
   playLocalSound(payout > e.mp ? SOUND_QUIZ_CORRECT : SOUND_SLOT_MISS, 0.45);
   // マーカーは消さず、画面から流れて消えるまで残す（結果を表示する）
   boState.ghosts.push({ ...e, settleTick: boState.tick, exitPrice: exit, payout, profit: payout - e.mp });
@@ -2498,7 +2502,7 @@ function renderBoPanel() {
   const lowN   = boState.entries.filter(e => e.side === 'low').length;
   const lastX  = ((boState.prices.length - 1) / Math.max(1, boState.windowTicks - 1)) * (BO_CHART_W - 7) + 3.5;
 
-  const resultRows = boState.results.map(r =>
+  const resultRows = boState.results.slice(0, Math.max(0, boResultMax)).map(r =>
     `<div class="bo-result-item ${r.profit > 0 ? 'bo-win' : r.profit < 0 ? 'bo-lose' : ''}">
        ${r.side === 'high' ? '▲' : '▼'} <b>${escapeHtml(r.name)}</b>
        ${r.entryPrice.toFixed(2)}→${r.exitPrice.toFixed(2)}
@@ -2524,7 +2528,6 @@ function renderBoPanel() {
         <span class="bo-down">▼ LOW ${lowN}件 ${lowMp}MP</span>
       </span>
     </div>
-    ${boState.results.length ? `<div class="bo-list">${resultRows}</div>` : ''}
-    <div class="bo-hint">「HIGH 10」「LOW 10」でいつでもエントリー（「上 10」「下 10」でもOK）／賭けた瞬間のレートが基準</div>`;
+    ${boResultMax > 0 && boState.results.length ? `<div class="bo-list">${resultRows}</div>` : ''}`;
   _boSyncMarkers(geo);
 }

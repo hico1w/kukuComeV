@@ -5628,10 +5628,3 @@ body.compact-mode .title-tag         { display: none !important; }
 }
 .bo-result-item.bo-win  b { color: #4ade80; }
 .bo-result-item.bo-lose b { color: #cbd5e1; }
-.bo-hint {
-  margin-top: 6px;
-  font-size: calc(10px * var(--bo-fs, 1));
-  color: #64748b;
-  border-top: 1px solid rgba(148,163,184,0.15);
-  padding-top: 5px;
-}
