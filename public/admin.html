@@ -562,6 +562,11 @@
     <span id="boPanelScaleVal">100%</span>
   </div>
   <div class="size-row">
+    <span class="size-label">BO 重なり順</span>
+    <input id="boPanelZSlider" type="range" min="0" max="1000" step="10" value="200" class="size-slider" oninput="syncSlider(this,'boPanelZVal',v=>v)">
+    <span id="boPanelZVal">200</span>
+  </div>
+  <div class="size-row">
     <span class="size-label">クイズ 背景</span>
     <input id="quizPanelBgSlider" type="range" min="0" max="100" step="1" value="93" class="size-slider" oninput="syncSlider(this,'quizPanelBgVal',v=>v+'%')">
     <span id="quizPanelBgVal">93%</span>
@@ -2400,6 +2405,7 @@
     rankingPanelBgSlider:     {key:'rankingPanelBgOpacity',save:v=>parseInt(v)},
     quizPanelBgSlider:        {key:'quizPanelBgOpacity',  save:v=>parseInt(v)},
     boPanelScaleSlider:       {key:'boPanelScale',        save:v=>parseInt(v)},
+    boPanelZSlider:           {key:'boPanelZ',            save:v=>parseInt(v)},
     afkOpacitySlider:         {key:'afkOpacity',          save:v=>parseInt(v)},
     afkGrayscaleSlider:       {key:'afkGrayscale',        save:v=>parseInt(v)},
     afkBrightnessSlider:      {key:'afkBrightness',       save:v=>parseInt(v)},
@@ -2514,7 +2520,7 @@
       _m('newsTickerSpeed','newsTickerSpeedSlider'); _m('newsTickerInterval','newsTickerIntervalSlider');
       _m('wordlePanelWidth','wordlePanelWidthSlider'); _m('wordlePanelBgOpacity','wordlePanelBgSlider');
       _m('rankingPanelBgOpacity','rankingPanelBgSlider'); _m('quizPanelBgOpacity','quizPanelBgSlider');
-      _m('boPanelScale','boPanelScaleSlider');
+      _m('boPanelScale','boPanelScaleSlider'); _m('boPanelZ','boPanelZSlider');
       _m('afkOpacity','afkOpacitySlider'); _m('afkGrayscale','afkGrayscaleSlider'); _m('afkBrightness','afkBrightnessSlider');
       _m('gatherRowMax','gatherRowMaxSlider'); _m('gatherMarginLeft','gatherMarginLeftSlider');
       _m('gatherMarginRight','gatherMarginRightSlider'); _m('gatherMarginBottom','gatherMarginBottomSlider');
@@ -2941,6 +2947,7 @@
       { id:'rankingPanelBgSlider',     valId:'rankingPanelBgVal',     fmt: v=>v+'%'  },
       { id:'quizPanelBgSlider',        valId:'quizPanelBgVal',        fmt: v=>v+'%'  },
       { id:'boPanelScaleSlider',       valId:'boPanelScaleVal',       fmt: v=>v+'%'  },
+      { id:'boPanelZSlider',           valId:'boPanelZVal',           fmt: v=>v      },
       { id:'newsTickerIntervalSlider', valId:'newsTickerIntervalVal',  fmt: v=>v+'秒' },
       { id:'newsTickerHeightSlider',   valId:'newsTickerHeightVal',    fmt: v=>v==0?'自動':v+'px' },
     ];

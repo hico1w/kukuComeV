@@ -2,6 +2,31 @@
 
 ---
 
+## v2.921.0 — 2026-09-08
+
+### change: BO（マジカルオプション）のコメント通知を結果だけに
+
+- **`app-12-features-minigames.js`**: `handleBoEntry()` からエントリー時の `_boPostComment()` を削除。エントリーのたびに「◯◯がHIGHに10MP賭けた！」が流れるのをやめ、**判定結果の通知だけ**にした
+  - 残る通知は「開催（コメント起動時）」と「📈 結果: ◯◯ HIGH 1500.12→1503.28 的中 +76MP」の2種類
+  - 吹き出し・キャラログ・パネルのエントリーマーカー表示は従来どおりなので、誰がいくら賭けたかは画面上では分かる
+- **動作確認**（Playwright、実配信への投稿はスタブ化）: 100MP・40MPの2件をエントリーしても投稿は開催通知の1件のみ、判定後に結果通知が2件流れることを確認
+
+---
+
+## v2.920.0 — 2026-09-08
+
+### feat: BO（マジカルオプション）パネルの重なり順（z-index）を設定可能に
+
+- **`public/style.css`**: `.bo-panel` の `z-index: 200` → `z-index: var(--bo-z, 200)`
+- **`app-03-boss-pets.js`**: `boPanelZ`（既定200）を追加。`0` も指定できるよう `!== null` 判定で読む
+- **`app-12-features-minigames.js`**: `applyPanelSettings()` で `--bo-z` を反映し、スライダー表示も同期。ステージ側 `boPanelZSlider` のリスナーを追加
+- **`app-13-race-admin-misc.js`**: 管理メッセージ `boPanelZSlider` の処理、`getState` の `sliderIds`・返却値に追加
+- **`app-01-core-characters.js`**: サーバー同期する設定キーに `boPanelZ` を追加（他クライアントとOBSにも共有される）
+- **`public/admin.html`**: 「📐 パネル外観」に「BO 重なり順」スライダー（0〜1000・step10・既定200）と、設定マップ・初期同期・スライダー一覧への登録
+- **動作確認**（Playwright）: 既定200 → 900 → 0 → 450 と変更して `getComputedStyle` の `z-index` が即反映されること、`localStorage` と `data/settings.json`（2秒デバウンス後）に保存されること、ページ再読み込み後も450が維持されることを確認。JSエラーなし
+
+---
+
 ## v2.919.0 — 2026-09-08
 
 ### change: BOのチャートを1.5倍幅にして、より長い期間を表示。名称を「マジカルオプション」に

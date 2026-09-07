@@ -5514,7 +5514,7 @@ body.compact-mode .title-tag         { display: none !important; }
   border-radius: 12px;
   padding: 10px 12px;
   width: 570px;
-  z-index: 200;
+  z-index: var(--bo-z, 200);
   user-select: none;
   box-shadow: 0 8px 32px rgba(0,0,0,0.7);
   cursor: grab;

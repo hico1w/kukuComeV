@@ -884,6 +884,7 @@ function applyPanelSettings() {
   s.style.setProperty('--ranking-bg', (rankingPanelBgOpacity / 100).toFixed(2));
   s.style.setProperty('--quiz-bg',    (quizPanelBgOpacity    / 100).toFixed(2));
   s.style.setProperty('--bo-scale',   (boPanelScale          / 100).toFixed(2));
+  s.style.setProperty('--bo-z',       String(boPanelZ));
   const _p = (id, val, txt) => {
     const el = document.getElementById(id); if (!el) return;
     if (el.tagName === 'INPUT') el.value = val;
@@ -894,6 +895,7 @@ function applyPanelSettings() {
   _p('rankingPanelBgSlider',     rankingPanelBgOpacity, rankingPanelBgOpacity + '%');
   _p('quizPanelBgSlider',        quizPanelBgOpacity,    quizPanelBgOpacity + '%');
   _p('boPanelScaleSlider',       boPanelScale,          boPanelScale + '%');
+  _p('boPanelZSlider',           boPanelZ,              String(boPanelZ));
 }
 
 // ── ニューステッカー ────────────────────────────────────────────────
@@ -1861,6 +1863,9 @@ document.getElementById('toggleNewsTickerBtn')?.addEventListener('click', () => 
   document.getElementById('boPanelScaleSlider')?.addEventListener('input', function() {
     boPanelScale = parseInt(this.value); ppSave('boPanelScale', boPanelScale); applyPanelSettings();
   });
+  document.getElementById('boPanelZSlider')?.addEventListener('input', function() {
+    boPanelZ = parseInt(this.value); ppSave('boPanelZ', boPanelZ); applyPanelSettings();
+  });
   document.getElementById('quizPanelBgSlider')?.addEventListener('input', function() {
     quizPanelBgOpacity = parseInt(this.value); ppSave('quizPanelBgOpacity', quizPanelBgOpacity); applyPanelSettings();
   });
@@ -2262,7 +2267,6 @@ function handleBoEntry(user, side, mp) {
   showBubble(user, `${label} ${boState.price.toFixed(2)} から${mp}MP！`, { color: side === 'high' ? '#4ade80' : '#f87171' });
   addToLog(user, `📈 BO ${label} ${mp}MP（${boState.price.toFixed(2)} / ${boState.judgeSeconds}秒後判定）`, '#38bdf8');
   playLocalSound(SOUND_SLOT_STOP, 0.5);
-  _boPostComment(`📈 ${user.name || '名無し'} が ${side === 'high' ? 'HIGH' : 'LOW'} に ${mp}MP賭けた！（${boState.price.toFixed(2)} / ${boState.judgeSeconds}秒後判定）`);
   renderBoPanel();
 }
 

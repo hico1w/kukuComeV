@@ -118,6 +118,7 @@ let wordlePanelBgOpacity  = localStorage.getItem('wordlePanelBgOpacity')  !== nu
 let rankingPanelBgOpacity = localStorage.getItem('rankingPanelBgOpacity') !== null ? parseInt(localStorage.getItem('rankingPanelBgOpacity')) : 92;
 let quizPanelBgOpacity    = localStorage.getItem('quizPanelBgOpacity')    !== null ? parseInt(localStorage.getItem('quizPanelBgOpacity'))    : 93;
 let boPanelScale          = parseInt(localStorage.getItem('boPanelScale'))          || 100; // BOパネルの表示倍率(%)
+let boPanelZ              = localStorage.getItem('boPanelZ') !== null ? parseInt(localStorage.getItem('boPanelZ')) : 200; // BOパネルの重なり順(z-index)
 let slotSoundEnabled = true;    // スロット効果音ON/OFF
 // ボスアゲル 歌詞フロート状態変数
 let lyricsFloatEnabled    = false;

@@ -957,6 +957,8 @@ function handleAdminMessage(d, replyFn) {
       rankingPanelBgOpacity = parseInt(d.value); localStorage.setItem('rankingPanelBgOpacity', rankingPanelBgOpacity); saveSettingsToServer(); applyPanelSettings();
     } else if (d.id === 'boPanelScaleSlider') {
       boPanelScale = parseInt(d.value); localStorage.setItem('boPanelScale', boPanelScale); saveSettingsToServer(); applyPanelSettings();
+    } else if (d.id === 'boPanelZSlider') {
+      boPanelZ = parseInt(d.value); localStorage.setItem('boPanelZ', boPanelZ); saveSettingsToServer(); applyPanelSettings();
     } else if (d.id === 'quizPanelBgSlider') {
       quizPanelBgOpacity = parseInt(d.value); localStorage.setItem('quizPanelBgOpacity', quizPanelBgOpacity); saveSettingsToServer(); applyPanelSettings();
     } else if (d.id === 'afkOpacitySlider') {
@@ -1006,7 +1008,7 @@ function handleAdminMessage(d, replyFn) {
                        'slotProbCherry','slotProbBell','slotProbStar','slotProbDiamond','slotProbJackpot',
                        'afkOpacitySlider','afkGrayscaleSlider','afkBrightnessSlider',
                        'kaiSpeedSlider','kaiRestitutionSlider','kaiGravitySlider','kaiBulletSizeSlider',
-                       'dmgFontScaleSlider','wordlePanelWidthSlider','wordlePanelBgSlider','rankingPanelBgSlider','quizPanelBgSlider','boPanelScaleSlider','newsTickerIntervalSlider'];
+                       'dmgFontScaleSlider','wordlePanelWidthSlider','wordlePanelBgSlider','rankingPanelBgSlider','quizPanelBgSlider','boPanelScaleSlider','boPanelZSlider','newsTickerIntervalSlider'];
     const state = {};
     sliderIds.forEach(sid => { const el = document.getElementById(sid); if (el) state[sid] = el.value; });
     state.bgColor    = document.getElementById('bgColor')?.value;
@@ -1180,6 +1182,7 @@ function handleAdminMessage(d, replyFn) {
     state.rankingPanelBgSlider     = rankingPanelBgOpacity;
     state.quizPanelBgSlider        = quizPanelBgOpacity;
     state.boPanelScaleSlider       = boPanelScale;
+    state.boPanelZSlider           = boPanelZ;
     state.afkOpacitySlider         = afkOpacity;
     state.afkGrayscaleSlider       = afkGrayscale;
     state.afkBrightnessSlider      = afkBrightness;
