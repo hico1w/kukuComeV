@@ -2139,7 +2139,8 @@ document.getElementById('brAutoBtn')?.addEventListener('click', () => {
 // ══════════════════════════════════════════════════════════════════
 const BO_TICK_MS      = 100;  // チャートの更新間隔
 const BO_START_PRICE  = 1500; // 開始レート（架空の通貨ペア）
-const BO_CHART_W      = 300;  // SVG座標系の幅
+const BO_CHART_W      = 450;  // SVG座標系の幅（パネル幅570pxに合わせて1.5倍）
+const BO_WINDOW_MULT  = 1.5;  // 表示する期間の倍率（幅1.5倍ぶん長い期間を見せる）
 const BO_CHART_H      = 110;  // SVG座標系の高さ＝実表示px
 const BO_MARKER_MAX   = 24;   // 同時に描くエントリーマーカーの上限（多いときは新しい順）
 const BO_RESULT_MAX   = 8;    // 「直近の結果」に残す件数
@@ -2176,8 +2177,9 @@ function startBo(judgeSeconds, payoutRate) {
   boState = {
     judgeSeconds: judge,
     payoutRate: rate,
-    // 判定までの時間＋5秒ぶんを表示窓にする（自分のマーカーが判定まで画面に残る）
-    windowTicks: Math.round((judge + 5) * 1000 / BO_TICK_MS),
+    // 表示窓は「判定秒＋5秒」の1.5倍。パネル幅を1.5倍にしたぶん、
+    // 1秒あたりの細かさは変えずに、より長い期間の値動きが見えるようにする
+    windowTicks: Math.round((judge + 5) * BO_WINDOW_MULT * 1000 / BO_TICK_MS),
     price: BO_START_PRICE,
     momentum: 0,
     prices: [BO_START_PRICE],
@@ -2365,7 +2367,7 @@ function updateBoChart() {
 
 // エントリー地点のマーカー（名前・金額・残り秒数）をチャート上に配置する。
 // ラベル同士が重ならないよう、X が近いものは段（レーン）をずらして積む。
-const BO_LABEL_W    = 34; // ラベル幅の目安（チャート幅に対する％）
+const BO_LABEL_W    = 23; // ラベル幅の目安（チャート幅に対する％。最大122px÷内幅約546px）
 const BO_LANE_PX    = 13; // 1段ずらす量
 const BO_LANE_MAX   = 3;  // これを超えたらラベルを出さない（点だけ）
 
@@ -2458,7 +2460,7 @@ function renderBoPanel() {
 
   panel.innerHTML = `
     <div class="bo-header">
-      <span class="bo-title">📈 バイナリーオプション</span>
+      <span class="bo-title">📈 マジカルオプション</span>
       <span class="bo-phase">稼働中</span>
       <span class="bo-payout">${boState.judgeSeconds}秒後判定 / 配当${boState.payoutRate}倍</span>
     </div>
