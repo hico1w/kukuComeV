@@ -557,6 +557,11 @@
     <span id="rankingPanelBgVal">92%</span>
   </div>
   <div class="size-row">
+    <span class="size-label">BO サイズ</span>
+    <input id="boPanelScaleSlider" type="range" min="50" max="200" step="5" value="100" class="size-slider" oninput="syncSlider(this,'boPanelScaleVal',v=>v+'%')">
+    <span id="boPanelScaleVal">100%</span>
+  </div>
+  <div class="size-row">
     <span class="size-label">クイズ 背景</span>
     <input id="quizPanelBgSlider" type="range" min="0" max="100" step="1" value="93" class="size-slider" oninput="syncSlider(this,'quizPanelBgVal',v=>v+'%')">
     <span id="quizPanelBgVal">93%</span>
@@ -577,6 +582,22 @@
   </div>
   <div style="margin-top:4px;font-size:10px;color:#475569">
     💰 ジャックポット: <span id="raceJackpotDisp">0</span>MP
+  </div>
+</div>
+
+<!-- バイナリーオプション -->
+<div class="section">
+  <div class="section-title">📈 バイナリーオプション</div>
+  <div class="btn-row" style="align-items:center;flex-wrap:wrap;gap:5px">
+    <span style="color:#94a3b8;font-size:11px">判定まで秒</span>
+    <input type="number" id="boJudgeSeconds" value="15" min="5" max="300" style="width:50px;background:#0f1117;border:1px solid #374151;color:#e2e8f0;border-radius:4px;padding:2px 4px;font-size:12px">
+    <span style="color:#94a3b8;font-size:11px">配当倍率</span>
+    <input type="number" id="boPayoutRate" value="1.9" min="1.01" max="5" step="0.05" style="width:50px;background:#0f1117;border:1px solid #374151;color:#e2e8f0;border-radius:4px;padding:2px 4px;font-size:12px">
+    <button onclick="sendBoStart()" class="btn-amber">📈 BO開始</button>
+    <button onclick="adminSend({type:'boStop'})" class="btn-red">■ 終了</button>
+  </div>
+  <div style="margin-top:4px;font-size:10px;color:#475569">
+    終了を押すまでチャートが動き続け、いつでもエントリーできる。コメントで「HIGH 10」「LOW 10」（「上 10」「下 10」も可）。賭けた瞬間のレートから、判定まで秒だけ待った時点で上か下かを判定する
   </div>
 </div>
 
@@ -2378,6 +2399,7 @@
     wordlePanelBgSlider:      {key:'wordlePanelBgOpacity',save:v=>parseInt(v)},
     rankingPanelBgSlider:     {key:'rankingPanelBgOpacity',save:v=>parseInt(v)},
     quizPanelBgSlider:        {key:'quizPanelBgOpacity',  save:v=>parseInt(v)},
+    boPanelScaleSlider:       {key:'boPanelScale',        save:v=>parseInt(v)},
     afkOpacitySlider:         {key:'afkOpacity',          save:v=>parseInt(v)},
     afkGrayscaleSlider:       {key:'afkGrayscale',        save:v=>parseInt(v)},
     afkBrightnessSlider:      {key:'afkBrightness',       save:v=>parseInt(v)},
@@ -2492,6 +2514,7 @@
       _m('newsTickerSpeed','newsTickerSpeedSlider'); _m('newsTickerInterval','newsTickerIntervalSlider');
       _m('wordlePanelWidth','wordlePanelWidthSlider'); _m('wordlePanelBgOpacity','wordlePanelBgSlider');
       _m('rankingPanelBgOpacity','rankingPanelBgSlider'); _m('quizPanelBgOpacity','quizPanelBgSlider');
+      _m('boPanelScale','boPanelScaleSlider');
       _m('afkOpacity','afkOpacitySlider'); _m('afkGrayscale','afkGrayscaleSlider'); _m('afkBrightness','afkBrightnessSlider');
       _m('gatherRowMax','gatherRowMaxSlider'); _m('gatherMarginLeft','gatherMarginLeftSlider');
       _m('gatherMarginRight','gatherMarginRightSlider'); _m('gatherMarginBottom','gatherMarginBottomSlider');
@@ -2917,6 +2940,7 @@
       { id:'wordlePanelBgSlider',      valId:'wordlePanelBgVal',      fmt: v=>v+'%'  },
       { id:'rankingPanelBgSlider',     valId:'rankingPanelBgVal',     fmt: v=>v+'%'  },
       { id:'quizPanelBgSlider',        valId:'quizPanelBgVal',        fmt: v=>v+'%'  },
+      { id:'boPanelScaleSlider',       valId:'boPanelScaleVal',       fmt: v=>v+'%'  },
       { id:'newsTickerIntervalSlider', valId:'newsTickerIntervalVal',  fmt: v=>v+'秒' },
       { id:'newsTickerHeightSlider',   valId:'newsTickerHeightVal',    fmt: v=>v==0?'自動':v+'px' },
     ];
@@ -3693,6 +3717,12 @@
     const numHorses  = parseInt(document.getElementById('raceNumHorses').value)  || 5;
     const betSeconds = parseInt(document.getElementById('raceBetSeconds').value) || 60;
     adminSend({ type: 'raceStart', numHorses, betSeconds });
+  }
+
+  function sendBoStart() {
+    const judgeSeconds = parseInt(document.getElementById('boJudgeSeconds').value) || 15;
+    const payoutRate   = parseFloat(document.getElementById('boPayoutRate').value) || 1.9;
+    adminSend({ type: 'boStart', judgeSeconds, payoutRate });
   }
 
   function sendWordleRows() {

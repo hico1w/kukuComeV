@@ -955,6 +955,8 @@ function handleAdminMessage(d, replyFn) {
       wordlePanelBgOpacity = parseInt(d.value); localStorage.setItem('wordlePanelBgOpacity', wordlePanelBgOpacity); saveSettingsToServer(); applyPanelSettings();
     } else if (d.id === 'rankingPanelBgSlider') {
       rankingPanelBgOpacity = parseInt(d.value); localStorage.setItem('rankingPanelBgOpacity', rankingPanelBgOpacity); saveSettingsToServer(); applyPanelSettings();
+    } else if (d.id === 'boPanelScaleSlider') {
+      boPanelScale = parseInt(d.value); localStorage.setItem('boPanelScale', boPanelScale); saveSettingsToServer(); applyPanelSettings();
     } else if (d.id === 'quizPanelBgSlider') {
       quizPanelBgOpacity = parseInt(d.value); localStorage.setItem('quizPanelBgOpacity', quizPanelBgOpacity); saveSettingsToServer(); applyPanelSettings();
     } else if (d.id === 'afkOpacitySlider') {
@@ -1004,7 +1006,7 @@ function handleAdminMessage(d, replyFn) {
                        'slotProbCherry','slotProbBell','slotProbStar','slotProbDiamond','slotProbJackpot',
                        'afkOpacitySlider','afkGrayscaleSlider','afkBrightnessSlider',
                        'kaiSpeedSlider','kaiRestitutionSlider','kaiGravitySlider','kaiBulletSizeSlider',
-                       'dmgFontScaleSlider','wordlePanelWidthSlider','wordlePanelBgSlider','rankingPanelBgSlider','quizPanelBgSlider','newsTickerIntervalSlider'];
+                       'dmgFontScaleSlider','wordlePanelWidthSlider','wordlePanelBgSlider','rankingPanelBgSlider','quizPanelBgSlider','boPanelScaleSlider','newsTickerIntervalSlider'];
     const state = {};
     sliderIds.forEach(sid => { const el = document.getElementById(sid); if (el) state[sid] = el.value; });
     state.bgColor    = document.getElementById('bgColor')?.value;
@@ -1177,6 +1179,7 @@ function handleAdminMessage(d, replyFn) {
     state.wordlePanelBgSlider      = wordlePanelBgOpacity;
     state.rankingPanelBgSlider     = rankingPanelBgOpacity;
     state.quizPanelBgSlider        = quizPanelBgOpacity;
+    state.boPanelScaleSlider       = boPanelScale;
     state.afkOpacitySlider         = afkOpacity;
     state.afkGrayscaleSlider       = afkGrayscale;
     state.afkBrightnessSlider      = afkBrightness;
@@ -1529,6 +1532,10 @@ function handleAdminMessage(d, replyFn) {
     startRace(parseInt(d.numHorses)||5, parseInt(d.betSeconds)||60);
   } else if (d.type === 'raceBegin') {
     beginRacing();
+  } else if (d.type === 'boStart') {
+    startBo(d.judgeSeconds, d.payoutRate);
+  } else if (d.type === 'boStop' || d.type === 'boCancel') {
+    stopBo();
   } else if (d.type === 'raceCancel') {
     cancelRace();
   } else if (d.type === 'charFontSizes') {

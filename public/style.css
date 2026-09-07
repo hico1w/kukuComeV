@@ -5506,3 +5506,109 @@ body.compact-mode .title-tag         { display: none !important; }
   cursor: pointer; font-size: 13px; line-height: 1;
 }
 .stream-review-modal .sr-close:hover { background: rgba(255,255,255,0.25); }
+/* ── バイナリーオプション（BO）パネル ───────────────────────── */
+.bo-panel {
+  position: absolute;
+  background: rgba(10,12,20,0.97);
+  border: 2px solid #38bdf8;
+  border-radius: 12px;
+  padding: 10px 12px;
+  width: 380px;
+  z-index: 200;
+  user-select: none;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+  cursor: grab;
+  transform: scale(var(--bo-scale, 1));
+  transform-origin: top left;
+}
+.bo-panel:active { cursor: grabbing; }
+.bo-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(56,189,248,0.3);
+  padding-bottom: 6px;
+}
+.bo-title  { font-size: 15px; font-weight: 800; color: #38bdf8; }
+.bo-phase  { font-size: 11px; color: #cbd5e1; background: rgba(56,189,248,0.15); border-radius: 4px; padding: 1px 6px; }
+.bo-payout { font-size: 11px; color: #94a3b8; margin-left: auto; }
+
+/* チャート（マーカーを重ねるので relative） */
+.bo-chart-wrap {
+  position: relative;
+  height: 110px;
+  background: linear-gradient(180deg, rgba(56,189,248,0.06), rgba(56,189,248,0));
+  border: 1px solid rgba(148,163,184,0.2);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.bo-chart { display: block; width: 100%; height: 110px; }
+.bo-line  { stroke: #38bdf8; }
+.bo-dot   { fill: #38bdf8; }
+
+/* エントリー地点のマーカー（賭けた瞬間の位置に名前と金額を出す） */
+.bo-marker { position: absolute; width: 0; height: 0; pointer-events: none; z-index: 2; }
+.bo-marker-dot {
+  position: absolute;
+  left: -4px; top: -4px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(2,6,23,0.9);
+}
+.bo-marker-label {
+  position: absolute;
+  right: 7px;
+  white-space: nowrap;
+  font-size: 9px;
+  line-height: 1.4;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgba(2,6,23,0.85);
+  border: 1px solid;
+}
+.bo-marker-label b { font-weight: 800; }
+.bo-marker-label {
+  max-width: 122px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bo-marker.bo-label-hidden .bo-marker-label { display: none; }
+.bo-marker.bo-label-right .bo-marker-label { right: auto; left: 7px; }
+.bo-marker-high .bo-marker-dot   { background: #4ade80; box-shadow: 0 0 6px rgba(74,222,128,0.9); }
+.bo-marker-high .bo-marker-label { color: #4ade80; border-color: rgba(74,222,128,0.45); top: -15px; }
+.bo-marker-low  .bo-marker-dot   { background: #f87171; box-shadow: 0 0 6px rgba(248,113,113,0.9); }
+.bo-marker-low  .bo-marker-label { color: #f87171; border-color: rgba(248,113,113,0.45); top: 4px; }
+.bo-marker.bo-winning .bo-marker-label { background: rgba(56,189,248,0.22); border-color: #38bdf8; }
+.bo-marker-left { color: #e2e8f0; font-weight: 700; }
+
+.bo-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 6px 0 2px;
+}
+.bo-price { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; color: #e2e8f0; }
+.bo-sides-inline { display: flex; gap: 10px; font-size: 11px; font-weight: 700; margin-left: auto; }
+.bo-up   { color: #4ade80; }
+.bo-down { color: #f87171; }
+
+.bo-list { margin-top: 4px; }
+.bo-result-item {
+  font-size: 10.5px;
+  color: #94a3b8;
+  padding: 1px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.bo-result-item.bo-win  b { color: #4ade80; }
+.bo-result-item.bo-lose b { color: #cbd5e1; }
+.bo-hint {
+  margin-top: 6px;
+  font-size: 10px;
+  color: #64748b;
+  border-top: 1px solid rgba(148,163,184,0.15);
+  padding-top: 5px;
+}

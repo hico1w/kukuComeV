@@ -43,6 +43,8 @@ function rectsOverlap(r1, r2) {
 let wordleDragState  = null;
 let quizDragState    = null;
 let raceDragState    = null;
+let boDragState      = null;
+let boState          = null; // バイナリーオプションの開催状態（ファイル末尾の BO セクション参照）
 
 document.addEventListener('mousemove', e => {
   if (rankingDragState) {
@@ -68,6 +70,19 @@ document.addEventListener('mousemove', e => {
       wordleState.panelY = Math.max(0, Math.min(sr.height - ph, oy + (e.clientY - sy)));
       panel.style.left = wordleState.panelX + 'px';
       panel.style.top  = wordleState.panelY + 'px';
+    }
+    return;
+  }
+  if (boDragState) {
+    const panel = document.getElementById('boPanel');
+    if (panel && boState) {
+      const { ox, oy, sx, sy } = boDragState;
+      const sr = stage.getBoundingClientRect();
+      const pr = panel.getBoundingClientRect(); // 拡大率込みの実サイズ
+      boState.panelX = Math.max(0, Math.min(sr.width  - pr.width,  ox + (e.clientX - sx)));
+      boState.panelY = Math.max(0, Math.min(sr.height - pr.height, oy + (e.clientY - sy)));
+      panel.style.left = boState.panelX + 'px';
+      panel.style.top  = boState.panelY + 'px';
     }
     return;
   }
@@ -170,6 +185,14 @@ document.addEventListener('mouseup', () => {
       localStorage.setItem(panelKey('wordlePanelY'), Math.round(wordleState.panelY));
     }
     wordleDragState = null;
+    return;
+  }
+  if (boDragState) {
+    if (boState) {
+      localStorage.setItem(panelKey('boPanelX'), Math.round(boState.panelX));
+      localStorage.setItem(panelKey('boPanelY'), Math.round(boState.panelY));
+    }
+    boDragState = null;
     return;
   }
   if (raceDragState) {
@@ -860,6 +883,7 @@ function applyPanelSettings() {
   s.style.setProperty('--wordle-bg',  (wordlePanelBgOpacity  / 100).toFixed(2));
   s.style.setProperty('--ranking-bg', (rankingPanelBgOpacity / 100).toFixed(2));
   s.style.setProperty('--quiz-bg',    (quizPanelBgOpacity    / 100).toFixed(2));
+  s.style.setProperty('--bo-scale',   (boPanelScale          / 100).toFixed(2));
   const _p = (id, val, txt) => {
     const el = document.getElementById(id); if (!el) return;
     if (el.tagName === 'INPUT') el.value = val;
@@ -869,6 +893,7 @@ function applyPanelSettings() {
   _p('wordlePanelBgSlider',      wordlePanelBgOpacity,  wordlePanelBgOpacity + '%');
   _p('rankingPanelBgSlider',     rankingPanelBgOpacity, rankingPanelBgOpacity + '%');
   _p('quizPanelBgSlider',        quizPanelBgOpacity,    quizPanelBgOpacity + '%');
+  _p('boPanelScaleSlider',       boPanelScale,          boPanelScale + '%');
 }
 
 // ── ニューステッカー ────────────────────────────────────────────────
@@ -1833,6 +1858,9 @@ document.getElementById('toggleNewsTickerBtn')?.addEventListener('click', () => 
   document.getElementById('rankingPanelBgSlider')?.addEventListener('input', function() {
     rankingPanelBgOpacity = parseInt(this.value); ppSave('rankingPanelBgOpacity', rankingPanelBgOpacity); applyPanelSettings();
   });
+  document.getElementById('boPanelScaleSlider')?.addEventListener('input', function() {
+    boPanelScale = parseInt(this.value); ppSave('boPanelScale', boPanelScale); applyPanelSettings();
+  });
   document.getElementById('quizPanelBgSlider')?.addEventListener('input', function() {
     quizPanelBgOpacity = parseInt(this.value); ppSave('quizPanelBgOpacity', quizPanelBgOpacity); applyPanelSettings();
   });
@@ -2102,3 +2130,352 @@ document.getElementById('brAutoBtn')?.addEventListener('click', () => {
   document.getElementById('brAutoBtn').classList.toggle('active', !brAutoEnabled);
 });
 
+// ══════════════════════════════════════════════════════════════════
+//  バイナリーオプション（BO）
+//  「終了」を押すまでレートが動き続ける常設パネル。全員で同じチャートを見る。
+//  エントリーはいつでも可能で、判定は各自の「賭けた瞬間のレート」が基準。
+//  そこから judgeSeconds 秒後のレートが上か下かで、その人だけ精算される。
+//  レートは実レートではなく乱数（ランダムウォーク）で生成する。
+// ══════════════════════════════════════════════════════════════════
+const BO_TICK_MS      = 100;  // チャートの更新間隔
+const BO_START_PRICE  = 1500; // 開始レート（架空の通貨ペア）
+const BO_CHART_W      = 300;  // SVG座標系の幅
+const BO_CHART_H      = 110;  // SVG座標系の高さ＝実表示px
+const BO_MARKER_MAX   = 24;   // 同時に描くエントリーマーカーの上限（多いときは新しい順）
+const BO_RESULT_MAX   = 8;    // 「直近の結果」に残す件数
+const BO_START_COST   = 100;  // コメントから起動するときの消費MP
+const BO_POST_MS      = 1200; // コメント通知の最短間隔（連投でAPIを叩きすぎないように）
+
+// BOの実況コメントを配信に流す（間隔を空けて1件ずつ投稿する）
+let _boPostQueue = [];
+let _boPostTimer = null;
+function _boPostComment(text) {
+  if (typeof postAIReply !== 'function') return;
+  _boPostQueue.push(text);
+  if (_boPostQueue.length > 12) _boPostQueue.splice(0, _boPostQueue.length - 12); // 溜まりすぎたら古い方を捨てる
+  if (_boPostTimer) return;
+  const flush = () => {
+    const t = _boPostQueue.shift();
+    if (t) postAIReply(t);
+    _boPostTimer = _boPostQueue.length ? setTimeout(flush, BO_POST_MS) : null;
+  };
+  flush();
+}
+
+// ランダムウォーク＋弱い慣性。たまに大きく跳ねてヒゲを作る
+function _boNextPrice(state) {
+  const shock = Math.random() < 0.03 ? (Math.random() - 0.5) * 1.6 : 0;
+  state.momentum = state.momentum * 0.82 + (Math.random() - 0.5) * 0.16;
+  return Math.round((state.price + state.momentum + (Math.random() - 0.5) * 0.24 + shock) * 100) / 100;
+}
+
+function startBo(judgeSeconds, payoutRate) {
+  if (boState) { addSystemLog('⚠️ BO：すでに稼働中です', '#f87171'); return; }
+  const judge = Math.max(5, Math.min(300, parseInt(judgeSeconds) || 15));
+  const rate  = Math.max(1.01, Math.min(5, parseFloat(payoutRate) || 1.9));
+  boState = {
+    judgeSeconds: judge,
+    payoutRate: rate,
+    // 判定までの時間＋5秒ぶんを表示窓にする（自分のマーカーが判定まで画面に残る）
+    windowTicks: Math.round((judge + 5) * 1000 / BO_TICK_MS),
+    price: BO_START_PRICE,
+    momentum: 0,
+    prices: [BO_START_PRICE],
+    tick: 0,          // 開始からの総ティック数（マーカーのX位置計算に使う）
+    entries: [],      // 判定待ちのエントリー
+    results: [],      // 判定済み（直近 BO_RESULT_MAX 件）
+    seq: 0,
+    stats: { win: 0, lose: 0, draw: 0, paid: 0, taken: 0 },
+    panelX: parseInt(localStorage.getItem(panelKey('boPanelX'))) || 20,
+    panelY: parseInt(localStorage.getItem(panelKey('boPanelY'))) || 60,
+    _timerId: null,
+  };
+  localStorage.setItem('boJudgeSeconds', judge); // コメント起動時に同じ設定を使う
+  localStorage.setItem('boPayoutRate', rate);
+  renderBoPanel();
+  boState._timerId = setInterval(boTick, BO_TICK_MS);
+  addSystemLog(`📈 BO稼働開始！「HIGH 10」「LOW 10」でいつでもエントリー（${judge}秒後に判定・配当${rate}倍）`, '#38bdf8');
+}
+
+// コメント「BO」で起動する（視聴者もMPを払えば開催できる）
+function startBoByComment(user) {
+  ensureCharOnStage(user);
+  if (boState) { showBubble(user, '📈 BOはもう稼働中！', {}); return; }
+  const free = typeof isMasterUser === 'function' && isMasterUser(user);
+  if (!free && (user.mp ?? 0) < BO_START_COST) {
+    showBubble(user, `MPが足りない…（${user.mp ?? 0}/${BO_START_COST}）`, {});
+    return;
+  }
+  if (!free) { user.mp -= BO_START_COST; updateStatsDisplay(user); }
+  const judge  = parseInt(localStorage.getItem('boJudgeSeconds')) || 15;
+  const payout = parseFloat(localStorage.getItem('boPayoutRate')) || 1.9;
+  startBo(judge, payout);
+  if (!boState) { // 起動できなかったときはMPを返す
+    if (!free) { user.mp += BO_START_COST; updateStatsDisplay(user); }
+    return;
+  }
+  showBubble(user, free ? '📈 BO開催！' : `📈 BO開催！ -${BO_START_COST}MP`, { color: '#38bdf8' });
+  addToLog(user, `📈 BOを起動${free ? '' : '（-' + BO_START_COST + 'MP）'}`, '#38bdf8');
+  _boPostComment(`📈 ${user.name || '名無し'} がBOを開催！ 「HIGH 10」「LOW 10」でエントリー（${judge}秒後判定・配当${payout}倍）`);
+}
+
+function boTick() {
+  if (!boState) return;
+  boState.tick++;
+  boState.price = _boNextPrice(boState);
+  boState.prices.push(boState.price);
+  if (boState.prices.length > boState.windowTicks) boState.prices.shift();
+
+  // 判定時刻を過ぎたエントリーから順に精算する
+  const due = boState.entries.filter(e => boState.tick >= e.expireTick);
+  if (due.length) {
+    const lines = due.map(settleBoEntry);
+    _boPostComment('📈 結果: ' + lines.join(' / '));
+    boState.entries = boState.entries.filter(e => boState.tick < e.expireTick);
+    renderBoPanel();
+  }
+  updateBoChart();
+}
+
+// エントリー受付（コメント「HIGH 10」「LOW 10」「上 10」「下 10」から呼ばれる）
+function handleBoEntry(user, side, mp) {
+  if (!boState) return;
+  if (!(mp >= 1)) { showBubble(user, '❌ 1MP以上で指定してね', {}); return; }
+  ensureCharOnStage(user);
+  if ((user.mp ?? 0) < mp) { showBubble(user, '💸 MPが足りない！', {}); return; }
+  user.mp -= mp;
+  updateStatsDisplay(user);
+  boState.stats.taken += mp;
+  boState.entries.push({
+    id: ++boState.seq,
+    ipid: user.ipid,
+    name: user.name || '名無し',
+    side,
+    mp,
+    entryPrice: boState.price,
+    entryTick: boState.tick,
+    expireTick: boState.tick + Math.round(boState.judgeSeconds * 1000 / BO_TICK_MS),
+  });
+  const label = side === 'high' ? '🔼 HIGH' : '🔽 LOW';
+  showBubble(user, `${label} ${boState.price.toFixed(2)} から${mp}MP！`, { color: side === 'high' ? '#4ade80' : '#f87171' });
+  addToLog(user, `📈 BO ${label} ${mp}MP（${boState.price.toFixed(2)} / ${boState.judgeSeconds}秒後判定）`, '#38bdf8');
+  playLocalSound(SOUND_SLOT_STOP, 0.5);
+  _boPostComment(`📈 ${user.name || '名無し'} が ${side === 'high' ? 'HIGH' : 'LOW'} に ${mp}MP賭けた！（${boState.price.toFixed(2)} / ${boState.judgeSeconds}秒後判定）`);
+  renderBoPanel();
+}
+
+// エントリー1件を判定して精算する
+function settleBoEntry(e) {
+  const exit = boState.price;
+  const win  = exit > e.entryPrice ? 'high' : exit < e.entryPrice ? 'low' : 'draw';
+  // 同値（引き分け）は返金、当たりは配当、外れは没収
+  const payout = win === 'draw' ? e.mp
+               : e.side === win ? Math.max(1, Math.round(e.mp * boState.payoutRate))
+               : 0;
+  const u = users[e.ipid];
+  if (payout > 0 && u) {
+    u.mp = (u.mp ?? 0) + payout;
+    updateStatsDisplay(u);
+  }
+  if (u) {
+    showBubble(u, win === 'draw' ? `↔️ 引き分け 返金${payout}MP`
+              : payout > 0 ? `🎯 的中！ ${e.entryPrice.toFixed(2)}→${exit.toFixed(2)} +${payout}MP`
+              : `💥 ハズレ ${e.entryPrice.toFixed(2)}→${exit.toFixed(2)} -${e.mp}MP`,
+              { color: payout > e.mp ? '#4ade80' : '#f87171' });
+    addToLog(u, `📈 BO ${payout > e.mp ? '的中' : win === 'draw' ? '引き分け' : 'ハズレ'} ${e.entryPrice.toFixed(2)}→${exit.toFixed(2)} ${payout > 0 ? '+' + payout : '-' + e.mp}MP`, payout > e.mp ? '#4ade80' : '#f87171');
+  }
+  if (win === 'draw')            boState.stats.draw++;
+  else if (e.side === win)       boState.stats.win++;
+  else                           boState.stats.lose++;
+  boState.stats.paid += payout;
+  boState.results.unshift({ ...e, exitPrice: exit, payout, profit: payout - e.mp });
+  if (boState.results.length > BO_RESULT_MAX) boState.results.pop();
+  playLocalSound(payout > e.mp ? SOUND_QUIZ_CORRECT : SOUND_SLOT_MISS, 0.45);
+  document.querySelector(`#boPanel .bo-marker[data-id="${e.id}"]`)?.remove();
+  // コメント通知用の1行を返す
+  return `${e.name} ${e.side === 'high' ? 'HIGH' : 'LOW'} ${e.entryPrice.toFixed(2)}→${exit.toFixed(2)} ${win === 'draw' ? '引き分け返金' + payout + 'MP' : payout > 0 ? '的中 +' + payout + 'MP' : 'ハズレ -' + e.mp + 'MP'}`;
+}
+
+// 終了（判定待ちのエントリーは全額返金）
+function stopBo() {
+  if (!boState) return;
+  if (boState._timerId) clearInterval(boState._timerId);
+  const refunded = boState.entries.reduce((s, e) => s + e.mp, 0);
+  boState.entries.forEach(e => {
+    const u = users[e.ipid];
+    if (u) { u.mp = (u.mp ?? 0) + e.mp; updateStatsDisplay(u); showBubble(u, `↩️ BO終了 ${e.mp}MP返金`, {}); }
+  });
+  const { win, lose, draw } = boState.stats;
+  addSystemLog(`📈 BO終了（的中${win} / ハズレ${lose} / 引分${draw}${refunded ? ` / 判定待ち${refunded}MPを返金` : ''}）`, '#38bdf8');
+  document.getElementById('boPanel')?.remove();
+  boState = null;
+  _boPostQueue = [];
+  if (_boPostTimer) { clearTimeout(_boPostTimer); _boPostTimer = null; }
+}
+// 旧名との互換（管理ウィンドウの古いボタンから呼ばれても動くように）
+function cancelBo() { stopBo(); }
+
+// チャートの座標計算（価格→Y、ティック→X%）
+function _boGeo() {
+  const pts = boState.prices;
+  let min = Math.min(...pts), max = Math.max(...pts);
+  boState.entries.forEach(e => { min = Math.min(min, e.entryPrice); max = Math.max(max, e.entryPrice); });
+  const pad = Math.max(0.4, (max - min) * 0.15);
+  min -= pad; max += pad;
+  return { min, max, span: Math.max(0.01, max - min) };
+}
+function _boY(price, geo) {
+  return BO_CHART_H - ((price - geo.min) / geo.span) * BO_CHART_H;
+}
+// 表示窓の左端は「現在ティック −（保持しているティック数−1）」
+function _boXPct(tick) {
+  const leftTick = boState.tick - (boState.prices.length - 1);
+  const denom    = Math.max(1, boState.windowTicks - 1);
+  return ((tick - leftTick) / denom) * 100;
+}
+function _boLineSvg(geo) {
+  const denom = Math.max(1, boState.windowTicks - 1);
+  return boState.prices.map((v, i) => {
+    const x = (i / denom) * (BO_CHART_W - 7) + 3.5;
+    return `${x.toFixed(1)},${_boY(v, geo).toFixed(1)}`;
+  }).join(' ');
+}
+
+// ティックごとの軽い更新（パネル全体は作り直さない）
+function updateBoChart() {
+  const panel = document.getElementById('boPanel');
+  if (!panel || !boState) return;
+  const geo = _boGeo();
+  const poly = panel.querySelector('.bo-line');
+  if (poly) poly.setAttribute('points', _boLineSvg(geo));
+  const dot = panel.querySelector('.bo-dot');
+  if (dot) {
+    const lastX = ((boState.prices.length - 1) / Math.max(1, boState.windowTicks - 1)) * (BO_CHART_W - 7) + 3.5;
+    dot.setAttribute('cx', lastX.toFixed(1));
+    dot.setAttribute('cy', _boY(boState.price, geo).toFixed(1));
+  }
+  const priceEl = panel.querySelector('.bo-price');
+  if (priceEl) {
+    const prev = boState.prices[boState.prices.length - 2] ?? boState.price;
+    priceEl.textContent = boState.price.toFixed(2);
+    priceEl.className = 'bo-price ' + (boState.price >= prev ? 'bo-up' : 'bo-down');
+  }
+  _boSyncMarkers(geo);
+}
+
+// エントリー地点のマーカー（名前・金額・残り秒数）をチャート上に配置する。
+// ラベル同士が重ならないよう、X が近いものは段（レーン）をずらして積む。
+const BO_LABEL_W    = 34; // ラベル幅の目安（チャート幅に対する％）
+const BO_LANE_PX    = 13; // 1段ずらす量
+const BO_LANE_MAX   = 3;  // これを超えたらラベルを出さない（点だけ）
+
+function _boSyncMarkers(geo) {
+  const wrap = document.querySelector('#boPanel .bo-chart-wrap');
+  if (!wrap) return;
+  // 表示対象を X 昇順に並べ、貪欲にレーンを割り当てる
+  const shown = boState.entries.slice(-BO_MARKER_MAX)
+    .map(e => ({ e, x: _boXPct(e.entryTick) }))
+    .filter(o => o.x >= 0)
+    .sort((a, b) => a.x - b.x);
+  const laneRight = []; // レーンごとの「直近ラベルの右端X」
+  shown.forEach(o => {
+    o.right = o.x < 28;                                    // 左端付近はラベルを右側に出す
+    const left  = o.right ? o.x : o.x - BO_LABEL_W;
+    const right = o.right ? o.x + BO_LABEL_W : o.x;
+    let lane = 0;
+    while (lane <= BO_LANE_MAX && laneRight[lane] != null && laneRight[lane] > left) lane++;
+    if (lane <= BO_LANE_MAX) laneRight[lane] = right;
+    o.lane = lane;
+  });
+
+  const alive = new Set();
+  shown.forEach(({ e, x, lane, right }) => {
+    alive.add(String(e.id));
+    let el = wrap.querySelector(`.bo-marker[data-id="${e.id}"]`);
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'bo-marker bo-marker-' + e.side;
+      el.dataset.id = e.id;
+      el.innerHTML =
+        `<span class="bo-marker-label">${e.side === 'high' ? '▲' : '▼'} ${escapeHtml(e.name)} <b>${e.mp}MP</b>` +
+        `<span class="bo-marker-left"></span></span><span class="bo-marker-dot"></span>`;
+      wrap.appendChild(el);
+    }
+    el.style.left = Math.min(99, x) + '%';
+    el.style.top  = _boY(e.entryPrice, geo) + 'px';
+    // 現在レートが有利かどうかで色を変える（勝ちそうなら光る）
+    const winning = e.side === 'high' ? boState.price > e.entryPrice : boState.price < e.entryPrice;
+    el.classList.toggle('bo-winning', winning);
+    el.classList.toggle('bo-label-right', right);
+    el.classList.toggle('bo-label-hidden', lane > BO_LANE_MAX);
+    const label = el.querySelector('.bo-marker-label');
+    if (label) {
+      // 上向きは上に、下向きは下に段を伸ばす。はみ出す場合はチャート内に収める
+      const y = _boY(e.entryPrice, geo);
+      const want = e.side === 'high' ? y - 15 - lane * BO_LANE_PX : y + 4 + lane * BO_LANE_PX;
+      const clamped = Math.max(1, Math.min(BO_CHART_H - 13, want));
+      label.style.top = (clamped - y) + 'px';
+      label.style.transform = 'none';
+    }
+    const leftSec = Math.max(0, Math.ceil((e.expireTick - boState.tick) * BO_TICK_MS / 1000));
+    const leftEl = el.querySelector('.bo-marker-left');
+    if (leftEl) leftEl.textContent = ' ⏱' + leftSec + '秒';
+  });
+  wrap.querySelectorAll('.bo-marker').forEach(el => { if (!alive.has(el.dataset.id)) el.remove(); });
+}
+
+function renderBoPanel() {
+  if (!boState) return;
+  let panel = document.getElementById('boPanel');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'boPanel';
+    panel.className = 'bo-panel';
+    stage.appendChild(panel);
+    panel.addEventListener('mousedown', e => {
+      if (e.button !== 0 || dragState || trashDragState || bossDragState || wordleDragState || raceDragState || boDragState) return;
+      const r = panel.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+      boDragState = { ox: r.left - sr.left, oy: r.top - sr.top, sx: e.clientX, sy: e.clientY };
+      e.preventDefault();
+    });
+  }
+  panel.style.left = boState.panelX + 'px';
+  panel.style.top  = boState.panelY + 'px';
+
+  const geo = _boGeo();
+  const highMp = boState.entries.filter(e => e.side === 'high').reduce((s, e) => s + e.mp, 0);
+  const lowMp  = boState.entries.filter(e => e.side === 'low').reduce((s, e) => s + e.mp, 0);
+  const highN  = boState.entries.filter(e => e.side === 'high').length;
+  const lowN   = boState.entries.filter(e => e.side === 'low').length;
+  const lastX  = ((boState.prices.length - 1) / Math.max(1, boState.windowTicks - 1)) * (BO_CHART_W - 7) + 3.5;
+
+  const resultRows = boState.results.map(r =>
+    `<div class="bo-result-item ${r.profit > 0 ? 'bo-win' : r.profit < 0 ? 'bo-lose' : ''}">
+       ${r.side === 'high' ? '▲' : '▼'} <b>${escapeHtml(r.name)}</b>
+       ${r.entryPrice.toFixed(2)}→${r.exitPrice.toFixed(2)}
+       ${r.payout > 0 ? `<span class="bo-up">+${r.payout}MP</span>` : `<span class="bo-down">-${r.mp}MP</span>`}
+     </div>`).join('');
+
+  panel.innerHTML = `
+    <div class="bo-header">
+      <span class="bo-title">📈 バイナリーオプション</span>
+      <span class="bo-phase">稼働中</span>
+      <span class="bo-payout">${boState.judgeSeconds}秒後判定 / 配当${boState.payoutRate}倍</span>
+    </div>
+    <div class="bo-chart-wrap">
+      <svg class="bo-chart" viewBox="0 0 ${BO_CHART_W} ${BO_CHART_H}" preserveAspectRatio="none">
+        <polyline class="bo-line" points="${_boLineSvg(geo)}" fill="none" stroke="#38bdf8" stroke-width="2"></polyline>
+        <circle class="bo-dot" cx="${lastX.toFixed(1)}" cy="${_boY(boState.price, geo).toFixed(1)}" r="3.5"></circle>
+      </svg>
+    </div>
+    <div class="bo-price-row">
+      <span class="bo-price">${boState.price.toFixed(2)}</span>
+      <span class="bo-sides-inline">
+        <span class="bo-up">▲ HIGH ${highN}件 ${highMp}MP</span>
+        <span class="bo-down">▼ LOW ${lowN}件 ${lowMp}MP</span>
+      </span>
+    </div>
+    ${boState.results.length ? `<div class="bo-list">${resultRows}</div>` : ''}
+    <div class="bo-hint">「HIGH 10」「LOW 10」でいつでもエントリー（「上 10」「下 10」でもOK）／賭けた瞬間のレートが基準</div>`;
+  _boSyncMarkers(geo);
+}

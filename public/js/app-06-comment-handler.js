@@ -332,6 +332,24 @@ function handleComment(comment) {
     }
   }
 
+  // ── BO起動コマンド（100MP・masterは無料）──
+  if (/^(BO|ＢＯ)(開始|スタート)?$/i.test(trimmedMsg.replace(/　/g, ' ').trim())) {
+    startBoByComment(user);
+    return;
+  }
+
+  // ── BOエントリー（稼働中はいつでも）──
+  if (boState) {
+    const boMsg = trimmedMsg
+      .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+      .replace(/　/g, ' ');
+    const bm = boMsg.match(/^(HIGH|LOW|ハイ|ロー|上|下)\s*(\d+)$/i);
+    if (bm) {
+      const side = /^(HIGH|ハイ|上)$/i.test(bm[1]) ? 'high' : 'low';
+      handleBoEntry(user, side, parseInt(bm[2]));
+    }
+  }
+
   // ── 応援（レース中） ──
   if (raceState?.phase === 'racing' && raceState.horses?.length) {
     const normMsg = message.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
