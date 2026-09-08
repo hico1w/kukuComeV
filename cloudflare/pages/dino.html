@@ -47,6 +47,9 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 .bar-btn.on { color: #ff8f6b; border-color: #ff8f6b; }
 /* ランキングのハードモード印 */
 .rank-hard { color: #ff8f6b; font-size: .95em; margin-right: 3px; }
+.hd-h { color: #ff8f6b; }
+/* 3列になるので日付は詰める。狭いときは隠す */
+.rank-list li { grid-template-columns: 2.2em minmax(0,1fr) auto 4.8em; }
 .mode-tag {
   font-size: clamp(8px, 1vw, 11px); letter-spacing: .14em;
   color: #ff8f6b; border: 1px solid rgba(255,143,107,.45);
@@ -151,6 +154,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 /* ── ランキング表 ── */
 .rank-wrap { display: flex; gap: clamp(10px, 2%, 24px); justify-content: center; width: 100%; min-width: 0; }
 .rank-box { flex: 1 1 0; min-width: 0; }
+.rank-box[hidden] { display: none; }
 .rank-head {
   font-size: clamp(8px, .85vw, 10px); letter-spacing: .16em; text-transform: uppercase;
   color: rgba(255,255,255,.6); margin-bottom: 3px; white-space: nowrap;
@@ -329,9 +333,13 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
       </div>
 
       <div class="rank-wrap">
-        <div class="rank-box">
-          <p class="rank-head">High Score — Top 10</p>
+        <div class="rank-box" id="box-normal">
+          <p class="rank-head">Normal — Top 10</p>
           <ol class="rank-list" id="rank-list"></ol>
+        </div>
+        <div class="rank-box" id="box-hard">
+          <p class="rank-head"><span class="hd-h">🅗</span> Hard — Top 10</p>
+          <ol class="rank-list" id="hard-list"></ol>
         </div>
         <div class="rank-box">
           <p class="rank-head">最新のプレイ — 10件</p>
@@ -342,9 +350,13 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 
     <div class="ov" id="rank-ov">
       <div class="rank-wrap">
-        <div class="rank-box">
-          <p class="rank-head">High Score — Top 10</p>
+        <div class="rank-box" id="box-normal2">
+          <p class="rank-head">Normal — Top 10</p>
           <ol class="rank-list" id="rank-list2"></ol>
+        </div>
+        <div class="rank-box" id="box-hard2">
+          <p class="rank-head"><span class="hd-h">🅗</span> Hard — Top 10</p>
+          <ol class="rank-list" id="hard-list2"></ol>
         </div>
         <div class="rank-box">
           <p class="rank-head">最新のプレイ — 10件</p>
@@ -446,7 +458,7 @@ const state = {
   last: 0,
   speed: CFG.speed0,
   dist: 0, score: 0,
-  best: +(localStorage.getItem('dino-best') || 0) || 0,
+  best: 0,                // 現在のモードの自己ベスト（下の bestKey で読み書きする）
   bgScroll: 0, sunX: 0,
   y: 0, vy: 0, onGround: true,
   frame: 0, frameT: 0,
@@ -787,7 +799,7 @@ function die() {
   state.frame = 0; state.frameT = 0; state.deadT = 0;
   if (state.score > state.best) {
     state.best = state.score;
-    try { localStorage.setItem('dino-best', String(state.best)); } catch (e) {}
+    try { localStorage.setItem(bestKey(), String(state.best)); } catch (e) {}
   }
 }
 
@@ -849,11 +861,13 @@ function renderRank(el, list, withNo) {
 function renderAll(d) {
   renderRank(document.getElementById('rank-list'), d.ranking, true);
   renderRank(document.getElementById('rank-list2'), d.ranking, true);
+  renderRank(document.getElementById('hard-list'), d.rankingHard, true);
+  renderRank(document.getElementById('hard-list2'), d.rankingHard, true);
   renderRank(document.getElementById('recent-list'), d.recent, false);
   renderRank(document.getElementById('recent-list2'), d.recent, false);
 }
 
-const RANK_LISTS = ['rank-list', 'rank-list2', 'recent-list', 'recent-list2'];
+const RANK_LISTS = ['rank-list', 'rank-list2', 'hard-list', 'hard-list2', 'recent-list', 'recent-list2'];
 
 function fetchRanking() {
   RANK_LISTS.forEach(id => {
@@ -1070,8 +1084,19 @@ function updateLyrics() {
 let hardMode = false;
 try { hardMode = localStorage.getItem('dino-hard') === '1'; } catch (e) {}
 
+// 自己ベストはモードごとに分ける（ランキングも別なので）
+const bestKey = () => (hardMode ? 'dino-best-hard' : 'dino-best');
+function loadBest() {
+  try { state.best = +(localStorage.getItem(bestKey()) || 0) || 0; }
+  catch (e) { state.best = 0; }
+}
+
 function setHard(on) {
   hardMode = on;
+  loadBest();                   // モードごとの自己ベストに切り替える
+  // 表はいまのモードのぶんだけ出す（もう片方は隠す）
+  ['box-normal', 'box-normal2'].forEach(id => { document.getElementById(id).hidden = on; });
+  ['box-hard', 'box-hard2'].forEach(id => { document.getElementById(id).hidden = !on; });
   const btn = document.getElementById('btn-hard');
   btn.classList.toggle('on', on);
   btn.setAttribute('aria-pressed', String(on));

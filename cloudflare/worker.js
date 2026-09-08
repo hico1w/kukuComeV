@@ -168,8 +168,7 @@ export default {
             cur.sha
           );
           if (!res.ok) return json({ error: 'GitHub ' + res.status }, 500, cors);
-          return json({ ok: true, removed: before - after,
-                        ranking: stripIp(next.ranking), recent: stripIp(next.recent) }, 200, cors);
+          return json({ ok: true, removed: before - after, ...splitRanking(next) }, 200, cors);
         } catch (e) {
           return json({ error: e.message }, 500, cors);
         }
@@ -211,8 +210,7 @@ export default {
     if (url.pathname === '/dino-ranking') {
       if (request.method === 'GET') {
         const cur = await getRankingRaw(env);
-        return json({ ranking: stripIp(cur.ranking), recent: stripIp(cur.recent) },
-          200, { ...cors, 'Cache-Control': 'no-store' });
+        return json(splitRanking(cur), 200, { ...cors, 'Cache-Control': 'no-store' });
       }
 
       if (request.method === 'POST') {
@@ -253,14 +251,19 @@ export default {
             // 手動登録: ハイスコアに積む。
             // 同じ名前は1件にまとめ、いちばん高いスコアだけ残す
             // （既存データに重複があっても、書き込みのたびに整理される）
+            // キーに名前とモードの両方を使う。ノーマルとハードは別のランキングなので、
+            // 同じ人でもモードごとに1件ずつ残る
             const best = new Map();
             for (const e of cur.ranking.concat([entry])) {
-              const prev = best.get(e.name);
-              if (!prev || Number(e.score) > Number(prev.score)) best.set(e.name, e);
+              const k = e.name + ' ' + (e.hard ? 'h' : 'n');
+              const prev = best.get(k);
+              if (!prev || Number(e.score) > Number(prev.score)) best.set(k, e);
             }
-            next.ranking = [...best.values()]
-              .sort((a, b) => b.score - a.score || String(a.date).localeCompare(String(b.date)))
-              .slice(0, RANKING_MAX);
+            const all = [...best.values()]
+              .sort((a, b) => b.score - a.score || String(a.date).localeCompare(String(b.date)));
+            // 保持件数はモードごとに数える
+            next.ranking = all.filter(e => !e.hard).slice(0, RANKING_MAX)
+              .concat(all.filter(e => e.hard).slice(0, RANKING_MAX));
           }
           const res = await ghPut(
             env, RANKING_PATH,
@@ -276,10 +279,11 @@ export default {
         }
         if (!saved) return json({ error: '混み合っています。少し待って再度お試しください' }, 503, cors);
 
-        const pubR = stripIp(saved.ranking), pubN = stripIp(saved.recent);
+        const out = splitRanking(saved);
+        const mine = body.hard ? out.rankingHard : out.ranking;
         const rank = isRecent ? null
-          : pubR.findIndex(e => e.name === name && e.score === score) + 1 || null;
-        return json({ ok: true, rank, ranking: pubR, recent: pubN }, 200, cors);
+          : mine.findIndex(e => e.name === name && e.score === score) + 1 || null;
+        return json({ ok: true, rank, ...out }, 200, cors);
       }
 
       return json({ error: 'Method not allowed' }, 405, cors);
@@ -379,6 +383,16 @@ async function getRankingRaw(env) {
 }
 
 const stripIp = list => list.map(({ ip, ...rest }) => rest);   // 公開用。IP は落とす
+
+/** ノーマルとハードは別々のランキングとして返す */
+function splitRanking(cur) {
+  const r = stripIp(cur.ranking || []);
+  return {
+    ranking: r.filter(e => !e.hard),
+    rankingHard: r.filter(e => e.hard),
+    recent: stripIp(cur.recent || []),
+  };
+}
 
 // ── Blocklist (_blocklist.json) ───────────────────────────────────
 
