@@ -250,8 +250,15 @@ export default {
             // 自動登録: 最新プレイに積む（新しい順に RECENT_MAX 件）
             next.recent = [entry].concat(cur.recent).slice(0, RECENT_MAX);
           } else {
-            // 手動登録: ハイスコアに積む
-            next.ranking = cur.ranking.concat([entry])
+            // 手動登録: ハイスコアに積む。
+            // 同じ名前は1件にまとめ、いちばん高いスコアだけ残す
+            // （既存データに重複があっても、書き込みのたびに整理される）
+            const best = new Map();
+            for (const e of cur.ranking.concat([entry])) {
+              const prev = best.get(e.name);
+              if (!prev || Number(e.score) > Number(prev.score)) best.set(e.name, e);
+            }
+            next.ranking = [...best.values()]
               .sort((a, b) => b.score - a.score || String(a.date).localeCompare(String(b.date)))
               .slice(0, RANKING_MAX);
           }

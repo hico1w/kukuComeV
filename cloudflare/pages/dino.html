@@ -173,6 +173,22 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 /* 最新プレイは順位ではなく新しい順なので、番号は出さない */
 .rank-list.recent li { grid-template-columns: 1fr auto 5.6em; }
 
+#best-reg { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.best-label { font-size: 11px; color: rgba(255,255,255,.7); letter-spacing: .06em; }
+#best-score { font-family: 'Press Start 2P', monospace; font-size: .95em; color: #ffe9a8; }
+.best-row { display: flex; gap: 6px; }
+#best-name {
+  font-family: 'Noto Sans JP', sans-serif; font-size: 12px; font-weight: 400;
+  width: clamp(150px, 26vw, 220px); padding: 5px 8px; border-radius: 5px;
+  border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.94); color: #111;
+}
+#best-send {
+  font-size: 12px; font-weight: 500; background: #ffd34d; color: #3a2a00;
+  padding: 5px 14px; border-radius: 5px;
+}
+#best-send:disabled { opacity: .45; cursor: not-allowed; }
+#best-msg { font-size: 11px; color: #ffe9a8; min-height: 1.1em; }
+
 #rank-close {
   font-size: 11px; letter-spacing: .12em; color: rgba(255,255,255,.7);
   border: 1px solid rgba(255,255,255,.3); border-radius: 4px; padding: 5px 12px;
@@ -191,6 +207,8 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   overflow: hidden;
 }
 #lyrics.on { opacity: 1; }
+/* 入れ替えのときだけ素早くフェードさせる */
+#lyrics.on.swap { opacity: 0; transition: opacity .6s ease; }
 .ly-zone {
   position: absolute;
   overflow: hidden;
@@ -333,6 +351,14 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
           <ol class="rank-list recent" id="recent-list2"></ol>
         </div>
       </div>
+      <div id="best-reg">
+        <p class="best-label">自己ベスト <span id="best-score">00000</span> を登録</p>
+        <div class="best-row">
+          <input id="best-name" type="text" maxlength="15" placeholder="なまえ（未入力なら 名無し）" autocomplete="off">
+          <button id="best-send">登録</button>
+        </div>
+        <p id="best-msg"></p>
+      </div>
       <button id="rank-close">とじる</button>
     </div>
 
@@ -398,6 +424,8 @@ const SPD = () => W / TILE;
 addEventListener('resize', fit);
 
 // ── 調整用の数値 ────────────────────────────────────────
+const SCORE_MAX = 1000000;   // スコアの上限
+
 const CFG = {
   charScale: 0.50,        // 原寸220px → 約110px
   speed0: 420,
@@ -748,6 +776,7 @@ function reset() {
   });
   overOv.classList.remove('show');
   lyricsEl.classList.remove('on');
+  stopLyricsSwap();
   regEl.classList.remove('hide');
   sendEl.disabled = false;
   regMsg.textContent = '';
@@ -854,28 +883,39 @@ function postRecent(score) {
     .catch(() => {});
 }
 
-sendEl.addEventListener('click', () => {
-  const name = nameEl.value.trim().slice(0, 15);
-  if (!name) { regMsg.textContent = '名前を入力してください'; nameEl.focus(); return; }
-  sendEl.disabled = true;
-  regMsg.textContent = '送信中…';
+/** score を name でハイスコアに登録する。何度呼んでもよい */
+function submitScore(nameInput, btn, msg, score) {
+  const name = (nameInput.value || '').trim().slice(0, 15);
+  if (!name) { msg.textContent = '名前を入力してください'; nameInput.focus(); return; }
+  if (!score) { msg.textContent = 'まだスコアがありません'; return; }
+  btn.disabled = true;
+  msg.textContent = '送信中…';
   try { localStorage.setItem('dino-name', name); } catch (e) {}
-  fetch(WORKER + '/dino-ranking', {
+  return fetch(WORKER + '/dino-ranking', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: name, score: state.score, hard: hardMode }),
+    body: JSON.stringify({ name: name, score: score, hard: hardMode }),
   })
     .then(r => r.json().then(d => ({ ok: r.ok, d: d })))
     .then(res => {
       if (!res.ok || res.d.error) throw new Error(res.d.error || '登録に失敗しました');
-      myEntry = { name: name, score: state.score };
-      regMsg.textContent = res.d.rank ? '登録しました（' + res.d.rank + '位）' : '登録しました';
-      regEl.classList.add('hide');
+      myEntry = { name: name, score: score };
+      msg.textContent = res.d.rank ? '登録しました（' + res.d.rank + '位）' : '登録しました';
       renderAll(res.d);
     })
-    .catch(err => { regMsg.textContent = err.message; sendEl.disabled = false; });
-});
+    .catch(err => { msg.textContent = err.message; })
+    .finally(() => { btn.disabled = false; });   // 何度でも登録できる
+}
+
+sendEl.addEventListener('click', () => submitScore(nameEl, sendEl, regMsg, state.score));
 nameEl.addEventListener('keydown', e => { if (e.key === 'Enter') sendEl.click(); });
+
+// ランキング画面からは「自己ベスト」をいつでも登録できる
+const bestNameEl = document.getElementById('best-name');
+const bestSendEl = document.getElementById('best-send');
+const bestMsgEl  = document.getElementById('best-msg');
+bestSendEl.addEventListener('click', () => submitScore(bestNameEl, bestSendEl, bestMsgEl, state.best));
+bestNameEl.addEventListener('keydown', e => { if (e.key === 'Enter') bestSendEl.click(); });
 
 document.getElementById('btn-hard').addEventListener('click', () => {
   setHard(!hardMode);
@@ -895,6 +935,9 @@ document.getElementById('btn-hard').addEventListener('click', () => {
 
 document.getElementById('btn-rank').addEventListener('click', () => {
   rankOv.classList.add('show');
+  document.getElementById('best-score').textContent = pad(state.best);
+  try { bestNameEl.value = localStorage.getItem('dino-name') || ''; } catch (e) {}
+  bestMsgEl.textContent = '';
   fetchRanking();
 });
 document.getElementById('rank-close').addEventListener('click', () => rankOv.classList.remove('show'));
@@ -927,12 +970,13 @@ const LYRICS = [
 ];
 
 const lyricsEl = document.getElementById('lyrics');
-let lyricsBuilt = false;
+const LYRICS_SWAP_MS = 10000;      // 一度出たら10秒ごとに並べ替える
+let lyricsBuilt = false, lyricsTimer = null;
 
 function buildLyrics() {
-  if (lyricsBuilt) return;
   lyricsBuilt = true;
   const zones = ['ly-top', 'ly-bottom', 'ly-left', 'ly-right'].map(id => document.getElementById(id));
+  zones.forEach(z => { z.innerHTML = ''; });      // 入れ替えのために毎回作り直す
   // 上下は広いので長い行を、左右は細いので短い行を多めに配る
   const order = LYRICS.slice();
   for (let i = order.length - 1; i > 0; i--) {
@@ -948,6 +992,7 @@ function buildLyrics() {
     el.textContent = item[0];
     z.appendChild(el);
   };
+  lyRectKey = '';                                                   // 位置を計算し直させる
   longOnes.forEach((item, i) => put(zones[i % 2], item));            // 上下
   shortOnes.forEach((item, i) => {
     put(zones[i % 4], item);                                          // 全体に散らす
@@ -987,10 +1032,32 @@ function layoutLyrics() {
 }
 addEventListener('resize', layoutLyrics);
 
+/** 10秒ごとに、フェードさせながら並びを作り直す */
+function startLyricsSwap() {
+  if (lyricsTimer) return;
+  lyricsTimer = setInterval(() => {
+    if (!lyricsEl.classList.contains('on')) return;
+    lyricsEl.classList.add('swap');
+    setTimeout(() => {
+      buildLyrics();
+      lyricsEl.classList.remove('swap');
+    }, 620);                       // CSS のフェード(.6s)が終わってから差し替える
+  }, LYRICS_SWAP_MS);
+}
+function stopLyricsSwap() {
+  if (lyricsTimer) { clearInterval(lyricsTimer); lyricsTimer = null; }
+  lyricsEl.classList.remove('swap');
+}
+
 function updateLyrics() {
   const on = state.score >= LYRICS_AT && state.mode !== 'ready';
-  if (on && !lyricsBuilt) buildLyrics();
-  if (on) layoutLyrics();          // 盤面の大きさが変わっても追従させる（変化時のみ再配置）
+  if (on) {
+    if (!lyricsBuilt) buildLyrics();
+    layoutLyrics();                // 盤面の大きさが変わっても追従（変化時のみ再配置）
+    startLyricsSwap();
+  } else {
+    stopLyricsSwap();
+  }
   lyricsEl.classList.toggle('on', on);
 }
 
@@ -1122,7 +1189,7 @@ function update(dt) {
   state.gameT += dt;
   state.speed = Math.min(CFG.speedMax, state.speed * Math.pow(CFG.speedRate, dt));
   state.dist += state.speed * dt;
-  state.score = Math.floor(state.dist / 12);
+  state.score = Math.min(SCORE_MAX, Math.floor(state.dist / 12));
 
   const mv = state.speed * SPD();
   state.bgScroll += mv * dt;
@@ -1167,7 +1234,7 @@ function update(dt) {
       vx: 210 + Math.random() * 90, vy: -430 - Math.random() * 110,
       rot: 0, vr: 7 + Math.random() * 4,
     });
-    state.score += 25;
+    state.score = Math.min(SCORE_MAX, state.score + 25);
     state.dist += 25 * 12;
   }
 
