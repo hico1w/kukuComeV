@@ -2258,6 +2258,7 @@ function boTick() {
   if (due.length) {
     const lines = due.map(settleBoEntry);
     _boPostComment('📈 結果: ' + lines.join(' / '));
+    setTimeout(_boParkBettors, 1600); // 抜けたぶんを詰め直す
     boState.entries = boState.entries.filter(e => boState.tick < e.expireTick);
     renderBoPanel();
   }
@@ -2288,6 +2289,7 @@ function handleBoEntry(user, side, mp) {
   addToLog(user, `📈 BO ${label} ${mp}MP（${boState.price.toFixed(2)} / ${boState.judgeSeconds}秒後判定）`, '#38bdf8');
   playLocalSound(SOUND_SLOT_STOP, 0.5);
   renderBoPanel();
+  _boParkBettors(); // パネルの右へ並んで判定を待つ
 }
 
 // エントリー1件を判定して精算する
@@ -2320,6 +2322,11 @@ function settleBoEntry(e) {
   playLocalSound(payout > e.mp ? SOUND_QUIZ_CORRECT : SOUND_SLOT_MISS, 0.45);
   // マーカーは消さず、画面から流れて消えるまで残す（結果を表示する）
   boState.ghosts.push({ ...e, settleTick: boState.tick, exitPrice: exit, payout, profit: payout - e.mp });
+  // 勝てば跳ね、負ければ倒れる。演出が終わったら元の動きに戻す
+  if (u) {
+    _boPlayResultAnim(u, payout > e.mp);
+    setTimeout(() => _boReleaseUser(u), payout > e.mp ? 1300 : 1500);
+  }
   // コメント通知用の1行を返す
   return `${e.name} ${e.side === 'high' ? 'HIGH' : 'LOW'} ${e.entryPrice.toFixed(2)}→${exit.toFixed(2)} ${win === 'draw' ? '引き分け返金' + payout + 'MP' : payout > 0 ? '的中 +' + payout + 'MP' : 'ハズレ -' + e.mp + 'MP'}`;
 }
@@ -2333,10 +2340,13 @@ function stopBo() {
     const u = users[e.ipid];
     if (u) { u.mp = (u.mp ?? 0) + e.mp; updateStatsDisplay(u); showBubble(u, `↩️ BO終了 ${e.mp}MP返金`, {}); }
   });
+  // 待機中のキャラを元の動きに戻す
+  const parked = Object.values(users).filter(u => u._boParked);
   const { win, lose, draw } = boState.stats;
   addSystemLog(`📈 BO終了（的中${win} / ハズレ${lose} / 引分${draw}${refunded ? ` / 判定待ち${refunded}MPを返金` : ''}）`, '#38bdf8');
   document.getElementById('boPanel')?.remove();
   boState = null;
+  parked.forEach(_boReleaseUser);
   _boPostQueue = [];
   if (_boPostTimer) { clearTimeout(_boPostTimer); _boPostTimer = null; }
 }
@@ -2476,6 +2486,80 @@ function _boSyncMarkers(geo) {
   });
   wrap.querySelectorAll('.bo-marker').forEach(el => { if (!alive.has(el.dataset.id)) el.remove(); });
 }
+
+// ── BOにエントリーしたキャラをパネルの右へ並べる ──────────────────
+// 判定が出るまでパネルの横で待たせ、勝てば跳ねる／負ければ倒れる。
+// タイマン・BR・ボスバトル中は各機能が配置を握っているので割り込まない。
+function _boCanPark() {
+  return !(typeof taimanState !== 'undefined' && taimanState)
+      && !(typeof brState !== 'undefined' && brState?.active)
+      && !(typeof agruBattleActive !== 'undefined' && agruBattleActive);
+}
+
+function _boParkTo(u, x, y) {
+  if (!u.el) return;
+  if (u.moveTimer) { clearTimeout(u.moveTimer); u.moveTimer = null; }
+  if (u.walkTimer) { clearTimeout(u.walkTimer); u.walkTimer = null; }
+  // 元の位置と歩行状態は最初に待機させたときだけ控える
+  if (!u._boParked) u._boParked = { x: u.x, y: u.y, walking: !!u.walking };
+  u.walking = false;
+  u.el.classList.remove('walking');
+  u.x = x; u.y = y;
+  u.el.style.transition = 'left 0.6s ease-in-out, top 0.6s ease-in-out';
+  u.el.style.left = x + 'px';
+  u.el.style.top  = y + 'px';
+  u.facingRight = false; // パネル（左側）を向く
+  applyFacingFlip(u);
+  setTimeout(() => { if (u.el) u.el.style.transition = ''; }, 700);
+}
+
+// 判定待ちのエントリーを持つキャラを、パネル右に上から順に並べる
+function _boParkBettors() {
+  if (!boState || !_boCanPark()) return;
+  const panel = document.getElementById('boPanel');
+  if (!panel) return;
+  const sr = stage.getBoundingClientRect();
+  const pr = panel.getBoundingClientRect();
+  const baseX = (pr.right - sr.left) + 10;
+  const baseY = Math.max(0, pr.top - sr.top);
+  const ids = [...new Set(boState.entries.map(e => e.ipid))];
+  let col = 0, y = baseY;
+  ids.forEach(ipid => {
+    const u = users[ipid];
+    if (!u || !u.el) return;
+    // アバターは .character の枠からはみ出すので、大きい方を基準に間隔を決める
+    const av = document.getElementById('a-' + u.ipid);
+    const w = Math.max(u.el.offsetWidth  || 0, av?.offsetWidth  || 0) || 90;
+    const h = Math.max(u.el.offsetHeight || 0, av?.offsetHeight || 0) || 120;
+    const step = Math.round(h * 0.85) + 6;
+    if (y + h > stage.clientHeight) { col++; y = baseY; } // 縦に入り切らなければ右へ折り返す
+    const pos = clampToStage(u, baseX + col * (w + 8), y);
+    _boParkTo(u, pos.x, pos.y);
+    y += step;
+  });
+}
+
+// 待機を解除して元の動きに戻す（他に判定待ちが残っていれば解除しない）
+function _boReleaseUser(u) {
+  if (!u || !u._boParked) return;
+  if (boState && boState.entries.some(e => e.ipid === u.ipid)) return;
+  const memo = u._boParked;
+  u._boParked = null;
+  if (!u.el) return;
+  if (memo.walking) startWalk(u);
+  else scheduleMove(u);
+}
+
+// 勝敗のアニメーション（勝ち＝跳ねる／負け＝倒れる）
+function _boPlayResultAnim(u, won) {
+  if (!u || !u.el) return;
+  const cls = won ? 'bo-win' : 'bo-lose';
+  u.el.classList.remove('bo-win', 'bo-lose');
+  void u.el.offsetWidth; // 連続で当たったときにアニメを撃ち直す
+  u.el.classList.add(cls);
+  setTimeout(() => { if (u.el) u.el.classList.remove(cls); }, won ? 1200 : 1400);
+}
+
 
 function renderBoPanel() {
   if (!boState) return;

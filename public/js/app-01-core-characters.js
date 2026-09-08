@@ -1525,7 +1525,8 @@ function clampToStage(u, x, y) {
 }
 
 function gatherCharacters() {
-  const onStage = Object.values(users).filter(u => u.el);
+  // BOで待機中のキャラは集合に加えない（パネル横に並べたまま判定を待たせる）
+  const onStage = Object.values(users).filter(u => u.el && !u._boParked);
   if (onStage.length === 0) return;
 
   const ROW_MAX = gatherRowMax;
@@ -1573,7 +1574,8 @@ function gatherContentMode() {
   if (!stageEl) return;
   const stageW = stageEl.clientWidth;
   const stageH = stageEl.clientHeight;
-  const onStage = Object.values(users).filter(u => u.el);
+  // BOで待機中のキャラは集合に加えない（パネル横に並べたまま判定を待たせる）
+  const onStage = Object.values(users).filter(u => u.el && !u._boParked);
   if (!onStage.length) return;
   const charW = u => u.el.offsetWidth  || Math.round(u.size * 1.5 * charSizeScale);
   const charH = u => u.el.offsetHeight || Math.round(u.size * 1.5 * charSizeScale) + 48;
@@ -1606,7 +1608,8 @@ function gatherContentMode() {
 
 function gatherCharactersBottom() {
   if (contentMode) { gatherContentMode(); return; }
-  const onStage = Object.values(users).filter(u => u.el);
+  // BOで待機中のキャラは集合に加えない（パネル横に並べたまま判定を待たせる）
+  const onStage = Object.values(users).filter(u => u.el && !u._boParked);
   if (onStage.length === 0) return;
   const stageW     = stage.clientWidth;
   const stageH     = stage.clientHeight;

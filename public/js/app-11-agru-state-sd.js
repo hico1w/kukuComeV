@@ -1469,12 +1469,13 @@ async function _sdGenerateOne(user, prompt, commentNo, settingsOverride = null) 
   let positiveSuffix = cfg.positiveSuffix;
   const _extras = [];
   const _kwStrip = [];
-  if (prompt.includes('ドット'))    { _extras.push(cfg.dotPositiveSuffix);  _kwStrip.push('ドット'); }
-  if (prompt.includes('リアル'))    { _extras.push(cfg.realPositiveSuffix); _kwStrip.push('リアル'); }
-  if (prompt.includes('もいちゃん')){ _extras.push(cfg.moiPositiveSuffix);  _kwStrip.push('もいちゃん'); }
-  else if (/moi/i.test(prompt))     { _extras.push(cfg.moiPositiveSuffix); }
+  const _kwUsed  = []; // 生成に効いたキーワード（プロンプトからは消えるので表示用に控える）
+  if (prompt.includes('ドット'))    { _extras.push(cfg.dotPositiveSuffix);  _kwStrip.push('ドット'); _kwUsed.push('ドット'); }
+  if (prompt.includes('リアル'))    { _extras.push(cfg.realPositiveSuffix); _kwStrip.push('リアル'); _kwUsed.push('リアル'); }
+  if (prompt.includes('もいちゃん')){ _extras.push(cfg.moiPositiveSuffix);  _kwStrip.push('もいちゃん'); _kwUsed.push('もいちゃん'); }
+  else if (/moi/i.test(prompt))     { _extras.push(cfg.moiPositiveSuffix); _kwUsed.push('moi'); }
   sdKeywordPrompts.forEach(({keyword, positive}) => {
-    if (keyword && positive && prompt.includes(keyword)) { _extras.push(positive); _kwStrip.push(keyword); }
+    if (keyword && positive && prompt.includes(keyword)) { _extras.push(positive); _kwStrip.push(keyword); _kwUsed.push(keyword); }
   });
   // マッチしたキーワードをプロンプト本文から除去（翻訳・SD送信に含めない）
   for (const kw of _kwStrip) {
@@ -1517,7 +1518,7 @@ async function _sdGenerateOne(user, prompt, commentNo, settingsOverride = null) 
       addToLog(user, `🎨SD 翻訳: ${prompt} → ${data.translatedPrompt}`, '#c084fc');
     }
     // cfg を override 値で上書きして渡す（アスペクト比・表示サイズを実際の生成値に合わせる）
-    showSDImage(user, data.image, prompt, data.translatedPrompt || prompt, { ...cfg, width, height, popWidth }, commentNo);
+    showSDImage(user, data.image, prompt, data.translatedPrompt || prompt, { ...cfg, width, height, popWidth }, commentNo, _kwUsed);
   } catch (e) {
     clearTimeout(_fetchTimeout);
     if (e.name === 'AbortError') {
@@ -1584,14 +1585,16 @@ function closeNovelModal() {
   document.getElementById('novelModal').classList.add('hidden');
 }
 
-function showSDImage(user, dataUrl, prompt, translatedPrompt, cfg, commentNo) {
+function showSDImage(user, dataUrl, prompt, translatedPrompt, cfg, commentNo, keywords) {
   const el = document.createElement('div');
   el.className = 'sd-image-popup';
   const { x: cx, y: cy } = getCharCenter(user);
   const sw = stage.clientWidth, sh = stage.clientHeight;
   const popW = Math.min(cfg.popWidth, sw - 16);
   const imgH = Math.round(popW * (cfg.height / cfg.width));
-  const popH = imgH + 56; // header + prompt line
+  // 効いたキーワードがあるときは1行ぶん高くなる
+  const _kw = Array.isArray(keywords) ? [...new Set(keywords)] : [];
+  const popH = imgH + 56 + (_kw.length ? 18 : 0); // header + prompt line (+ keyword line)
   const left = Math.min(Math.max(8, cx - popW / 2), sw - popW - 8);
   const top  = Math.min(Math.max(8, cy - popH - 10), sh - popH - 8);
   el.style.left  = left + 'px';
@@ -1603,6 +1606,9 @@ function showSDImage(user, dataUrl, prompt, translatedPrompt, cfg, commentNo) {
       `<button class="sd-image-close">✕</button>` +
     `</div>` +
     `<div class="sd-image-prompt">${escapeHtml(translatedPrompt)}</div>` +
+    (_kw.length
+      ? `<div class="sd-image-keywords">${_kw.map(k => `<span>${escapeHtml(k)}</span>`).join('')}</div>`
+      : '') +
     `<img src="${dataUrl}" alt="${escapeHtml(prompt)}" class="sd-image-img">`;
   el.querySelector('.sd-image-close').addEventListener('click', () => el.remove());
   if (_sdNeedsMosaic(prompt, translatedPrompt, cfg.mosaicKeywords)) _applyMosaic(el.querySelector('.sd-image-img'), cfg.mosaicBlock); // null→falsy で動作変わらず
