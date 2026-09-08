@@ -2501,7 +2501,7 @@ function _boParkTo(u, x, y) {
   if (u.moveTimer) { clearTimeout(u.moveTimer); u.moveTimer = null; }
   if (u.walkTimer) { clearTimeout(u.walkTimer); u.walkTimer = null; }
   // 元の位置と歩行状態は最初に待機させたときだけ控える
-  if (!u._boParked) u._boParked = { x: u.x, y: u.y, walking: !!u.walking };
+  if (!u._boParked) u._boParked = { x: u.x, y: u.y, walking: !!u.walking, facingRight: !!u.facingRight };
   u.walking = false;
   u.el.classList.remove('walking');
   u.x = x; u.y = y;
@@ -2558,7 +2558,10 @@ function _boReleaseUser(u) {
   setTimeout(() => {
     if (!u.el) return;
     u.el.style.transition = '';
-    if (memo.walking) startWalk(u);
+    // 帰り道で進行方向を向かせたぶんを、賭ける前の向きに戻す
+    u.facingRight = memo.facingRight;
+    applyFacingFlip(u);
+    if (memo.walking) startWalk(u); // 歩き出す場合は歩行側が向きを決める
     else scheduleMove(u);
   }, 650);
 }
