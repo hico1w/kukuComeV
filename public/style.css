@@ -3662,7 +3662,7 @@ body.stats-hidden .char-stats        { display: none !important; }
 body.char-name-hidden .char-name     { display: none !important; }
 
 /* ── 呼吸アニメーション無効（モーション・歩行中は除外） ── */
-body.no-breathe .character:not(.bouncing):not(.spinning):not(.trembling):not(.wavy):not(.floating):not(.swaying):not(.pulsing):not(.skipping):not(.drunk):not(.walking) .avatar { animation: none !important; }
+body.no-breathe .character:not(.bouncing):not(.spinning):not(.trembling):not(.wavy):not(.floating):not(.swaying):not(.pulsing):not(.skipping):not(.drunk):not(.walking):not(.bo-win):not(.bo-lose) .avatar { animation: none !important; }
 body.no-breathe .char-pet, body.no-breathe .char-pet2 { animation: none !important; }
 body.no-boss-float .boss-avatar { animation: none !important; }
 
@@ -5657,7 +5657,7 @@ body.compact-mode .title-tag         { display: none !important; }
   76%  { transform: translateY(-10px) scale(1.04); }
   100% { transform: translateY(0)     scale(1);    }
 }
-.character.bo-win .avatar { animation: boWinJump 1.2s cubic-bezier(0.34,1.56,0.64,1); }
+.character.bo-win .avatar { animation: boWinJump 1.2s cubic-bezier(0.34,1.56,0.64,1) !important; }
 
 @keyframes boLoseFall {
   0%   { transform: rotate(0deg)   translateY(0);    }
@@ -5667,6 +5667,6 @@ body.compact-mode .title-tag         { display: none !important; }
   100% { transform: rotate(80deg)  translateY(14px); }
 }
 .character.bo-lose .avatar {
-  animation: boLoseFall 1.4s cubic-bezier(0.6,0.04,0.98,0.34) forwards;
+  animation: boLoseFall 1.4s cubic-bezier(0.6,0.04,0.98,0.34) forwards !important;
   transform-origin: bottom center;
 }

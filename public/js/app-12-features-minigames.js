@@ -2539,15 +2539,28 @@ function _boParkBettors() {
   });
 }
 
-// 待機を解除して元の動きに戻す（他に判定待ちが残っていれば解除しない）
+// 待機を解除し、賭ける前にいた場所へ戻してから元の動きに戻す
+// （同じ人の判定がまだ残っていれば解除しない）
 function _boReleaseUser(u) {
   if (!u || !u._boParked) return;
   if (boState && boState.entries.some(e => e.ipid === u.ipid)) return;
   const memo = u._boParked;
   u._boParked = null;
   if (!u.el) return;
-  if (memo.walking) startWalk(u);
-  else scheduleMove(u);
+  const from = u.x;
+  const pos  = clampToStage(u, memo.x, memo.y); // 画面サイズが変わっていても収まるように
+  u.x = pos.x; u.y = pos.y;
+  u.el.style.transition = 'left 0.6s ease-in-out, top 0.6s ease-in-out';
+  u.el.style.left = pos.x + 'px';
+  u.el.style.top  = pos.y + 'px';
+  u.facingRight = pos.x > from; // 戻る向きを向く
+  applyFacingFlip(u);
+  setTimeout(() => {
+    if (!u.el) return;
+    u.el.style.transition = '';
+    if (memo.walking) startWalk(u);
+    else scheduleMove(u);
+  }, 650);
 }
 
 // 勝敗のアニメーション（勝ち＝跳ねる／負け＝倒れる）

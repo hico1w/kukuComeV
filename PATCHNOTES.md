@@ -2,6 +2,36 @@
 
 ---
 
+## v2.933.0 — 2026-09-08
+
+### change: BOの判定が終わったキャラを賭ける前の位置に戻す
+
+- **`app-12-features-minigames.js`**: `_boReleaseUser()` を変更。待機を解除するとき、`u._boParked` に控えてある**賭ける前の座標へ0.6秒かけて戻す**ようにした（これまではパネル横に置き去りで、その場から動き出していた）
+  - 戻る向きに合わせて左右反転（`applyFacingFlip`）を更新し、画面サイズが変わっていても収まるよう `clampToStage()` を通す
+  - 戻り終えて（650ms後）から `startWalk()` / `scheduleMove()` で元の動きを再開する。同じ人の判定が残っている間は解除しない挙動はそのまま
+  - BO終了（`stopBo()`）で解除される場合も同じ経路なので、待機中の全員が元の位置に戻る
+- **動作確認**（Playwright）: (900,500) と (1200,300) にいた2人がエントリー → パネル右の (581,60) / (581,228) に整列 → 判定後に**元の座標へ完全一致で復帰**することを確認。JSエラーなし
+
+---
+
+## v2.932.0 — 2026-09-08
+
+### fix: BOの勝敗アニメーションが再生されない問題を修正
+
+v2.931.0 で入れた「勝ち＝跳ねる／負け＝倒れる」が、実際の配信画面ではまったく動いていなかった。
+
+- **原因**: キャラの呼吸アニメを止める設定（`body.no-breathe`）のCSSが
+  `body.no-breathe .character:not(.bouncing)…:not(.walking) .avatar { animation: none !important; }`
+  となっており、**モーション系クラス以外のアバターのアニメーションを `!important` で全部停止**していた。`bo-win` / `bo-lose` は除外リストに入っていなかったため、`getComputedStyle().animationName` が `none` になっていた（クラス自体は正しく付いていたので気付きにくかった）
+- **`public/style.css`**: `no-breathe` の除外リストに `:not(.bo-win):not(.bo-lose)` を追加
+- **`public/style.css`**: `.character.bo-win .avatar` / `.character.bo-lose .avatar` の `animation` を `!important` に変更。AFK（`char-afk`）やKO（`knocked-out`）も `animation: none !important` でアバターを止めるため、そのままでは同じ理由で再生されなかった
+- **動作確認**（Playwright）
+  - `bo-win` 付与後の computed style が `animationName: boWinJump` / `1.2s` になり、transform 行列が `-35px → +2.8px → -23.5px` と実際に跳ねることを確認（修正前は `none` / `0s`）
+  - `bo-lose` も `boLoseFall` が適用されることを確認
+  - 3人でのエントリー→判定の通し確認でも、勝者2人に `boWinJump`、敗者1人に `boLoseFall` が乗り、演出後に待機解除されることを確認。JSエラーなし
+
+---
+
 ## v2.931.0 — 2026-09-08
 
 ### feat: BOに賭けたキャラをパネル横に並べ、勝敗でアニメーションさせる
