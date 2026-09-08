@@ -44,6 +44,15 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 }
 .bar-btn:hover { color: #ede0d4; border-color: rgba(255,255,255,.4); }
 .bar-hint { font-size: 10px; letter-spacing: .12em; color: rgba(237,224,212,.4); }
+.bar-btn.on { color: #ff8f6b; border-color: #ff8f6b; }
+/* ランキングのハードモード印 */
+.rank-hard { color: #ff8f6b; font-size: .95em; margin-right: 3px; }
+.mode-tag {
+  font-size: clamp(8px, 1vw, 11px); letter-spacing: .14em;
+  color: #ff8f6b; border: 1px solid rgba(255,143,107,.45);
+  border-radius: 3px; padding: 2px 7px;
+}
+.mode-tag[hidden] { display: none; }
 
 /* ── stage ── */
 #stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 16px; }
@@ -263,6 +272,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   <a href="/" class="bar-back">← back to site</a>
   <div class="bar-right">
     <span class="bar-hint">SPACE / ↑ / タップ でジャンプ　・　ジャンプ中にもう一度で急降下</span>
+    <button class="bar-btn" id="btn-hard" aria-pressed="false">HARD</button>
     <button class="bar-btn" id="btn-rank">Ranking</button>
     <button class="bar-btn" id="btn-bgm" aria-pressed="false">♪ BGM</button>
     <span class="bar-btn" id="bot-tag" hidden style="color:#ffd34d;border-color:#ffd34d">BOT</span>
@@ -284,7 +294,8 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
     <div class="ov show" id="start-ov">
       <p class="pix" id="start-title">DINO</p>
       <p class="ov-sub">SPACE / ↑ / タップ でスタート</p>
-      <p class="ov-keys">ジャンプ中に <b>SPACE</b> をもう一度で <em>急降下して着地</em></p>
+      <p class="ov-keys" id="start-drop">ジャンプ中に <b>SPACE</b> をもう一度で <em>急降下して着地</em></p>
+      <p class="mode-tag" id="start-hard" hidden>HARD MODE — 急降下なし</p>
     </div>
 
     <div class="ov" id="over-ov">
@@ -710,8 +721,9 @@ function jump() {
   if (state.mode !== 'playing') return;
   if (!state.onGround) {
     // 空中でもう一度押したら急降下してすぐ着地する。
-    // 「跳ぶのをやめられる」だけなので、避けられる配置が減ることはない
-    if (state.vy < CFG.dropV) state.vy = CFG.dropV;
+    // 「跳ぶのをやめられる」だけなので、避けられる配置が減ることはない。
+    // ハードモードではこれを封じる
+    if (!hardMode && state.vy < CFG.dropV) state.vy = CFG.dropV;
     return;
   }
   state.vy = -CFG.jumpV;
@@ -791,7 +803,13 @@ function renderRank(el, list, withNo) {
       no.textContent = String(i + 1).padStart(2, '0');
       li.appendChild(no);
     }
-    const nm = document.createElement('span'); nm.className = 'rank-name'; nm.textContent = e.name;
+    const nm = document.createElement('span'); nm.className = 'rank-name';
+    if (e.hard) {
+      const h = document.createElement('span');
+      h.className = 'rank-hard'; h.textContent = '🅗'; h.title = 'ハードモード（急降下なし）';
+      nm.appendChild(h);
+    }
+    nm.appendChild(document.createTextNode(e.name));
     const sc = document.createElement('span'); sc.className = 'rank-score'; sc.textContent = pad(e.score);
     const dt = document.createElement('span'); dt.className = 'rank-date'; dt.textContent = e.date || '';
     li.append(nm, sc, dt);
@@ -829,7 +847,7 @@ function postRecent(score) {
   return fetch(WORKER + '/dino-ranking', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'recent', name: name, score: score }),
+    body: JSON.stringify({ type: 'recent', name: name, score: score, hard: hardMode }),
   })
     .then(r => r.json())
     .then(d => { if (d && d.ranking) renderAll(d); })
@@ -845,7 +863,7 @@ sendEl.addEventListener('click', () => {
   fetch(WORKER + '/dino-ranking', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: name, score: state.score }),
+    body: JSON.stringify({ name: name, score: state.score, hard: hardMode }),
   })
     .then(r => r.json().then(d => ({ ok: r.ok, d: d })))
     .then(res => {
@@ -858,6 +876,22 @@ sendEl.addEventListener('click', () => {
     .catch(err => { regMsg.textContent = err.message; sendEl.disabled = false; });
 });
 nameEl.addEventListener('keydown', e => { if (e.key === 'Enter') sendEl.click(); });
+
+document.getElementById('btn-hard').addEventListener('click', () => {
+  setHard(!hardMode);
+  // 途中で難易度が変わるとスコアの意味が崩れるので、プレイ中なら仕切り直す
+  if (state.mode === 'playing' || state.mode === 'dying') {
+    Object.assign(state, {
+      mode: 'ready', speed: CFG.speed0, dist: 0, score: 0,
+      y: 0, vy: 0, onGround: true, frame: 0, frameT: 0,
+      obstacles: [], flying: [], reach: ALL_STATES(),
+      nextKind: null, curGap: 520, sinceSpawn: 0, nextGap: 520, gameT: 0,
+    });
+    overOv.classList.remove('show');
+    lyricsEl.classList.remove('on');
+    startOv.classList.add('show');
+  }
+});
 
 document.getElementById('btn-rank').addEventListener('click', () => {
   rankOv.classList.add('show');
@@ -963,6 +997,22 @@ function updateLyrics() {
 /* ── ボット（キーボードで dinobot と打つと切り替え）───────────
    見本用。ゲーム本体と同じ「到達可能な状態」で先を読み、
    待てるうちは待って、待てなくなったら跳ぶ。                  */
+/* ハードモード: 急降下が使えない。ほかは通常と同じ。
+   障害物の間隔計算はもともと急降下を考慮していない（通常のジャンプ軌道だけを
+   前提にしている）ので、ハードモードでも避けられる配置であることは変わらない。 */
+let hardMode = false;
+try { hardMode = localStorage.getItem('dino-hard') === '1'; } catch (e) {}
+
+function setHard(on) {
+  hardMode = on;
+  const btn = document.getElementById('btn-hard');
+  btn.classList.toggle('on', on);
+  btn.setAttribute('aria-pressed', String(on));
+  document.getElementById('start-hard').hidden = !on;
+  document.getElementById('start-drop').style.opacity = on ? '.35' : '';
+  try { localStorage.setItem('dino-hard', on ? '1' : '0'); } catch (e) {}
+}
+
 const BOT_CODE = 'dinobot';
 const MUTEKI_CODE = 'mutekiman';   // デバッグ用。当たっても死ななくなる
 let keyBuf = '', botOn = false, muteki = false;
@@ -999,6 +1049,7 @@ function botSpans() {
 /* 空中にいるとき、すぐ急降下しても当たらないなら降りる。
    早く地上に戻るほど次の障害物に自由に対応できるので、詰みにくくなる。 */
 function botTryDrop() {
+  if (hardMode) return;               // ハードモードでは急降下できない
   const spans = botSpans();
   if (!spans.length) return;
   const tLand = state.y / CFG.dropV;             // 落下にかかる時間（重力ぶんは無視＝安全側）
@@ -1211,6 +1262,7 @@ function loop(now) {
 
 load().then(() => {
   loading.classList.add('hide');
+  setHard(hardMode);            // 前回の選択を反映
   fit();
   state.reach = ALL_STATES();
   for (let i = 0; i < 4; i++) state.clouds.push(makeCloud(Math.random() * W));

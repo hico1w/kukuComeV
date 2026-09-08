@@ -236,6 +236,7 @@ export default {
         const entry = {
           name,
           score,
+          hard: !!body.hard,      // ハードモード（急降下なし）で出したスコアか
           date: jstDate(),        // UTC のままだと深夜〜朝が前日になるので日本時間で持つ
           ip,                                   // 荒らし対応用。GET では返さない
         };
