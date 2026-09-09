@@ -2167,9 +2167,12 @@ const BO_START_PRICE  = 1500; // 開始レート（架空の通貨ペア）
 const BO_CHART_W      = 450;  // SVG座標系の幅（パネル幅570pxに合わせて1.5倍）
 const BO_WINDOW_MULT  = 1.5;  // 表示する期間の倍率（幅1.5倍ぶん長い期間を見せる）
 const BO_CHART_H      = 110;  // チャート高さの既定値（設定が無いときの目安）
-const BO_MARKER_MAX   = 24;   // 同時に描くエントリーマーカーの上限（多いときは新しい順）
+const BO_MARKER_MAX   = 24;
+const BO_LABEL_MAX_W  = 150;  // マーカーラベルの最大幅(px・文字サイズ100%のとき)   // 同時に描くエントリーマーカーの上限（多いときは新しい順）
 const BO_START_COST   = 100;  // コメントから起動するときの消費MP
 const BO_POST_MS      = 1200; // コメント通知の最短間隔（連投でAPIを叩きすぎないように）
+const BO_FORCE_STEP   = 0.5;  // 管理ウィンドウで押している間、1ティックあたり動かす量
+const BO_FORCE_MAX_MS = 8000; // 押しっぱなし扱いの上限（mouseupを取りこぼしても止まる保険）
 
 // BOの実況コメントを配信に流す（間隔を空けて1件ずつ投稿する）
 let _boPostQueue = [];
@@ -2191,7 +2194,9 @@ function _boPostComment(text) {
 function _boNextPrice(state) {
   const shock = Math.random() < 0.03 ? (Math.random() - 0.5) * 1.6 : 0;
   state.momentum = state.momentum * 0.82 + (Math.random() - 0.5) * 0.16;
-  return Math.round((state.price + state.momentum + (Math.random() - 0.5) * 0.24 + shock) * 100) / 100;
+  // 管理ウィンドウで「急落／急騰」を押している間だけ強く動かす（少し揺らして直線的にしない）
+  const force = (state.forceDir || 0) * BO_FORCE_STEP * (0.75 + Math.random() * 0.5);
+  return Math.round((state.price + state.momentum + force + (Math.random() - 0.5) * 0.24 + shock) * 100) / 100;
 }
 
 function startBo(judgeSeconds, payoutRate) {
@@ -2212,6 +2217,8 @@ function startBo(judgeSeconds, payoutRate) {
     ghosts: [],       // 判定済み（画面から流れて消えるまで残すマーカー）
     results: [],      // 判定済み（表示件数は boResultMax）
     seq: 0,
+    forceDir: 0,      // -1=急落 / 0=なし / 1=急騰（管理ウィンドウで押している間）
+    forceUntil: 0,    // 押しっぱなしの保険（この時刻を過ぎたら自動で戻す）
     stats: { win: 0, lose: 0, draw: 0, paid: 0, taken: 0 },
     panelX: parseInt(localStorage.getItem(panelKey('boPanelX'))) || 20,
     panelY: parseInt(localStorage.getItem(panelKey('boPanelY'))) || 60,
@@ -2248,6 +2255,8 @@ function startBoByComment(user) {
 
 function boTick() {
   if (!boState) return;
+  // mouseup を取りこぼしても止まるように、期限が来たら力を解除する
+  if (boState.forceDir && Date.now() > boState.forceUntil) setBoForce(0);
   boState.tick++;
   boState.price = _boNextPrice(boState);
   boState.prices.push(boState.price);
@@ -2263,6 +2272,20 @@ function boTick() {
     renderBoPanel();
   }
   updateBoChart();
+}
+
+// 管理ウィンドウの「急落／急騰」ボタン（押している間だけレートを動かす）
+function setBoForce(dir) {
+  if (!boState) return;
+  boState.forceDir   = dir > 0 ? 1 : dir < 0 ? -1 : 0;
+  boState.forceUntil = boState.forceDir ? Date.now() + BO_FORCE_MAX_MS : 0;
+  const el = document.querySelector('#boPanel .bo-force');
+  if (el) {
+    el.textContent = boState.forceDir > 0 ? '📈 急騰中' : boState.forceDir < 0 ? '📉 急落中' : '';
+    el.hidden = !boState.forceDir;
+    el.classList.toggle('bo-force-up', boState.forceDir > 0);
+    el.classList.toggle('bo-force-down', boState.forceDir < 0);
+  }
 }
 
 // エントリー受付（コメント「HIGH 10」「LOW 10」「上 10」「下 10」から呼ばれる）
@@ -2423,24 +2446,50 @@ function _boSyncMarkers(geo) {
     .sort((a, b) => a.x - b.x);
 
   // ラベル幅の目安（％）はチャート実幅と文字サイズ設定から求める
-  const labelPct = Math.min(60, (122 * (boFontScale / 100) + 14) / wrapW * 100);
-  const labelH   = Math.max(12, Math.round(14 * boFontScale / 100)); // ラベル1行の高さ
-  const placed   = []; // 置いたラベルの矩形（X範囲＋Y）
+  const fsRate   = boFontScale / 100;
+  const labelMax = BO_LABEL_MAX_W * fsRate;                    // ラベルの最大幅(px)
+  const labelPct = Math.min(60, (labelMax + 14) / wrapW * 100);
+  const lineH    = Math.max(14, Math.round(13 * fsRate) + 7);  // ラベル1行の高さ（枠線・余白込み）
+  // 全角は幅広め・半角は狭めで文字幅をざっくり見積もる（名前が長いと2行になる）
+  const estW = str => [...String(str)].reduce((w, ch) => w + (/[\x20-\x7e\uFF61-\uFF9F]/.test(ch) ? 5.4 : 9.6) * fsRate, 0);
+  const placed = []; // 置いたラベルの矩形（X範囲＋Y＋高さ）
   items.forEach(o => {
     o.right = o.x < 28;                       // 左端付近はラベルを右側に出す
     const left  = o.right ? o.x : o.x - labelPct;
     const right = o.right ? o.x + labelPct : o.x;
     const y     = _boY(o.e.entryPrice, geo);
     const dir   = o.e.side === 'high' ? -1 : 1; // 上向きは上へ、下向きは下へ逃がす
-    let top = o.e.side === 'high' ? y - labelH - 1 : y + 4;
-    // X範囲が重なっているラベルとY方向でぶつかる間はずらす
-    for (let i = 0; i < 8; i++) {
-      const hit = placed.some(p => !(p.right <= left || p.left >= right) && Math.abs(p.top - top) < labelH);
-      if (!hit) break;
-      top += dir * labelH;
+    // 名前＋金額と残り秒数が1行に収まらなければ2行ぶんの高さで扱う
+    const tailW = estW(o.done ? ' +000MP' : ' ⏱00秒');
+    const headW = estW((o.e.side === 'high' ? '▲ ' : '▼ ') + o.e.name + ' ' + o.e.mp + 'MP');
+    // すでに描いてあるラベルは実測値を使う（1行/2行の判定ズレを無くす）
+    const shown = wrap.querySelector(`.bo-marker[data-id="${o.e.id}"] .bo-marker-label`);
+    o.labelH = (shown && shown.offsetHeight) || (headW + tailW > labelMax ? 2 : 1) * lineH;
+    const base = o.e.side === 'high' ? y - o.labelH - 1 : y + 4;
+    const hits = t => placed.some(p => !(p.right <= left || p.left >= right) && !(t + o.labelH <= p.top || p.top + p.h <= t));
+    // まず本来の向きへ、はみ出したら逆向きへ逃がす（下端・上端で重なるのを防ぐ）
+    // 重なり面積（少ないほどマシな置き場所）
+    const overlapAt = t => placed.reduce((sum, p) => {
+      if (p.right <= left || p.left >= right) return sum;
+      return sum + Math.max(0, Math.min(t + o.labelH, p.top + p.h) - Math.max(t, p.top));
+    }, 0);
+    let top = null, best = null, bestScore = Infinity;
+    for (const d of [dir, -dir]) {
+      let t = base;
+      for (let i = 0; i < 12; i++) {
+        const inBox = t >= 1 && t + o.labelH <= boChartHeight - 1;
+        if (inBox) {
+          const score = overlapAt(t);
+          if (score === 0) { top = t; break; }
+          if (score < bestScore) { bestScore = score; best = t; }
+        }
+        t += d * (o.labelH + 2);
+      }
+      if (top !== null) break;
     }
-    o.labelTop = Math.max(1, Math.min(boChartHeight - labelH, top));
-    placed.push({ left, right, top: o.labelTop });
+    // 空きが無ければ、いちばん重なりの少ない位置に置く
+    o.labelTop = top !== null ? top : (best !== null ? best : Math.max(1, Math.min(boChartHeight - o.labelH, base)));
+    placed.push({ left, right, top: o.labelTop, h: o.labelH });
   });
 
   const alive = new Set();
@@ -2453,7 +2502,8 @@ function _boSyncMarkers(geo) {
       el.dataset.id = e.id;
       el.innerHTML =
         `<span class="bo-marker-line"></span>` +
-        `<span class="bo-marker-label">${e.side === 'high' ? '▲' : '▼'} ${escapeHtml(e.name)} <b>${e.mp}MP</b>` +
+        `<span class="bo-marker-label">` +
+          `<span class="bo-marker-name">${e.side === 'high' ? '▲' : '▼'} ${escapeHtml(e.name)} <b>${e.mp}MP</b></span>` +
         `<span class="bo-marker-left"></span></span><span class="bo-marker-dot"></span>`;
       wrap.appendChild(el);
     }
@@ -2613,6 +2663,7 @@ function renderBoPanel() {
     <div class="bo-header">
       <span class="bo-title">📈 マジカルオプション</span>
       <span class="bo-phase">稼働中</span>
+      <span class="bo-force" hidden></span>
       <span class="bo-payout">${boState.judgeSeconds}秒後判定 / 配当${boState.payoutRate}倍</span>
     </div>
     <div class="bo-chart-wrap">
@@ -2629,5 +2680,6 @@ function renderBoPanel() {
       </span>
     </div>
     ${boResultMax > 0 && boState.results.length ? `<div class="bo-list">${resultRows}</div>` : ''}`;
+  setBoForce(boState.forceDir); // 描き直しても「急落中／急騰中」の表示を保つ
   _boSyncMarkers(geo);
 }

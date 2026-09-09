@@ -5560,6 +5560,15 @@ body.compact-mode .title-tag         { display: none !important; }
 .bo-title  { font-size: calc(15px * var(--bo-fs, 1)); font-weight: 800; color: #38bdf8; }
 .bo-phase  { font-size: calc(11px * var(--bo-fs, 1)); color: #cbd5e1; background: rgba(56,189,248,0.15); border-radius: 4px; padding: 1px 6px; }
 .bo-payout { font-size: calc(11px * var(--bo-fs, 1)); color: #94a3b8; margin-left: auto; }
+.bo-force {
+  font-size: calc(11px * var(--bo-fs, 1));
+  font-weight: 800;
+  border-radius: 4px;
+  padding: 1px 6px;
+  animation: pulse 0.6s ease-in-out infinite;
+}
+.bo-force.bo-force-up   { color: #4ade80; background: rgba(74,222,128,0.18);  border: 1px solid rgba(74,222,128,0.5); }
+.bo-force.bo-force-down { color: #f87171; background: rgba(248,113,113,0.18); border: 1px solid rgba(248,113,113,0.5); }
 
 /* チャート（マーカーを重ねるので relative） */
 .bo-chart-wrap {
@@ -5586,7 +5595,11 @@ body.compact-mode .title-tag         { display: none !important; }
 .bo-marker-label {
   position: absolute;
   right: 7px;
-  white-space: nowrap;
+  display: flex;
+  flex-wrap: wrap;          /* 名前が長いときは残り秒数が2行目に落ちる */
+  align-items: baseline;
+  column-gap: 3px;
+  justify-content: flex-end;
   font-size: calc(9px * var(--bo-fs, 1));
   line-height: 1.4;
   padding: 0 4px;
@@ -5595,11 +5608,20 @@ body.compact-mode .title-tag         { display: none !important; }
   border: 1px solid;
 }
 .bo-marker-label b { font-weight: 800; }
+/* 0幅のマーカー基点に対する絶対配置なので、幅は内容なりに広げてから上限で止める */
 .bo-marker-label {
-  max-width: calc(122px * var(--bo-fs, 1));
+  width: max-content;
+  max-width: calc(150px * var(--bo-fs, 1));
+}
+/* 名前＋金額は長ければ省略。残り秒数（結果）は縮めず必ず出す */
+.bo-marker-name {
+  min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
+.bo-marker.bo-label-right .bo-marker-label { justify-content: flex-start; }
 .bo-marker.bo-label-hidden .bo-marker-label { display: none; }
 .bo-marker.bo-label-right .bo-marker-label { right: auto; left: 7px; }
 .bo-marker-high .bo-marker-dot   { background: #4ade80; box-shadow: 0 0 6px rgba(74,222,128,0.9); }
@@ -5607,7 +5629,7 @@ body.compact-mode .title-tag         { display: none !important; }
 .bo-marker-low  .bo-marker-dot   { background: #f87171; box-shadow: 0 0 6px rgba(248,113,113,0.9); }
 .bo-marker-low  .bo-marker-label { color: #f87171; border-color: rgba(248,113,113,0.45); top: 4px; }
 .bo-marker.bo-winning .bo-marker-label { background: rgba(56,189,248,0.22); border-color: #38bdf8; }
-.bo-marker-left { color: #e2e8f0; font-weight: 700; }
+.bo-marker-left { color: #e2e8f0; font-weight: 700; flex: 0 0 auto; white-space: nowrap; }
 /* 賭けた値段から右へ伸びる白い横線 */
 .bo-marker-line {
   position: absolute;

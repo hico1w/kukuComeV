@@ -1549,6 +1549,8 @@ function handleAdminMessage(d, replyFn) {
     beginRacing();
   } else if (d.type === 'boStart') {
     startBo(d.judgeSeconds, d.payoutRate);
+  } else if (d.type === 'boForce') {
+    setBoForce(parseInt(d.dir) || 0);
   } else if (d.type === 'boStop' || d.type === 'boCancel') {
     stopBo();
   } else if (d.type === 'raceCancel') {
