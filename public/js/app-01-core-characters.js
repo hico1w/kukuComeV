@@ -379,7 +379,7 @@ const SETTINGS_KEYS = [
   'bombHidden','trashHidden','charStatsHidden','charNameHidden','breatheDisabled','bossFloatDisabled',
   'newsTickerEnabled','newsTickerWidth','newsTickerX','newsTickerY','newsTickerRows','newsTickerFontSize','newsTickerBgOpacity','newsTickerSpeed','newsTickerMode','newsTickerInterval','newsTickerTategaki','newsTickerHeight',
   'dmgFontScale',
-  'wordlePanelWidth','wordlePanelBgOpacity','rankingPanelBgOpacity','quizPanelBgOpacity','boPanelScale','boPanelZ','boPanelWidth','boChartHeight','boFontScale','boResultMax',
+  'wordlePanelWidth','wordlePanelBgOpacity','rankingPanelBgOpacity','quizPanelBgOpacity','boPanelScale','boPanelZ','boPanelWidth','boChartHeight','boFontScale','boResultMax','boLineColor','boPanelBgOpacity','boTitleSize',
   'agruImgCmdEnabled','agruUnloadEnabled','agruManualMode','agruAutoTalkEnabled','agruAutoTalkInterval','agruAutoTalkMaxStreak','agruAutoTalkTopics',
   'afkOpacity','afkGrayscale','afkBrightness',
   'autoReplyWords','autoReplyMessages',
@@ -494,6 +494,7 @@ const SOUND_GACHA_EPIC     = '/sound/petgatya/' + encodeURIComponent('ジャジ�
 const SOUND_GACHA_LEGEND   = '/sound/petgatya/' + encodeURIComponent('きらきら輝く6.mp3');
 const SOUND_GACHA_MYTH     = '/sound/petgatya/' + encodeURIComponent('nc272529_当たりの効果音.mp3');
 const SOUND_QUIZ_CORRECT   = '/sound/quiz/'    + encodeURIComponent('クイズ正解2.mp3');
+const SOUND_BO_ENTRY       = '/sound/endcard/' + encodeURIComponent('nc201523_【効果音】ジャン！（短）.mp3'); // BOのエントリー音
 const SOUND_SLOT_START     = '/sound/slot/'    + encodeURIComponent('start.wav');
 const SOUND_SLOT_STOP      = '/sound/slot/'    + encodeURIComponent('カーソル移動2.mp3');
 const SOUND_SLOT_MISS      = '/sound/slot/'    + encodeURIComponent('ビープ音4.mp3');

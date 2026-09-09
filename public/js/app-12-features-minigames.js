@@ -888,6 +888,9 @@ function applyPanelSettings() {
   s.style.setProperty('--bo-w',       boPanelWidth  + 'px');
   s.style.setProperty('--bo-chart-h', boChartHeight + 'px');
   s.style.setProperty('--bo-fs',      (boFontScale / 100).toFixed(2));
+  s.style.setProperty('--bo-line',    boLineColor);
+  s.style.setProperty('--bo-bg-a',    (boPanelBgOpacity / 100).toFixed(2));
+  s.style.setProperty('--bo-title-h', boTitleSize + 'px');
   if (typeof boState !== 'undefined' && boState) renderBoPanel(); // チャート高さの変更を即反映
   const _p = (id, val, txt) => {
     const el = document.getElementById(id); if (!el) return;
@@ -904,6 +907,9 @@ function applyPanelSettings() {
   _p('boChartHeightSlider',      boChartHeight,         boChartHeight + 'px');
   _p('boFontScaleSlider',        boFontScale,           boFontScale + '%');
   _p('boResultMaxSlider',        boResultMax,           boResultMax + '件');
+  _p('boPanelBgSlider',          boPanelBgOpacity,      boPanelBgOpacity + '%');
+  _p('boTitleSizeSlider',        boTitleSize,           boTitleSize + 'px');
+  const _boLineEl = document.getElementById('boLineColorPicker'); if (_boLineEl) _boLineEl.value = boLineColor;
 }
 
 // ── ニューステッカー ────────────────────────────────────────────────
@@ -1886,6 +1892,15 @@ document.getElementById('toggleNewsTickerBtn')?.addEventListener('click', () => 
   document.getElementById('boResultMaxSlider')?.addEventListener('input', function() {
     boResultMax = parseInt(this.value); ppSave('boResultMax', boResultMax); applyPanelSettings();
   });
+  document.getElementById('boPanelBgSlider')?.addEventListener('input', function() {
+    boPanelBgOpacity = parseInt(this.value); ppSave('boPanelBgOpacity', boPanelBgOpacity); applyPanelSettings();
+  });
+  document.getElementById('boTitleSizeSlider')?.addEventListener('input', function() {
+    boTitleSize = parseInt(this.value); ppSave('boTitleSize', boTitleSize); applyPanelSettings();
+  });
+  document.getElementById('boLineColorPicker')?.addEventListener('input', function() {
+    boLineColor = this.value; ppSave('boLineColor', boLineColor); applyPanelSettings();
+  });
   document.getElementById('quizPanelBgSlider')?.addEventListener('input', function() {
     quizPanelBgOpacity = parseInt(this.value); ppSave('quizPanelBgOpacity', quizPanelBgOpacity); applyPanelSettings();
   });
@@ -2310,7 +2325,7 @@ function handleBoEntry(user, side, mp) {
   const label = side === 'high' ? '🔼 HIGH' : '🔽 LOW';
   showBubble(user, `${label} ${boState.price.toFixed(2)} から${mp}MP！`, { color: side === 'high' ? '#4ade80' : '#f87171' });
   addToLog(user, `📈 BO ${label} ${mp}MP（${boState.price.toFixed(2)} / ${boState.judgeSeconds}秒後判定）`, '#38bdf8');
-  playLocalSound(SOUND_SLOT_STOP, 0.5);
+  playLocalSound(SOUND_BO_ENTRY, 0.7); // 誰かが賭けたら「ジャン！」
   renderBoPanel();
   _boParkBettors(); // パネルの右へ並んで判定を待つ
 }
@@ -2409,11 +2424,12 @@ function updateBoChart() {
   const geo = _boGeo();
   const poly = panel.querySelector('.bo-line');
   if (poly) poly.setAttribute('points', _boLineSvg(geo));
-  const dot = panel.querySelector('.bo-dot');
-  if (dot) {
+  // 先端の猫を現在値の位置へ
+  const cat = panel.querySelector('.bo-cat');
+  if (cat) {
     const lastX = ((boState.prices.length - 1) / Math.max(1, boState.windowTicks - 1)) * (BO_CHART_W - 7) + 3.5;
-    dot.setAttribute('cx', lastX.toFixed(1));
-    dot.setAttribute('cy', _boY(boState.price, geo).toFixed(1));
+    cat.style.left = (lastX / BO_CHART_W * 100).toFixed(2) + '%';
+    cat.style.top  = _boY(boState.price, geo).toFixed(1) + 'px';
   }
   const priceEl = panel.querySelector('.bo-price');
   if (priceEl) {
@@ -2661,16 +2677,16 @@ function renderBoPanel() {
 
   panel.innerHTML = `
     <div class="bo-header">
-      <span class="bo-title">📈 マジカルオプション</span>
+      <img class="bo-title-img" src="/bo/title2.webp" alt="MAGICAL OPTION">
       <span class="bo-phase">稼働中</span>
       <span class="bo-force" hidden></span>
       <span class="bo-payout">${boState.judgeSeconds}秒後判定 / 配当${boState.payoutRate}倍</span>
     </div>
     <div class="bo-chart-wrap">
       <svg class="bo-chart" viewBox="0 0 ${BO_CHART_W} ${boChartHeight}" preserveAspectRatio="none">
-        <polyline class="bo-line" points="${_boLineSvg(geo)}" fill="none" stroke="#38bdf8" stroke-width="2"></polyline>
-        <circle class="bo-dot" cx="${lastX.toFixed(1)}" cy="${_boY(boState.price, geo).toFixed(1)}" r="3.5"></circle>
+        <polyline class="bo-line" points="${_boLineSvg(geo)}" fill="none" stroke-width="2"></polyline>
       </svg>
+      <span class="bo-cat">🐱</span>
     </div>
     <div class="bo-price-row">
       <span class="bo-price">${boState.price.toFixed(2)}</span>

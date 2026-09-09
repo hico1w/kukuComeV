@@ -967,6 +967,10 @@ function handleAdminMessage(d, replyFn) {
       boFontScale = parseInt(d.value); localStorage.setItem('boFontScale', boFontScale); saveSettingsToServer(); applyPanelSettings();
     } else if (d.id === 'boResultMaxSlider') {
       boResultMax = parseInt(d.value); localStorage.setItem('boResultMax', boResultMax); saveSettingsToServer(); applyPanelSettings();
+    } else if (d.id === 'boPanelBgSlider') {
+      boPanelBgOpacity = parseInt(d.value); localStorage.setItem('boPanelBgOpacity', boPanelBgOpacity); saveSettingsToServer(); applyPanelSettings();
+    } else if (d.id === 'boTitleSizeSlider') {
+      boTitleSize = parseInt(d.value); localStorage.setItem('boTitleSize', boTitleSize); saveSettingsToServer(); applyPanelSettings();
     } else if (d.id === 'quizPanelBgSlider') {
       quizPanelBgOpacity = parseInt(d.value); localStorage.setItem('quizPanelBgOpacity', quizPanelBgOpacity); saveSettingsToServer(); applyPanelSettings();
     } else if (d.id === 'afkOpacitySlider') {
@@ -1009,6 +1013,8 @@ function handleAdminMessage(d, replyFn) {
       applyBgColor(d.value);
       localStorage.setItem('bgColor', d.value);
       saveSettingsToServer();
+    } else if (d.id === 'boLineColorPicker') {
+      boLineColor = d.value; localStorage.setItem('boLineColor', boLineColor); saveSettingsToServer(); applyPanelSettings();
     }
   } else if (d.type === 'getState' || d.type === 'ping') {
     const sliderIds = ['nikoSizeSlider','nikoOpacitySlider','hayaoshiFreqSlider','hayaoshiSpeedSlider',
@@ -1016,7 +1022,7 @@ function handleAdminMessage(d, replyFn) {
                        'slotProbCherry','slotProbBell','slotProbStar','slotProbDiamond','slotProbJackpot',
                        'afkOpacitySlider','afkGrayscaleSlider','afkBrightnessSlider',
                        'kaiSpeedSlider','kaiRestitutionSlider','kaiGravitySlider','kaiBulletSizeSlider',
-                       'dmgFontScaleSlider','wordlePanelWidthSlider','wordlePanelBgSlider','rankingPanelBgSlider','quizPanelBgSlider','boPanelScaleSlider','boPanelZSlider','boPanelWidthSlider','boChartHeightSlider','boFontScaleSlider','boResultMaxSlider','newsTickerIntervalSlider'];
+                       'dmgFontScaleSlider','wordlePanelWidthSlider','wordlePanelBgSlider','rankingPanelBgSlider','quizPanelBgSlider','boPanelScaleSlider','boPanelZSlider','boPanelWidthSlider','boChartHeightSlider','boFontScaleSlider','boResultMaxSlider','boPanelBgSlider','boTitleSizeSlider','newsTickerIntervalSlider'];
     const state = {};
     sliderIds.forEach(sid => { const el = document.getElementById(sid); if (el) state[sid] = el.value; });
     state.bgColor    = document.getElementById('bgColor')?.value;
@@ -1195,6 +1201,9 @@ function handleAdminMessage(d, replyFn) {
     state.boChartHeightSlider      = boChartHeight;
     state.boFontScaleSlider        = boFontScale;
     state.boResultMaxSlider        = boResultMax;
+    state.boPanelBgSlider          = boPanelBgOpacity;
+    state.boTitleSizeSlider        = boTitleSize;
+    state.boLineColorPicker        = boLineColor;
     state.afkOpacitySlider         = afkOpacity;
     state.afkGrayscaleSlider       = afkGrayscale;
     state.afkBrightnessSlider      = afkBrightness;

@@ -5533,55 +5533,96 @@ body.compact-mode .title-tag         { display: none !important; }
   cursor: pointer; font-size: 13px; line-height: 1;
 }
 .stream-review-modal .sr-close:hover { background: rgba(255,255,255,0.25); }
-/* ── バイナリーオプション（BO）パネル ───────────────────────── */
+/* ── バイナリーオプション（BO）パネル ─────────────────────────
+   kukuluLIVE「マジカルコレクト」(live.erinn.biz/login.slot.php) に合わせた配色。
+   金 #ffdb53 / 淡い金 #ffe48f / クリーム #fff5bf / 文字 #3d3222、丸ゴシック。   */
 .bo-panel {
   position: absolute;
-  background: rgba(10,12,20,0.97);
-  border: 2px solid #38bdf8;
-  border-radius: 12px;
-  padding: 10px 12px;
+  background: rgba(255,253,243, var(--bo-bg-a, 1));
+  border: 3px solid #ffdb53;
+  border-radius: 14px;
+  padding: 0 0 8px;
   width: var(--bo-w, 570px);
   z-index: var(--bo-z, 200);
   user-select: none;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+  color: #3d3222;
+  font-family: 'M PLUS Rounded 1c', 'Meiryo UI', Meiryo, system-ui, sans-serif;
+  box-shadow: 0 6px 22px rgba(120,90,0,0.35);
   cursor: grab;
   transform: scale(var(--bo-scale, 1));
   transform-origin: top left;
 }
 .bo-panel:active { cursor: grabbing; }
+
+/* ヘッダーは金色の帯 */
 .bo-header {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
-  border-bottom: 1px solid rgba(56,189,248,0.3);
-  padding-bottom: 6px;
+  /* タイトル画像は絶対配置なので、その幅ぶん左に余白を空ける（ロゴの縦横比は約2.55:1） */
+  padding: 3px 10px 3px calc(var(--bo-title-h, 56px) * var(--bo-fs, 1) * 2.55 + 14px);
+  min-height: calc(22px * var(--bo-fs, 1));
+  border-radius: 11px 11px 0 0;
+  position: relative;
+  background: linear-gradient(180deg, rgba(255,233,163,var(--bo-bg-a,1)) 0%, rgba(255,213,63,var(--bo-bg-a,1)) 100%);
+  border-bottom: 2px solid #f0b90b;
 }
-.bo-title  { font-size: calc(15px * var(--bo-fs, 1)); font-weight: 800; color: #38bdf8; }
-.bo-phase  { font-size: calc(11px * var(--bo-fs, 1)); color: #cbd5e1; background: rgba(56,189,248,0.15); border-radius: 4px; padding: 1px 6px; }
-.bo-payout { font-size: calc(11px * var(--bo-fs, 1)); color: #94a3b8; margin-left: auto; }
+/* タイトルは画像（public/bo/title.png）。文字サイズ設定に合わせて拡縮する */
+.bo-title-img {
+  height: calc(var(--bo-title-h, 56px) * var(--bo-fs, 1));
+  width: auto;
+  display: block;
+  /* 絶対配置：どれだけ大きくしてもヘッダーの高さに影響させず、上下にはみ出す */
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 4;
+  filter: drop-shadow(0 2px 3px rgba(120,90,0,0.45));
+}
+.bo-phase {
+  font-size: calc(11px * var(--bo-fs, 1));
+  font-weight: 700;
+  color: #8a6a00;
+  background: #fff8d8;
+  border: 1px solid #f0c93f;
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.bo-payout { font-size: calc(11px * var(--bo-fs, 1)); color: #8a7333; margin-left: auto; font-weight: 700; }
 .bo-force {
   font-size: calc(11px * var(--bo-fs, 1));
   font-weight: 800;
-  border-radius: 4px;
-  padding: 1px 6px;
+  border-radius: 999px;
+  padding: 1px 8px;
   animation: pulse 0.6s ease-in-out infinite;
 }
-.bo-force.bo-force-up   { color: #4ade80; background: rgba(74,222,128,0.18);  border: 1px solid rgba(74,222,128,0.5); }
-.bo-force.bo-force-down { color: #f87171; background: rgba(248,113,113,0.18); border: 1px solid rgba(248,113,113,0.5); }
+.bo-force.bo-force-up   { color: #1b7a3d; background: #e4f7e8; border: 1px solid #6dc98a; }
+.bo-force.bo-force-down { color: #c62828; background: #fdeaea; border: 1px solid #ef9a9a; }
 
-/* チャート（マーカーを重ねるので relative） */
+/* チャート（マーカーを重ねるので relative）— 参照ページの斜めストライプに寄せる */
 .bo-chart-wrap {
   position: relative;
   height: var(--bo-chart-h, 110px);
-  background: linear-gradient(180deg, rgba(56,189,248,0.06), rgba(56,189,248,0));
-  border: 1px solid rgba(148,163,184,0.2);
-  border-radius: 6px;
+  margin: 0 10px;
+  background: repeating-linear-gradient(45deg, rgba(255,245,191,var(--bo-bg-a,1)) 0 12px, rgba(255,239,166,var(--bo-bg-a,1)) 12px 24px);
+  border: 1px solid #f0c93f;
+  border-radius: 8px;
   overflow: hidden;
 }
 .bo-chart { display: block; width: 100%; height: var(--bo-chart-h, 110px); }
-.bo-line  { stroke: #38bdf8; }
-.bo-dot   { fill: #38bdf8; }
+.bo-line  { stroke: var(--bo-line, #1565c0); }
+/* チャートの先端（現在値）に乗せる猫 */
+.bo-cat {
+  position: absolute;
+  font-size: calc(20px * var(--bo-fs, 1));
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 3;
+  filter: drop-shadow(0 1px 1px rgba(120,90,0,0.45));
+}
 
 /* エントリー地点のマーカー（賭けた瞬間の位置に名前と金額を出す） */
 .bo-marker { position: absolute; width: 0; height: 0; pointer-events: none; z-index: 2; }
@@ -5590,7 +5631,7 @@ body.compact-mode .title-tag         { display: none !important; }
   left: -4px; top: -4px;
   width: 8px; height: 8px;
   border-radius: 50%;
-  border: 1px solid rgba(2,6,23,0.9);
+  border: 1px solid #fffdf3;
 }
 .bo-marker-label {
   position: absolute;
@@ -5603,12 +5644,12 @@ body.compact-mode .title-tag         { display: none !important; }
   font-size: calc(9px * var(--bo-fs, 1));
   line-height: 1.4;
   padding: 0 4px;
-  border-radius: 4px;
-  background: rgba(2,6,23,0.85);
+  border-radius: 5px;
+  background: #fffdf3;
   border: 1px solid;
+  box-shadow: 0 1px 2px rgba(120,90,0,0.2);
 }
 .bo-marker-label b { font-weight: 800; }
-/* 0幅のマーカー基点に対する絶対配置なので、幅は内容なりに広げてから上限で止める */
 .bo-marker-label {
   width: max-content;
   max-width: calc(150px * var(--bo-fs, 1));
@@ -5624,50 +5665,56 @@ body.compact-mode .title-tag         { display: none !important; }
 .bo-marker.bo-label-right .bo-marker-label { justify-content: flex-start; }
 .bo-marker.bo-label-hidden .bo-marker-label { display: none; }
 .bo-marker.bo-label-right .bo-marker-label { right: auto; left: 7px; }
-.bo-marker-high .bo-marker-dot   { background: #4ade80; box-shadow: 0 0 6px rgba(74,222,128,0.9); }
-.bo-marker-high .bo-marker-label { color: #4ade80; border-color: rgba(74,222,128,0.45); top: -15px; }
-.bo-marker-low  .bo-marker-dot   { background: #f87171; box-shadow: 0 0 6px rgba(248,113,113,0.9); }
-.bo-marker-low  .bo-marker-label { color: #f87171; border-color: rgba(248,113,113,0.45); top: 4px; }
-.bo-marker.bo-winning .bo-marker-label { background: rgba(56,189,248,0.22); border-color: #38bdf8; }
-.bo-marker-left { color: #e2e8f0; font-weight: 700; flex: 0 0 auto; white-space: nowrap; }
-/* 賭けた値段から右へ伸びる白い横線 */
+.bo-marker-high .bo-marker-dot   { background: #1b9e4b; box-shadow: 0 0 5px rgba(27,158,75,0.8); }
+.bo-marker-high .bo-marker-label { color: #1b7a3d; border-color: #6dc98a; top: -15px; }
+.bo-marker-low  .bo-marker-dot   { background: #e53935; box-shadow: 0 0 5px rgba(229,57,53,0.8); }
+.bo-marker-low  .bo-marker-label { color: #c62828; border-color: #ef9a9a; top: 4px; }
+.bo-marker.bo-winning .bo-marker-label { background: #fff3c4; border-color: #f0b90b; }
+.bo-marker-left { color: #3d3222; font-weight: 700; flex: 0 0 auto; white-space: nowrap; }
+/* 賭けた値段から右へ伸びる線（クリーム地なので濃い色にする） */
 .bo-marker-line {
   position: absolute;
   left: 0;
   top: -0.5px;
   height: 1px;
-  background: rgba(255,255,255,0.85);
+  background: rgba(90,70,10,0.75);
   pointer-events: none;
 }
 /* 判定済みは少し落ち着かせる（流れて消えるまで残る） */
-.bo-marker.bo-done .bo-marker-line  { background: rgba(255,255,255,0.45); }
-.bo-marker.bo-done .bo-marker-label { opacity: 0.75; }
-.bo-marker.bo-done.bo-winning .bo-marker-left { color: #4ade80; }
-.bo-marker.bo-done:not(.bo-winning) .bo-marker-left { color: #94a3b8; }
+.bo-marker.bo-done .bo-marker-line  { background: rgba(90,70,10,0.35); }
+.bo-marker.bo-done .bo-marker-label { opacity: 0.8; }
+.bo-marker.bo-done.bo-winning .bo-marker-left { color: #1b7a3d; }
+.bo-marker.bo-done:not(.bo-winning) .bo-marker-left { color: #9a8c6a; }
 
 .bo-price-row {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  margin: 6px 0 2px;
+  margin: 6px 10px 2px;
 }
-.bo-price { font-size: calc(20px * var(--bo-fs, 1)); font-weight: 800; font-variant-numeric: tabular-nums; color: #e2e8f0; }
-.bo-sides-inline { display: flex; gap: 10px; font-size: calc(11px * var(--bo-fs, 1)); font-weight: 700; margin-left: auto; }
-.bo-up   { color: #4ade80; }
-.bo-down { color: #f87171; }
+.bo-price {
+  font-size: calc(22px * var(--bo-fs, 1));
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #3d3222;
+  letter-spacing: 0.02em;
+}
+.bo-sides-inline { display: flex; gap: 10px; font-size: calc(11px * var(--bo-fs, 1)); font-weight: 800; margin-left: auto; }
+.bo-up   { color: #1b9e4b; }
+.bo-down { color: #e53935; }
 
-.bo-list { margin-top: 4px; }
+.bo-list { margin: 4px 10px 0; }
 .bo-result-item {
   font-size: calc(10.5px * var(--bo-fs, 1));
-  color: #94a3b8;
+  color: #6b5c3a;
   padding: 1px 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
 }
-.bo-result-item.bo-win  b { color: #4ade80; }
-.bo-result-item.bo-lose b { color: #cbd5e1; }
+.bo-result-item.bo-win  b { color: #1b7a3d; }
+.bo-result-item.bo-lose b { color: #6b5c3a; }
 
 /* BO（マジカルオプション）の勝敗アニメーション ※コメント時ジャンプより後に置いて優先させる */
 @keyframes boWinJump {

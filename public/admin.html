@@ -612,6 +612,22 @@
     <span id="boResultMaxVal">8件</span>
   </div>
   <div class="size-row">
+    <span class="size-label">BO 背景不透明度</span>
+    <input id="boPanelBgSlider" type="range" min="0" max="100" step="5" value="100" class="size-slider" oninput="syncSlider(this,'boPanelBgVal',v=>v+'%')">
+    <span id="boPanelBgVal">100%</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">BO タイトル大きさ</span>
+    <input id="boTitleSizeSlider" type="range" min="20" max="160" step="2" value="56" class="size-slider" oninput="syncSlider(this,'boTitleSizeVal',v=>v+'px')">
+    <span id="boTitleSizeVal">56px</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">BO 線の色</span>
+    <input id="boLineColorPicker" type="color" value="#1565c0" style="width:44px;height:22px;background:#0f1117;border:1px solid #374151;border-radius:4px;padding:1px"
+           oninput="adminSend({type:'color',id:'boLineColorPicker',value:this.value})">
+    <button class="btn-reset" onclick="document.getElementById('boLineColorPicker').value='#1565c0';adminSend({type:'color',id:'boLineColorPicker',value:'#1565c0'})">↺</button>
+  </div>
+  <div class="size-row">
     <span class="size-label">クイズ 背景</span>
     <input id="quizPanelBgSlider" type="range" min="0" max="100" step="1" value="93" class="size-slider" oninput="syncSlider(this,'quizPanelBgVal',v=>v+'%')">
     <span id="quizPanelBgVal">93%</span>
@@ -2462,6 +2478,9 @@
     boChartHeightSlider:      {key:'boChartHeight',       save:v=>parseInt(v)},
     boFontScaleSlider:        {key:'boFontScale',         save:v=>parseInt(v)},
     boResultMaxSlider:        {key:'boResultMax',         save:v=>parseInt(v)},
+    boPanelBgSlider:          {key:'boPanelBgOpacity',    save:v=>parseInt(v)},
+    boTitleSizeSlider:        {key:'boTitleSize',         save:v=>parseInt(v)},
+    boLineColorPicker:        {key:'boLineColor',         save:v=>v},
     afkOpacitySlider:         {key:'afkOpacity',          save:v=>parseInt(v)},
     afkGrayscaleSlider:       {key:'afkGrayscale',        save:v=>parseInt(v)},
     afkBrightnessSlider:      {key:'afkBrightness',       save:v=>parseInt(v)},
@@ -2577,7 +2596,7 @@
       _m('wordlePanelWidth','wordlePanelWidthSlider'); _m('wordlePanelBgOpacity','wordlePanelBgSlider');
       _m('rankingPanelBgOpacity','rankingPanelBgSlider'); _m('quizPanelBgOpacity','quizPanelBgSlider');
       _m('boPanelScale','boPanelScaleSlider'); _m('boPanelZ','boPanelZSlider');
-      _m('boPanelWidth','boPanelWidthSlider'); _m('boChartHeight','boChartHeightSlider'); _m('boFontScale','boFontScaleSlider'); _m('boResultMax','boResultMaxSlider');
+      _m('boPanelWidth','boPanelWidthSlider'); _m('boChartHeight','boChartHeightSlider'); _m('boFontScale','boFontScaleSlider'); _m('boResultMax','boResultMaxSlider'); _m('boPanelBgOpacity','boPanelBgSlider'); _m('boTitleSize','boTitleSizeSlider');
       _m('afkOpacity','afkOpacitySlider'); _m('afkGrayscale','afkGrayscaleSlider'); _m('afkBrightness','afkBrightnessSlider');
       _m('gatherRowMax','gatherRowMaxSlider'); _m('gatherMarginLeft','gatherMarginLeftSlider');
       _m('gatherMarginRight','gatherMarginRightSlider'); _m('gatherMarginBottom','gatherMarginBottomSlider');
@@ -3009,6 +3028,8 @@
       { id:'boChartHeightSlider',      valId:'boChartHeightVal',      fmt: v=>v+'px' },
       { id:'boFontScaleSlider',        valId:'boFontScaleVal',        fmt: v=>v+'%'  },
       { id:'boResultMaxSlider',        valId:'boResultMaxVal',        fmt: v=>v+'件' },
+      { id:'boPanelBgSlider',          valId:'boPanelBgVal',          fmt: v=>v+'%'  },
+      { id:'boTitleSizeSlider',        valId:'boTitleSizeVal',        fmt: v=>v+'px' },
       { id:'newsTickerIntervalSlider', valId:'newsTickerIntervalVal',  fmt: v=>v+'秒' },
       { id:'newsTickerHeightSlider',   valId:'newsTickerHeightVal',    fmt: v=>v==0?'自動':v+'px' },
     ];

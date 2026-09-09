@@ -123,6 +123,9 @@ let boPanelWidth          = parseInt(localStorage.getItem('boPanelWidth'))      
 let boChartHeight         = parseInt(localStorage.getItem('boChartHeight'))         || 110; // BOチャートの縦幅(px)
 let boFontScale           = parseInt(localStorage.getItem('boFontScale'))           || 100; // BOパネルの文字サイズ(%)
 let boResultMax           = localStorage.getItem('boResultMax') !== null ? parseInt(localStorage.getItem('boResultMax')) : 8; // BOの勝敗履歴の表示件数(0で非表示)
+let boLineColor           = localStorage.getItem('boLineColor') || '#1565c0'; // BOチャートの線の色
+let boPanelBgOpacity      = localStorage.getItem('boPanelBgOpacity') !== null ? parseInt(localStorage.getItem('boPanelBgOpacity')) : 100; // BOパネルの背景不透明度(%)
+let boTitleSize           = parseInt(localStorage.getItem('boTitleSize')) || 56; // BOタイトル画像の高さ(px)
 let slotSoundEnabled = true;    // スロット効果音ON/OFF
 // ボスアゲル 歌詞フロート状態変数
 let lyricsFloatEnabled    = false;
