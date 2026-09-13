@@ -810,7 +810,7 @@ function renderRankingPanel() {
 
   const mpEntries = Object.values(users).filter(u => u.el && !u.isMaster)
     .map(u => ({ name: u.name || u.ipid, mp: u.mp ?? 0 }))
-    .sort((a, b) => b.mp - a.mp).slice(0, Math.max(1, rankingTopN));
+    .sort((a, b) => b.mp - a.mp).slice(0, Math.max(1, rankingMpTopN));
   const mpRows = mpEntries.map((e, i) =>
     `<div class="ranking-row"><span class="ranking-medal">${rankMark(i)}</span><span class="ranking-name">${escapeHtml(e.name)}</span><span class="ranking-mp">${e.mp.toLocaleString()} MP</span></div>`
   ).join('');
@@ -904,6 +904,7 @@ function applyPanelSettings() {
   _p('wordlePanelBgSlider',      wordlePanelBgOpacity,  wordlePanelBgOpacity + '%');
   _p('rankingPanelBgSlider',     rankingPanelBgOpacity, rankingPanelBgOpacity + '%');
   _p('rankingTopNSlider',        rankingTopN,           rankingTopN + '人');
+  _p('rankingMpTopNSlider',      rankingMpTopN,         rankingMpTopN + '人');
   _p('quizPanelBgSlider',        quizPanelBgOpacity,    quizPanelBgOpacity + '%');
   _p('boPanelScaleSlider',       boPanelScale,          boPanelScale + '%');
   _p('boPanelZSlider',           boPanelZ,              String(boPanelZ));
@@ -1880,6 +1881,9 @@ document.getElementById('toggleNewsTickerBtn')?.addEventListener('click', () => 
   });
   document.getElementById('rankingTopNSlider')?.addEventListener('input', function() {
     rankingTopN = parseInt(this.value); ppSave('rankingTopN', rankingTopN); renderRankingPanel();
+  });
+  document.getElementById('rankingMpTopNSlider')?.addEventListener('input', function() {
+    rankingMpTopN = parseInt(this.value); ppSave('rankingMpTopN', rankingMpTopN); renderRankingPanel();
   });
   document.getElementById('boPanelScaleSlider')?.addEventListener('input', function() {
     boPanelScale = parseInt(this.value); ppSave('boPanelScale', boPanelScale); applyPanelSettings();

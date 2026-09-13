@@ -957,6 +957,8 @@ function handleAdminMessage(d, replyFn) {
       rankingPanelBgOpacity = parseInt(d.value); localStorage.setItem('rankingPanelBgOpacity', rankingPanelBgOpacity); saveSettingsToServer(); applyPanelSettings();
     } else if (d.id === 'rankingTopNSlider') {
       rankingTopN = parseInt(d.value); localStorage.setItem('rankingTopN', rankingTopN); saveSettingsToServer(); renderRankingPanel();
+    } else if (d.id === 'rankingMpTopNSlider') {
+      rankingMpTopN = parseInt(d.value); localStorage.setItem('rankingMpTopN', rankingMpTopN); saveSettingsToServer(); renderRankingPanel();
     } else if (d.id === 'boPanelScaleSlider') {
       boPanelScale = parseInt(d.value); localStorage.setItem('boPanelScale', boPanelScale); saveSettingsToServer(); applyPanelSettings();
     } else if (d.id === 'boPanelZSlider') {
@@ -1024,7 +1026,7 @@ function handleAdminMessage(d, replyFn) {
                        'slotProbCherry','slotProbBell','slotProbStar','slotProbDiamond','slotProbJackpot',
                        'afkOpacitySlider','afkGrayscaleSlider','afkBrightnessSlider',
                        'kaiSpeedSlider','kaiRestitutionSlider','kaiGravitySlider','kaiBulletSizeSlider',
-                       'dmgFontScaleSlider','wordlePanelWidthSlider','wordlePanelBgSlider','rankingPanelBgSlider','rankingTopNSlider','quizPanelBgSlider','boPanelScaleSlider','boPanelZSlider','boPanelWidthSlider','boChartHeightSlider','boFontScaleSlider','boResultMaxSlider','boPanelBgSlider','boTitleSizeSlider','newsTickerIntervalSlider'];
+                       'dmgFontScaleSlider','wordlePanelWidthSlider','wordlePanelBgSlider','rankingPanelBgSlider','rankingTopNSlider','rankingMpTopNSlider','quizPanelBgSlider','boPanelScaleSlider','boPanelZSlider','boPanelWidthSlider','boChartHeightSlider','boFontScaleSlider','boResultMaxSlider','boPanelBgSlider','boTitleSizeSlider','newsTickerIntervalSlider'];
     const state = {};
     sliderIds.forEach(sid => { const el = document.getElementById(sid); if (el) state[sid] = el.value; });
     state.bgColor    = document.getElementById('bgColor')?.value;
@@ -1197,6 +1199,7 @@ function handleAdminMessage(d, replyFn) {
     state.wordlePanelBgSlider      = wordlePanelBgOpacity;
     state.rankingPanelBgSlider     = rankingPanelBgOpacity;
     state.rankingTopNSlider        = rankingTopN;
+    state.rankingMpTopNSlider      = rankingMpTopN;
     state.rankingDmgHidden         = rankingDmgHidden;
     state.quizPanelBgSlider        = quizPanelBgOpacity;
     state.boPanelScaleSlider       = boPanelScale;

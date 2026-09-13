@@ -2,6 +2,30 @@
 
 ---
 
+## v2.947.0 — 2026-09-13
+
+### feat: MPランキングの行数をダメージ欄と別に設定可能に
+
+- v2.942.0 で入れた「ランキング 人数」（`rankingTopN`）はダメージ欄とMP欄で共通だったため、**MP欄だけ別の行数**にできるようにした
+- **`app-03-boss-pets.js`**: `rankingMpTopN` を追加。**未設定のときは `rankingTopN` を引き継ぐ**ので、既存の見た目は変わらない
+- **`app-12-features-minigames.js`**: `renderRankingPanel()` のMP欄を `rankingMpTopN` で切るよう変更（ダメージ欄は `rankingTopN` のまま）
+- **`public/admin.html`**: 「📐 パネル外観」の既存スライダーを **「ランキング ダメージ人数」** に改名し、**「ランキング MP人数」**（1〜30人）を追加。設定マップ・初期同期・スライダー一覧にも登録
+- **`app-13-race-admin-misc.js`** / **`app-01-core-characters.js`**: 管理メッセージ・`getState`・サーバー同期キーに `rankingMpTopN` を追加
+- **動作確認**（Playwright、10人ぶんのデータで検証）: ダメージ3/MP3 → **MPだけ8にするとMP欄8行・ダメージ欄3行のまま**、ダメージを5にしてもMP欄は8行を維持し、`localStorage` にも保存されることを確認。管理ウィンドウにも2本のスライダーが出てJSエラーなし
+
+---
+
+## v2.946.0 — 2026-09-13
+
+### change: キャラアップロードのぷるぷるグリッド上限を 12 → 24 に
+
+- **`cloudflare/pages/index.html`** のアップロード画面のスライダー `#up-puru-grid` を `max="12"` → `max="24"` に変更。初期値は 12 のまま
+- ほかの編集画面（`cloudflare/pages/puru.html` の `#gridSlider`、`public/admin.html` の `#puruGrid`、`public/ageru-boss.html` の `#bossPuruGrid`）はもともと最大24で、アップロード画面だけ低かったので揃えた
+- 描画側（`public/js/app-01-core-characters.js` のぷるぷる描画）は `cfg.gridSize` をそのまま使い、頂点配列もその数から確保するので上限の切り詰めは無い。アップロード画面のプレビューも毎フレーム `gridSize` から配列を確保するので 24 でそのまま動く
+- 負荷は頂点数 (グリッド+1)² に比例する（12 で169点 → 24 で625点）。重くなるのは上げたキャラだけなので初期値は据え置いた
+- 気づいた点（今回は未変更）: アップロード画面のスライダーは `min="3"` だが、プレビューは `Math.max(6, gridSize)` で6未満を6として描く。3〜5を選ぶとプレビューと実際の描画がずれる
+
+---
 ## v2.945.0 — 2026-09-13
 
 ### docs: コマンドマニュアル（index.html）に追加キーワードを掲載

@@ -192,7 +192,8 @@ let afkBrightness = parseInt(localStorage.getItem('afkBrightness') ?? '55');
 let bossDamageMap    = {};          // ipid → { name, totalDmg } 現ボス戦分
 let cumulativeDmgMap = (() => { try { return JSON.parse(localStorage.getItem('cumulativeDmgMap') || '{}'); } catch { return {}; } })();
 let rankingDmgHidden = localStorage.getItem('rankingDmgHidden') === '1'; // ランキングからダメージ欄を隠してMPだけにする
-let rankingTopN      = parseInt(localStorage.getItem('rankingTopN')) || 3; // ランキングパネルに出す人数
+let rankingTopN      = parseInt(localStorage.getItem('rankingTopN')) || 3; // ランキングパネルに出す人数（ダメージ欄）
+let rankingMpTopN    = parseInt(localStorage.getItem('rankingMpTopN')) || rankingTopN; // MP欄の行数（未設定ならダメージ欄と同じ）
 let rankingState       = null;
 let rankingDragState   = null;
 let bossDragState = null;

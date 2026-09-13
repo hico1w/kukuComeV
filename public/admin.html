@@ -583,9 +583,14 @@
     <span id="rankingPanelBgVal">92%</span>
   </div>
   <div class="size-row">
-    <span class="size-label">ランキング 人数</span>
+    <span class="size-label">ランキング ダメージ人数</span>
     <input id="rankingTopNSlider" type="range" min="1" max="20" step="1" value="3" class="size-slider" oninput="syncSlider(this,'rankingTopNVal',v=>v+'人')">
     <span id="rankingTopNVal">3人</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">ランキング MP人数</span>
+    <input id="rankingMpTopNSlider" type="range" min="1" max="30" step="1" value="3" class="size-slider" oninput="syncSlider(this,'rankingMpTopNVal',v=>v+'人')">
+    <span id="rankingMpTopNVal">3人</span>
   </div>
   <div class="size-row">
     <span class="size-label">BO サイズ</span>
@@ -2478,6 +2483,7 @@
     wordlePanelBgSlider:      {key:'wordlePanelBgOpacity',save:v=>parseInt(v)},
     rankingPanelBgSlider:     {key:'rankingPanelBgOpacity',save:v=>parseInt(v)},
     rankingTopNSlider:        {key:'rankingTopN',          save:v=>parseInt(v)},
+    rankingMpTopNSlider:      {key:'rankingMpTopN',        save:v=>parseInt(v)},
     quizPanelBgSlider:        {key:'quizPanelBgOpacity',  save:v=>parseInt(v)},
     boPanelScaleSlider:       {key:'boPanelScale',        save:v=>parseInt(v)},
     boPanelZSlider:           {key:'boPanelZ',            save:v=>parseInt(v)},
@@ -2602,7 +2608,7 @@
       _m('newsTickerSpeed','newsTickerSpeedSlider'); _m('newsTickerInterval','newsTickerIntervalSlider');
       _m('wordlePanelWidth','wordlePanelWidthSlider'); _m('wordlePanelBgOpacity','wordlePanelBgSlider');
       _m('rankingPanelBgOpacity','rankingPanelBgSlider'); _m('quizPanelBgOpacity','quizPanelBgSlider');
-      _m('rankingTopN','rankingTopNSlider');
+      _m('rankingTopN','rankingTopNSlider'); _m('rankingMpTopN','rankingMpTopNSlider');
       if (s.rankingDmgHidden !== undefined) syncRankingDmgBtn(s.rankingDmgHidden === '1' || s.rankingDmgHidden === true);
       _m('boPanelScale','boPanelScaleSlider'); _m('boPanelZ','boPanelZSlider');
       _m('boPanelWidth','boPanelWidthSlider'); _m('boChartHeight','boChartHeightSlider'); _m('boFontScale','boFontScaleSlider'); _m('boResultMax','boResultMaxSlider'); _m('boPanelBgOpacity','boPanelBgSlider'); _m('boTitleSize','boTitleSizeSlider');
@@ -3044,6 +3050,7 @@
       { id:'wordlePanelBgSlider',      valId:'wordlePanelBgVal',      fmt: v=>v+'%'  },
       { id:'rankingPanelBgSlider',     valId:'rankingPanelBgVal',     fmt: v=>v+'%'  },
       { id:'rankingTopNSlider',        valId:'rankingTopNVal',        fmt: v=>v+'人' },
+      { id:'rankingMpTopNSlider',      valId:'rankingMpTopNVal',      fmt: v=>v+'人' },
       { id:'quizPanelBgSlider',        valId:'quizPanelBgVal',        fmt: v=>v+'%'  },
       { id:'boPanelScaleSlider',       valId:'boPanelScaleVal',       fmt: v=>v+'%'  },
       { id:'boPanelZSlider',           valId:'boPanelZVal',           fmt: v=>v      },

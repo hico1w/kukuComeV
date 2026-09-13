@@ -378,7 +378,7 @@ const SETTINGS_KEYS = [
   'agruModalWidth','agruModalHeight','agruModalBgOpacity','agruChatImgSize','agruCharImgHeight','agruCharImgScale','agruParamPosX','agruParamPosY',
   'bombHidden','trashHidden','charStatsHidden','charNameHidden','breatheDisabled','bossFloatDisabled',
   'newsTickerEnabled','newsTickerWidth','newsTickerX','newsTickerY','newsTickerRows','newsTickerFontSize','newsTickerBgOpacity','newsTickerSpeed','newsTickerMode','newsTickerInterval','newsTickerTategaki','newsTickerHeight',
-  'dmgFontScale','rankingDmgHidden','rankingTopN',
+  'dmgFontScale','rankingDmgHidden','rankingTopN','rankingMpTopN',
   'wordlePanelWidth','wordlePanelBgOpacity','rankingPanelBgOpacity','quizPanelBgOpacity','boPanelScale','boPanelZ','boPanelWidth','boChartHeight','boFontScale','boResultMax','boLineColor','boPanelBgOpacity','boTitleSize',
   'agruImgCmdEnabled','agruUnloadEnabled','agruManualMode','agruAutoTalkEnabled','agruAutoTalkInterval','agruAutoTalkMaxStreak','agruAutoTalkTopics',
   'afkOpacity','afkGrayscale','afkBrightness',
