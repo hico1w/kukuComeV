@@ -1039,7 +1039,7 @@
       });
 
       // 画像がまだ無いキーワードは名前だけのカードにする（存在しない画像を読みにいかない）
-      KW_TEXT.forEach(function(kw){
+      function textCard(kw){
         var card=document.createElement('div');
         card.style.cssText='background:#f7f7f7;border-radius:6px;overflow:hidden;border:1px dashed #d4d4d4';
         var label=document.createElement('div');
@@ -1050,8 +1050,37 @@
         note.textContent='📝 サンプル画像準備中';
         card.appendChild(label);
         card.appendChild(note);
-        grid.appendChild(card);
-      });
+        return card;
+      }
+      // 管理画面の「キーワードサンプル自動生成」で作った画像（<名前>.webp, <名前>_2.webp …）。枚数は generated.json
+      function generatedCard(kw, n){
+        var safe=kw.replace(/[<>:"\/\\|?*]/g,'_').slice(0,60);
+        var enc=encodeURIComponent(safe);
+        var card=document.createElement('div');
+        card.style.cssText='background:#f7f7f7;border-radius:6px;overflow:hidden;border:1px solid #e2e2e2';
+        var label=document.createElement('div');
+        label.style.cssText='font-size:11px;color:#111;padding:4px 8px;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-bottom:1px solid #e2e2e2';
+        label.title=kw; label.textContent=kw;
+        var imgs=document.createElement('div');
+        imgs.style.cssText='display:flex;flex-wrap:wrap;gap:1px';
+        for(var i=1;i<=n;i++){
+          var cell=mkImg('./chara/keyword-samples/'+enc+(i>1?'_'+i:'')+'.webp', n>1?kw+' ／ '+i+'枚目':kw);
+          if(n>3) cell.style.flex='0 0 calc((100% - 2px) / 3)'; // 4枚以上は3枚ずつ折り返す
+          imgs.appendChild(cell);
+        }
+        card.appendChild(label);
+        card.appendChild(imgs);
+        return card;
+      }
+      fetch('./chara/keyword-samples/generated.json',{cache:'no-cache'})
+        .then(function(r){return r.ok?r.json():{};})
+        .catch(function(){return {};})
+        .then(function(gen){
+          KW_TEXT.forEach(function(kw){
+            var n=Math.min(10,parseInt(gen&&gen[kw])||0);
+            grid.appendChild(n>0?generatedCard(kw,n):textCard(kw));
+          });
+        });
     })();
     </script>
 

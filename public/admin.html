@@ -2365,6 +2365,43 @@
   </div>
 </div>
 
+<!-- キーワードサンプル自動生成 -->
+<div class="section">
+  <div class="section-title">🖼 キーワードサンプル自動生成</div>
+  <div style="font-size:11px;color:#94a3b8;margin-bottom:8px;line-height:1.6">
+    サンプル画像（<code style="color:#67e8f9;font-size:10px">chara/keyword-samples/キーワード.webp</code>）がまだ無い登録キーワードの画像を作ります。<br>
+    「🎨 SD生成設定」の幅・高さ・Steps・CFG・Sampler・ネガティブで生成し、WebP で保存。<br>
+    プロンプトは「付与ワード, ポジティブ（常時付加）, キーワードのポジティブ」の順（配信でコメント本文が入る位置に付与ワードが入ります）。<br>
+    1枚ずつ順番待ちに入れるので、配信中の画像生成コマンドも間に入れます。マニュアルに出すには commit / push が必要です。<br>
+    手動で置いた PNG / JPG は「🔄 PNG / JPG を WebP に変換」で変換できます（同じ名前の WebP は置き換え、元の画像は削除。同じ名前で PNG と JPG があれば PNG を使います）。
+  </div>
+  <div class="size-row">
+    <span class="size-label">1キーワードあたり</span>
+    <input id="kwsCountInput" type="number" min="1" max="10" step="1" value="1"
+           style="width:60px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:3px 6px;font-size:12px"
+           onchange="kwsSaveConfig()">
+    <span style="font-size:11px;color:#94a3b8;margin-left:6px">枚</span>
+  </div>
+  <div class="size-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+    <span class="size-label">付与ワード<span style="font-size:10px;color:#64748b;margin-left:6px">自動生成のときだけ付ける語。英語で入力（翻訳はしません）。空欄なら付けない</span></span>
+    <textarea id="kwsExtraInput" rows="2" maxlength="2000" placeholder="例: 1girl, cat ears, smile, looking at viewer"
+           style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:4px 8px;box-sizing:border-box;font-size:11px;resize:vertical"
+           onchange="kwsSaveConfig()"></textarea>
+  </div>
+  <div class="btn-row" style="margin:6px 0 8px">
+    <button id="kwsStartBtn" onclick="kwsStart()" style="background:#065f46;color:#6ee7b7;border:none;border-radius:4px;padding:4px 12px;cursor:pointer;font-size:12px">▶ 生成開始</button>
+    <button id="kwsStopBtn" onclick="kwsStop()" style="background:#7f1d1d;color:#fca5a5;border:none;border-radius:4px;padding:4px 12px;cursor:pointer;font-size:12px">■ 停止</button>
+    <button onclick="kwsRefresh()" title="再読み込み" style="background:#1e293b;color:#94a3b8;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px">↺</button>
+    <span id="kwsMsg" style="font-size:11px;color:#fbbf24;align-self:center"></span>
+  </div>
+  <div class="btn-row" style="margin:0 0 8px">
+    <button id="kwsConvertBtn" onclick="kwsConvertImages()" style="background:#1e3a5f;color:#93c5fd;border:none;border-radius:4px;padding:4px 12px;cursor:pointer;font-size:12px">🔄 PNG / JPG を WebP に変換</button>
+  </div>
+  <div id="kwsStatus" style="font-size:12px;color:#94a3b8;background:#0f172a;border-radius:6px;padding:8px 10px;line-height:1.7">
+    読み込み中...
+  </div>
+</div>
+
 <!-- サーバー管理 -->
 <div class="section">
   <div class="section-title">🖥 サーバー管理</div>
@@ -4069,6 +4106,136 @@
       });
     } catch (e) {}
   }
+
+  // ── キーワードサンプル自動生成 ─────────────────────────────
+  let _kwsTimer = null;
+  function _kwsEsc(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  async function _kwsApi(method, url, body) {
+    try {
+      const r = await fetch(url, body
+        ? { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+        : { method });
+      if (!r.ok) return { _error: r.status }; // 404 = この機能より前のサーバーが動いている
+      return await r.json();
+    } catch (e) { return null; }
+  }
+  const _KWS_OLD_SERVER = 'この機能はサーバーを再起動すると使えます';
+  function _kwsSetMsg(text) {
+    const el = document.getElementById('kwsMsg');
+    if (el) el.textContent = text || '';
+  }
+  async function kwsSaveConfig() {
+    const el = document.getElementById('kwsCountInput');
+    const xi = document.getElementById('kwsExtraInput');
+    const sentCount = el.value, sentExtra = xi.value;
+    const d = await _kwsApi('POST', '/api/kw-samples/config', { count: parseInt(sentCount) || 1, extra: sentExtra });
+    if (!d) { warnServerDown(); return; }
+    if (d._error) { _kwsSetMsg(_KWS_OLD_SERVER); return; }
+    // 整えた値に揃える。ただし応答待ちの間に入力が進んでいたら上書きしない
+    if (el.value === sentCount) el.value = d.count;
+    if (xi.value === sentExtra) xi.value = d.extra;
+    kwsRefresh();
+  }
+  async function kwsStart() {
+    const count = parseInt(document.getElementById('kwsCountInput').value) || 1;
+    const extra = document.getElementById('kwsExtraInput').value;
+    const d = await _kwsApi('POST', '/api/kw-samples/start', { count, extra });
+    if (!d) { warnServerDown(); _kwsSetMsg('開始できませんでした'); return; }
+    if (d._error) { _kwsSetMsg(_KWS_OLD_SERVER); return; }
+    _kwsSetMsg(d.ok ? `${d.keywords}件 × ${d.count}枚 = ${d.total}枚の生成を開始` : d.message);
+    kwsRefresh();
+  }
+  async function kwsStop() {
+    const d = await _kwsApi('POST', '/api/kw-samples/stop');
+    if (!d) { warnServerDown(); return; }
+    if (d._error) { _kwsSetMsg(_KWS_OLD_SERVER); return; }
+    _kwsSetMsg(d.stopping ? 'いま生成中の1枚が終わったら止めます' : '');
+    kwsRefresh();
+  }
+  async function kwsConvertImages() {
+    const btn = document.getElementById('kwsConvertBtn');
+    btn.disabled = true; btn.style.opacity = 0.5; btn.dataset.busy = '1';
+    _kwsSetMsg('画像を変換中...');
+    const d = await _kwsApi('POST', '/api/kw-samples/convert-images');
+    btn.disabled = false; btn.style.opacity = 1; delete btn.dataset.busy;
+    if (!d) { warnServerDown(); _kwsSetMsg('変換できませんでした'); return; }
+    if (d._error) { _kwsSetMsg(d._error === 404 ? _KWS_OLD_SERVER : 'サーバーエラー（' + d._error + '）'); return; }
+    if (!d.ok) { _kwsSetMsg(d.message); kwsRefresh(); return; }
+    const replaced = d.converted.filter(c => c.replaced).length;
+    let msg = (d.converted.length || d.failed.length || d.skipped.length)
+      ? `${d.converted.length}枚を WebP に変換` + (replaced ? `（うち置き換え ${replaced}枚）` : '')
+      : '変換する画像（PNG / JPG）はありません';
+    const kept = d.converted.filter(c => c.kept).map(c => c.file);
+    if (kept.length) msg += ' ／ 元の画像を消せなかった: ' + kept.join('、');
+    if (d.failed.length) msg += ` ／ 失敗 ${d.failed.length}件: ` + d.failed.map(f => f.file + '（' + f.message + '）').join('、');
+    if (d.skipped.length) {
+      msg += ' ／ 同じ名前の別の形式を使ったので残したファイル: ' + d.skipped.map(s => s.file + '（' + s.used + ' を使用）').join('、') +
+        '。不要なら消してください（残したままもう一度押すと、そのファイルで置き換わります）';
+    }
+    _kwsSetMsg(msg);
+    kwsRefresh();
+  }
+  async function kwsRefresh() {
+    clearTimeout(_kwsTimer);
+    const el = document.getElementById('kwsStatus');
+    if (!el) return;
+    const d = await _kwsApi('GET', '/api/kw-samples/status');
+    if (!d) {
+      el.innerHTML = '<span style="color:#f87171">サーバーに接続できません</span>';
+      return;
+    }
+    if (d._error) {
+      el.innerHTML = `<span style="color:#fbbf24">${d._error === 404 ? _KWS_OLD_SERVER : 'サーバーエラー（' + d._error + '）'}</span>`;
+      return;
+    }
+    const ci = document.getElementById('kwsCountInput');
+    if (ci && !ci.dataset.loaded) { ci.value = d.count; ci.max = d.maxCount; ci.dataset.loaded = '1'; }
+    const xi = document.getElementById('kwsExtraInput');
+    if (xi && !xi.dataset.loaded) { xi.value = d.extra || ''; xi.maxLength = d.maxExtra; xi.dataset.loaded = '1'; }
+    const count = parseInt(ci?.value) || d.count;
+    const stateLabel = d.stopping ? '⏹ 停止中...' : d.running ? '● 生成中' : '○ 待機中';
+    const stateColor = d.stopping ? '#fbbf24' : d.running ? '#34d399' : '#64748b';
+    const p = d.params;
+    let html = `<div>状態: <span style="color:${stateColor};font-weight:bold">${stateLabel}</span></div>`;
+    if (d.running || d.total) {
+      html += `<div>保存: <span style="color:#e2e8f0">${d.done}/${d.total}</span>枚　失敗: <span style="color:${d.errors ? '#f87171' : '#64748b'}">${d.errors}</span>件</div>`;
+    }
+    if (d.current) html += `<div>生成中: <span style="color:#fbbf24">${_kwsEsc(d.current)}</span></div>`;
+    if (d.settingsError) {
+      html += `<div style="color:#f87171">設定を読めません: ${_kwsEsc(d.settingsError)}</div>`;
+    } else {
+      html += `<div>画像が無いキーワード: <span style="color:#e2e8f0">${d.missing.length}</span>件` +
+        (d.missing.length && !d.running ? `（開始すると ${d.missing.length * count}枚）` : '') + '</div>';
+      if (p) html += `<div style="font-size:11px;color:#64748b">生成設定: ${p.width}×${p.height} / Steps ${p.steps} / CFG ${p.cfgScale} / ${_kwsEsc(p.sampler)}</div>`;
+      if (d.extra) html += `<div style="font-size:11px;color:#64748b;word-break:break-all">付与ワード: ${_kwsEsc(d.extra)}</div>`;
+      if (d.missing.length) {
+        html += `<details style="margin-top:4px"><summary style="cursor:pointer;font-size:11px;color:#94a3b8">一覧を見る</summary>` +
+          `<div style="font-size:11px;color:#cbd5e1;margin-top:3px;word-break:break-all">${d.missing.map(_kwsEsc).join(' / ')}</div></details>`;
+      }
+    }
+    if (d.sources && d.sources.length) {
+      html += `<div>未変換の画像（PNG / JPG）: <span style="color:#93c5fd">${d.sources.length}</span>件</div>` +
+        `<details style="margin-top:2px"><summary style="cursor:pointer;font-size:11px;color:#94a3b8">画像の一覧</summary>` +
+        `<div style="font-size:11px;color:#cbd5e1;margin-top:3px;word-break:break-all">${d.sources.map(_kwsEsc).join(' / ')}</div></details>`;
+    }
+    if (d.recent && d.recent.length) {
+      html += '<div style="margin-top:6px;font-size:11px;color:#64748b">直近の結果:</div>' +
+        d.recent.map(r => r.ok
+          ? `<div style="font-size:11px;color:#6ee7b7">✓ ${_kwsEsc(r.file)}</div>`
+          : `<div style="font-size:11px;color:#fca5a5">✗ ${_kwsEsc(r.keyword)}: ${_kwsEsc(r.message)}</div>`
+        ).join('');
+    }
+    el.innerHTML = html;
+    const cb = document.getElementById('kwsConvertBtn');
+    if (cb && !cb.dataset.busy) cb.textContent = '🔄 PNG / JPG を WebP に変換' + (d.sources && d.sources.length ? `（${d.sources.length}件）` : '');
+    const sb = document.getElementById('kwsStartBtn');
+    if (sb) { sb.disabled = d.running; sb.style.opacity = d.running ? 0.5 : 1; }
+    // 生成中は2秒ごとに更新
+    if (d.running) _kwsTimer = setTimeout(kwsRefresh, 2000);
+  }
+  kwsRefresh();
 
   async function autogenStart() {
     await fetch('/api/autogen/start', { method: 'POST' }).catch(() => {});

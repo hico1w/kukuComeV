@@ -1513,6 +1513,16 @@ app.get('/api/autogen/status', (req, res) => {
   });
 });
 
+// キーワードサンプル画像の自動生成（管理画面「🖼 キーワードサンプル自動生成」）→ lib/kw-samples.js
+require('./lib/kw-samples').register(app, {
+  dir:             path.join(__dirname, 'chara', 'keyword-samples'),
+  readSettings:    () => JSON.parse(fs.readFileSync(DATA('settings.json'), 'utf8')),
+  enqueue:         fn => { _sdQueue = _sdQueue.then(fn); }, // 配信の画像生成と同じ直列キュー
+  loadConfig:      () => loadServerConfig(),
+  saveConfig:      cfg => saveServerConfig(cfg),
+  defaultNegative: SD_NEGATIVE,
+});
+
 // TTS（RVC 7870）
 app.post('/api/tts', (req, res) => {
   const {
