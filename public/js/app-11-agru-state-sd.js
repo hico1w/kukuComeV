@@ -1467,19 +1467,34 @@ async function _sdGenerateOne(user, prompt, commentNo, settingsOverride = null) 
     prompt = '1girl,anime coloring,sakura miko,sumg,chibi,rolling eyes,crazy_smile,grin,laughing,double v,saliva,spoken musical text,spoken www,(emphasis lines:1.3),';
   }
   let positiveSuffix = cfg.positiveSuffix;
-  const _extras = [];
-  const _kwStrip = [];
-  const _kwUsed  = []; // 生成に効いたキーワード（プロンプトからは消えるので表示用に控える）
-  if (prompt.includes('ドット'))    { _extras.push(cfg.dotPositiveSuffix);  _kwStrip.push('ドット'); _kwUsed.push('ドット'); }
-  if (prompt.includes('リアル'))    { _extras.push(cfg.realPositiveSuffix); _kwStrip.push('リアル'); _kwUsed.push('リアル'); }
-  if (prompt.includes('もいちゃん')){ _extras.push(cfg.moiPositiveSuffix);  _kwStrip.push('もいちゃん'); _kwUsed.push('もいちゃん'); }
-  else if (/moi/i.test(prompt))     { _extras.push(cfg.moiPositiveSuffix); _kwUsed.push('moi'); }
-  sdKeywordPrompts.forEach(({keyword, positive}) => {
-    if (keyword && positive && prompt.includes(keyword)) { _extras.push(positive); _kwStrip.push(keyword); _kwUsed.push(keyword); }
+  // キーワード候補（組み込み3種＋登録キーワード）。同じ語は先に出てきた方を優先する
+  const _cands = [];
+  const _seen  = new Set();
+  const _addCand = (key, positive) => {
+    if (!key || !positive || _seen.has(key)) return;
+    _seen.add(key);
+    _cands.push({ key, positive });
+  };
+  _addCand('ドット',     cfg.dotPositiveSuffix);
+  _addCand('リアル',     cfg.realPositiveSuffix);
+  _addCand('もいちゃん', cfg.moiPositiveSuffix);
+  sdKeywordPrompts.forEach(({ keyword, positive }) => _addCand(keyword, positive));
+
+  // 長いキーワードから順に照合し、当たったらその場で本文から除去する。
+  // 「スタイル1」と「スタイル11」のように片方が片方を含む場合、長い方だけを効かせるため。
+  const _hit = new Set();
+  [..._cands].sort((a, b) => b.key.length - a.key.length).forEach(c => {
+    if (!prompt.includes(c.key)) return;
+    _hit.add(c.key);
+    prompt = prompt.split(c.key).join('').replace(/\s{2,}/g, ' ').replace(/,\s*,/g, ',').trim();
   });
-  // マッチしたキーワードをプロンプト本文から除去（翻訳・SD送信に含めない）
-  for (const kw of _kwStrip) {
-    prompt = prompt.split(kw).join('').replace(/\s{2,}/g, ' ').replace(/,\s*,/g, ',').trim();
+  // 付ける順番は従来どおり（組み込み → 登録順）
+  const _extras = _cands.filter(c => _hit.has(c.key)).map(c => c.positive);
+  const _kwUsed = _cands.filter(c => _hit.has(c.key)).map(c => c.key); // 表示・Discord通知用
+  // 「もいちゃん」表記が無くても moi と書かれていればスタイルだけ足す（本文からは消さない）
+  if (!_hit.has('もいちゃん') && /moi/i.test(prompt) && cfg.moiPositiveSuffix) {
+    _extras.push(cfg.moiPositiveSuffix);
+    _kwUsed.push('moi');
   }
   const _valid = _extras.filter(Boolean);
   if (_valid.length) positiveSuffix = [cfg.positiveSuffix, ..._valid].filter(Boolean).join(', ');
@@ -1497,6 +1512,7 @@ async function _sdGenerateOne(user, prompt, commentNo, settingsOverride = null) 
       body:    JSON.stringify({
         prompt,
         charName:       user.name || '',
+        keywords:       [...new Set(_kwUsed)], // Discord通知にも画像表示と同じキーワードを載せる
         width,
         height,
         steps,

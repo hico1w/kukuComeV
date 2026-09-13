@@ -778,7 +778,7 @@ app.post('/api/discord-config', (req, res) => {
   res.json({ ok: true });
 });
 
-async function sendToDiscord(imageDataUrl, prompt, translatedPrompt, charName) {
+async function sendToDiscord(imageDataUrl, prompt, translatedPrompt, charName, keywords) {
   const { webhookUrl } = loadDiscordConfig();
   if (!webhookUrl) return;
 
@@ -789,9 +789,14 @@ async function sendToDiscord(imageDataUrl, prompt, translatedPrompt, charName) {
   const promptLine = (translatedPrompt && translatedPrompt !== prompt)
     ? `**${prompt}** → ${translatedPrompt}`
     : `**${prompt}**`;
+  // 画像ポップアップに出しているのと同じキーワードを併記する
+  const kwList = Array.isArray(keywords)
+    ? [...new Set(keywords.filter(k => typeof k === 'string' && k.trim()))].slice(0, 12)
+    : [];
+  const kwLine = kwList.length ? `\n🏷 ${kwList.map(k => `\`${k}\``).join(' ')}` : '';
   const content = charName
-    ? `🎨 ${charName}\n${promptLine}`
-    : `🎨 ${promptLine}`;
+    ? `🎨 ${charName}\n${promptLine}${kwLine}`
+    : `🎨 ${promptLine}${kwLine}`;
 
   const payloadJson = JSON.stringify({ content, username: 'kukuCome SD' });
 
@@ -929,7 +934,7 @@ try { fs.unlinkSync(SD_DEFAULTS_PATH); } catch {}
 _sdFetchDefaults().catch(() => {});
 
 app.post('/api/sd-generate', async (req, res) => {
-  const { prompt, charName, width, height, steps, cfgScale, sampler, positiveSuffix, negative } = req.body || {};
+  const { prompt, charName, keywords, width, height, steps, cfgScale, sampler, positiveSuffix, negative } = req.body || {};
   let translatedPrompt = prompt || '';
   if (prompt && hasJapanese(prompt)) {
     try {
@@ -976,7 +981,7 @@ app.post('/api/sd-generate', async (req, res) => {
         if (!b64) return res.status(500).json({ error: 'SD: 画像なし' });
         const dataUrl = 'data:image/png;base64,' + b64;
         console.log('[SD] success');
-        sendToDiscord(dataUrl, prompt, translatedPrompt, charName).catch(() => {});
+        sendToDiscord(dataUrl, prompt, translatedPrompt, charName, keywords).catch(() => {});
         try {
           const _today = new Date().toISOString().slice(0, 10);
           const _saveDir = path.join('F:\\AI\\Data\\Images\\Text2Img', _today);

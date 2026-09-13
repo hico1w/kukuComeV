@@ -955,6 +955,8 @@ function handleAdminMessage(d, replyFn) {
       wordlePanelBgOpacity = parseInt(d.value); localStorage.setItem('wordlePanelBgOpacity', wordlePanelBgOpacity); saveSettingsToServer(); applyPanelSettings();
     } else if (d.id === 'rankingPanelBgSlider') {
       rankingPanelBgOpacity = parseInt(d.value); localStorage.setItem('rankingPanelBgOpacity', rankingPanelBgOpacity); saveSettingsToServer(); applyPanelSettings();
+    } else if (d.id === 'rankingTopNSlider') {
+      rankingTopN = parseInt(d.value); localStorage.setItem('rankingTopN', rankingTopN); saveSettingsToServer(); renderRankingPanel();
     } else if (d.id === 'boPanelScaleSlider') {
       boPanelScale = parseInt(d.value); localStorage.setItem('boPanelScale', boPanelScale); saveSettingsToServer(); applyPanelSettings();
     } else if (d.id === 'boPanelZSlider') {
@@ -1022,7 +1024,7 @@ function handleAdminMessage(d, replyFn) {
                        'slotProbCherry','slotProbBell','slotProbStar','slotProbDiamond','slotProbJackpot',
                        'afkOpacitySlider','afkGrayscaleSlider','afkBrightnessSlider',
                        'kaiSpeedSlider','kaiRestitutionSlider','kaiGravitySlider','kaiBulletSizeSlider',
-                       'dmgFontScaleSlider','wordlePanelWidthSlider','wordlePanelBgSlider','rankingPanelBgSlider','quizPanelBgSlider','boPanelScaleSlider','boPanelZSlider','boPanelWidthSlider','boChartHeightSlider','boFontScaleSlider','boResultMaxSlider','boPanelBgSlider','boTitleSizeSlider','newsTickerIntervalSlider'];
+                       'dmgFontScaleSlider','wordlePanelWidthSlider','wordlePanelBgSlider','rankingPanelBgSlider','rankingTopNSlider','quizPanelBgSlider','boPanelScaleSlider','boPanelZSlider','boPanelWidthSlider','boChartHeightSlider','boFontScaleSlider','boResultMaxSlider','boPanelBgSlider','boTitleSizeSlider','newsTickerIntervalSlider'];
     const state = {};
     sliderIds.forEach(sid => { const el = document.getElementById(sid); if (el) state[sid] = el.value; });
     state.bgColor    = document.getElementById('bgColor')?.value;
@@ -1194,6 +1196,8 @@ function handleAdminMessage(d, replyFn) {
     state.wordlePanelWidthSlider   = wordlePanelWidth;
     state.wordlePanelBgSlider      = wordlePanelBgOpacity;
     state.rankingPanelBgSlider     = rankingPanelBgOpacity;
+    state.rankingTopNSlider        = rankingTopN;
+    state.rankingDmgHidden         = rankingDmgHidden;
     state.quizPanelBgSlider        = quizPanelBgOpacity;
     state.boPanelScaleSlider       = boPanelScale;
     state.boPanelZSlider           = boPanelZ;
@@ -1516,10 +1520,19 @@ function handleAdminMessage(d, replyFn) {
     Object.values(users).filter(u => u.el).forEach(u => applyMotion(u, 'spinning'));
   } else if (d.type === 'showMpRanking') {
     showMpRanking();
+  } else if (d.type === 'toggleRankingDmg') {
+    rankingDmgHidden = !rankingDmgHidden;
+    localStorage.setItem('rankingDmgHidden', rankingDmgHidden ? '1' : '0');
+    saveSettingsToServer();
+    renderRankingPanel();
+    addSystemLog(rankingDmgHidden ? '🏆 ランキング: MPのみ表示' : '🏆 ランキング: ダメージ＋MP表示', '#38bdf8');
   } else if (d.type === 'resetCumulativeDmg') {
     cumulativeDmgMap = {};
+    bossDamageMap    = {}; // 現ボス戦ぶんも消してランキングを完全に空にする
     localStorage.removeItem('cumulativeDmgMap');
-    if (rankingState) { rankingState.dmgMap = {}; renderRankingPanel(); }
+    if (rankingState) { rankingState.dmgMap = {}; }
+    renderRankingPanel();
+    addSystemLog('🗑 ダメージランキングをリセットしました', '#f87171');
   } else if (d.type === 'charIndivSize') {
     const u = users[d.ipid];
     if (u) {

@@ -791,6 +791,7 @@ function renderRankingPanel() {
   panel.style.top  = rankingState.panelY + 'px';
 
   const medals = ['🥇', '🥈', '🥉'];
+  const rankMark = i => medals[i] || (i + 1) + '位'; // 4位以降は数字表示
 
   const _liveDmg = {};
   Object.entries(cumulativeDmgMap).forEach(([k, v]) => { _liveDmg[k] = { name: v.name, totalDmg: v.totalDmg }; });
@@ -802,23 +803,25 @@ function renderRankingPanel() {
   const dmgEntries = Object.entries(_liveDmg)
     .filter(([k]) => !users[k]?.isMaster)
     .map(([, v]) => v)
-    .sort((a, b) => b.totalDmg - a.totalDmg).slice(0, 3);
+    .sort((a, b) => b.totalDmg - a.totalDmg).slice(0, Math.max(1, rankingTopN));
   let dmgRows = dmgEntries.length
-    ? dmgEntries.map((e, i) => `<div class="ranking-row"><span class="ranking-medal">${medals[i]}</span><span class="ranking-name">${escapeHtml(e.name)}</span><span class="ranking-dmg">${e.totalDmg.toLocaleString()}</span></div>`).join('')
+    ? dmgEntries.map((e, i) => `<div class="ranking-row"><span class="ranking-medal">${rankMark(i)}</span><span class="ranking-name">${escapeHtml(e.name)}</span><span class="ranking-dmg">${e.totalDmg.toLocaleString()}</span></div>`).join('')
     : '<div class="ranking-empty">データなし</div>';
 
   const mpEntries = Object.values(users).filter(u => u.el && !u.isMaster)
     .map(u => ({ name: u.name || u.ipid, mp: u.mp ?? 0 }))
-    .sort((a, b) => b.mp - a.mp).slice(0, 3);
+    .sort((a, b) => b.mp - a.mp).slice(0, Math.max(1, rankingTopN));
   const mpRows = mpEntries.map((e, i) =>
-    `<div class="ranking-row"><span class="ranking-medal">${medals[i]}</span><span class="ranking-name">${escapeHtml(e.name)}</span><span class="ranking-mp">${e.mp.toLocaleString()} MP</span></div>`
+    `<div class="ranking-row"><span class="ranking-medal">${rankMark(i)}</span><span class="ranking-name">${escapeHtml(e.name)}</span><span class="ranking-mp">${e.mp.toLocaleString()} MP</span></div>`
   ).join('');
 
-  panel.innerHTML =
-    `<div class="ranking-section-head ranking-section-dmg" onclick="showRankingModal('dmg')" onmousedown="event.stopPropagation()">⚔️ ダメージ<span class="ranking-all-btn">全順位</span><span class="ranking-reset" onclick="event.stopPropagation();resetRankingPanelPos()" title="位置リセット">↺</span><span class="ranking-close" onclick="event.stopPropagation();closeRankingPanel()">✕</span></div>` +
-    dmgRows +
-    `<div class="ranking-section-head ranking-section-mp" onclick="showRankingModal('mp')" onmousedown="event.stopPropagation()">💎 MP<span class="ranking-all-btn">全順位</span></div>` +
-    mpRows;
+  // 位置リセット／閉じるボタンは、常に一番上の見出しに付ける
+  const headBtns = `<span class="ranking-all-btn">全順位</span><span class="ranking-reset" onclick="event.stopPropagation();resetRankingPanelPos()" title="位置リセット">↺</span><span class="ranking-close" onclick="event.stopPropagation();closeRankingPanel()">✕</span>`;
+  const dmgHead = `<div class="ranking-section-head ranking-section-dmg" onclick="showRankingModal('dmg')" onmousedown="event.stopPropagation()">⚔️ ダメージ${headBtns}</div>`;
+  const mpHead  = `<div class="ranking-section-head ranking-section-mp" onclick="showRankingModal('mp')" onmousedown="event.stopPropagation()">💎 MP${rankingDmgHidden ? headBtns : '<span class="ranking-all-btn">全順位</span>'}</div>`;
+  panel.innerHTML = rankingDmgHidden
+    ? mpHead + mpRows                       // ダメージ欄を隠してMPだけにする
+    : dmgHead + dmgRows + mpHead + mpRows;
 }
 
 function showRankingModal(type) {
@@ -900,6 +903,7 @@ function applyPanelSettings() {
   _p('wordlePanelWidthSlider',   wordlePanelWidth,      wordlePanelWidth + 'px');
   _p('wordlePanelBgSlider',      wordlePanelBgOpacity,  wordlePanelBgOpacity + '%');
   _p('rankingPanelBgSlider',     rankingPanelBgOpacity, rankingPanelBgOpacity + '%');
+  _p('rankingTopNSlider',        rankingTopN,           rankingTopN + '人');
   _p('quizPanelBgSlider',        quizPanelBgOpacity,    quizPanelBgOpacity + '%');
   _p('boPanelScaleSlider',       boPanelScale,          boPanelScale + '%');
   _p('boPanelZSlider',           boPanelZ,              String(boPanelZ));
@@ -1873,6 +1877,9 @@ document.getElementById('toggleNewsTickerBtn')?.addEventListener('click', () => 
   });
   document.getElementById('rankingPanelBgSlider')?.addEventListener('input', function() {
     rankingPanelBgOpacity = parseInt(this.value); ppSave('rankingPanelBgOpacity', rankingPanelBgOpacity); applyPanelSettings();
+  });
+  document.getElementById('rankingTopNSlider')?.addEventListener('input', function() {
+    rankingTopN = parseInt(this.value); ppSave('rankingTopN', rankingTopN); renderRankingPanel();
   });
   document.getElementById('boPanelScaleSlider')?.addEventListener('input', function() {
     boPanelScale = parseInt(this.value); ppSave('boPanelScale', boPanelScale); applyPanelSettings();

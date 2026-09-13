@@ -551,7 +551,8 @@
     <button onclick="cmd('brTimerBtn')">⏰ BR次回</button>
     <button onclick="cmd('brAutoBtn')">🔄 自動BR</button>
     <button onclick="adminSend({type:'showMpRanking'})">💎 MPランキング</button>
-    <button onclick="adminSend({type:'resetCumulativeDmg'})" class="btn-red">🗑 通算DPSリセット</button>
+    <button onclick="adminSend({type:'resetCumulativeDmg'})" class="btn-red">🗑 ダメージランキング リセット</button>
+    <button id="rankingDmgHiddenBtn" onclick="toggleRankingDmgAdmin()">⚔️ ダメージ欄 表示中</button>
     <button id="contentModeBtn" class="btn-teal" onclick="toggleContentModeAdmin()">📺 コンテンツ</button>
   </div>
   <div class="btn-row" style="margin-top:5px">
@@ -580,6 +581,11 @@
     <span class="size-label">ランキング 背景</span>
     <input id="rankingPanelBgSlider" type="range" min="0" max="100" step="1" value="92" class="size-slider" oninput="syncSlider(this,'rankingPanelBgVal',v=>v+'%')">
     <span id="rankingPanelBgVal">92%</span>
+  </div>
+  <div class="size-row">
+    <span class="size-label">ランキング 人数</span>
+    <input id="rankingTopNSlider" type="range" min="1" max="20" step="1" value="3" class="size-slider" oninput="syncSlider(this,'rankingTopNVal',v=>v+'人')">
+    <span id="rankingTopNVal">3人</span>
   </div>
   <div class="size-row">
     <span class="size-label">BO サイズ</span>
@@ -2471,6 +2477,7 @@
     wordlePanelWidthSlider:   {key:'wordlePanelWidth',    save:v=>parseInt(v)},
     wordlePanelBgSlider:      {key:'wordlePanelBgOpacity',save:v=>parseInt(v)},
     rankingPanelBgSlider:     {key:'rankingPanelBgOpacity',save:v=>parseInt(v)},
+    rankingTopNSlider:        {key:'rankingTopN',          save:v=>parseInt(v)},
     quizPanelBgSlider:        {key:'quizPanelBgOpacity',  save:v=>parseInt(v)},
     boPanelScaleSlider:       {key:'boPanelScale',        save:v=>parseInt(v)},
     boPanelZSlider:           {key:'boPanelZ',            save:v=>parseInt(v)},
@@ -2595,6 +2602,8 @@
       _m('newsTickerSpeed','newsTickerSpeedSlider'); _m('newsTickerInterval','newsTickerIntervalSlider');
       _m('wordlePanelWidth','wordlePanelWidthSlider'); _m('wordlePanelBgOpacity','wordlePanelBgSlider');
       _m('rankingPanelBgOpacity','rankingPanelBgSlider'); _m('quizPanelBgOpacity','quizPanelBgSlider');
+      _m('rankingTopN','rankingTopNSlider');
+      if (s.rankingDmgHidden !== undefined) syncRankingDmgBtn(s.rankingDmgHidden === '1' || s.rankingDmgHidden === true);
       _m('boPanelScale','boPanelScaleSlider'); _m('boPanelZ','boPanelZSlider');
       _m('boPanelWidth','boPanelWidthSlider'); _m('boChartHeight','boChartHeightSlider'); _m('boFontScale','boFontScaleSlider'); _m('boResultMax','boResultMaxSlider'); _m('boPanelBgOpacity','boPanelBgSlider'); _m('boTitleSize','boTitleSizeSlider');
       _m('afkOpacity','afkOpacitySlider'); _m('afkGrayscale','afkGrayscaleSlider'); _m('afkBrightness','afkBrightnessSlider');
@@ -2762,6 +2771,19 @@
     const words    = wordsRaw.split('\n').map(s => s.trim()).filter(s => s);
     const messages = messagesRaw.split('\n').map(s => s.trim()).filter(s => s);
     adminSend({ type: 'autoReplyConfig', words, messages });
+  }
+
+  // ランキングのダメージ欄を隠す／出す
+  function toggleRankingDmgAdmin() {
+    adminSend({ type: 'toggleRankingDmg' });
+    const btn = document.getElementById('rankingDmgHiddenBtn');
+    if (btn) syncRankingDmgBtn(!btn.classList.contains('active'));
+  }
+  function syncRankingDmgBtn(hidden) {
+    const btn = document.getElementById('rankingDmgHiddenBtn');
+    if (!btn) return;
+    btn.classList.toggle('active', !!hidden);
+    btn.textContent = hidden ? '💎 MPのみ表示中' : '⚔️ ダメージ欄 表示中';
   }
 
   function toggleContentModeAdmin() {
@@ -3021,6 +3043,7 @@
       { id:'wordlePanelWidthSlider',   valId:'wordlePanelWidthVal',   fmt: v=>v+'px' },
       { id:'wordlePanelBgSlider',      valId:'wordlePanelBgVal',      fmt: v=>v+'%'  },
       { id:'rankingPanelBgSlider',     valId:'rankingPanelBgVal',     fmt: v=>v+'%'  },
+      { id:'rankingTopNSlider',        valId:'rankingTopNVal',        fmt: v=>v+'人' },
       { id:'quizPanelBgSlider',        valId:'quizPanelBgVal',        fmt: v=>v+'%'  },
       { id:'boPanelScaleSlider',       valId:'boPanelScaleVal',       fmt: v=>v+'%'  },
       { id:'boPanelZSlider',           valId:'boPanelZVal',           fmt: v=>v      },
