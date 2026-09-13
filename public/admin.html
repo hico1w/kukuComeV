@@ -28,6 +28,15 @@
       flex-shrink: 0;
     }
     #statusDot.connected { background: #22c55e; }
+    /* サーバー未接続のまま値を変えたときの警告（再送はしない。気付けるようにするだけ） */
+    #serverDownToast {
+      position: fixed; top: 6px; left: 6px; right: 6px; z-index: 99999;
+      background: #7f1d1d; color: #fee2e2; border: 1px solid #f87171; border-radius: 6px;
+      padding: 7px 30px 7px 10px; font-size: 12px; line-height: 1.5; font-weight: bold;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+    }
+    #serverDownToast.reconnected { background: #78350f; border-color: #fbbf24; color: #fef3c7; }
+    #serverDownToast button { position: absolute; top: 4px; right: 4px; background: none; color: inherit; font-size: 13px; padding: 0 6px; }
     .section {
       background: #1e2330;
       border: 1px solid #2d3748;
@@ -255,6 +264,7 @@
 <body>
 
 <h1>⚙️ kukuCome 管理 <span id="statusDot" title="メインウィンドウ接続状態"></span></h1>
+<div id="serverDownToast" hidden><span id="serverDownMsg"></span><button onclick="document.getElementById('serverDownToast').hidden=true" title="閉じる">✕</button></div>
 <button id="accAllBtn" onclick="toggleAllSections()">▾ すべて開く</button>
 
 <!-- 表示 -->
@@ -2448,11 +2458,37 @@
   let _ws = null;
   let connected = false;
 
+  // ── サーバー未接続の警告 ─────────────────────────────────
+  // サーバーが止まっている間に値を変えても保存されず、起動後にサーバーの古い値で上書きされるため、
+  // 変更した瞬間に気付けるよう画面上部に警告を出す（自動の再送はしない）。
+  const _READONLY_MSG_TYPES = new Set(['getState', 'ping', 'identify']);
+  let _serverDownWarned = false;
+  function warnServerDown() {
+    const box = document.getElementById('serverDownToast');
+    if (!box) return;
+    box.classList.remove('reconnected');
+    document.getElementById('serverDownMsg').textContent =
+      '⚠️ サーバーに接続できません。いま変更した値は保存されていません（サーバー起動後に設定し直してください）';
+    box.hidden = false;
+    _serverDownWarned = true;
+  }
+  function noteServerReconnected() {
+    if (!_serverDownWarned) return;
+    const box = document.getElementById('serverDownToast');
+    if (!box) return;
+    box.classList.add('reconnected');
+    document.getElementById('serverDownMsg').textContent =
+      '🔌 サーバーに再接続しました。未接続の間に変えた値は保存されていないので、もう一度設定し直してください';
+    box.hidden = false;
+    _serverDownWarned = false;
+  }
+
   function adminSend(msg) {
     // BroadcastChannel と WebSocket の両方で送るため、アプリ側で二重処理しないよう nonce を付与
     msg._n = Date.now().toString(36) + '.' + Math.random().toString(36).slice(2, 8);
     channel.postMessage(msg);
     if (_ws?.readyState === WebSocket.OPEN) _ws.send(JSON.stringify(msg));
+    else if (!_READONLY_MSG_TYPES.has(msg.type)) warnServerDown(); // 値を変えたのにサーバーへ届かない
     _adminDirectSave(msg);
   }
 
@@ -2530,7 +2566,9 @@
     _patchTimer = setTimeout(() => {
       const p = Object.assign({}, _pendingPatches);
       Object.keys(_pendingPatches).forEach(k => delete _pendingPatches[k]);
-      fetch('/api/settings', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(p)}).catch(()=>{});
+      fetch('/api/settings', {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(p)})
+        .then(r => { if (!r.ok) warnServerDown(); })
+        .catch(() => warnServerDown());
     }, 500);
   }
   function _adminDirectSave(msg) {
@@ -2635,6 +2673,7 @@
     _ws.onopen = () => {
       _ws.send(JSON.stringify({ type: 'identify', role: 'admin' }));
       setConnected(true);
+      noteServerReconnected();
       adminSend({ type: 'getState' });
       dbgRefreshUsers();
     };
