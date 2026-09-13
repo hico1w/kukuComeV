@@ -52,6 +52,8 @@ description: kukucome-chara.pages.dev（公開サイト）と Worker のデプ�
 
 - **Git 連携なし。** このプロジェクトは Git Provider が `No` の直接アップロード方式。**git push しても公開サイトには反映されない。**
 - **`--branch=main` を明示する。** `wrangler pages deploy` はカレントの git ブランチ名を拾うため、作業ブランチ上で実行すると Production ではなく **Preview 環境**に入る。デプロイ後は `pages deployment list` の `Environment` 列が `Production` になっているか確認する。
+- **Production になっても本番 URL が前の版を返し続けることがある。**（2026-09-13 に発生。デプロイ後15分以上、`?cb=` を付けても旧 ETag のまま。同じ中身で再デプロイしても変わらなかった）
+  切り分けは「①デプロイ単体 URL（`https://<id>.kukucome-chara.pages.dev/…`）に新しい中身があるか ②API `GET /accounts/<acc>/pages/projects/kukucome-chara` の `canonical_deployment.id` が新しい版か ③本番 URL の `ETag` がどのデプロイ単体 URL と一致するか」。①②が新しいのに③が旧版なら、アップロード漏れではなく Cloudflare 側の配信の遅れ。ダッシュボードで対象デプロイを「Rollback to this deployment」するか、時間を置いて再確認する。
 - **`/xxx.html` は 308 で `/xxx` にリダイレクトされる。** curl で確認するときは `-L` を付けないと 0 バイトが返る。
 - **未知パスは 404 にならず `index.html` が返る。** ファイルを消しても直リンクはギャラリーが表示される（`/patchnotes` の直リンクが動くのもこの仕組み）。
 - **Worker の `/upload` はページの `/upload` とは別物。** `index.html` と `puru.html` が `fetch(WORKER_URL + '/upload')` で叩いている API なので消さない。
