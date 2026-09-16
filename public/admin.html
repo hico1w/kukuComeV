@@ -2256,12 +2256,13 @@
     <span class="size-label">キーワード別ポジティブ（汎用）<span style="font-size:10px;color:#64748b;margin-left:6px">プロンプトにキーワードが含まれると自動追加（複数同時適用可）</span></span>
     <div id="sdKwpList" style="width:100%;display:flex;flex-direction:column;gap:3px"></div>
     <div style="display:flex;gap:4px;margin-top:2px;width:100%">
-      <input id="sdKwpKeyInput" type="text" placeholder="キーワード"
+      <input id="sdKwpKeyInput" type="text" placeholder="キーワード" oninput="_sdKwpCheckInput()"
              style="width:110px;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:4px 8px;font-size:12px;box-sizing:border-box">
       <input id="sdKwpPosInput" type="text" placeholder="追加するポジティブプロンプト"
              style="flex:1;background:#1e293b;border:1px solid #334155;border-radius:4px;color:#e2e8f0;padding:4px 8px;font-size:12px;box-sizing:border-box">
       <button onclick="_sdKwpAdd()" style="background:#3b82f6;border:none;border-radius:4px;color:#fff;padding:4px 10px;cursor:pointer;font-size:12px;white-space:nowrap">追加</button>
     </div>
+    <div id="sdKwpMsg" style="font-size:11px;line-height:1.5;min-height:0"></div>
   </div>
   <div class="size-row" style="flex-direction:column;align-items:flex-start;gap:4px">
     <span class="size-label">ネガティブ</span>
@@ -4352,19 +4353,79 @@
     const kw  = row.querySelector('.kwp-edit-kw')?.value?.trim();
     const pos = row.querySelector('.kwp-edit-pos')?.value?.trim();
     if (!kw) return;
+    // ほかの行と同じキーワードに書き換えたときは保存しない（通知は一覧が長いので編集中の行のすぐ下に出す）
+    const dupMsg = _sdKwpDupMessage(kw, i);
+    if (dupMsg) {
+      let note = row.nextElementSibling?.classList?.contains('kwp-edit-msg') ? row.nextElementSibling : null;
+      if (!note) {
+        note = document.createElement('div');
+        note.className = 'kwp-edit-msg';
+        note.style.cssText = 'font-size:11px;color:#fbbf24;padding:0 6px 2px;line-height:1.5';
+        row.after(note);
+      }
+      note.textContent = dupMsg + '。変更を保存していません';
+      const d = _sdKwpFindDup(kw, i);
+      if (d >= 0) _sdKwpFlashRow(d);
+      return;
+    }
     _sdKwpList[i] = { keyword: kw, positive: pos || '' };
     _sdKwpRender(_sdKwpList);
     _sdKwpSend();
   }
+  // ── キーワードの重複確認 ─────────────────────────────
+  // 同じキーワードを2つ登録しても、ステージ側は先に登録した方しか使わないので、登録済みなら追加せずに知らせる。
+  // 比べるのは前後の空白を除いた完全一致（「ｽﾋﾟｷ」と「スピキ」のように表記違いで別々に登録しているものは別扱い）。
+  const _SD_KWP_BUILTIN = ['ドット', 'リアル', 'もいちゃん']; // 別の設定欄にある組み込みキーワード（こちらが優先される）
+  function _sdKwpFindDup(kw, exceptIndex = -1) {
+    return _sdKwpList.findIndex((it, i) => i !== exceptIndex && String(it.keyword ?? '').trim() === kw);
+  }
+  // 登録済み・組み込みなら通知文を返す（問題なければ ''）
+  function _sdKwpDupMessage(kw, exceptIndex = -1) {
+    if (_SD_KWP_BUILTIN.includes(kw)) return `⚠️ 「${kw}」は組み込みキーワードです（「ドット絵」「リアル」「もいちゃん」の各欄で設定されていて、そちらが優先されます）`;
+    const d = _sdKwpFindDup(kw, exceptIndex);
+    if (d < 0) return '';
+    const pos = String(_sdKwpList[d].positive ?? '');
+    return `⚠️ 「${kw}」は既に登録されています（${d + 1}番目 / ポジティブ: ${pos ? (pos.length > 40 ? pos.slice(0, 40) + '…' : pos) : '（なし）'}）`;
+  }
+  function _sdKwpSetMsg(text, kind = 'warn') {
+    const el = document.getElementById('sdKwpMsg');
+    if (!el) return;
+    el.textContent = text || '';
+    el.style.color = kind === 'ok' ? '#6ee7b7' : '#fbbf24';
+    el.style.marginTop = text ? '2px' : '0';
+  }
+  // 登録済みの行を見える位置に出して、しばらく枠を光らせる
+  function _sdKwpFlashRow(i) {
+    const row = document.getElementById(`kwp-row-${i}`);
+    if (!row) return;
+    row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    row.style.outline = '2px solid #f59e0b';
+    clearTimeout(row._flashTimer);
+    row._flashTimer = setTimeout(() => { row.style.outline = ''; }, 3000);
+  }
+  // 追加欄に入力している途中でも、登録済みなら知らせる
+  function _sdKwpCheckInput() {
+    const kw = document.getElementById('sdKwpKeyInput')?.value?.trim();
+    _sdKwpSetMsg(kw ? _sdKwpDupMessage(kw) : '');
+  }
+
   function _sdKwpAdd() {
     const kw  = document.getElementById('sdKwpKeyInput')?.value?.trim();
     const pos = document.getElementById('sdKwpPosInput')?.value?.trim();
     if (!kw) return;
+    const dupMsg = _sdKwpDupMessage(kw);
+    if (dupMsg) {
+      _sdKwpSetMsg(dupMsg + '。追加していません');
+      const d = _sdKwpFindDup(kw);
+      if (d >= 0) _sdKwpFlashRow(d);
+      return; // 入力欄はそのまま（書き直せるように）
+    }
     _sdKwpList.push({ keyword: kw, positive: pos || '' });
     document.getElementById('sdKwpKeyInput').value = '';
     document.getElementById('sdKwpPosInput').value = '';
     _sdKwpRender(_sdKwpList);
     _sdKwpSend();
+    _sdKwpSetMsg(`✓ 「${kw}」を追加しました`, 'ok');
   }
   function _sdKwpDelete(i) {
     _sdKwpList.splice(i, 1);

@@ -842,7 +842,7 @@ function handleComment(comment) {
     if (!isMasterUser(user)) user.mp -= 5;
     showBubble(user, message, {});
     const prompt = message.replace(/エコ生成/g, '').trim();
-    generateSDImageGomi(user, prompt, comment.number);
+    generateSDImageGomi(user, prompt, comment.number, extractNameTags(rawMessage));
     return;
   }
 
@@ -860,7 +860,7 @@ function handleComment(comment) {
     if (!isMasterUser(user)) user.mp -= 500;
     showBubble(user, message, {});
     const prompt = message.replace(/超生成/g, '').trim();
-    generateSDImageCho(user, prompt, comment.number);
+    generateSDImageCho(user, prompt, comment.number, extractNameTags(rawMessage));
     return;
   }
 
@@ -879,7 +879,7 @@ function handleComment(comment) {
     if (!isMasterUser(user)) user.mp -= 20;
     showBubble(user, message, {});
     const prompt = message.replace(/出ろ|出して|生成|gen/gi, '').trim();
-    generateSDImage(user, prompt, comment.number);
+    generateSDImage(user, prompt, comment.number, extractNameTags(rawMessage));
     return;
   }
 
@@ -1210,6 +1210,7 @@ function handleComment(comment) {
   if (/ランダムキャラ/.test(display)) {
     if (availableImages.length > 0) {
       user.charImage = availableImages[Math.floor(Math.random() * availableImages.length)];
+      delete user.charImageData; // キャラ作成の一時画像が残っていたら解除（見た目に反映されるように）
       delete user._taimanDefeatImg; // 自発変更としてタイマー判定をリセット
       applyAvatarStyle(user);
       addToLog(user, `[ランダムキャラ → ${user.charImage}]`, '#64748b');
@@ -1220,19 +1221,40 @@ function handleComment(comment) {
   const sizeM = display.match(/大きさ[：:]([\S]+)/);
   if (sizeM) {
     const sizeKey = sizeM[1];
-    const sz = SIZE_MAP[sizeKey];
+    const isBigOrTokudai = sizeKey === '大' || sizeKey === '特大';
+    // 「特大」は固定サイズではなく「大」の成長を一気に進める加速コマンド（同じ sizeBigPct を共有）
+    const sz = isBigOrTokudai ? SIZE_MAP['大'] : SIZE_MAP[sizeKey];
     if (sz) {
-      if (sizeKey === '大') {
-        if ((user.mp ?? 0) < 200) {
-          showBubble(user, `MPが足りない… (${user.mp ?? 0}/200)`, {});
-          return;
+      if (isBigOrTokudai) {
+        const isTokudai = sizeKey === '特大';
+        const cost  = isTokudai ? SIZE_TOKUDAI_MP_COST : SIZE_BIG_MP_COST;
+        const steps = isTokudai ? SIZE_TOKUDAI_STEPS : 1;
+        // 使うたびに大きくなる（上限 SIZE_BIG_MAX_PCT %）。上限に達したら以降はMP消費なし
+        const curPct = user.sizeBigPct ?? 0;
+        if (curPct < SIZE_BIG_MAX_PCT) {
+          if ((user.mp ?? 0) < cost) {
+            showBubble(user, `MPが足りない… (${user.mp ?? 0}/${cost})`, {});
+            return;
+          }
+          user.mp -= cost;
+          let pct = curPct;
+          for (let i = 0; i < steps; i++) {
+            pct = pct === 0 ? 100 : Math.min(SIZE_BIG_MAX_PCT, pct + SIZE_BIG_GROW_STEP);
+          }
+          user.sizeBigPct = pct;
+          updateStatsDisplay(user);
+          addToLog(user, `📏 大きさ：${sizeKey} → ${user.sizeBigPct}%`, '#3b82f6');
+        } else {
+          showBubble(user, `📏 大きさ：${sizeKey}は上限(${SIZE_BIG_MAX_PCT}%)です`, {});
         }
-        user.mp -= 200;
-        updateStatsDisplay(user);
+        user.size = Math.round(sz * (user.sizeBigPct || 100) / 100);
+        ensureCharOnStage(user);
+        applyAvatarStyle(user);
+      } else {
+        user.size = sz;
+        ensureCharOnStage(user);
+        applyAvatarStyle(user);
       }
-      user.size = sz;
-      ensureCharOnStage(user);
-      applyAvatarStyle(user);
     }
     display = display.replace(sizeM[0], '').trim();
   }
@@ -1499,5 +1521,11 @@ function stripPrefix(msg) {
     .replace(/^\d+:\s*/, '')
     .replace(/【[^】]*】/g, '')
     .trim();
+}
+
+// 【】で囲まれた名前タグの中身。stripPrefix で消える前のコメントから取り出す
+// （画像生成の「大谷」判定など、タグの中身を見たい処理用）
+function extractNameTags(msg) {
+  return [...(msg ?? '').matchAll(/【([^】]*)】/g)].map(m => m[1].trim()).filter(Boolean);
 }
 

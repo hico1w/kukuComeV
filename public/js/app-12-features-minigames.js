@@ -454,6 +454,8 @@ function showPetGacha10Anim(user, pets) {
 // ── ステータスモーダル ─────────────────────────────────────────────
 function showStatusModal(user, autoClose = true, triggerCnum = null) {
   const imgFile = user.charImage || (user.charDef ? (charImages[user.charDef.id] || 'kisyokeee.png') : 'kisyokeee.png');
+  // キャラ作成の一時画像（charImageData）があれば、ステージのアバターと同じくそちらを優先表示
+  const avatarSrc = user.charImageData || `/chara/${encodeURIComponent(imgFile)}`;
   const atk     = calcAtk(user);
   const lv      = user.level  || 1;
   const hp      = user.hp     ?? 30;
@@ -520,7 +522,7 @@ function showStatusModal(user, autoClose = true, triggerCnum = null) {
         <div class="sm-main-panel">
           <div class="sm-body">
             <div class="sm-left">
-              <img class="sm-avatar" src="/chara/${encodeURIComponent(imgFile)}" alt="${escapeHtml(user.name)}">
+              <img class="sm-avatar" src="${avatarSrc}" alt="${escapeHtml(user.name)}">
               <div class="sm-ol-stats-wrap">
                 ${user.activeTitle ? `<div class="sm-ol-title">${escapeHtml(TITLES.find(t=>t.id===user.activeTitle)?.name||'?')}</div>` : ''}
                 <div class="sm-ol-stats">

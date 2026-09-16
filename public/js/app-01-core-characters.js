@@ -125,6 +125,11 @@ const MOVE_AREA_MAP = {
 const MOVE_INTERVAL = { '速い': 2400, '普通': 5600, '遅い': 11000, '止まれ': 0 };
 const MOVE_DURATION = { '速い': 1800, '普通':  4400, '遅い':  9000, '止まれ': 0 };
 const SIZE_MAP      = { '大': 120, '中': 80, '小': 48 };
+const SIZE_BIG_GROW_STEP = 20;   // 「大きさ：大」を使うたびに増える割合（%）
+const SIZE_BIG_MAX_PCT   = 500;  // 「大きさ：大」「大きさ：特大」共通の上限（%）
+const SIZE_BIG_MP_COST     = 200;  // 「大きさ：大」1回あたりの消費MP
+const SIZE_TOKUDAI_MP_COST = 1000; // 「大きさ：特大」1回あたりの消費MP（大 5回分）
+const SIZE_TOKUDAI_STEPS   = 5;    // 「大きさ：特大」1回で進む「大」の回数分
 const TEXT_SIZE_MAP = { '極大': '32px', '大': '20px', '中': '13px', '小': '10px', '極小': '8px' };
 
 // フォントエイリアス（スペースを含むフォント名の短縮形 + 日本語ショートカット）
@@ -570,7 +575,7 @@ const CHAR_SAVE_FIELDS = [
   'commentCount','tc','sizeScale','sizeScaleBase','flipped','lastTaimanAt','charDef',
   'name','nameManual',
   'textColor','bubbleShape','bubbleDeco','bubbleBgColor','font',
-  'charImage','taimanDmgMult','isMaster',
+  'charImage','taimanDmgMult','isMaster','sizeBigPct',
 ];
 
 function getUser(ipid) {

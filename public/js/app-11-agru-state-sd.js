@@ -1402,9 +1402,10 @@ async function createCharImage(user, prompt, commentNo) {
 const _sdQueue = [];
 let _sdBusy = false;
 
-function generateSDImage(user, prompt, commentNo) {
+// nameTags: コメントの【】名前タグの中身（プロンプトからは消えているので別に渡す）
+function generateSDImage(user, prompt, commentNo, nameTags = []) {
   ensureCharOnStage(user);
-  _sdQueue.push({ user, prompt, commentNo });
+  _sdQueue.push({ user, prompt, commentNo, nameTags });
   const waitMsg = (_sdBusy && _sdQueue.length > 1)
     ? `⏳ 順番待ち (${_sdQueue.length}件待ち)…`
     : '⏳ 順番待ち…';
@@ -1415,12 +1416,12 @@ function generateSDImage(user, prompt, commentNo) {
 async function _sdProcessQueue() {
   if (_sdBusy || _sdQueue.length === 0) return;
   _sdBusy = true;
-  const { user, prompt, commentNo, settingsOverride } = _sdQueue.shift();
+  const { user, prompt, commentNo, settingsOverride, nameTags } = _sdQueue.shift();
   try {
     const _qTimeout = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('queue-timeout')), 30000)
     );
-    await Promise.race([_sdGenerateOne(user, prompt, commentNo, settingsOverride), _qTimeout]);
+    await Promise.race([_sdGenerateOne(user, prompt, commentNo, settingsOverride, nameTags), _qTimeout]);
   } catch (e) {
     if (e.message === 'queue-timeout') {
       showBubble(user, '⏱ タイムアウト、次へ', { color: '#ef4444' });
@@ -1433,9 +1434,9 @@ async function _sdProcessQueue() {
 }
 
 // ゴミ生成コマンド（5MP）用エントリポイント
-function generateSDImageGomi(user, prompt, commentNo) {
+function generateSDImageGomi(user, prompt, commentNo, nameTags = []) {
   ensureCharOnStage(user);
-  _sdQueue.push({ user, prompt, commentNo, settingsOverride: { width: sdGomiWidth, height: sdGomiHeight, steps: sdGomiSteps, popWidth: sdGomiPopWidth } });
+  _sdQueue.push({ user, prompt, commentNo, nameTags, settingsOverride: { width: sdGomiWidth, height: sdGomiHeight, steps: sdGomiSteps, popWidth: sdGomiPopWidth } });
   const waitMsg = (_sdBusy && _sdQueue.length > 1)
     ? `⏳ エコ生成 順番待ち (${_sdQueue.length}件)…`
     : '⏳ エコ生成中…';
@@ -1444,9 +1445,9 @@ function generateSDImageGomi(user, prompt, commentNo) {
 }
 
 // 超生成コマンド（500MP）用エントリポイント — width/height/steps だけ別設定を使う
-function generateSDImageCho(user, prompt, commentNo) {
+function generateSDImageCho(user, prompt, commentNo, nameTags = []) {
   ensureCharOnStage(user);
-  _sdQueue.push({ user, prompt, commentNo, settingsOverride: { width: sdChoWidth, height: sdChoHeight, steps: sdChoSteps, popWidth: sdChoPopWidth } });
+  _sdQueue.push({ user, prompt, commentNo, nameTags, settingsOverride: { width: sdChoWidth, height: sdChoHeight, steps: sdChoSteps, popWidth: sdChoPopWidth } });
   const waitMsg = (_sdBusy && _sdQueue.length > 1)
     ? `⏳ 超生成 順番待ち (${_sdQueue.length}件)…`
     : '⏳ 超生成 生成中…';
@@ -1454,7 +1455,7 @@ function generateSDImageCho(user, prompt, commentNo) {
   if (!_sdBusy) _sdProcessQueue();
 }
 
-async function _sdGenerateOne(user, prompt, commentNo, settingsOverride = null) {
+async function _sdGenerateOne(user, prompt, commentNo, settingsOverride = null, nameTags = []) {
   const cfg = _sdReadSettings();
   // 超生成など呼び出し元が幅・高さ・Steps・表示サイズを上書きできる
   const width    = settingsOverride?.width    || cfg.width;
@@ -1462,8 +1463,10 @@ async function _sdGenerateOne(user, prompt, commentNo, settingsOverride = null) 
   const steps    = settingsOverride?.steps    || cfg.steps;
   const popWidth = settingsOverride?.popWidth || cfg.popWidth;
   // 特定キーワード組み合わせでプロンプトを強制上書き
+  // 「大谷」はコメント末尾の名前タグ【大谷】で付くことが多い。タグはプロンプトから消えているので nameTags も見る
   const _pl = prompt.toLowerCase();
-  if ((/大谷|otani/i.test(prompt)) && /usada pekora|usada|pekora|tekora|sada|usa|kora|peko/.test(_pl)) {
+  const _otani = /大谷|otani/i.test(prompt) || (nameTags || []).some(t => /大谷|otani/i.test(t));
+  if (_otani && /usada pekora|usada|pekora|tekora|sada|usa|kora|peko/.test(_pl)) {
     prompt = '1girl,anime coloring,sakura miko,sumg,chibi,rolling eyes,crazy_smile,grin,laughing,double v,saliva,spoken musical text,spoken www,(emphasis lines:1.3),';
   }
   let positiveSuffix = cfg.positiveSuffix;
@@ -1567,11 +1570,18 @@ function _sdReadSettings() {
   };
 }
 
+// 引っかかったモザイクワードをすべて返す（元のプロンプト・翻訳後のどちらかに含まれていれば該当。部分一致）
+function _sdMosaicHits(prompt, translatedPrompt, mosaicKeywords) {
+  const list = String(mosaicKeywords || '');
+  if (!list.trim()) return [];
+  const keywords = [...new Set(list.split(',').map(k => k.trim().toLowerCase()).filter(Boolean))];
+  const p = String(prompt || '').toLowerCase(), t = String(translatedPrompt || '').toLowerCase();
+  return keywords.filter(k => p.includes(k) || t.includes(k));
+}
+
+// 最初に引っかかったモザイクワード（無ければ null）
 function _sdNeedsMosaic(prompt, translatedPrompt, mosaicKeywords) {
-  if (!mosaicKeywords.trim()) return null;
-  const keywords = mosaicKeywords.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
-  const p = prompt.toLowerCase(), t = translatedPrompt.toLowerCase();
-  return keywords.find(k => p.includes(k) || t.includes(k)) || null;
+  return _sdMosaicHits(prompt, translatedPrompt, mosaicKeywords)[0] || null;
 }
 
 function _applyMosaic(imgEl, blockSize) {
@@ -1608,9 +1618,10 @@ function showSDImage(user, dataUrl, prompt, translatedPrompt, cfg, commentNo, ke
   const sw = stage.clientWidth, sh = stage.clientHeight;
   const popW = Math.min(cfg.popWidth, sw - 16);
   const imgH = Math.round(popW * (cfg.height / cfg.width));
-  // 効いたキーワードがあるときは1行ぶん高くなる
+  // 効いたキーワード・引っかかったモザイクワードがあるときは、それぞれ1行ぶん高くなる
   const _kw = Array.isArray(keywords) ? [...new Set(keywords)] : [];
-  const popH = imgH + 56 + (_kw.length ? 18 : 0); // header + prompt line (+ keyword line)
+  const _mosaicHits = _sdMosaicHits(prompt, translatedPrompt, cfg.mosaicKeywords);
+  const popH = imgH + 56 + (_kw.length ? 18 : 0) + (_mosaicHits.length ? 18 : 0); // header + prompt line (+ keyword line) (+ mosaic line)
   const left = Math.min(Math.max(8, cx - popW / 2), sw - popW - 8);
   const top  = Math.min(Math.max(8, cy - popH - 10), sh - popH - 8);
   el.style.left  = left + 'px';
@@ -1625,9 +1636,13 @@ function showSDImage(user, dataUrl, prompt, translatedPrompt, cfg, commentNo, ke
     (_kw.length
       ? `<div class="sd-image-keywords">${_kw.map(k => `<span>${escapeHtml(k)}</span>`).join('')}</div>`
       : '') +
+    // モザイクになったときは、どのモザイクワードに引っかかったかを出す
+    (_mosaicHits.length
+      ? `<div class="sd-image-mosaic"><em>🔲 モザイク</em>${_mosaicHits.map(k => `<span>${escapeHtml(k)}</span>`).join('')}</div>`
+      : '') +
     `<img src="${dataUrl}" alt="${escapeHtml(prompt)}" class="sd-image-img">`;
   el.querySelector('.sd-image-close').addEventListener('click', () => el.remove());
-  if (_sdNeedsMosaic(prompt, translatedPrompt, cfg.mosaicKeywords)) _applyMosaic(el.querySelector('.sd-image-img'), cfg.mosaicBlock); // null→falsy で動作変わらず
+  if (_mosaicHits.length) _applyMosaic(el.querySelector('.sd-image-img'), cfg.mosaicBlock);
   el.style.zIndex = charZCounter + 100;
   stage.appendChild(el);
   setTimeout(() => { if (el.isConnected) el.remove(); }, cfg.displayTime * 1000);
