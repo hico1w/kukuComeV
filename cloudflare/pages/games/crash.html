@@ -161,9 +161,9 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 
         <h3>空中アクション</h3>
         <table class="help-tbl">
-          <tr><td>エアリアル<br>（クリック / SPACE）</td><td>アゲルが飛び蹴りで<b>上に打ち上げ</b>。<b>1プレイ3回</b>まで。<em>地上9〜30mでのみ発動</em>。</td></tr>
-          <tr><td>ダイブ<br>（右クリック / ↓ / Shift）</td><td>アゲルが<b>下に叩き落とす</b>。<b>チャージ100%が必要</b>だが回数は無制限。<em>地上9〜30mでのみ発動</em>。<br>叩きつけた勢いは着地で前方向に変換される（SLAM）。</td></tr>
-          <tr><td>チャージ</td><td>ヒコが<b>地上9〜30m</b>にいる間だけ回復する。低空を這うほど得。</td></tr>
+          <tr><td>エアリアル<br>（クリック / SPACE）</td><td>アゲルが飛び蹴りで<b>上に打ち上げ</b>。<b>1プレイ3回</b>まで。<em>高度に関係なくいつでも撃てる</em>。</td></tr>
+          <tr><td>ダイブ<br>（右クリック / ↓ / Shift）</td><td>アゲルが<b>下に叩き落とす</b>。<b>チャージ100%が必要</b>だが回数は無制限、<em>高度に関係なくいつでも撃てる</em>。<br>叩きつけた勢いは着地で前方向に変換される（SLAM）。</td></tr>
+          <tr><td>チャージ</td><td>飛んでいる間<b>常に回復</b>する。溜まりしだいダイブを撃てる。</td></tr>
         </table>
 
         <h3>キャラの効果（全員 地上にいる）</h3>
@@ -307,8 +307,6 @@ const IMG_OF = { baby:'c_baby', goth:'c_goth', denpa:'c_denpa', neko:'c_neko', k
    速度は以前の3倍。重力も3倍にして弾道の形を保っている。           */
 const SPD_X    = 3;          // 速度倍率（3倍）
 const G        = 9.8 * 3;    // 重力 m/s^2
-const BAND_LO  = 9;          // エアリアル可能な低空帯（下限 m）
-const BAND_HI  = 30;         // 〃（上限 m）
 const SP_WIN   = 0.70;       // スペシャル受付（実時間の秒）
 const AERIAL_N = 3;          // エアリアル回数
 const CHAR_SCALE = 3;        // キャラ・自機の表示倍率（当たり判定も同じ大きさで取る）
@@ -322,7 +320,8 @@ const DIST_SCALE = 0.1;      // 距離表示の倍率（ワールド100m＝表�
 const MAX_SPD  = 330 * POW_X;   // 速度上限 m/s
 const BOSS_FROM = 400;       // ボスアゲルが出はじめる距離 m（序盤の回避不能な即死を避ける）
 const CHAR_SPACING = 100;    // キャラの配置間隔 m（100mちょうどに1体ずつ）
-const CAM_S = 10.5;          // カメラの拡大率 px/m（固定。ズームアウトするとキャラが見えない）
+const CAM_S = 10.5;          // カメラの拡大率 px/m（初期値。これ以上は寄らない）
+const CAM_ZOOM_MAX = 2;      // 画角を広げる上限倍率（＝拡大率は CAM_S の 1/2 まで下がる）
 const CRASH_T = 0.55;        // アゲルが左から突っ込んでくる演出の長さ 秒
 const KMH      = 3.6;        // m/s → km/h
 
@@ -376,7 +375,6 @@ function capSpeed() {
   const s = speed();
   if (s > MAX_SPD) { p.vx = p.vx / s * MAX_SPD; p.vy = p.vy / s * MAX_SPD; }
 }
-const inBand = () => p.y >= BAND_LO && p.y <= BAND_HI;
 const fmt = m => (m * DIST_SCALE).toFixed(2);   // 距離はすべて DIST_SCALE を掛けて表示する
 
 let popAt = {};
@@ -645,8 +643,7 @@ function ageruSpecial(c) {
 /* ── 空中アクション ─────────────────────────────────────── */
 function aerial() {
   if (aerialLeft <= 0) { pop('AERIAL なし', '#ff8f8f'); return; }
-  if (!inBand())       { pop('地上9〜30mでのみ', '#ff8f8f'); return; }
-  aerialLeft--;
+  aerialLeft--;                                   // 高度の制限なし（いつでも撃てる）
   p.vy = Math.max(p.vy, 0) + 63 * POW_X;
   p.vx += 21 * POW_X;
   capSpeed();
@@ -656,8 +653,7 @@ function aerial() {
 }
 function dive() {
   if (charge < 100) { pop('CHARGE不足', '#8fd0ff'); return; }
-  if (!inBand())    { pop('地上9〜30mでのみ', '#8fd0ff'); return; }
-  charge = 0; diving = true;
+  charge = 0; diving = true;                      // 高度の制限なし（いつでも撃てる）
   p.vy = -72 * POW_X; p.vx += 30 * POW_X;
   capSpeed();
   ageruFx = { t: .38, dur: .38, kind: 'dive' };
@@ -717,7 +713,7 @@ function physics(dt) {
     }
   } else if (SND.roll && !SND.roll.paused) { seLoop('roll', 0); }
 
-  if (inBand()) charge = Math.min(100, charge + 62 * dt);
+  charge = Math.min(100, charge + 62 * dt);       // 高度に関係なく常に回復する
 
   // 当たり判定（キャラは地上に立っている）
   ensureChars(p.x + 700);
@@ -739,9 +735,12 @@ function physics(dt) {
 
 /* ── カメラ ─────────────────────────────────────────────── */
 function camera(dt) {
-  // 拡大率は固定。高く飛んでもズームアウトしない（キャラが豆粒になるため）。
-  // そのぶん見えない先のキャラは右上の NEXT パネルで補う。
-  cam.s += (CAM_S - cam.s) * Math.min(1, dt * 3);
+  // 地面（バンパーが立っている）と自機がなるべく同時に入るように画角を広げる。
+  // 広げるのは初期画角の CAM_ZOOM_MAX 倍まで。それを超える高度では
+  // バンパーは画面外に出る（位置は画面端のアイコンで示す）。
+  const need = (GROUND_SY - H * .18) / Math.max(12, p.y + 6);
+  const ts = clamp(need, CAM_S / CAM_ZOOM_MAX, CAM_S);
+  cam.s += (ts - cam.s) * Math.min(1, dt * 3);
   const ty = Math.max(0, p.y - (GROUND_SY - H * .5) / cam.s);
   cam.y += (ty - cam.y) * Math.min(1, dt * 4.5);
   // 速度3倍＋固定拡大だと、上昇/落下に追従が間に合わず自機が画面外に出る。
@@ -921,19 +920,7 @@ function drawGround() {
       CTX.fillText(Math.round(m * DIST_SCALE) + 'm', x, by0 - 34);
     }
   }
-  // 低空帯（エアリアル可能ゾーン）
-  if (state === 'fly' || state === 'chance') {
-    const y1 = SY(BAND_HI), y2 = SY(BAND_LO);
-    if (y2 > 0 && y1 < H) {
-      CTX.fillStyle = inBand() ? 'rgba(255,95,141,.10)' : 'rgba(255,255,255,.04)';
-      CTX.fillRect(0, y1, W, y2 - y1);
-      CTX.strokeStyle = inBand() ? 'rgba(255,95,141,.45)' : 'rgba(255,255,255,.12)';
-      CTX.lineWidth = 1; CTX.setLineDash([6, 6]);
-      CTX.beginPath(); CTX.moveTo(0, y1); CTX.lineTo(W, y1);
-      CTX.moveTo(0, y2); CTX.lineTo(W, y2); CTX.stroke();
-      CTX.setLineDash([]);
-    }
-  }
+  // 低空帯のガイドは廃止（エアリアル／ダイブに高度制限が無くなったため）
 }
 
 /* ── 風 ─────────────────────────────────────────────────── */
@@ -1290,7 +1277,7 @@ function drawHud() {
   CTX.fillText('AERIAL', ax, ay - 14);
   for (let i = 0; i < AERIAL_N; i++) {
     CTX.beginPath(); CTX.arc(ax + 9 + i * 24, ay + 6, 8, 0, 6.284);
-    CTX.fillStyle = i < aerialLeft ? (inBand() ? '#ff5f8d' : 'rgba(255,95,141,.35)') : 'rgba(255,255,255,.12)';
+    CTX.fillStyle = i < aerialLeft ? '#ff5f8d' : 'rgba(255,255,255,.12)';
     CTX.fill();
   }
   // チャージ
@@ -1298,7 +1285,7 @@ function drawHud() {
   CTX.fillStyle = 'rgba(255,255,255,.6)';
   CTX.fillText('CHARGE', cx, ay - 14);
   CTX.fillStyle = 'rgba(0,0,0,.45)'; roundRect(cx, ay, cw, 13, 3); CTX.fill();
-  CTX.fillStyle = charge >= 100 ? (inBand() ? '#7ee6ff' : 'rgba(126,230,255,.45)') : 'rgba(255,255,255,.3)';
+  CTX.fillStyle = charge >= 100 ? '#7ee6ff' : 'rgba(255,255,255,.3)';
   roundRect(cx + 2, ay + 2, (cw - 4) * (charge / 100), 9, 2); CTX.fill();
   if (charge >= 100) {
     CTX.fillStyle = '#7ee6ff'; CTX.font = '9px "Press Start 2P", monospace';
