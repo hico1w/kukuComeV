@@ -258,8 +258,12 @@ for (const k in ASSETS) {
 // タイトルロゴだけは <img> なので、無ければテキストのまま
 (() => {
   const lg = document.getElementById('title-logo');
-  lg.onload  = () => { lg.hidden = false; document.getElementById('title-text').hidden = true; };
+  const show = () => { lg.hidden = false; document.getElementById('title-text').hidden = true; };
+  lg.onload  = show;
   lg.onerror = () => { lg.remove(); };
+  // <img> は HTML のパース時点で読み込みが始まるので、ここに来た時点で
+  // 読み終わっているとイベントが二度と来ない。complete を見て自分で判定する。
+  if (lg.complete) { lg.naturalWidth ? show() : lg.remove(); }
 })();
 
 /* ── 状態 ───────────────────────────────────────────────── */

@@ -645,16 +645,38 @@ a.link-item:hover { opacity: .5; }
 #game-iframe { width: 100%; flex: 1; min-height: 0; border: none; display: block; opacity: 0; transition: opacity .3s ease; }
 #game-iframe.loaded { opacity: 1; }
 #game-loading {
-  position: absolute; inset: 0;
+  position: absolute; inset: 46px 0 0 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 14px; pointer-events: none;
 }
 #game-loading.hidden { display: none; }
 #game-loading p { font-size: 12px; letter-spacing: .14em; color: #777; }
-#game-panel .kuku-close { background: rgba(255,255,255,.1); color: #ccc; }
-#game-panel .kuku-close:hover { background: rgba(255,255,255,.2); color: #fff; }
-#game-newtab { right: 58px; }
-#game-newtab:hover { transform: none; }
+/* パネル上部のバー。ここにボタンを置く（iframe の中身と重ねない） */
+#game-bar {
+  flex-shrink: 0; height: 46px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 10px 0 18px;
+  background: #12141b;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+#game-title {
+  font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+  color: rgba(255,255,255,.72); margin-right: auto;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.game-btn {
+  flex-shrink: 0;
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,.6); background: rgba(255,255,255,.08);
+  border: none; cursor: pointer;
+  transition: color .15s, background .15s;
+}
+.game-btn:hover { color: #fff; background: rgba(255,255,255,.22); }
+.game-btn svg {
+  width: 15px; height: 15px; stroke: currentColor; fill: none;
+  stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+}
 @media (max-width: 640px) {
   #game-panel { top: 0; width: 100vw; height: 100dvh; border-radius: 0; }
   .game-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
@@ -1124,12 +1146,15 @@ body.pn-open { overflow: hidden; }
 <!-- GAME modal（ゲーム一覧から起動する） -->
 <div id="game-backdrop" aria-hidden="true"></div>
 <div id="game-panel" role="dialog" aria-modal="true" aria-label="ゲーム">
-  <a class="kuku-close" id="game-newtab" href="#" target="_blank" rel="noopener" aria-label="単独ページで開く" title="単独ページで開く">
-    <svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
-  </a>
-  <button class="kuku-close" id="game-close" aria-label="閉じる">
-    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-  </button>
+  <div id="game-bar">
+    <span id="game-title"></span>
+    <a class="game-btn" id="game-newtab" href="#" target="_blank" rel="noopener" aria-label="単独ページで開く" title="単独ページで開く">
+      <svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+    </a>
+    <button class="game-btn" id="game-close" aria-label="閉じる">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
   <div id="game-loading">
     <svg class="kuku-spinner" viewBox="0 0 36 36" fill="none">
       <circle class="track" cx="18" cy="18" r="14" stroke-width="3"/>
@@ -2151,6 +2176,7 @@ ssOver.addEventListener('touchstart', exitSS, {passive:true});
     backdrop.classList.add('open');
     backdrop.setAttribute('aria-hidden','false');
     panel.setAttribute('aria-label', g.title);
+    document.getElementById('game-title').textContent = g.title;
     newtab.href = g.url;
     document.body.style.overflow = 'hidden';
     loading.classList.remove('hidden');
