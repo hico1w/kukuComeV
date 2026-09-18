@@ -44,8 +44,9 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   padding: 4px 9px; transition: color .15s, border-color .15s;
 }
 .bar-btn:hover { color: #ede0d4; border-color: rgba(255,255,255,.4); }
+.bar-btn.on { color: #7ee6ff; border-color: #7ee6ff; }
 .bar-hint { font-size: 10px; letter-spacing: .1em; color: rgba(237,224,212,.4); }
-@media (max-width: 760px) { .bar-hint, .bar-back { display: none; } }
+@media (max-width: 860px) { .bar-hint, .bar-back { display: none; } }
 
 /* ── stage ── */
 #stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 16px; }
@@ -88,7 +89,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 
 /* 遊び方 */
 .help-box {
-  max-width: 720px; width: 100%;
+  max-width: 760px; width: 100%;
   text-align: left; font-size: clamp(10px, 1.25vw, 13px); line-height: 1.95;
   color: rgba(237,224,212,.82);
   max-height: 78%; overflow-y: auto;
@@ -102,7 +103,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 .help-box em { color: #7ee6ff; font-style: normal; }
 .help-tbl { width: 100%; border-collapse: collapse; margin-top: 4px; }
 .help-tbl td { padding: 3px 8px 3px 0; vertical-align: top; border-bottom: 1px solid rgba(255,255,255,.07); }
-.help-tbl td:first-child { white-space: nowrap; color: #fff; width: 9em; }
+.help-tbl td:first-child { white-space: nowrap; color: #fff; width: 10em; }
 
 /* タッチ用 DIVE ボタン */
 #btn-dive {
@@ -113,7 +114,6 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   display: none; align-items: center; justify-content: center;
 }
 #btn-dive.on { display: flex; }
-@media (hover: none) and (pointer: coarse) { #btn-dive.on { display: flex; } }
 </style>
 </head>
 <body>
@@ -122,7 +122,8 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   <a href="/" class="bar-home" target="_top">hico1</a>
   <a href="/" class="bar-back" target="_top">← back to site</a>
   <div class="bar-right">
-    <span class="bar-hint" id="hint">クリック＝角度 → パワー → 空中でクリックでエアリアル／右クリックでダイブ</span>
+    <span class="bar-hint" id="hint">押した瞬間に角度決定 → 押しっぱなしでパワー → 離して発射　／　空中はクリックでエアリアル・右クリックでダイブ</span>
+    <button class="bar-btn" id="btn-sound" aria-pressed="true">♪ SOUND</button>
     <button class="bar-btn" id="btn-help">遊び方</button>
   </div>
 </div>
@@ -136,7 +137,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
       <img class="ov-logo" id="title-logo" src="./img-crash/logo.webp" alt="" hidden>
       <p class="pix ov-title" id="title-text">AGERU CRASH!!</p>
       <p class="ov-sub">クリック / SPACE でスタート</p>
-      <p class="ov-small">アゲルが自転車でヒコをはね飛ばす。<br>空中のキャラに当てて、どこまでも飛ばせ。</p>
+      <p class="ov-small">アゲルが自転車でヒコをはね飛ばす。<br>地上のキャラに当てて、どこまでも飛ばせ。</p>
       <p class="ov-small" id="title-best"></p>
     </div>
 
@@ -153,28 +154,33 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
     <div class="ov" id="ov-help">
       <div class="help-box">
         <h3>ながれ</h3>
-        1. <b>クリック</b>で角度を決める（矢印が動いている）<br>
-        2. もう一度<b>クリック</b>でパワーを決める（ゲージが右端に近いほど強い）<br>
-        3. アゲルの自転車がヒコに激突 → あとは空中でキャラに当てて伸ばす<br>
-        4. 止まったら終わり。飛距離（m）がスコア。
+        1. 矢印が動いているので、<b>押した瞬間</b>に角度が決まる<br>
+        2. <b>押しっぱなし</b>でパワーゲージが動く。<b>右端に近いところで離すと発射</b>（離した瞬間のパワーで決まる）<br>
+        3. アゲルの自転車がヒコに激突 → あとは<b>地上に並ぶキャラ</b>に当てて伸ばす<br>
+        4. 止まったら終わり。飛距離（m）がスコア。画面上部に<b>時速（km/h）</b>が出る。
 
         <h3>空中アクション</h3>
         <table class="help-tbl">
-          <tr><td>エアリアル<br>（クリック / SPACE）</td><td>アゲルが飛び蹴りで<b>上に打ち上げ</b>。<b>1プレイ3回</b>まで。<em>地上3〜10mでのみ発動</em>。</td></tr>
-          <tr><td>ダイブ<br>（右クリック / ↓ / Shift）</td><td>アゲルが<b>下に叩き落とす</b>。<b>チャージ100%が必要</b>だが回数は無制限。<em>地上3〜10mでのみ発動</em>。<br>叩きつけた勢いは着地で前方向に変換される（SLAM）。</td></tr>
-          <tr><td>チャージ</td><td>ヒコが<b>地上3〜10m</b>にいる間だけ回復する。低空を這うほど得。</td></tr>
+          <tr><td>エアリアル<br>（クリック / SPACE）</td><td>アゲルが飛び蹴りで<b>上に打ち上げ</b>。<b>1プレイ3回</b>まで。<em>地上9〜30mでのみ発動</em>。</td></tr>
+          <tr><td>ダイブ<br>（右クリック / ↓ / Shift）</td><td>アゲルが<b>下に叩き落とす</b>。<b>チャージ100%が必要</b>だが回数は無制限。<em>地上9〜30mでのみ発動</em>。<br>叩きつけた勢いは着地で前方向に変換される（SLAM）。</td></tr>
+          <tr><td>チャージ</td><td>ヒコが<b>地上9〜30m</b>にいる間だけ回復する。低空を這うほど得。</td></tr>
         </table>
 
-        <h3>スペシャル</h3>
-        キャラに当たった瞬間から<b>0.7秒以内にクリック</b>すると <em>SPECIAL</em>。通常よりずっと強く打ち上がる。<br>
-        <b>ボスアゲル</b>に当たると通常は<b>即終了</b>。ただしその瞬間だけ時間が止まり、<b>0.7秒以内にクリックできれば大逆転の超打ち上げ</b>になる。
-
-        <h3>キャラの効果</h3>
+        <h3>キャラの効果（全員 地上にいる）</h3>
         <table class="help-tbl" id="help-chars"></table>
 
+        <h3>スペシャル（発動条件つき）</h3>
+        条件を満たしたキャラに当たると時間が止まり、<b>0.7秒以内にクリック</b>で <em>SPECIAL</em>。画面がバーンと光って特大の打ち上げになる。
+        <table class="help-tbl" id="help-sp"></table>
+
         <h3>アゲルスペシャル</h3>
-        <b>ヨクネロボ</b>に当たると<em>ブロック状態</em>になり、次のアゲル系キャラの効果が消える。<br>
-        ただし<b>ブロック状態で、飛距離がちょうど100の倍数の地点</b>でアゲル系に当たると <em>AGERU SPECIAL</em> が発動し、キャラごとの特大効果が出る。
+        <b>ヨクネロボ</b>に当たると<em>ブロック状態</em>になる。その状態で<b>飛距離がちょうど100の倍数の地点</b>でアゲル系（ベビー／ゴス／デンパ／ボス）に当たると <em>AGERU SPECIAL</em>。
+        <table class="help-tbl">
+          <tr><td>ベビーアゲル</td><td>100人ぶん浮いてふっ飛ぶ</td></tr>
+          <tr><td>ゴスアゲル</td><td>5回バウンド加速</td></tr>
+          <tr><td>デンパアゲル</td><td>停止時に1度だけ復活して再飛行</td></tr>
+          <tr><td>ボスアゲル</td><td>以後3回の加速が2倍</td></tr>
+        </table>
       </div>
       <button class="ov-btn" id="btn-help-close">閉じる</button>
     </div>
@@ -187,8 +193,9 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 /* ══════════════════════════════════════════════════════════════
    AGERU CRASH!!  —  NANACA†CRASH!! 風の飛距離アタック
 
-   画像は ./img-crash/<key>.webp を読む。**無ければプレースホルダを描く**ので
-   画像が1枚も無い状態でも遊べる。ASSETS の一覧＝用意すべき画像の一覧。
+   画像は ./img-crash/<key>.webp、効果音は ./sfx-crash/<key>.mp3 を読む。
+   **どちらも無ければ黙って無視する**ので、素材ゼロでも遊べる。
+   ASSETS / SFX_LIST の一覧＝用意すべき素材の一覧。
    ══════════════════════════════════════════════════════════════ */
 
 const CV  = document.getElementById('game');
@@ -221,31 +228,94 @@ const ASSETS = {
   ground     : { w:600,  h:160,  c:'#3b3f4a', label:'地面' },
 };
 
+/* ── 効果音 ─────────────────────────────────────────────
+   ./sfx-crash/<key>.mp3 を読む。無ければ黙って鳴らないだけ。       */
+const SFX_DIR = './sfx-crash/';
+const SFX_LIST = {
+  ui_click      : { v:.5,  desc:'角度決定・パワー決定のクリック' },
+  crash         : { v:.9,  desc:'発射（アゲルの自転車がヒコに激突）' },
+  wind          : { v:.0,  desc:'高速時の風切り音（ループ・音量が速度連動）', loop:true },
+  hit           : { v:.85, desc:'キャラに当たった（通常ヒット）' },
+  hit_slow      : { v:.7,  desc:'減速系（フグ）に当たった' },
+  block         : { v:.7,  desc:'ヨクネロボでブロック状態になった' },
+  chance        : { v:.9,  desc:'ボスアゲル接触＝チャンス発生（警告音）' },
+  special       : { v:1,   desc:'スペシャル発動（画面バーン）' },
+  ageru_special : { v:1,   desc:'アゲルスペシャル発動' },
+  boss_fail     : { v:.9,  desc:'チャンス失敗＝ボスに捕まって終了' },
+  aerial        : { v:.8,  desc:'エアリアル（飛び蹴り）' },
+  dive          : { v:.8,  desc:'ダイブ（叩き落とし）' },
+  slam          : { v:1,   desc:'ダイブ後の着地（SLAM）' },
+  bound         : { v:.6,  desc:'通常バウンド（着地）' },
+  roll          : { v:.4,  desc:'地面を転がっている（ループ）', loop:true },
+  revive        : { v:.9,  desc:'復活（デンパのアゲルスペシャル）' },
+  stop          : { v:.7,  desc:'停止＝ゲーム終了' },
+  record        : { v:1,   desc:'ハイスコア更新' },
+};
+let sndOn = true;
+try { sndOn = localStorage.getItem('crash-snd') !== '0'; } catch (e) {}
+const SND = {};
+for (const k in SFX_LIST) {
+  try {
+    const a = new Audio(SFX_DIR + k + '.mp3');
+    a.preload = 'auto';
+    a.volume = SFX_LIST[k].v;
+    if (SFX_LIST[k].loop) a.loop = true;
+    a.addEventListener('error', () => { SND[k] = null; });
+    SND[k] = a;
+  } catch (e) { SND[k] = null; }
+}
+function se(k) {                     // 単発。重なって鳴るように複製して再生する
+  if (!sndOn) return;
+  const a = SND[k];
+  if (!a || SFX_LIST[k].loop) return;
+  try { const n = a.cloneNode(); n.volume = SFX_LIST[k].v; n.play().catch(() => {}); } catch (e) {}
+}
+function seLoop(k, vol) {            // ループ音。vol=0 で止める
+  if (!sndOn) { const a0 = SND[k]; if (a0) { try { a0.pause(); } catch (e) {} } return; }
+  const a = SND[k];
+  if (!a) return;
+  try {
+    if (vol <= 0.01) { if (!a.paused) a.pause(); return; }
+    a.volume = Math.min(1, vol);
+    if (a.paused) a.play().catch(() => {});
+  } catch (e) {}
+}
+function stopAllLoops() { for (const k in SFX_LIST) if (SFX_LIST[k].loop && SND[k]) { try { SND[k].pause(); } catch (e) {} } }
+
 /* ── キャラ効果テーブル ─────────────────────────────────────
-   ang/mul/min  : 通常ヒット（打ち出し角度°／現在速度の倍率／最低速度 m/s）
-   sAng/sMul/sMin: SPECIAL（0.7秒以内クリック）
-   air          : 空中に出るか（false なら地面付近のみ）            */
+   ang/mul/min   : 通常ヒット（打ち出し角度°／現在速度の倍率／最低速度 m/s）
+   sAng/sMul/sMin: スペシャル（条件成立＋0.7秒以内クリック）
+   spCond        : スペシャルの発動条件（本家の条件に合わせている）       */
 const TYPES = {
-  baby : { name:'ベビーアゲル', ageru:true,  w:8, air:true,  ang:45, mul:1.28, min:22, sAng:45, sMul:1.95, sMin:44, desc:'斜め45度に打ち上げ' },
-  goth : { name:'ゴスアゲル',   ageru:true,  w:7, air:true,  ang:72, mul:1.18, min:24, sAng:78, sMul:1.85, sMin:42, desc:'高い角度に打ち上げ' },
-  denpa: { name:'デンパアゲル', ageru:true,  w:7, air:true,  ang:18, mul:1.36, min:27, sAng:12, sMul:2.05, sMin:48, desc:'低い角度に加速' },
-  neko : { name:'キショネコ',   ageru:false, w:8, air:true,  ang:58, mul:1.08, min:16, sAng:60, sMul:1.6,  sMin:34, desc:'小さく打ち上げ' },
-  kani : { name:'カニ',         ageru:false, w:7, air:false, ang:55, mul:1.0,  min:14, sAng:60, sMul:1.55, sMin:32, desc:'角度を変える' },
-  hugu : { name:'フグ',         ageru:false, w:7, air:true,  ang:null, mul:0.58, min:0, sAng:null, sMul:1.25, sMin:0, desc:'減速する（SPECIALなら加速）' },
-  robo : { name:'ヨクネロボ',   ageru:false, w:6, air:true,  ang:null, mul:0.94, min:0, sAng:null, sMul:1.3,  sMin:0, desc:'ブロック（次のアゲル系を無効化）' },
-  boss : { name:'ボスアゲル',   ageru:true,  w:6, air:true,  ang:null, mul:0,   min:0, sAng:55, sMul:2.5,  sMin:62, desc:'即終了。0.7秒以内クリックで大逆転' },
+  baby : { name:'ベビーアゲル', ageru:true,  w:9, ang:45,   mul:1.28, min:66,  sAng:45, sMul:1.95, sMin:132, desc:'斜め45度に打ち上げ',
+           spCond:'次のキャラが「ゴスアゲル」のとき' },
+  goth : { name:'ゴスアゲル',   ageru:true,  w:8, ang:72,   mul:1.18, min:72,  sAng:78, sMul:1.85, sMin:126, desc:'高い角度に打ち上げ',
+           spCond:'次のキャラが「ベビーアゲル」のとき' },
+  denpa: { name:'デンパアゲル', ageru:true,  w:8, ang:18,   mul:1.36, min:81,  sAng:12, sMul:2.05, sMin:144, desc:'低い角度に加速',
+           spCond:'直前に当てたのも「デンパアゲル」のとき（間に他を挟まない）' },
+  neko : { name:'キショネコ',   ageru:false, w:8, ang:58,   mul:1.08, min:48,  sAng:60, sMul:1.6,  sMin:102, desc:'小さく打ち上げ', spCond:null },
+  kani : { name:'カニ',         ageru:false, w:7, ang:55,   mul:1.0,  min:42,  sAng:60, sMul:1.55, sMin:96,  desc:'角度を変える',   spCond:null },
+  hugu : { name:'フグ',         ageru:false, w:7, ang:null, mul:0.58, min:0,   sAng:null, sMul:1.25, sMin:0, desc:'減速する',       spCond:null },
+  robo : { name:'ヨクネロボ',   ageru:false, w:6, ang:null, mul:0.94, min:0,   sAng:null, sMul:1.3,  sMin:0, desc:'ブロック（次のアゲル系の効果を消す）', spCond:null },
+  boss : { name:'ボスアゲル',   ageru:true,  w:5, ang:null, mul:0,    min:0,   sAng:55, sMul:2.5,  sMin:186, desc:'当たると即終了',
+           spCond:'他のキャラに当てた後、バウンドせずに当てたとき' },
 };
 const TYPE_KEYS = Object.keys(TYPES);
 const IMG_OF = { baby:'c_baby', goth:'c_goth', denpa:'c_denpa', neko:'c_neko', kani:'c_kani', hugu:'c_hugu', robo:'c_robo', boss:'c_boss' };
 
-/* ── チューニング ───────────────────────────────────────── */
-const G        = 9.8;      // 重力 m/s^2
-const BAND_LO  = 3;        // エアリアル可能な低空帯（下限 m）
-const BAND_HI  = 10;       // 〃（上限 m）
-const SP_WIN   = 0.70;     // スペシャル受付（秒）
-const AERIAL_N = 3;        // エアリアル回数
-const HIT_R    = 2.4;      // 当たり判定半径 m
-const MAX_SPD  = 110;      // 速度上限 m/s（打ち上げが掛け算なので上限が無いと青天井になる）
+/* ── チューニング ─────────────────────────────────────────
+   速度は以前の3倍。重力も3倍にして弾道の形を保っている。           */
+const SPD_X    = 3;          // 速度倍率（3倍）
+const G        = 9.8 * 3;    // 重力 m/s^2
+const BAND_LO  = 9;          // エアリアル可能な低空帯（下限 m）
+const BAND_HI  = 30;         // 〃（上限 m）
+const SP_WIN   = 0.70;       // スペシャル受付（実時間の秒）
+const AERIAL_N = 3;          // エアリアル回数
+const HIT_R    = 3.0;        // 当たり判定半径 m
+const CH_MID   = 2.5;        // 地上キャラの当たり判定の中心高さ m
+const MAX_SPD  = 330;        // 速度上限 m/s（= 約1188km/h）
+const BOSS_FROM = 150;       // ボスアゲルが出はじめる距離 m（序盤の回避不能な即死を避ける）
+const KMH      = 3.6;        // m/s → km/h
 
 /* ── 画像ロード（失敗してもそのまま進む） ───────────────── */
 const IMG = {};
@@ -270,15 +340,18 @@ for (const k in ASSETS) {
 let state = 'title';   // title / angle / power / crash / fly / chance / end
 const p   = { x:0, y:1.4, vx:0, vy:0, rot:0 };
 const cam = { x:-24, y:0, s:9 };
-let chars = [], pops = [], sparks = [];
+let chars = [], pops = [], sparks = [], winds = [], shocks = [];
 let aimT=0, powT=0, angle=45, power=0, crashT=0, chanceT=0, chanceCh=null;
 let aerialLeft = AERIAL_N, charge = 100, blocked = false;
-let spW = null;                 // {t, ch, used}
-let combo = 0, best = 0, peak = 0, bounces = 0;
+let spW = null;                 // {t, ch, used}  条件を満たしたときだけ作る
+let combo = 0, best = 0, peak = 0, bounces = 0, topKmh = 0;
 let bounceBoost = 0, reviveLeft = 0, x2Left = 0, diving = false;
 let flash = 0, shake = 0, t = 0, seed = 1, nextX = 0;
 let ageruFx = null;             // {t, kind:'kick'|'dive'|'bike'}
-let lastStop = 0;
+let spFx = null;                // スペシャルの画面バーン {t, dur, x, y, c}
+let slowT = 0, slowDur = 1;     // ヒットストップ（スロー）
+let lastHitType = null;         // 直前に当てたキャラ（デンパ連続判定）
+let bouncedSinceHit = true;     // 直前のヒット以降にバウンドしたか（ボス条件）
 
 try { best = +(localStorage.getItem('crash-best') || 0) || 0; } catch (e) {}
 
@@ -287,6 +360,7 @@ const rnd   = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffff
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const tri   = x => { const f = x % 2; return f < 1 ? f : 2 - f; };   // 0→1→0 の往復
 const speed = () => Math.hypot(p.vx, p.vy);
+const kmh   = () => speed() * KMH;
 function capSpeed() {
   const s = speed();
   if (s > MAX_SPD) { p.vx = p.vx / s * MAX_SPD; p.vy = p.vy / s * MAX_SPD; }
@@ -301,39 +375,40 @@ function pop(text, color, big) {
   const recent = pops.filter(q => q.t > .75).length;   // 同時に出た分は画面上で下にずらす
   pops.push({ text, color: color || '#fff', big: !!big, t: 1.1, x: p.x, y: p.y + 2.5, dy: recent * 24 });
 }
-function burst(n, col) {
+function burst(n, col, pw) {
   for (let i = 0; i < n; i++) {
-    const a = rnd() * Math.PI * 2, v = 6 + rnd() * 26;
-    sparks.push({ x:p.x, y:p.y, vx:Math.cos(a)*v, vy:Math.sin(a)*v, t:.5+rnd()*.5, c:col||'#ffd34d' });
+    const a = rnd() * Math.PI * 2, v = (6 + rnd() * 26) * (pw || 1);
+    sparks.push({ x:p.x, y:p.y, vx:Math.cos(a)*v, vy:Math.sin(a)*v, t:.5+rnd()*.6, c:col||'#ffd34d', r:1+rnd()*2.5 });
   }
 }
+function shockwave(x, y, col, pw) { shocks.push({ x, y, t:.55, dur:.55, c:col||'#fff', pw:pw||1 }); }
+function hitstop(dur, deep) { slowT = slowDur = dur; slowDeep = deep == null ? .12 : deep; }
+let slowDeep = .12;
+function timeScale() {
+  if (slowT <= 0) return 1;
+  const r = 1 - slowT / slowDur;                 // 0→1
+  return slowDeep + (1 - slowDeep) * r * r;      // ゆっくり戻す
+}
 
-/* ── キャラ配置 ─────────────────────────────────────────
-   ヒコの弾道を先読みして、その高さの近くに置く。
-   高さを完全ランダムにすると高く飛んだときに誰にも当たらず、
-   「キャラに当てて伸ばす」というゲームが成立しない。                */
+/* ── キャラ配置（全員 地上） ─────────────────────────────
+   本家と同じく、ぶつかるキャラは地面に並んでいる。
+   スペシャルは「並び順」で決まるので、条件になる並びを意図的に混ぜる。 */
 function ensureChars(untilX) {
   while (nextX < untilX) {
-    nextX += 11 + rnd() * 20;
-    // nextX に到達するころのヒコの高度（等加速度で概算）
-    let ref = -1;
-    if (p.vx > 4) {
-      const dtf = (nextX - p.x) / p.vx;
-      ref = p.y + p.vy * dtf - .5 * G * dtf * dtf;
-    }
-    if (!isFinite(ref) || ref < 0) ref = rnd() * 7;
-    const spread = clamp(6 + ref * .16, 6, 22);
-    const n = rnd() < .45 ? 2 : 1;             // 同じ位置に高さ違いで2体出ることがある
-    for (let i = 0; i < n; i++) {
-      const type = pickType();
-      const T = TYPES[type];
-      let alt;
-      if (!T.air) alt = rnd() * 2.2;                                   // 地上キャラ
-      else if (i === 0 && rnd() < .55) alt = Math.max(0, ref + (rnd() - .5) * spread); // 弾道の近く
-      else alt = Math.pow(rnd(), 1.4) * (8 + Math.min(34, nextX / 32)); // ばらけさせる分
-      chars.push({ x: nextX + (i ? (rnd() - .5) * 5 : 0), y: alt, type, hit: false, ph: rnd() * 6.283 });
-    }
+    nextX += 8 + rnd() * 14;
+    const r = rnd();
+    if (r < .12)      { addChar('baby');  addChar('goth', 5 + rnd() * 3); }   // ベビー→ゴス（SP条件）
+    else if (r < .24) { addChar('goth');  addChar('baby', 5 + rnd() * 3); }   // ゴス→ベビー（SP条件）
+    else if (r < .32) { addChar('denpa'); addChar('denpa', 5 + rnd() * 3); }  // デンパ連続（SP条件）
+    else              { addChar(pickType()); }
   }
+}
+function addChar(type, gap) {
+  if (gap) nextX += gap;
+  // 発射直後にボスが出ると、他のキャラに当てる前なのでスペシャル条件
+  //（他キャラ接触後ノーバウンド）を満たしようがなく、回避不能な即死になる
+  if (type === 'boss' && nextX < BOSS_FROM) type = 'neko';
+  chars.push({ x: nextX, y: 0, type, hit: false, ph: rnd() * 6.283, kvx: 0, kvy: 0, krot: 0, kt: 0 });
 }
 function pickType() {
   let total = 0;
@@ -348,13 +423,15 @@ function reset() {
   state = 'title';
   p.x = 0; p.y = 1.4; p.vx = 0; p.vy = 0; p.rot = 0;
   cam.x = -24; cam.y = 0; cam.s = 9;
-  chars = []; pops = []; sparks = [];
+  chars = []; pops = []; sparks = []; winds = []; shocks = [];
   aerialLeft = AERIAL_N; charge = 100; blocked = false; spW = null;
-  combo = 0; peak = 0; bounces = 0;
+  combo = 0; peak = 0; bounces = 0; topKmh = 0;
   bounceBoost = 0; reviveLeft = 0; x2Left = 0; diving = false;
   flash = 0; shake = 0; nextX = 14; seed = (Date.now() % 100000) + 7;
-  ageruFx = null; popAt = {};
-  ensureChars(120);
+  ageruFx = null; spFx = null; popAt = {}; slowT = 0;
+  lastHitType = null; bouncedSinceHit = true;
+  stopAllLoops();
+  ensureChars(200);
   ov('ov-title', true); ov('ov-over', false);
   document.getElementById('title-best').textContent = best > 0 ? 'BEST  ' + fmt(best) + ' m' : '';
   document.getElementById('btn-dive').classList.remove('on');
@@ -362,34 +439,40 @@ function reset() {
 function startAim() { state = 'angle'; aimT = 0; ov('ov-title', false); }
 
 function launch() {
-  const v = 9 + 39 * (power / 100);
+  const v = (9 + 39 * (power / 100)) * SPD_X;
   const a = angle * Math.PI / 180;
   p.vx = Math.cos(a) * v;
   p.vy = Math.sin(a) * v;
   p.y = 1.6;
   state = 'fly';
-  flash = .3; shake = .35;
-  burst(26, '#ff5f8d');
+  flash = .35; shake = .4;
+  burst(40, '#ff5f8d', 1.6);
+  shockwave(p.x, p.y, '#ff5f8d', 1.4);
   pop('CRASH!!', '#ff5f8d', true);
+  se('crash');
   document.getElementById('btn-dive').classList.add('on');
 }
 
 function gameOver() {
   if (reviveLeft > 0) {                       // デンパのアゲルスペシャル：1度だけ復活
     reviveLeft--;
-    p.y = 1.2; p.vx = 26; p.vy = 24;
-    state = 'fly'; flash = .4;
-    burst(34, '#44e0c8');
+    p.y = 1.2; p.vx = 78; p.vy = 72;
+    state = 'fly'; flash = .45;
+    burst(50, '#44e0c8', 1.4);
+    shockwave(p.x, p.y, '#44e0c8', 1.3);
     pop('REVIVE!!', '#44e0c8', true);
+    se('revive');
     return;
   }
   state = 'end';
-  lastStop = p.x;
-  if (p.x > best) { best = p.x; try { localStorage.setItem('crash-best', String(best)); } catch (e) {} }
+  stopAllLoops();
+  const isNew = p.x > best;
+  if (isNew) { best = p.x; try { localStorage.setItem('crash-best', String(best)); } catch (e) {} }
+  se(isNew ? 'record' : 'stop');
   document.getElementById('over-score').textContent = fmt(p.x) + ' m';
-  document.getElementById('over-title').textContent = p.x >= best ? 'NEW RECORD!' : 'CRASH END';
+  document.getElementById('over-title').textContent = isNew ? 'NEW RECORD!' : 'CRASH END';
   document.getElementById('over-detail').innerHTML =
-    'BEST ' + fmt(best) + ' m　/　最高到達点 ' + peak.toFixed(1) + ' m　/　ヒット ' + combo + ' 回　/　バウンド ' + bounces + ' 回';
+    'BEST ' + fmt(best) + ' m　/　最高速度 ' + Math.round(topKmh) + ' km/h　/　最高到達点 ' + peak.toFixed(1) + ' m　/　ヒット ' + combo + ' 回　/　バウンド ' + bounces + ' 回';
   document.getElementById('btn-dive').classList.remove('on');
   ov('ov-over', true);
 }
@@ -410,135 +493,222 @@ function relaunch(ang, mul, min) {
   if (p.y < .6) p.y = .6;
 }
 
+/* キャラを吹っ飛ばす（当たった演出） */
+function knockAway(c) {
+  c.hit = true; c.kt = 1.4;
+  c.kvx = 8 + rnd() * 26 + speed() * .06;
+  c.kvy = 16 + rnd() * 26;
+  c.krot = (rnd() - .5) * 18;
+}
+
+/* スペシャル条件（本家に合わせた並び／履歴の条件） */
+function spReady(c) {
+  const T = TYPES[c.type];
+  if (!T.spCond) return false;
+  if (c.type === 'denpa') return lastHitType === 'denpa';
+  if (c.type === 'boss')  return lastHitType !== null && !bouncedSinceHit;
+  const i = chars.indexOf(c);
+  const nx = chars[i + 1];
+  if (!nx) return false;
+  if (c.type === 'baby') return nx.type === 'goth';
+  if (c.type === 'goth') return nx.type === 'baby';
+  return false;
+}
+
 function onHit(c) {
   const T = TYPES[c.type];
+  const col = ASSETS[IMG_OF[c.type]].c;
   combo++;
-  burst(14, T.c || '#fff');
-  shake = Math.max(shake, .22);
 
-  if (c.type === 'boss') {                   // ボスアゲル＝即死。0.7秒だけチャンス
-    state = 'chance'; chanceT = SP_WIN; chanceCh = c;
-    flash = .5; shake = .4;
+  /* ── 派手なヒット演出＋スロー ── */
+  hitstop(c.type === 'boss' ? .55 : .38, c.type === 'boss' ? .07 : .12);
+  burst(52, col, 1.5); burst(22, '#fff', 2.1);
+  shockwave(p.x, p.y, col, 1.5);
+  flash = Math.max(flash, .4); shake = Math.max(shake, .5);
+
+  const ready = spReady(c);
+
+  if (c.type === 'boss') {                   // ボスアゲル
+    knockAway(c);
+    if (!ready) {                            // 条件を満たしていなければ即終了
+      se('boss_fail');
+      p.vx = 0; p.vy = 0;
+      pop('ボスアゲルに捕まった', '#ff3b30', true);
+      lastHitType = c.type;
+      gameOver();
+      return;
+    }
+    state = 'chance'; chanceT = SP_WIN; chanceCh = c;   // 条件成立 → 0.7秒のチャンス
+    se('chance');
+    lastHitType = c.type; bouncedSinceHit = false;
     return;
   }
+
+  knockAway(c);
+  lastHitType = c.type;
+  bouncedSinceHit = false;
+
   if (c.type === 'robo') {
     blocked = true;
     relaunch(null, T.mul, 0);
     pop('BLOCK', '#9aa3ad');
-    spW = { t: SP_WIN, ch: c, used: false };
+    se('block');
     return;
   }
   if (blocked && T.ageru) {
-    const near100 = Math.abs(p.x - Math.round(p.x / 100) * 100) < 1.0 && p.x >= 100;
+    const near100 = Math.abs(p.x - Math.round(p.x / 100) * 100) < 1.5 && p.x >= 100;
     blocked = false;
     if (near100) { ageruSpecial(c); return; }
     pop('BLOCKED…', '#9aa3ad');
+    se('hit_slow');
     return;                                   // 効果は消える
   }
   relaunch(T.ang, T.mul, T.min);
-  pop(T.name, ASSETS[IMG_OF[c.type]].c);
-  spW = { t: SP_WIN, ch: c, used: false };
+  pop(T.name, col);
+  se(c.type === 'hugu' ? 'hit_slow' : 'hit');
+  if (ready) spW = { t: SP_WIN, ch: c, used: false };   // 条件成立時だけ受付が出る
 }
 
 function trySpecial() {
   if (!spW || spW.used) return false;
-  const T = TYPES[spW.ch.type];
+  const c = spW.ch, T = TYPES[c.type];
   spW.used = true; spW = null;
   relaunch(T.sAng, T.sMul, T.sMin);
+  bang(ASSETS[IMG_OF[c.type]].c);
   pop('SPECIAL!!', '#ffd34d', true);
-  burst(30, '#ffd34d'); flash = .35; shake = .3;
+  se('special');
   return true;
+}
+
+/* 画面バーン（スペシャルの背景演出） */
+function bang(col, strong) {
+  spFx = { t: strong ? 1.15 : .85, dur: strong ? 1.15 : .85, x: p.x, y: p.y, c: col || '#ffd34d' };
+  flash = strong ? .9 : .7;
+  shake = strong ? .75 : .55;
+  burst(90, col || '#ffd34d', 2.4);
+  burst(40, '#fff', 3);
+  shockwave(p.x, p.y, col || '#ffd34d', 2.6);
+  shockwave(p.x, p.y, '#fff', 1.8);
+  hitstop(strong ? .6 : .45, .1);
 }
 
 function bossChance(hit) {
   const c = chanceCh; chanceCh = null;
-  if (!hit) { state = 'fly'; p.vx = 0; p.vy = 0; pop('ボスアゲルに捕まった', '#ff3b30', true); gameOver(); return; }
+  if (!hit) {
+    state = 'fly'; p.vx = 0; p.vy = 0;
+    pop('ボスアゲルに捕まった', '#ff3b30', true);
+    se('boss_fail');
+    gameOver(); return;
+  }
   const T = TYPES.boss;
   state = 'fly';
   relaunch(T.sAng, T.sMul, T.sMin);
+  bang('#ff3b30', true);
   pop('BOSS SPECIAL!!', '#ff3b30', true);
-  burst(60, '#ff3b30'); flash = .6; shake = .5;
+  se('special');
   if (c) c.hit = true;
 }
 
 /* アゲルスペシャル：ブロック状態 × 100の倍数地点 × アゲル系 */
 function ageruSpecial(c) {
-  flash = .7; shake = .5; burst(70, '#fff');
+  bang('#ff5f8d', true);
   pop('AGERU SPECIAL!!', '#ff5f8d', true);
-  if (c.type === 'baby')  { relaunch(70, 1, 92); pop('100人ぶん打ち上げ', '#ffa7c4'); }
-  if (c.type === 'goth')  { bounceBoost = 5; relaunch(40, 1.5, 40); pop('5回バウンド加速', '#b06bff'); }
-  if (c.type === 'denpa') { reviveLeft = 1; relaunch(22, 1.6, 44); pop('停止時に1度だけ復活', '#44e0c8'); }
-  if (c.type === 'boss')  { x2Left = 3; relaunch(50, 1.8, 50); pop('以後3回の加速が2倍', '#ff3b30'); }
+  se('ageru_special');
+  if (c.type === 'baby')  { relaunch(70, 1, 276); pop('100人ぶん打ち上げ', '#ffa7c4'); }
+  if (c.type === 'goth')  { bounceBoost = 5; relaunch(40, 1.5, 120); pop('5回バウンド加速', '#b06bff'); }
+  if (c.type === 'denpa') { reviveLeft = 1; relaunch(22, 1.6, 132); pop('停止時に1度だけ復活', '#44e0c8'); }
+  if (c.type === 'boss')  { x2Left = 3; relaunch(50, 1.8, 150); pop('以後3回の加速が2倍', '#ff3b30'); }
 }
 
 /* ── 空中アクション ─────────────────────────────────────── */
 function aerial() {
   if (aerialLeft <= 0) { pop('AERIAL なし', '#ff8f8f'); return; }
-  if (!inBand())       { pop('地上3〜10mでのみ', '#ff8f8f'); return; }
+  if (!inBand())       { pop('地上9〜30mでのみ', '#ff8f8f'); return; }
   aerialLeft--;
-  p.vy = Math.max(p.vy, 0) + 21;
-  p.vx += 7;
+  p.vy = Math.max(p.vy, 0) + 63;
+  p.vx += 21;
   capSpeed();
   ageruFx = { t: .38, kind: 'kick' };
-  pop('AERIAL!', '#ff5f8d'); burst(16, '#ff5f8d'); shake = .2;
+  pop('AERIAL!', '#ff5f8d'); burst(26, '#ff5f8d', 1.3); shockwave(p.x, p.y, '#ff5f8d', .9);
+  shake = Math.max(shake, .3); se('aerial');
 }
 function dive() {
   if (charge < 100) { pop('CHARGE不足', '#8fd0ff'); return; }
-  if (!inBand())    { pop('地上3〜10mでのみ', '#8fd0ff'); return; }
+  if (!inBand())    { pop('地上9〜30mでのみ', '#8fd0ff'); return; }
   charge = 0; diving = true;
-  p.vy = -24; p.vx += 10;
+  p.vy = -72; p.vx += 30;
   capSpeed();
   ageruFx = { t: .38, kind: 'dive' };
-  pop('DIVE!', '#7ee6ff'); burst(16, '#7ee6ff');
+  pop('DIVE!', '#7ee6ff'); burst(26, '#7ee6ff', 1.3); se('dive');
 }
 
 /* ── 物理 ───────────────────────────────────────────────── */
 function physics(dt) {
   p.vy -= G * dt;
   const sp0 = speed();
-  const k = Math.max(0, 1 - dt * (0.02 + sp0 * sp0 / 90000));   // 速いほど強く効く空気抵抗
+  const k = Math.max(0, 1 - dt * (0.02 + sp0 * sp0 / 810000));   // 速いほど強く効く空気抵抗
   p.vx *= k; p.vy *= k;
   p.x += p.vx * dt;
   p.y += p.vy * dt;
   if (p.y > peak) peak = p.y;
-  p.rot += (p.vx * .12 + 2) * dt * (p.y > .3 ? 1 : 3);
+  if (kmh() > topKmh) topKmh = kmh();
+  p.rot += (p.vx * .05 + 2) * dt * (p.y > .3 ? 1 : 3);
+
+  // 風のエフェクト（速いほど濃く・長く）
+  const wr = clamp((sp0 - 45) / 200, 0, 1);
+  if (wr > 0 && rnd() < wr * dt * 90) {
+    const ang = Math.atan2(p.vy, p.vx);
+    const off = (rnd() - .5) * 14;
+    winds.push({ x: p.x - Math.cos(ang) * 2 - Math.sin(ang) * off,
+                 y: p.y - Math.sin(ang) * 2 + Math.cos(ang) * off,
+                 a: ang, len: 6 + wr * 30 + rnd() * 10, t: .3 + rnd() * .25, dur: .55 });
+  }
+  seLoop('wind', wr * .55);
 
   if (p.y <= 0) {                                   // 着地
     p.y = 0;
     const vd = -p.vy;
-    if (vd > 1.2) {
+    if (vd > 3.6) {
       if (diving) {                                  // ダイブの叩きつけは前方向に化ける
         p.vx = p.vx * .95 + vd * .55;
         p.vy = vd * .75;
-        pop('SLAM!!', '#7ee6ff', true); burst(28, '#7ee6ff'); shake = .35;
+        pop('SLAM!!', '#7ee6ff', true); burst(46, '#7ee6ff', 1.8);
+        shockwave(p.x, 0, '#7ee6ff', 2); shake = Math.max(shake, .5);
+        hitstop(.26, .2); se('slam');
         diving = false;
       } else {
         p.vy = vd * .5;
         p.vx = p.vx * .88 + vd * .2;
+        se('bound');
       }
       if (bounceBoost > 0) { bounceBoost--; p.vx *= 1.5; p.vy *= 1.15; pop('BOUND ×1.5', '#b06bff'); }
-      bounces++; shake = Math.max(shake, .18);
-      burst(8, '#c9c0b4');
+      bounces++; bouncedSinceHit = true;
+      shake = Math.max(shake, .22);
+      burst(14, '#c9c0b4');
+      shockwave(p.x, 0, '#e6ddd0', .8);
     } else {
       p.vy = 0; diving = false;
-      p.vx = Math.max(0, p.vx - 7 * dt);             // 転がって止まる
-      if (p.vx < .7) { gameOver(); return; }
+      bouncedSinceHit = true;
+      p.vx = Math.max(0, p.vx - 21 * dt);             // 転がって止まる
+      seLoop('roll', clamp(p.vx / 40, 0, 1) * .5);
+      if (p.vx < 2.1) { seLoop('roll', 0); gameOver(); return; }
     }
-  }
+  } else if (SND.roll && !SND.roll.paused) { seLoop('roll', 0); }
 
   if (inBand()) charge = Math.min(100, charge + 62 * dt);
 
-  // 当たり判定
-  ensureChars(p.x + 140);
-  for (const c of chars) {
-    if (c.hit) continue;
-    const dx = c.x - p.x;
-    if (dx > HIT_R + 1 || dx < -(HIT_R + 1)) continue;
-    const cy = c.y + Math.sin(t * 1.7 + c.ph) * .35;
-    const dy = cy - p.y;
-    if (dx * dx + dy * dy < HIT_R * HIT_R) { c.hit = true; onHit(c); break; }
+  // 当たり判定（キャラは地上に立っている）
+  ensureChars(p.x + 400);
+  if (p.y < CH_MID + HIT_R) {
+    for (const c of chars) {
+      if (c.hit) continue;
+      const dx = c.x - p.x;
+      if (dx > HIT_R + 1 || dx < -(HIT_R + 1)) continue;
+      const dy = CH_MID - p.y;
+      if (dx * dx + dy * dy < HIT_R * HIT_R) { onHit(c); break; }
+    }
   }
-  if (p.x > 40) chars = chars.filter(c => c.x > p.x - 60);
+  if (p.x > 40) chars = chars.filter(c => c.x > p.x - 80);
 }
 
 /* ── カメラ ─────────────────────────────────────────────── */
@@ -551,21 +721,33 @@ function camera(dt) {
 }
 
 /* ── 更新 ───────────────────────────────────────────────── */
-function update(dt) {
+function update(dt, rdt) {
   t += dt;
+  // 実時間で減るもの（スペシャル受付・スロー）
+  slowT = Math.max(0, slowT - rdt);
+  if (spW)      { spW.t     -= rdt; if (spW.t     <= 0) spW = null; }
+  if (state === 'chance') { chanceT -= rdt; if (chanceT <= 0) { bossChance(false); return; } }
+
   flash = Math.max(0, flash - dt * 2.2);
   shake = Math.max(0, shake - dt * 2.4);
   if (ageruFx) { ageruFx.t -= dt; if (ageruFx.t <= 0) ageruFx = null; }
-  if (spW)     { spW.t     -= dt; if (spW.t     <= 0) spW = null; }
+  if (spFx)    { spFx.t    -= dt; if (spFx.t    <= 0) spFx = null; }
+
   for (const s of sparks) { s.t -= dt; s.x += s.vx * dt; s.y += s.vy * dt; s.vy -= 22 * dt; }
   sparks = sparks.filter(s => s.t > 0);
   for (const q of pops) { q.t -= dt; q.y += dt * 3.2; }
   pops = pops.filter(q => q.t > 0);
+  for (const w of winds) w.t -= dt;
+  winds = winds.filter(w => w.t > 0);
+  for (const s of shocks) s.t -= dt;
+  shocks = shocks.filter(s => s.t > 0);
+  for (const c of chars) {
+    if (c.kt > 0) { c.kt -= dt; c.x += c.kvx * dt; c.y += c.kvy * dt; c.kvy -= 40 * dt; }
+  }
 
   if (state === 'angle')  { aimT += dt; angle = 12 + 68 * tri(aimT * 1.15); }
   else if (state === 'power') { powT += dt; power = 100 * tri(powT * 1.65); }
   else if (state === 'crash') { crashT -= dt; if (crashT <= 0) launch(); }
-  else if (state === 'chance'){ chanceT -= dt; if (chanceT <= 0) bossChance(false); }
   else if (state === 'fly')   { physics(dt); }
   camera(dt);
 }
@@ -629,17 +811,14 @@ function drawBg() {
     CTX.drawImage(IMG.bg_sky, 0, 0, W, H);
   } else {
     const g = CTX.createLinearGradient(0, 0, 0, H);
-    const high = clamp(p.y / 120, 0, 1);              // 高く飛ぶほど宇宙に近づく
+    const high = clamp(p.y / 360, 0, 1);              // 高く飛ぶほど宇宙に近づく
     g.addColorStop(0, high > .5 ? '#0a0c1a' : '#1d2b4d');
     g.addColorStop(.55, high > .5 ? '#16204a' : '#4a5f8f');
     g.addColorStop(1, '#8fa5c8');
     CTX.fillStyle = g; CTX.fillRect(0, 0, W, H);
-    if (high > .25) {                                 // 星
+    if (high > .25) {
       CTX.fillStyle = 'rgba(255,255,255,' + (high * .9).toFixed(2) + ')';
-      for (let i = 0; i < 70; i++) {
-        const sx = ((i * 137.5) % W), sy = ((i * 79.3) % (H * .7));
-        CTX.fillRect(sx, sy, 2, 2);
-      }
+      for (let i = 0; i < 70; i++) CTX.fillRect((i * 137.5) % W, (i * 79.3) % (H * .7), 2, 2);
     }
   }
   const horizon = clamp(SY(0), 0, H);
@@ -648,6 +827,39 @@ function drawBg() {
     tileX('bg_near', horizon - 120 * (cam.s / 9), 120 * (cam.s / 9), .55);
   }
 }
+
+/* スペシャルの画面バーン（背景として描く） */
+function drawBang() {
+  if (!spFx) return;
+  const r = spFx.t / spFx.dur;                 // 1→0
+  const cx = clamp(SX(spFx.x), 0, W), cy = clamp(SY(spFx.y), 0, H);
+  // 放射グラデーション
+  const rad = (1 - r) * W * 1.3 + 80;
+  const g = CTX.createRadialGradient(cx, cy, 0, cx, cy, rad);
+  // 中心は強く、外側は早めに抜く。画面全体が白飛びすると
+  // 「スローにして演出を見せる」目的と逆になるため。
+  g.addColorStop(0, spFx.c);
+  g.addColorStop(.18, 'rgba(255,255,255,.45)');
+  g.addColorStop(.5, 'rgba(255,255,255,.10)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  CTX.globalAlpha = r * .7;
+  CTX.fillStyle = g; CTX.fillRect(0, 0, W, H);
+  // 集中線
+  CTX.globalAlpha = r * .7;
+  CTX.strokeStyle = '#fff';
+  for (let i = 0; i < 46; i++) {
+    const a = (i / 46) * 6.283 + spFx.dur;
+    const w0 = 3 + ((i * 7) % 11);
+    const r0 = rad * .22 * (1 - r) + 30, r1 = rad * 1.2;
+    CTX.lineWidth = w0 * (r * .9 + .1);
+    CTX.beginPath();
+    CTX.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0);
+    CTX.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+    CTX.stroke();
+  }
+  CTX.globalAlpha = 1;
+}
+
 function drawGround() {
   const gy = SY(0);
   if (gy > H) return;
@@ -659,7 +871,7 @@ function drawGround() {
     CTX.fillRect(0, gy, W, 2);
   }
   // 距離の目盛り
-  const step = cam.s > 6 ? 10 : cam.s > 3.5 ? 25 : 50;
+  const step = cam.s > 6 ? 25 : cam.s > 3.5 ? 50 : 100;
   const from = Math.floor(cam.x / step) * step;
   CTX.font = '11px "Press Start 2P", monospace';
   CTX.textAlign = 'center'; CTX.textBaseline = 'top';
@@ -668,7 +880,7 @@ function drawGround() {
     const x = SX(m);
     CTX.fillStyle = 'rgba(255,255,255,.18)';
     CTX.fillRect(x, gy, 1, 10);
-    if (m % (step * 5) === 0) {
+    if (m % (step * 4) === 0) {
       CTX.fillStyle = 'rgba(255,255,255,.4)';
       CTX.fillRect(x, gy, 2, 18);
       CTX.fillText(m + 'm', x, gy + 22);
@@ -678,9 +890,9 @@ function drawGround() {
   if (state === 'fly' || state === 'chance') {
     const y1 = SY(BAND_HI), y2 = SY(BAND_LO);
     if (y2 > 0 && y1 < H) {
-      CTX.fillStyle = inBand() ? 'rgba(255,95,141,.13)' : 'rgba(255,255,255,.05)';
+      CTX.fillStyle = inBand() ? 'rgba(255,95,141,.10)' : 'rgba(255,255,255,.04)';
       CTX.fillRect(0, y1, W, y2 - y1);
-      CTX.strokeStyle = inBand() ? 'rgba(255,95,141,.5)' : 'rgba(255,255,255,.14)';
+      CTX.strokeStyle = inBand() ? 'rgba(255,95,141,.45)' : 'rgba(255,255,255,.12)';
       CTX.lineWidth = 1; CTX.setLineDash([6, 6]);
       CTX.beginPath(); CTX.moveTo(0, y1); CTX.lineTo(W, y1);
       CTX.moveTo(0, y2); CTX.lineTo(W, y2); CTX.stroke();
@@ -689,23 +901,70 @@ function drawGround() {
   }
 }
 
+/* ── 風 ─────────────────────────────────────────────────── */
+function drawWind() {
+  if (!winds.length) return;
+  CTX.lineCap = 'round';
+  for (const w of winds) {
+    const a = clamp(w.t / w.dur, 0, 1);
+    const x1 = SX(w.x), y1 = SY(w.y);
+    const x2 = SX(w.x - Math.cos(w.a) * w.len), y2 = SY(w.y - Math.sin(w.a) * w.len);
+    CTX.globalAlpha = a * .55;
+    CTX.strokeStyle = '#fff';
+    CTX.lineWidth = Math.max(1, cam.s * .18);
+    CTX.beginPath(); CTX.moveTo(x1, y1); CTX.lineTo(x2, y2); CTX.stroke();
+  }
+  CTX.globalAlpha = 1;
+}
+/* 画面端の速度線（かなり速いときだけ） */
+function drawSpeedLines() {
+  const sp = speed();
+  if (state !== 'fly' || sp < 120) return;
+  const a = clamp((sp - 120) / 180, 0, 1);
+  CTX.save();
+  CTX.globalAlpha = a * .5;
+  CTX.strokeStyle = '#fff';
+  for (let i = 0; i < 16; i++) {
+    const yy = ((i * 137 + (t * 900) % H) % H);
+    const len = 60 + (i % 5) * 60 + a * 220;
+    CTX.lineWidth = 1 + (i % 3);
+    CTX.beginPath(); CTX.moveTo(W, yy); CTX.lineTo(W - len, yy); CTX.stroke();
+  }
+  // 端の減光（トンネル感）
+  const g = CTX.createRadialGradient(W * .5, H * .5, H * .25, W * .5, H * .5, H * .95);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(1, 'rgba(0,0,0,' + (a * .5).toFixed(2) + ')');
+  CTX.globalAlpha = 1; CTX.fillStyle = g; CTX.fillRect(0, 0, W, H);
+  CTX.restore();
+}
+
 /* ── キャラ・プレイヤー ─────────────────────────────────── */
 function drawChars() {
   for (const c of chars) {
     const x = SX(c.x);
-    if (x < -120 || x > W + 120) continue;
-    const bob = Math.sin(t * 1.7 + c.ph) * .35;
-    const y = SY(c.y + bob);
-    if (y < -160 || y > H + 160) continue;
+    if (x < -160 || x > W + 160) continue;
     const key = IMG_OF[c.type];
-    // ズームアウトしても見えなくならないように下限を持たせる
     const hpx = Math.max(24, ASSETS[key].h * cam.s / 46);
-    sprite(key, x, y, hpx, { alpha: c.hit ? .25 : 1 });
-    if (!c.hit && c.type === 'boss' && cam.s > 4) {
-      CTX.fillStyle = 'rgba(255,59,48,.85)';
-      CTX.font = 'bold 10px "Noto Sans JP", sans-serif';
-      CTX.textAlign = 'center'; CTX.textBaseline = 'bottom';
-      CTX.fillText('！', x, y - hpx / 2 - 4);
+    const bob = c.hit ? 0 : Math.sin(t * 1.7 + c.ph) * .18;
+    const y = SY(c.y + bob) - hpx / 2;          // 地面の上に立たせる
+    if (y < -200 || y > H + 200) continue;
+    const fade = c.hit ? clamp(c.kt / 1.4, 0, 1) : 1;
+    if (fade <= 0) continue;
+    sprite(key, x, y, hpx, { alpha: fade, rot: c.hit ? c.krot * (1.4 - c.kt) : 0 });
+    if (!c.hit && cam.s > 3.5) {
+      if (c.type === 'boss') {
+        CTX.fillStyle = 'rgba(255,59,48,.9)';
+        CTX.font = 'bold 12px "Noto Sans JP", sans-serif';
+        CTX.textAlign = 'center'; CTX.textBaseline = 'bottom';
+        CTX.fillText('！', x, y - hpx / 2 - 4);
+      }
+      if (spReady(c)) {                        // スペシャル条件が整っているキャラを光らせる
+        CTX.save();
+        CTX.globalAlpha = .5 + .3 * Math.sin(t * 9);
+        CTX.strokeStyle = '#ffd34d'; CTX.lineWidth = 2;
+        CTX.beginPath(); CTX.arc(x, y, hpx * .62, 0, 6.283); CTX.stroke();
+        CTX.restore();
+      }
     }
   }
 }
@@ -728,18 +987,31 @@ function drawPlayer() {
            hpx * 1.6, { alpha: Math.min(1, a * 1.6) });
   }
 }
+function drawShocks() {
+  for (const s of shocks) {
+    const r = 1 - s.t / s.dur;
+    CTX.globalAlpha = (1 - r) * .8;
+    CTX.strokeStyle = s.c;
+    CTX.lineWidth = Math.max(1, (1 - r) * 9 * s.pw);
+    CTX.beginPath();
+    CTX.arc(SX(s.x), SY(s.y), r * 150 * s.pw * clamp(cam.s / 9, .4, 1.4), 0, 6.283);
+    CTX.stroke();
+  }
+  CTX.globalAlpha = 1;
+}
 function drawFx() {
   for (const s of sparks) {
     CTX.globalAlpha = clamp(s.t * 2, 0, 1);
     CTX.fillStyle = s.c;
-    CTX.fillRect(SX(s.x) - 2, SY(s.y) - 2, 4, 4);
+    const r = (s.r || 2) * clamp(cam.s / 9, .5, 1.6);
+    CTX.fillRect(SX(s.x) - r, SY(s.y) - r, r * 2, r * 2);
   }
   CTX.globalAlpha = 1;
   CTX.textAlign = 'center'; CTX.textBaseline = 'middle';
   for (const q of pops) {
     CTX.globalAlpha = clamp(q.t, 0, 1);
     CTX.fillStyle = q.color;
-    CTX.font = q.big ? 'bold 26px "Noto Sans JP", sans-serif' : '500 16px "Noto Sans JP", sans-serif';
+    CTX.font = q.big ? 'bold 30px "Noto Sans JP", sans-serif' : '500 17px "Noto Sans JP", sans-serif';
     CTX.strokeStyle = 'rgba(0,0,0,.6)'; CTX.lineWidth = 4;
     const sx = clamp(SX(q.x), 60, W - 60), sy = clamp(SY(q.y), 40, H - 40) + q.dy;
     CTX.strokeText(q.text, sx, sy); CTX.fillText(q.text, sx, sy);
@@ -780,11 +1052,11 @@ function drawPower() {
 }
 function banner(text) {
   CTX.fillStyle = 'rgba(0,0,0,.45)';
-  CTX.fillRect(0, 54, W, 34);
+  CTX.fillRect(0, 62, W, 34);
   CTX.fillStyle = '#fff';
   CTX.font = '500 15px "Noto Sans JP", sans-serif';
   CTX.textAlign = 'center'; CTX.textBaseline = 'middle';
-  CTX.fillText(text, W / 2, 71);
+  CTX.fillText(text, W / 2, 79);
 }
 function drawChance() {
   CTX.fillStyle = 'rgba(255,59,48,' + (.18 + .12 * Math.sin(t * 30)) + ')';
@@ -804,7 +1076,7 @@ function drawChance() {
 /* ── HUD ────────────────────────────────────────────────── */
 function drawHud() {
   CTX.textAlign = 'left'; CTX.textBaseline = 'top';
-  CTX.fillStyle = 'rgba(0,0,0,.35)'; CTX.fillRect(0, 0, W, 62);
+  CTX.fillStyle = 'rgba(0,0,0,.35)'; CTX.fillRect(0, 0, W, 70);
 
   CTX.fillStyle = '#fff'; CTX.font = '22px "Press Start 2P", monospace';
   CTX.fillText(fmt(Math.max(0, p.x)) + ' m', 20, 10);
@@ -812,62 +1084,84 @@ function drawHud() {
   CTX.font = '10px "Press Start 2P", monospace'; CTX.fillStyle = 'rgba(255,255,255,.55)';
   CTX.fillText('BEST ' + fmt(best) + ' m', 20, 42);
 
+  // 時速
+  const kh = state === 'fly' || state === 'chance' ? kmh() : 0;
+  const hot = clamp((kh - 200) / 900, 0, 1);
+  CTX.textAlign = 'center';
+  CTX.font = '20px "Press Start 2P", monospace';
+  CTX.fillStyle = hot > .6 ? '#ff5f4d' : hot > .3 ? '#ffd34d' : '#7ee6ff';
+  CTX.fillText(Math.round(kh) + ' km/h', W * .5, 12);
+  const bw = 260, bx = W * .5 - bw / 2;
+  CTX.fillStyle = 'rgba(0,0,0,.45)'; roundRect(bx, 44, bw, 8, 2); CTX.fill();
+  const gg = CTX.createLinearGradient(bx, 0, bx + bw, 0);
+  gg.addColorStop(0, '#7ee6ff'); gg.addColorStop(.55, '#ffd34d'); gg.addColorStop(1, '#ff3b30');
+  CTX.fillStyle = gg; roundRect(bx + 1, 45, (bw - 2) * clamp(kh / (MAX_SPD * KMH), 0, 1), 6, 2); CTX.fill();
+
   CTX.textAlign = 'right';
   CTX.fillStyle = 'rgba(255,255,255,.75)'; CTX.font = '11px "Press Start 2P", monospace';
   CTX.fillText('HIT ' + combo + '   ALT ' + p.y.toFixed(1) + 'm', W - 20, 12);
-  if (blocked)     { CTX.fillStyle = '#9aa3ad'; CTX.fillText('BLOCK', W - 20, 38); }
-  if (x2Left > 0)  { CTX.fillStyle = '#ff3b30'; CTX.fillText('×2 残り' + x2Left, W - 120, 38); }
-  if (reviveLeft)  { CTX.fillStyle = '#44e0c8'; CTX.fillText('REVIVE', W - 220, 38); }
-  if (bounceBoost) { CTX.fillStyle = '#b06bff'; CTX.fillText('BOUND×' + bounceBoost, W - 320, 38); }
+  if (blocked)     { CTX.fillStyle = '#9aa3ad'; CTX.fillText('BLOCK', W - 20, 40); }
+  if (x2Left > 0)  { CTX.fillStyle = '#ff3b30'; CTX.fillText('×2 残り' + x2Left, W - 120, 40); }
+  if (reviveLeft)  { CTX.fillStyle = '#44e0c8'; CTX.fillText('REVIVE', W - 220, 40); }
+  if (bounceBoost) { CTX.fillStyle = '#b06bff'; CTX.fillText('BOUND×' + bounceBoost, W - 320, 40); }
 
   if (state !== 'fly' && state !== 'chance') { if (flash > 0) drawFlash(); return; }
 
+  // 下部HUDの下地（地面の絵と重なって読めなくなるのを防ぐ）
+  CTX.fillStyle = 'rgba(0,0,0,.38)';
+  CTX.fillRect(0, H - 80, W, 80);
+
   // エアリアル残数
-  const bx = 20, by = H - 58;
+  const ax = 20, ay = H - 58;
   CTX.textAlign = 'left'; CTX.fillStyle = 'rgba(255,255,255,.6)';
   CTX.font = '9px "Press Start 2P", monospace';
-  CTX.fillText('AERIAL', bx, by - 14);
+  CTX.fillText('AERIAL', ax, ay - 14);
   for (let i = 0; i < AERIAL_N; i++) {
-    CTX.beginPath(); CTX.arc(bx + 9 + i * 24, by + 6, 8, 0, 6.284);
+    CTX.beginPath(); CTX.arc(ax + 9 + i * 24, ay + 6, 8, 0, 6.284);
     CTX.fillStyle = i < aerialLeft ? (inBand() ? '#ff5f8d' : 'rgba(255,95,141,.35)') : 'rgba(255,255,255,.12)';
     CTX.fill();
   }
   // チャージ
-  const cx = bx + 100, cw = 160;
+  const cx = ax + 100, cw = 160;
   CTX.fillStyle = 'rgba(255,255,255,.6)';
-  CTX.fillText('CHARGE', cx, by - 14);
-  CTX.fillStyle = 'rgba(0,0,0,.45)'; roundRect(cx, by, cw, 13, 3); CTX.fill();
+  CTX.fillText('CHARGE', cx, ay - 14);
+  CTX.fillStyle = 'rgba(0,0,0,.45)'; roundRect(cx, ay, cw, 13, 3); CTX.fill();
   CTX.fillStyle = charge >= 100 ? (inBand() ? '#7ee6ff' : 'rgba(126,230,255,.45)') : 'rgba(255,255,255,.3)';
-  roundRect(cx + 2, by + 2, (cw - 4) * (charge / 100), 9, 2); CTX.fill();
+  roundRect(cx + 2, ay + 2, (cw - 4) * (charge / 100), 9, 2); CTX.fill();
   if (charge >= 100) {
     CTX.fillStyle = '#7ee6ff'; CTX.font = '9px "Press Start 2P", monospace';
-    CTX.fillText('DIVE OK', cx + cw + 10, by + 2);
+    CTX.fillText('DIVE OK', cx + cw + 10, ay + 2);
   }
   // スペシャル受付
   if (spW && !spW.used) {
     const r = spW.t / SP_WIN;
     CTX.textAlign = 'center'; CTX.fillStyle = '#ffd34d';
-    CTX.font = 'bold 20px "Noto Sans JP", sans-serif';
-    CTX.fillText('SPECIAL!  クリック', W / 2, 72);
-    CTX.fillStyle = 'rgba(0,0,0,.5)'; roundRect(W / 2 - 90, 98, 180, 8, 2); CTX.fill();
-    CTX.fillStyle = '#ffd34d'; roundRect(W / 2 - 88, 100, 176 * r, 4, 2); CTX.fill();
+    CTX.font = 'bold 24px "Noto Sans JP", sans-serif';
+    CTX.fillText('SPECIAL!  クリック', W / 2, 92);
+    CTX.fillStyle = 'rgba(0,0,0,.5)'; roundRect(W / 2 - 90, 112, 180, 8, 2); CTX.fill();
+    CTX.fillStyle = '#ffd34d'; roundRect(W / 2 - 88, 114, 176 * r, 4, 2); CTX.fill();
   }
   if (flash > 0) drawFlash();
 }
 function drawFlash() {
-  CTX.fillStyle = 'rgba(255,255,255,' + (flash * .55).toFixed(3) + ')';
+  // 上限を設けて真っ白にはしない（背景とキャラが見えなくなるため）
+  CTX.fillStyle = 'rgba(255,255,255,' + Math.min(.4, flash * .5).toFixed(3) + ')';
   CTX.fillRect(0, 0, W, H);
 }
 
 /* ── 描画 ───────────────────────────────────────────────── */
 function draw() {
   CTX.save();
-  if (shake > 0) CTX.translate((Math.random() - .5) * shake * 26, (Math.random() - .5) * shake * 26);
+  if (shake > 0) CTX.translate((Math.random() - .5) * shake * 30, (Math.random() - .5) * shake * 30);
   drawBg();
+  drawBang();          // スペシャルの画面バーンは背景として
   drawGround();
+  drawWind();
   drawChars();
   drawPlayer();
+  drawShocks();
   drawFx();
+  drawSpeedLines();
   if (state === 'angle') drawAim();
   if (state === 'power') drawPower();
   if (state === 'chance') drawChance();
@@ -879,9 +1173,9 @@ function draw() {
 function press(which) {
   if (document.getElementById('ov-help').classList.contains('show')) return;
   switch (state) {
-    case 'title': startAim(); break;
-    case 'angle': state = 'power'; powT = 0; break;
-    case 'power': state = 'crash'; crashT = .42; ageruFx = { t: .42, kind: 'bike' }; break;
+    case 'title': startAim(); se('ui_click'); break;
+    case 'angle': state = 'power'; powT = 0; se('ui_click'); break;   // 押した瞬間に角度が決まる
+    // 'power' は「離した瞬間」に確定する（本家と同じ押しっぱなし操作）→ release()
     case 'chance': bossChance(true); break;
     case 'end':   reset(); break;
     case 'fly':
@@ -890,40 +1184,71 @@ function press(which) {
       break;
   }
 }
+/* ボタンを離した瞬間の処理（パワー確定＝発射）。
+   本家は「押しっぱなしでパワーを溜め、最高値に近いところで離す」操作。 */
+function release() {
+  if (state !== 'power') return;
+  if (document.getElementById('ov-help').classList.contains('show')) return;
+  state = 'crash'; crashT = .42; ageruFx = { t: .42, kind: 'bike' };
+  se('ui_click');
+}
 const wrap = document.getElementById('wrap');
 wrap.addEventListener('pointerdown', e => {
   if (e.target.id === 'btn-dive') return;
   e.preventDefault();
   press(e.button === 2 ? 'down' : 'up');
 });
+wrap.addEventListener('pointerup',     e => { e.preventDefault(); release(); });
+wrap.addEventListener('pointercancel', () => release());
+wrap.addEventListener('pointerleave',  () => release());   // 押したまま外に出ても発射する
 wrap.addEventListener('contextmenu', e => { e.preventDefault(); });
 document.getElementById('btn-dive').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); press('down'); });
 document.addEventListener('keydown', e => {
+  if (e.repeat) return;                                    // 押しっぱなしの連射を無視
   if (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowUp' || e.code === 'KeyZ') { e.preventDefault(); press('up'); }
   else if (e.code === 'ArrowDown' || e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyX') { e.preventDefault(); press('down'); }
   else if (e.code === 'Escape') closeHelp();
 });
+document.addEventListener('keyup', e => {
+  if (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowUp' || e.code === 'KeyZ') release();
+});
 document.getElementById('btn-retry').addEventListener('pointerdown', e => { e.stopPropagation(); reset(); });
+
+/* サウンド ON/OFF */
+const sndBtn = document.getElementById('btn-sound');
+function syncSnd() {
+  sndBtn.classList.toggle('on', sndOn);
+  sndBtn.setAttribute('aria-pressed', String(sndOn));
+  if (!sndOn) stopAllLoops();
+}
+sndBtn.addEventListener('click', () => {
+  sndOn = !sndOn;
+  try { localStorage.setItem('crash-snd', sndOn ? '1' : '0'); } catch (e) {}
+  syncSnd();
+});
+syncSnd();
 
 /* 遊び方 */
 function openHelp()  { ov('ov-help', true); }
 function closeHelp() { ov('ov-help', false); }
 document.getElementById('btn-help').addEventListener('click', openHelp);
 document.getElementById('btn-help-close').addEventListener('click', closeHelp);
-(() => {   // キャラ効果表を TYPES から作る（仕様とヘルプがズレないように）
-  const tb = document.getElementById('help-chars');
-  tb.innerHTML = TYPE_KEYS.map(k =>
+(() => {   // ヘルプの表は TYPES から作る（仕様とヘルプがズレないように）
+  document.getElementById('help-chars').innerHTML = TYPE_KEYS.map(k =>
     '<tr><td>' + TYPES[k].name + '</td><td>' + TYPES[k].desc + '</td></tr>').join('');
+  document.getElementById('help-sp').innerHTML = TYPE_KEYS.filter(k => TYPES[k].spCond).map(k =>
+    '<tr><td>' + TYPES[k].name + '</td><td>' + TYPES[k].spCond + '</td></tr>').join('');
 })();
 
 /* ── メインループ ───────────────────────────────────────── */
 let last = performance.now();
 function loop(now) {
-  let dt = (now - last) / 1000; last = now;
-  if (dt > .25) dt = .25;
+  let rdt = (now - last) / 1000; last = now;
+  if (rdt > .25) rdt = .25;
+  const dt = rdt * timeScale();                 // ヒット時はスローになる
   const steps = Math.max(1, Math.ceil(dt / (1 / 120)));
-  const sd = dt / steps;
-  for (let i = 0; i < steps; i++) update(sd);
+  const sd = dt / steps, srd = rdt / steps;
+  for (let i = 0; i < steps; i++) update(sd, srd);
   draw();
   requestAnimationFrame(loop);
 }
