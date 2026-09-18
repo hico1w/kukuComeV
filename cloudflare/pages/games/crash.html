@@ -314,7 +314,9 @@ const AERIAL_N = 3;          // エアリアル回数
 const HIT_R    = 3.0;        // 当たり判定半径 m
 const CH_MID   = 2.5;        // 地上キャラの当たり判定の中心高さ m
 const MAX_SPD  = 330;        // 速度上限 m/s（= 約1188km/h）
-const BOSS_FROM = 150;       // ボスアゲルが出はじめる距離 m（序盤の回避不能な即死を避ける）
+const BOSS_FROM = 400;       // ボスアゲルが出はじめる距離 m（序盤の回避不能な即死を避ける）
+const CHAR_SPACING = 100;    // キャラの配置間隔 m（100mちょうどに1体ずつ）
+const CAM_S = 10.5;          // カメラの拡大率 px/m（固定。ズームアウトするとキャラが見えない）
 const KMH      = 3.6;        // m/s → km/h
 
 /* ── 画像ロード（失敗してもそのまま進む） ───────────────── */
@@ -349,6 +351,7 @@ let bounceBoost = 0, reviveLeft = 0, x2Left = 0, diving = false;
 let flash = 0, shake = 0, t = 0, seed = 1, nextX = 0;
 let ageruFx = null;             // {t, kind:'kick'|'dive'|'bike'}
 let spFx = null;                // スペシャルの画面バーン {t, dur, x, y, c}
+let pendingType = null;         // 次の100m地点に置くと条件が成立する型
 let slowT = 0, slowDur = 1;     // ヒットストップ（スロー）
 let lastHitType = null;         // 直前に当てたキャラ（デンパ連続判定）
 let bouncedSinceHit = true;     // 直前のヒット以降にバウンドしたか（ボス条件）
@@ -390,22 +393,26 @@ function timeScale() {
   return slowDeep + (1 - slowDeep) * r * r;      // ゆっくり戻す
 }
 
-/* ── キャラ配置（全員 地上） ─────────────────────────────
-   本家と同じく、ぶつかるキャラは地面に並んでいる。
-   スペシャルは「並び順」で決まるので、条件になる並びを意図的に混ぜる。 */
+/* ── キャラ配置（全員 地上・100mごと） ───────────────────
+   ぶつかるキャラは 100m ちょうどの地点に1体ずつ並ぶ。
+   スペシャルは「並び順」で決まるので、条件になる並びを意図的に混ぜる
+   （相方は次の100m地点に置かれ、右上の NEXT パネルで予告される）。   */
 function ensureChars(untilX) {
   while (nextX < untilX) {
-    nextX += 8 + rnd() * 14;
-    const r = rnd();
-    if (r < .12)      { addChar('baby');  addChar('goth', 5 + rnd() * 3); }   // ベビー→ゴス（SP条件）
-    else if (r < .24) { addChar('goth');  addChar('baby', 5 + rnd() * 3); }   // ゴス→ベビー（SP条件）
-    else if (r < .32) { addChar('denpa'); addChar('denpa', 5 + rnd() * 3); }  // デンパ連続（SP条件）
-    else              { addChar(pickType()); }
+    nextX += CHAR_SPACING;
+    let type;
+    if (pendingType) { type = pendingType; pendingType = null; }
+    else {
+      type = pickType();
+      if      (type === 'baby'  && rnd() < .55) pendingType = 'goth';   // ベビー→ゴス（SP条件）
+      else if (type === 'goth'  && rnd() < .55) pendingType = 'baby';   // ゴス→ベビー（SP条件）
+      else if (type === 'denpa' && rnd() < .55) pendingType = 'denpa';  // デンパ連続（SP条件）
+    }
+    addChar(type);
   }
 }
-function addChar(type, gap) {
-  if (gap) nextX += gap;
-  // 発射直後にボスが出ると、他のキャラに当てる前なのでスペシャル条件
+function addChar(type) {
+  // 序盤にボスが出ると、他のキャラに当てる前なのでスペシャル条件
   //（他キャラ接触後ノーバウンド）を満たしようがなく、回避不能な即死になる
   if (type === 'boss' && nextX < BOSS_FROM) type = 'neko';
   chars.push({ x: nextX, y: 0, type, hit: false, ph: rnd() * 6.283, kvx: 0, kvy: 0, krot: 0, kt: 0 });
@@ -429,9 +436,10 @@ function reset() {
   bounceBoost = 0; reviveLeft = 0; x2Left = 0; diving = false;
   flash = 0; shake = 0; nextX = 14; seed = (Date.now() % 100000) + 7;
   ageruFx = null; spFx = null; popAt = {}; slowT = 0;
-  lastHitType = null; bouncedSinceHit = true;
+  lastHitType = null; bouncedSinceHit = true; pendingType = null;
   stopAllLoops();
-  ensureChars(200);
+  nextX = 0;
+  ensureChars(600);
   ov('ov-title', true); ov('ov-over', false);
   document.getElementById('title-best').textContent = best > 0 ? 'BEST  ' + fmt(best) + ' m' : '';
   document.getElementById('btn-dive').classList.remove('on');
@@ -698,7 +706,7 @@ function physics(dt) {
   if (inBand()) charge = Math.min(100, charge + 62 * dt);
 
   // 当たり判定（キャラは地上に立っている）
-  ensureChars(p.x + 400);
+  ensureChars(p.x + 700);
   if (p.y < CH_MID + HIT_R) {
     for (const c of chars) {
       if (c.hit) continue;
@@ -713,11 +721,18 @@ function physics(dt) {
 
 /* ── カメラ ─────────────────────────────────────────────── */
 function camera(dt) {
-  const ts = clamp((GROUND_SY - 70) / Math.max(15, p.y * 1.3 + 8), 1.6, 11);
-  cam.s += (ts - cam.s) * Math.min(1, dt * 2.6);
-  const ty = Math.max(0, p.y - (GROUND_SY - H * .42) / cam.s);
+  // 拡大率は固定。高く飛んでもズームアウトしない（キャラが豆粒になるため）。
+  // そのぶん見えない先のキャラは右上の NEXT パネルで補う。
+  cam.s += (CAM_S - cam.s) * Math.min(1, dt * 3);
+  const ty = Math.max(0, p.y - (GROUND_SY - H * .5) / cam.s);
   cam.y += (ty - cam.y) * Math.min(1, dt * 4.5);
-  cam.x = p.x - (W * .32) / cam.s;
+  // 速度3倍＋固定拡大だと、上昇/落下に追従が間に合わず自機が画面外に出る。
+  // 自機の画面Yが必ず帯（上16%〜下66%）に収まるよう、追従後にクランプする。
+  const camYTop = p.y - (GROUND_SY - H * .16) / cam.s;   // これ未満だと上に外れる
+  const camYBot = p.y - (GROUND_SY - H * .66) / cam.s;   // これ超だと下に外れる
+  cam.y = clamp(cam.y, camYTop, camYBot);
+  if (cam.y < 0) cam.y = 0;                              // 地面より下は見せない
+  cam.x = p.x - (W * .3) / cam.s;
 }
 
 /* ── 更新 ───────────────────────────────────────────────── */
@@ -1073,6 +1088,53 @@ function drawChance() {
   CTX.fillStyle = '#ffd34d'; roundRect(bx + 2, by + 2, (bw - 4) * r, 10, 2); CTX.fill();
 }
 
+/* ── 右上：これから出てくるキャラの先読み ─────────────────
+   キャラは100mおきで、カメラを固定拡大にした結果ほぼ1体しか画面に入らない。
+   何が来るか（＝スペシャルの並びが来ているか）はここで判断する。        */
+function drawUpcoming() {
+  if (state === 'title' || state === 'end') return;
+  const list = [];
+  for (const c of chars) {
+    if (c.hit || c.x < p.x - 2) continue;
+    list.push(c);
+    if (list.length >= 5) break;
+  }
+  if (!list.length) return;
+  const cw = 66, pad = 10, bh = 78;
+  const bw = list.length * cw + pad * 2;
+  const bx = W - 20 - bw, by = 80;
+
+  CTX.fillStyle = 'rgba(0,0,0,.45)'; roundRect(bx, by, bw, bh, 6); CTX.fill();
+  CTX.strokeStyle = 'rgba(255,255,255,.16)'; CTX.lineWidth = 1; roundRect(bx, by, bw, bh, 6); CTX.stroke();
+  CTX.fillStyle = 'rgba(255,255,255,.55)';
+  CTX.font = '8px "Press Start 2P", monospace';
+  CTX.textAlign = 'left'; CTX.textBaseline = 'alphabetic';
+  CTX.fillText('NEXT', bx + pad, by - 6);
+
+  list.forEach((c, i) => {
+    const cx0 = bx + pad + i * cw + cw / 2, iy = by + 30;
+    if (c.type === 'boss') {                       // ボスは赤枠で警告
+      CTX.fillStyle = 'rgba(255,59,48,.22)';
+      roundRect(cx0 - cw / 2 + 3, by + 4, cw - 6, bh - 8, 4); CTX.fill();
+      CTX.strokeStyle = 'rgba(255,59,48,.8)'; CTX.lineWidth = 1.5;
+      roundRect(cx0 - cw / 2 + 3, by + 4, cw - 6, bh - 8, 4); CTX.stroke();
+    }
+    sprite(IMG_OF[c.type], cx0, iy, 42, {});
+    if (spReady(c)) {                              // 条件が整っているキャラは光らせる
+      CTX.save();
+      CTX.globalAlpha = .55 + .35 * Math.sin(t * 9);
+      CTX.strokeStyle = '#ffd34d'; CTX.lineWidth = 2;
+      CTX.beginPath(); CTX.arc(cx0, iy, 26, 0, 6.283); CTX.stroke();
+      CTX.restore();
+    }
+    const d = Math.max(0, c.x - p.x);
+    CTX.textAlign = 'center'; CTX.textBaseline = 'top';
+    CTX.font = '9px "Press Start 2P", monospace';
+    CTX.fillStyle = i === 0 ? '#fff' : 'rgba(255,255,255,.6)';
+    CTX.fillText(Math.round(d) + 'm', cx0, by + bh - 18);
+  });
+}
+
 /* ── HUD ────────────────────────────────────────────────── */
 function drawHud() {
   CTX.textAlign = 'left'; CTX.textBaseline = 'top';
@@ -1104,6 +1166,8 @@ function drawHud() {
   if (x2Left > 0)  { CTX.fillStyle = '#ff3b30'; CTX.fillText('×2 残り' + x2Left, W - 120, 40); }
   if (reviveLeft)  { CTX.fillStyle = '#44e0c8'; CTX.fillText('REVIVE', W - 220, 40); }
   if (bounceBoost) { CTX.fillStyle = '#b06bff'; CTX.fillText('BOUND×' + bounceBoost, W - 320, 40); }
+
+  drawUpcoming();
 
   if (state !== 'fly' && state !== 'chance') { if (flash > 0) drawFlash(); return; }
 
