@@ -311,9 +311,11 @@ const BAND_LO  = 9;          // エアリアル可能な低空帯（下限 m）
 const BAND_HI  = 30;         // 〃（上限 m）
 const SP_WIN   = 0.70;       // スペシャル受付（実時間の秒）
 const AERIAL_N = 3;          // エアリアル回数
-const CHAR_SCALE = 3;        // ぶつかるキャラの表示倍率（**見た目だけ**。当たり判定は拡大しない）
-const HIT_R    = 3.0;        // 当たり判定半径 m
-const CH_MID   = 2.5;        // 地上キャラの当たり判定の中心高さ m
+const CHAR_SCALE = 3;        // キャラ・自機の表示倍率（当たり判定も同じ大きさで取る）
+// 当たり判定は「見た目そのまま」。描画は h * cam.s / 46 * CHAR_SCALE なので、
+// ワールド上の大きさ（m）は h * CHAR_SCALE / 46 で、カメラ倍率に依らず一定になる。
+const PLAYER_R = ASSETS.hico_fly.h * CHAR_SCALE / 46 * .32;   // 自機の当たり半径 m
+const MAX_CH_H = Math.max.apply(null, Object.values(IMG_OF).map(k => ASSETS[k].h)) * CHAR_SCALE / 46;
 const MAX_SPD  = 330;        // 速度上限 m/s（= 約1188km/h）
 const BOSS_FROM = 400;       // ボスアゲルが出はじめる距離 m（序盤の回避不能な即死を避ける）
 const CHAR_SPACING = 100;    // キャラの配置間隔 m（100mちょうどに1体ずつ）
@@ -715,13 +717,17 @@ function physics(dt) {
 
   // 当たり判定（キャラは地上に立っている）
   ensureChars(p.x + 700);
-  if (p.y < CH_MID + HIT_R) {
+  // 当たり判定は見た目どおり：キャラの絵の幅・高さ（ワールド換算）に自機の半径を足した箱
+  if (p.y < MAX_CH_H + PLAYER_R) {
     for (const c of chars) {
       if (c.hit) continue;
-      const dx = c.x - p.x;
-      if (dx > HIT_R + 1 || dx < -(HIT_R + 1)) continue;
-      const dy = CH_MID - p.y;
-      if (dx * dx + dy * dy < HIT_R * HIT_R) { onHit(c); break; }
+      const key = IMG_OF[c.type], A = ASSETS[key], im = IMG[key];
+      const hgt = A.h * CHAR_SCALE / 46;                                   // 絵の高さ m
+      const asp = im && im.naturalWidth ? im.naturalWidth / im.naturalHeight : A.w / A.h;
+      const halfW = hgt * asp / 2 + PLAYER_R;                              // 半幅＋自機
+      if (Math.abs(c.x - p.x) > halfW) continue;
+      if (p.y > hgt + PLAYER_R) continue;                                  // 頭より上は当たらない
+      onHit(c); break;
     }
   }
   if (p.x > 40) chars = chars.filter(c => c.x > p.x - 80);
@@ -967,7 +973,7 @@ function drawChars() {
     const x = SX(c.x);
     if (x < -160 || x > W + 160) continue;
     const key = IMG_OF[c.type];
-    // 表示だけ CHAR_SCALE 倍にする。当たり判定（CH_MID / HIT_R）は元のまま。
+    // CHAR_SCALE 倍で描く。当たり判定もこの大きさから計算している（physics 参照）。
     const hpx = Math.max(24, ASSETS[key].h * cam.s / 46) * CHAR_SCALE;
     const bob = c.hit ? 0 : Math.sin(t * 1.7 + c.ph) * .18;
     const y = SY(c.y + bob) - hpx / 2;          // 地面の上に立たせる
@@ -998,7 +1004,7 @@ function drawAgeruRush(x, hpx) {
   // pr*pr にすると前半ほとんど動かず、突っ込みが一瞬しか見えない。
   // 最初から速く走り、最後にもう一段加速する曲線にする。
   const e = pr * (.45 + .55 * pr);
-  const bh = hpx * 1.9;
+  const bh = hpx * 1.25;                          // 自機が大きくなったぶん倍率を下げる
   const fromX = -bh * 1.2, toX = x - hpx * .85;
   const ax = fromX + (toX - fromX) * e;
   const ay = SY(0) - bh * .46;
@@ -1018,7 +1024,8 @@ function drawAgeruRush(x, hpx) {
 
 function drawPlayer() {
   const x = SX(p.x), y = SY(p.y);
-  const hpx = Math.max(30, 150 * cam.s / 46);
+  // 自機もバンパーと同じスケールで描く（当たり判定もこの大きさで取っている）
+  const hpx = Math.max(24, ASSETS.hico_fly.h * cam.s / 46) * CHAR_SCALE;
 
   // 照準中はアゲルを出さない（発射の瞬間に左から登場する）
   if (state === 'title' || state === 'angle' || state === 'power') {
@@ -1041,8 +1048,8 @@ function drawPlayer() {
       if (bx > -bh) sprite('ageru_bike', bx, SY(0) - bh * .46, bh, { alpha: Math.min(1, a * 1.6) });
     } else {
       sprite(ageruFx.kind === 'dive' ? 'ageru_dive' : 'ageru_kick',
-             x - 30 * a, y + (ageruFx.kind === 'dive' ? -40 : 40) * a,
-             hpx * 1.6, { alpha: Math.min(1, a * 1.6) });
+             x - hpx * .22 * a, y + (ageruFx.kind === 'dive' ? -hpx * .3 : hpx * .3) * a,
+             hpx * 1.15, { alpha: Math.min(1, a * 1.6) });
     }
   }
 }
