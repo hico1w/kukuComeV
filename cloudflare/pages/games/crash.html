@@ -287,17 +287,17 @@ function stopAllLoops() { for (const k in SFX_LIST) if (SFX_LIST[k].loop && SND[
    sAng/sMul/sMin: スペシャル（条件成立＋0.7秒以内クリック）
    spCond        : スペシャルの発動条件（本家の条件に合わせている）       */
 const TYPES = {
-  baby : { name:'ベビーアゲル', ageru:true,  w:9, ang:45,   mul:1.28, min:66,  sAng:45, sMul:1.95, sMin:132, desc:'斜め45度に打ち上げ',
+  baby : { name:'ベビーアゲル', fx:'LAUNCH UP!!', ageru:true,  w:9, ang:45,   mul:1.28, min:66,  sAng:45, sMul:1.95, sMin:132, desc:'斜め45度に打ち上げ',
            spCond:'次のキャラが「ゴスアゲル」のとき' },
-  goth : { name:'ゴスアゲル',   ageru:true,  w:8, ang:72,   mul:1.18, min:72,  sAng:78, sMul:1.85, sMin:126, desc:'高い角度に打ち上げ',
+  goth : { name:'ゴスアゲル',   fx:'HIGH JUMP!!', ageru:true,  w:8, ang:72,   mul:1.18, min:72,  sAng:78, sMul:1.85, sMin:126, desc:'高い角度に打ち上げ',
            spCond:'次のキャラが「ベビーアゲル」のとき' },
-  denpa: { name:'デンパアゲル', ageru:true,  w:8, ang:18,   mul:1.36, min:81,  sAng:12, sMul:2.05, sMin:144, desc:'低い角度に加速',
+  denpa: { name:'デンパアゲル', fx:'BOOST!!',     ageru:true,  w:8, ang:18,   mul:1.36, min:81,  sAng:12, sMul:2.05, sMin:144, desc:'低い角度に加速',
            spCond:'直前に当てたのも「デンパアゲル」のとき（間に他を挟まない）' },
-  neko : { name:'キショネコ',   ageru:false, w:8, ang:58,   mul:1.08, min:48,  sAng:60, sMul:1.6,  sMin:102, desc:'小さく打ち上げ', spCond:null },
-  kani : { name:'カニ',         ageru:false, w:7, ang:55,   mul:1.0,  min:42,  sAng:60, sMul:1.55, sMin:96,  desc:'角度を変える',   spCond:null },
-  hugu : { name:'フグ',         ageru:false, w:7, ang:null, mul:0.58, min:0,   sAng:null, sMul:1.25, sMin:0, desc:'減速する',       spCond:null },
-  robo : { name:'ヨクネロボ',   ageru:false, w:6, ang:null, mul:0.94, min:0,   sAng:null, sMul:1.3,  sMin:0, desc:'ブロック（次のアゲル系の効果を消す）', spCond:null },
-  boss : { name:'ボスアゲル',   ageru:true,  w:5, ang:null, mul:0,    min:0,   sAng:55, sMul:2.5,  sMin:186, desc:'当たると即終了',
+  neko : { name:'キショネコ',   fx:'HOP!!',       ageru:false, w:8, ang:58,   mul:1.08, min:48,  sAng:60, sMul:1.6,  sMin:102, desc:'小さく打ち上げ', spCond:null },
+  kani : { name:'カニ',         fx:'ANGLE UP!!',  ageru:false, w:7, ang:55,   mul:1.0,  min:42,  sAng:60, sMul:1.55, sMin:96,  desc:'角度を変える',   spCond:null },
+  hugu : { name:'フグ',         fx:'SLOW DOWN…',  ageru:false, w:7, ang:null, mul:0.58, min:0,   sAng:null, sMul:1.25, sMin:0, desc:'減速する',       spCond:null },
+  robo : { name:'ヨクネロボ',   fx:'BLOCK!!',     ageru:false, w:6, ang:null, mul:0.94, min:0,   sAng:null, sMul:1.3,  sMin:0, desc:'ブロック（次のアゲル系の効果を消す）', spCond:null },
+  boss : { name:'ボスアゲル',   fx:'DANGER!!',    ageru:true,  w:5, ang:null, mul:0,    min:0,   sAng:55, sMul:2.5,  sMin:186, desc:'当たると即終了',
            spCond:'他のキャラに当てた後、バウンドせずに当てたとき' },
 };
 const TYPE_KEYS = Object.keys(TYPES);
@@ -311,12 +311,14 @@ const BAND_LO  = 9;          // エアリアル可能な低空帯（下限 m）
 const BAND_HI  = 30;         // 〃（上限 m）
 const SP_WIN   = 0.70;       // スペシャル受付（実時間の秒）
 const AERIAL_N = 3;          // エアリアル回数
+const CHAR_SCALE = 3;        // ぶつかるキャラの表示倍率（**見た目だけ**。当たり判定は拡大しない）
 const HIT_R    = 3.0;        // 当たり判定半径 m
 const CH_MID   = 2.5;        // 地上キャラの当たり判定の中心高さ m
 const MAX_SPD  = 330;        // 速度上限 m/s（= 約1188km/h）
 const BOSS_FROM = 400;       // ボスアゲルが出はじめる距離 m（序盤の回避不能な即死を避ける）
 const CHAR_SPACING = 100;    // キャラの配置間隔 m（100mちょうどに1体ずつ）
 const CAM_S = 10.5;          // カメラの拡大率 px/m（固定。ズームアウトするとキャラが見えない）
+const CRASH_T = 0.55;        // アゲルが左から突っ込んでくる演出の長さ 秒
 const KMH      = 3.6;        // m/s → km/h
 
 /* ── 画像ロード（失敗してもそのまま進む） ───────────────── */
@@ -352,6 +354,7 @@ let flash = 0, shake = 0, t = 0, seed = 1, nextX = 0;
 let ageruFx = null;             // {t, kind:'kick'|'dive'|'bike'}
 let spFx = null;                // スペシャルの画面バーン {t, dur, x, y, c}
 let pendingType = null;         // 次の100m地点に置くと条件が成立する型
+let crashX = 0;                 // 激突した地点（アゲルはそこに置き去りになる）
 let slowT = 0, slowDur = 1;     // ヒットストップ（スロー）
 let lastHitType = null;         // 直前に当てたキャラ（デンパ連続判定）
 let bouncedSinceHit = true;     // 直前のヒット以降にバウンドしたか（ボス条件）
@@ -375,8 +378,11 @@ let popAt = {};
 function pop(text, color, big) {
   if (popAt[text] && t - popAt[text] < 1.0) return;   // 同じ文言の連打で画面が潰れるのを防ぐ
   popAt[text] = t;
-  const recent = pops.filter(q => q.t > .75).length;   // 同時に出た分は画面上で下にずらす
-  pops.push({ text, color: color || '#fff', big: !!big, t: 1.1, x: p.x, y: p.y + 2.5, dy: recent * 24 });
+  // 同時に出た分は画面上で下にずらす。段差は文字の大きさぶん積む
+  //（固定24pxだと36pxの大文字どうしが重なって読めなくなる）
+  let dy = 0;
+  for (const q of pops) if (q.t > .75) dy += q.big ? 46 : 26;
+  pops.push({ text, color: color || '#fff', big: !!big, t: 1.1, x: p.x, y: p.y + 2.5, dy });
 }
 function burst(n, col, pw) {
   for (let i = 0; i < n; i++) {
@@ -453,6 +459,8 @@ function launch() {
   p.vy = Math.sin(a) * v;
   p.y = 1.6;
   state = 'fly';
+  crashX = p.x;                                   // 激突地点にアゲルを残す
+  ageruFx = { t: 1.4, dur: 1.4, kind: 'bike' };   // 余韻（爆発が晴れてからも見えるよう長めに置き去る）
   flash = .35; shake = .4;
   burst(40, '#ff5f8d', 1.6);
   shockwave(p.x, p.y, '#ff5f8d', 1.4);
@@ -559,7 +567,7 @@ function onHit(c) {
   if (c.type === 'robo') {
     blocked = true;
     relaunch(null, T.mul, 0);
-    pop('BLOCK', '#9aa3ad');
+    pop(T.fx, col, true);
     se('block');
     return;
   }
@@ -572,7 +580,7 @@ function onHit(c) {
     return;                                   // 効果は消える
   }
   relaunch(T.ang, T.mul, T.min);
-  pop(T.name, col);
+  pop(T.fx, col, true);                                 // 効果を大きい文字で出す
   se(c.type === 'hugu' ? 'hit_slow' : 'hit');
   if (ready) spW = { t: SP_WIN, ch: c, used: false };   // 条件成立時だけ受付が出る
 }
@@ -636,7 +644,7 @@ function aerial() {
   p.vy = Math.max(p.vy, 0) + 63;
   p.vx += 21;
   capSpeed();
-  ageruFx = { t: .38, kind: 'kick' };
+  ageruFx = { t: .38, dur: .38, kind: 'kick' };
   pop('AERIAL!', '#ff5f8d'); burst(26, '#ff5f8d', 1.3); shockwave(p.x, p.y, '#ff5f8d', .9);
   shake = Math.max(shake, .3); se('aerial');
 }
@@ -646,7 +654,7 @@ function dive() {
   charge = 0; diving = true;
   p.vy = -72; p.vx += 30;
   capSpeed();
-  ageruFx = { t: .38, kind: 'dive' };
+  ageruFx = { t: .38, dur: .38, kind: 'dive' };
   pop('DIVE!', '#7ee6ff'); burst(26, '#7ee6ff', 1.3); se('dive');
 }
 
@@ -959,7 +967,8 @@ function drawChars() {
     const x = SX(c.x);
     if (x < -160 || x > W + 160) continue;
     const key = IMG_OF[c.type];
-    const hpx = Math.max(24, ASSETS[key].h * cam.s / 46);
+    // 表示だけ CHAR_SCALE 倍にする。当たり判定（CH_MID / HIT_R）は元のまま。
+    const hpx = Math.max(24, ASSETS[key].h * cam.s / 46) * CHAR_SCALE;
     const bob = c.hit ? 0 : Math.sin(t * 1.7 + c.ph) * .18;
     const y = SY(c.y + bob) - hpx / 2;          // 地面の上に立たせる
     if (y < -200 || y > H + 200) continue;
@@ -983,23 +992,58 @@ function drawChars() {
     }
   }
 }
+/* 発射の瞬間：アゲルが画面左から勢いよく突っ込んでくる */
+function drawAgeruRush(x, hpx) {
+  const pr = clamp(1 - crashT / CRASH_T, 0, 1);   // 0→1
+  // pr*pr にすると前半ほとんど動かず、突っ込みが一瞬しか見えない。
+  // 最初から速く走り、最後にもう一段加速する曲線にする。
+  const e = pr * (.45 + .55 * pr);
+  const bh = hpx * 1.9;
+  const fromX = -bh * 1.2, toX = x - hpx * .85;
+  const ax = fromX + (toX - fromX) * e;
+  const ay = SY(0) - bh * .46;
+  // 勢いを出すスピード線
+  CTX.save();
+  CTX.globalAlpha = .2 + .55 * e;
+  CTX.strokeStyle = '#fff'; CTX.lineCap = 'round';
+  for (let i = 0; i < 8; i++) {
+    const yy = ay - bh * .32 + i * bh * .09;
+    const len = 50 + 220 * e + (i % 3) * 45;
+    CTX.lineWidth = 1 + (i % 3);
+    CTX.beginPath(); CTX.moveTo(ax - bh * .35, yy); CTX.lineTo(ax - bh * .35 - len, yy); CTX.stroke();
+  }
+  CTX.restore();
+  sprite('ageru_bike', ax, ay, bh);
+}
+
 function drawPlayer() {
   const x = SX(p.x), y = SY(p.y);
   const hpx = Math.max(30, 150 * cam.s / 46);
 
-  if (state === 'title' || state === 'angle' || state === 'power' || state === 'crash') {
-    sprite('ageru_bike', x - hpx * .75, SY(0) - hpx * .62, hpx * 1.5);
-    sprite('hico_fly', x + hpx * .25, y, hpx, { rot: .2 });
+  // 照準中はアゲルを出さない（発射の瞬間に左から登場する）
+  if (state === 'title' || state === 'angle' || state === 'power') {
+    sprite('hico_fly', x, y, hpx, { rot: .2 });
+    return;
+  }
+  if (state === 'crash') {
+    sprite('hico_fly', x, y, hpx, { rot: .2 });
+    drawAgeruRush(x, hpx);
     return;
   }
   if (state === 'end') { sprite('hico_down', x, SY(0) - hpx * .3, hpx * .75); return; }
 
   sprite('hico_fly', x, y, hpx, { rot: p.rot });
   if (ageruFx) {
-    const a = ageruFx.t / .38;
-    sprite(ageruFx.kind === 'dive' ? 'ageru_dive' : 'ageru_kick',
-           x - 30 * a, y + (ageruFx.kind === 'dive' ? -40 : 40) * a,
-           hpx * 1.6, { alpha: Math.min(1, a * 1.6) });
+    const a = ageruFx.t / ageruFx.dur;
+    if (ageruFx.kind === 'bike') {
+      // 激突した場所に残る（カメラが進むので自然に置き去りになる）
+      const bh = hpx * 1.9, bx = SX(crashX);
+      if (bx > -bh) sprite('ageru_bike', bx, SY(0) - bh * .46, bh, { alpha: Math.min(1, a * 1.6) });
+    } else {
+      sprite(ageruFx.kind === 'dive' ? 'ageru_dive' : 'ageru_kick',
+             x - 30 * a, y + (ageruFx.kind === 'dive' ? -40 : 40) * a,
+             hpx * 1.6, { alpha: Math.min(1, a * 1.6) });
+    }
   }
 }
 function drawShocks() {
@@ -1024,12 +1068,18 @@ function drawFx() {
   CTX.globalAlpha = 1;
   CTX.textAlign = 'center'; CTX.textBaseline = 'middle';
   for (const q of pops) {
+    const sx = clamp(SX(q.x), 110, W - 110), sy = clamp(SY(q.y), 46, H - 46) + q.dy;
+    // 出た瞬間だけ少し大きく弾ませる（効果が目に入るように）
+    const grow = q.big ? 1 + .45 * clamp((q.t - .92) / .18, 0, 1) : 1;
+    CTX.save();
     CTX.globalAlpha = clamp(q.t, 0, 1);
+    CTX.translate(sx, sy);
+    if (grow !== 1) CTX.scale(grow, grow);
     CTX.fillStyle = q.color;
-    CTX.font = q.big ? 'bold 30px "Noto Sans JP", sans-serif' : '500 17px "Noto Sans JP", sans-serif';
-    CTX.strokeStyle = 'rgba(0,0,0,.6)'; CTX.lineWidth = 4;
-    const sx = clamp(SX(q.x), 60, W - 60), sy = clamp(SY(q.y), 40, H - 40) + q.dy;
-    CTX.strokeText(q.text, sx, sy); CTX.fillText(q.text, sx, sy);
+    CTX.font = q.big ? 'bold 36px "Noto Sans JP", sans-serif' : '500 17px "Noto Sans JP", sans-serif';
+    CTX.strokeStyle = 'rgba(0,0,0,.66)'; CTX.lineWidth = q.big ? 6 : 4;
+    CTX.strokeText(q.text, 0, 0); CTX.fillText(q.text, 0, 0);
+    CTX.restore();
   }
   CTX.globalAlpha = 1;
 }
@@ -1253,7 +1303,8 @@ function press(which) {
 function release() {
   if (state !== 'power') return;
   if (document.getElementById('ov-help').classList.contains('show')) return;
-  state = 'crash'; crashT = .42; ageruFx = { t: .42, kind: 'bike' };
+  state = 'crash'; crashT = CRASH_T;
+  ageruFx = null;                       // 突っ込みの描画は state==='crash' 側で行う
   se('ui_click');
 }
 const wrap = document.getElementById('wrap');
