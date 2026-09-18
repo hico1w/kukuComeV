@@ -8,7 +8,7 @@ description: kukucome-chara.pages.dev（公開サイト）と Worker のデプ�
 
 | 何 | 実体 | デプロイ |
 |---|---|---|
-| サイト | `cloudflare/pages/`（`index.html` / `puru.html` / `upload-admin.html` / `img/` / `img-saito/` / `patchnotes.json`） | `npx wrangler pages deploy pages --project-name=kukucome-chara --branch=main` |
+| サイト | `cloudflare/pages/`（`index.html` / `puru.html` / `upload-admin.html` / `img/` / `img-saito/` / `patchnotes.json` / `dino.html` / `games/`） | `npx wrangler pages deploy pages --project-name=kukucome-chara --branch=main` |
 | API | `cloudflare/worker.js`（画像アップロードの受け口） | `npx wrangler deploy` |
 
 どちらも `cloudflare/` ディレクトリで実行する。
@@ -57,4 +57,10 @@ description: kukucome-chara.pages.dev（公開サイト）と Worker のデプ�
 - **`/xxx.html` は 308 で `/xxx` にリダイレクトされる。** curl で確認するときは `-L` を付けないと 0 バイトが返る。
 - **未知パスは 404 にならず `index.html` が返る。** ファイルを消しても直リンクはギャラリーが表示される（`/patchnotes` の直リンクが動くのもこの仕組み）。
 - **Worker の `/upload` はページの `/upload` とは別物。** `index.html` と `puru.html` が `fetch(WORKER_URL + '/upload')` で叩いている API なので消さない。
+- **ゲームを追加するときは3か所そろえる。** ゲーム本体は `cloudflare/pages/games/<id>.html`、画像は `cloudflare/pages/games/img-<id>/`、
+  一覧に出すには **`index.html` の `GAMES` 配列に1行足す**（`{ id, title, sub, url, thumb, tag }`）。
+  `url` は拡張子なしのパス（`/games/crash`）で書く。`/xxx.html` は 308 で `/xxx` に飛ぶため。
+  サムネは `cloudflare/pages/img-games/<id>.webp`（16:10）。**無くてもグラデーション＋頭文字で表示されるので、後から足してよい。**
+  一覧カードは `#game-panel` の iframe で開く。ゲーム側のページは iframe と単独ページの両方で開かれるので、
+  戻るリンクには `target="_top"` を付けること。
 - アップロードの対応形式・サイズ上限は **`index.html` のモーダル / `puru.html` / `worker.js` の3か所**にある。1か所だけ直すと表示と実挙動がズレる。

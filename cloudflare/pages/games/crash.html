@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>AGERU CRASH!! — hico1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Cormorant+Garamond:wght@300;600&family=Noto+Sans+JP:wght@300;400;500&display=swap">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
+html { color-scheme: dark; }
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 300;
+  background: #0b0d12;
+  color: #ede0d4;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+
+/* ── header bar ── */
+#bar {
+  height: 52px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 18px;
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+.bar-home { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; letter-spacing: .05em; }
+.bar-back { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: rgba(237,224,212,.5); transition: color .15s; }
+.bar-back:hover { color: #ede0d4; }
+.bar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.bar-btn {
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: rgba(237,224,212,.55);
+  border: 1px solid rgba(255,255,255,.16); border-radius: 4px;
+  padding: 4px 9px; transition: color .15s, border-color .15s;
+}
+.bar-btn:hover { color: #ede0d4; border-color: rgba(255,255,255,.4); }
+.bar-hint { font-size: 10px; letter-spacing: .1em; color: rgba(237,224,212,.4); }
+@media (max-width: 760px) { .bar-hint, .bar-back { display: none; } }
+
+/* ── stage ── */
+#stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 16px; }
+#wrap {
+  position: relative;
+  width: 100%; max-width: 1200px;
+  aspect-ratio: 2 / 1;
+  max-height: 100%;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(0,0,0,.5);
+  touch-action: manipulation;
+  user-select: none;
+  cursor: pointer;
+}
+#game { display: block; width: 100%; height: 100%; }
+
+/* ── overlays ── */
+.ov {
+  position: absolute; inset: 0; z-index: 4;
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2.6%;
+  background: rgba(10,12,18,.62);
+  text-align: center; padding: 4%;
+  backdrop-filter: blur(2px);
+}
+.ov.show { display: flex; }
+.pix { font-family: 'Press Start 2P', monospace; line-height: 1.5; }
+.ov-title { font-size: clamp(16px, 3.4vw, 34px); color: #ff5f8d; text-shadow: 0 0 18px rgba(255,95,141,.55); }
+.ov-sub { font-size: clamp(10px, 1.5vw, 14px); color: rgba(237,224,212,.75); letter-spacing: .1em; }
+.ov-score { font-size: clamp(13px, 2.4vw, 24px); color: #ffd34d; }
+.ov-small { font-size: clamp(9px, 1.2vw, 12px); color: rgba(237,224,212,.5); line-height: 2; }
+.ov-btn {
+  font-size: clamp(10px, 1.4vw, 13px); letter-spacing: .18em; text-transform: uppercase;
+  border: 1px solid rgba(255,255,255,.35); border-radius: 4px; padding: 9px 22px;
+  transition: background .15s, border-color .15s;
+}
+.ov-btn:hover { background: rgba(255,255,255,.12); border-color: #fff; }
+.ov-logo { max-width: min(58%, 420px); height: auto; }
+
+/* 遊び方 */
+.help-box {
+  max-width: 720px; width: 100%;
+  text-align: left; font-size: clamp(10px, 1.25vw, 13px); line-height: 1.95;
+  color: rgba(237,224,212,.82);
+  max-height: 78%; overflow-y: auto;
+}
+.help-box h3 {
+  font-family: 'Press Start 2P', monospace; font-size: clamp(9px, 1.1vw, 11px);
+  color: #ff5f8d; margin: 16px 0 7px; letter-spacing: .06em;
+}
+.help-box h3:first-child { margin-top: 0; }
+.help-box b { color: #ffd34d; font-weight: 500; }
+.help-box em { color: #7ee6ff; font-style: normal; }
+.help-tbl { width: 100%; border-collapse: collapse; margin-top: 4px; }
+.help-tbl td { padding: 3px 8px 3px 0; vertical-align: top; border-bottom: 1px solid rgba(255,255,255,.07); }
+.help-tbl td:first-child { white-space: nowrap; color: #fff; width: 9em; }
+
+/* タッチ用 DIVE ボタン */
+#btn-dive {
+  position: absolute; right: 14px; bottom: 14px; z-index: 3;
+  width: 74px; height: 74px; border-radius: 50%;
+  border: 2px solid rgba(126,230,255,.55); background: rgba(10,20,30,.45);
+  color: #7ee6ff; font-family: 'Press Start 2P', monospace; font-size: 9px;
+  display: none; align-items: center; justify-content: center;
+}
+#btn-dive.on { display: flex; }
+@media (hover: none) and (pointer: coarse) { #btn-dive.on { display: flex; } }
+</style>
+</head>
+<body>
+
+<div id="bar">
+  <a href="/" class="bar-home" target="_top">hico1</a>
+  <a href="/" class="bar-back" target="_top">← back to site</a>
+  <div class="bar-right">
+    <span class="bar-hint" id="hint">クリック＝角度 → パワー → 空中でクリックでエアリアル／右クリックでダイブ</span>
+    <button class="bar-btn" id="btn-help">遊び方</button>
+  </div>
+</div>
+
+<div id="stage">
+  <div id="wrap">
+    <canvas id="game" width="1200" height="600" aria-label="AGERU CRASH"></canvas>
+
+    <!-- タイトル -->
+    <div class="ov show" id="ov-title">
+      <img class="ov-logo" id="title-logo" src="./img-crash/logo.webp" alt="" hidden>
+      <p class="pix ov-title" id="title-text">AGERU CRASH!!</p>
+      <p class="ov-sub">クリック / SPACE でスタート</p>
+      <p class="ov-small">アゲルが自転車でヒコをはね飛ばす。<br>空中のキャラに当てて、どこまでも飛ばせ。</p>
+      <p class="ov-small" id="title-best"></p>
+    </div>
+
+    <!-- リザルト -->
+    <div class="ov" id="ov-over">
+      <p class="pix ov-title" id="over-title">CRASH END</p>
+      <p class="pix ov-score" id="over-score">0.00 m</p>
+      <p class="ov-small" id="over-detail"></p>
+      <button class="ov-btn" id="btn-retry">もう一度</button>
+      <p class="ov-small">クリック / SPACE でもリトライ</p>
+    </div>
+
+    <!-- 遊び方 -->
+    <div class="ov" id="ov-help">
+      <div class="help-box">
+        <h3>ながれ</h3>
+        1. <b>クリック</b>で角度を決める（矢印が動いている）<br>
+        2. もう一度<b>クリック</b>でパワーを決める（ゲージが右端に近いほど強い）<br>
+        3. アゲルの自転車がヒコに激突 → あとは空中でキャラに当てて伸ばす<br>
+        4. 止まったら終わり。飛距離（m）がスコア。
+
+        <h3>空中アクション</h3>
+        <table class="help-tbl">
+          <tr><td>エアリアル<br>（クリック / SPACE）</td><td>アゲルが飛び蹴りで<b>上に打ち上げ</b>。<b>1プレイ3回</b>まで。<em>地上3〜10mでのみ発動</em>。</td></tr>
+          <tr><td>ダイブ<br>（右クリック / ↓ / Shift）</td><td>アゲルが<b>下に叩き落とす</b>。<b>チャージ100%が必要</b>だが回数は無制限。<em>地上3〜10mでのみ発動</em>。<br>叩きつけた勢いは着地で前方向に変換される（SLAM）。</td></tr>
+          <tr><td>チャージ</td><td>ヒコが<b>地上3〜10m</b>にいる間だけ回復する。低空を這うほど得。</td></tr>
+        </table>
+
+        <h3>スペシャル</h3>
+        キャラに当たった瞬間から<b>0.7秒以内にクリック</b>すると <em>SPECIAL</em>。通常よりずっと強く打ち上がる。<br>
+        <b>ボスアゲル</b>に当たると通常は<b>即終了</b>。ただしその瞬間だけ時間が止まり、<b>0.7秒以内にクリックできれば大逆転の超打ち上げ</b>になる。
+
+        <h3>キャラの効果</h3>
+        <table class="help-tbl" id="help-chars"></table>
+
+        <h3>アゲルスペシャル</h3>
+        <b>ヨクネロボ</b>に当たると<em>ブロック状態</em>になり、次のアゲル系キャラの効果が消える。<br>
+        ただし<b>ブロック状態で、飛距離がちょうど100の倍数の地点</b>でアゲル系に当たると <em>AGERU SPECIAL</em> が発動し、キャラごとの特大効果が出る。
+      </div>
+      <button class="ov-btn" id="btn-help-close">閉じる</button>
+    </div>
+
+    <button id="btn-dive">DIVE</button>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   AGERU CRASH!!  —  NANACA†CRASH!! 風の飛距離アタック
+
+   画像は ./img-crash/<key>.webp を読む。**無ければプレースホルダを描く**ので
+   画像が1枚も無い状態でも遊べる。ASSETS の一覧＝用意すべき画像の一覧。
+   ══════════════════════════════════════════════════════════════ */
+
+const CV  = document.getElementById('game');
+const CTX = CV.getContext('2d');
+const W = 1200, H = 600;
+const GROUND_SY = 520;          // cam.y = 0 のときの地面の画面Y
+
+/* ── 必要画像の定義（w/h は推奨サイズ・透過PNG/WebP） ───────── */
+const DIR = './img-crash/';
+const ASSETS = {
+  /* 自機・弾 */
+  ageru_bike : { w:340, h:300, c:'#ff5f8d', label:'アゲル\n自転車' },
+  ageru_kick : { w:300, h:300, c:'#ff3d78', label:'アゲル\n飛び蹴り' },
+  ageru_dive : { w:300, h:300, c:'#7b5bff', label:'アゲル\nダイブ' },
+  hico_fly   : { w:220, h:220, c:'#ffd34d', label:'ヒコ\n飛行' },
+  hico_down  : { w:260, h:160, c:'#b9a05a', label:'ヒコ\nダウン' },
+  /* バンパーキャラ */
+  c_baby     : { w:220, h:260, c:'#ffa7c4', label:'ベビー\nアゲル' },
+  c_goth     : { w:220, h:280, c:'#b06bff', label:'ゴス\nアゲル' },
+  c_denpa    : { w:220, h:280, c:'#44e0c8', label:'デンパ\nアゲル' },
+  c_boss     : { w:320, h:360, c:'#ff3b30', label:'ボス\nアゲル' },
+  c_robo     : { w:220, h:260, c:'#9aa3ad', label:'ヨクネ\nロボ' },
+  c_kani     : { w:240, h:160, c:'#ff8f4d', label:'カニ' },
+  c_hugu     : { w:220, h:200, c:'#7fd4f5', label:'フグ' },
+  c_neko     : { w:200, h:200, c:'#ffe08a', label:'キショ\nネコ' },
+  /* 背景 */
+  bg_sky     : { w:1200, h:600,  c:'#2a3b5c', label:'空' },
+  bg_far     : { w:1600, h:420,  c:'#1d2740', label:'遠景' },
+  bg_near    : { w:1600, h:300,  c:'#2b3550', label:'近景' },
+  ground     : { w:600,  h:160,  c:'#3b3f4a', label:'地面' },
+};
+
+/* ── キャラ効果テーブル ─────────────────────────────────────
+   ang/mul/min  : 通常ヒット（打ち出し角度°／現在速度の倍率／最低速度 m/s）
+   sAng/sMul/sMin: SPECIAL（0.7秒以内クリック）
+   air          : 空中に出るか（false なら地面付近のみ）            */
+const TYPES = {
+  baby : { name:'ベビーアゲル', ageru:true,  w:8, air:true,  ang:45, mul:1.28, min:22, sAng:45, sMul:1.95, sMin:44, desc:'斜め45度に打ち上げ' },
+  goth : { name:'ゴスアゲル',   ageru:true,  w:7, air:true,  ang:72, mul:1.18, min:24, sAng:78, sMul:1.85, sMin:42, desc:'高い角度に打ち上げ' },
+  denpa: { name:'デンパアゲル', ageru:true,  w:7, air:true,  ang:18, mul:1.36, min:27, sAng:12, sMul:2.05, sMin:48, desc:'低い角度に加速' },
+  neko : { name:'キショネコ',   ageru:false, w:8, air:true,  ang:58, mul:1.08, min:16, sAng:60, sMul:1.6,  sMin:34, desc:'小さく打ち上げ' },
+  kani : { name:'カニ',         ageru:false, w:7, air:false, ang:55, mul:1.0,  min:14, sAng:60, sMul:1.55, sMin:32, desc:'角度を変える' },
+  hugu : { name:'フグ',         ageru:false, w:7, air:true,  ang:null, mul:0.58, min:0, sAng:null, sMul:1.25, sMin:0, desc:'減速する（SPECIALなら加速）' },
+  robo : { name:'ヨクネロボ',   ageru:false, w:6, air:true,  ang:null, mul:0.94, min:0, sAng:null, sMul:1.3,  sMin:0, desc:'ブロック（次のアゲル系を無効化）' },
+  boss : { name:'ボスアゲル',   ageru:true,  w:6, air:true,  ang:null, mul:0,   min:0, sAng:55, sMul:2.5,  sMin:62, desc:'即終了。0.7秒以内クリックで大逆転' },
+};
+const TYPE_KEYS = Object.keys(TYPES);
+const IMG_OF = { baby:'c_baby', goth:'c_goth', denpa:'c_denpa', neko:'c_neko', kani:'c_kani', hugu:'c_hugu', robo:'c_robo', boss:'c_boss' };
+
+/* ── チューニング ───────────────────────────────────────── */
+const G        = 9.8;      // 重力 m/s^2
+const BAND_LO  = 3;        // エアリアル可能な低空帯（下限 m）
+const BAND_HI  = 10;       // 〃（上限 m）
+const SP_WIN   = 0.70;     // スペシャル受付（秒）
+const AERIAL_N = 3;        // エアリアル回数
+const HIT_R    = 2.4;      // 当たり判定半径 m
+const MAX_SPD  = 110;      // 速度上限 m/s（打ち上げが掛け算なので上限が無いと青天井になる）
+
+/* ── 画像ロード（失敗してもそのまま進む） ───────────────── */
+const IMG = {};
+for (const k in ASSETS) {
+  const im = new Image();
+  im.onload  = () => { IMG[k] = im; };
+  im.onerror = () => {};
+  im.src = DIR + k + '.webp';
+}
+// タイトルロゴだけは <img> なので、無ければテキストのまま
+(() => {
+  const lg = document.getElementById('title-logo');
+  lg.onload  = () => { lg.hidden = false; document.getElementById('title-text').hidden = true; };
+  lg.onerror = () => { lg.remove(); };
+})();
+
+/* ── 状態 ───────────────────────────────────────────────── */
+let state = 'title';   // title / angle / power / crash / fly / chance / end
+const p   = { x:0, y:1.4, vx:0, vy:0, rot:0 };
+const cam = { x:-24, y:0, s:9 };
+let chars = [], pops = [], sparks = [];
+let aimT=0, powT=0, angle=45, power=0, crashT=0, chanceT=0, chanceCh=null;
+let aerialLeft = AERIAL_N, charge = 100, blocked = false;
+let spW = null;                 // {t, ch, used}
+let combo = 0, best = 0, peak = 0, bounces = 0;
+let bounceBoost = 0, reviveLeft = 0, x2Left = 0, diving = false;
+let flash = 0, shake = 0, t = 0, seed = 1, nextX = 0;
+let ageruFx = null;             // {t, kind:'kick'|'dive'|'bike'}
+let lastStop = 0;
+
+try { best = +(localStorage.getItem('crash-best') || 0) || 0; } catch (e) {}
+
+/* ── 小物 ───────────────────────────────────────────────── */
+const rnd   = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const tri   = x => { const f = x % 2; return f < 1 ? f : 2 - f; };   // 0→1→0 の往復
+const speed = () => Math.hypot(p.vx, p.vy);
+function capSpeed() {
+  const s = speed();
+  if (s > MAX_SPD) { p.vx = p.vx / s * MAX_SPD; p.vy = p.vy / s * MAX_SPD; }
+}
+const inBand = () => p.y >= BAND_LO && p.y <= BAND_HI;
+const fmt = m => m.toFixed(2);
+
+let popAt = {};
+function pop(text, color, big) {
+  if (popAt[text] && t - popAt[text] < 1.0) return;   // 同じ文言の連打で画面が潰れるのを防ぐ
+  popAt[text] = t;
+  const recent = pops.filter(q => q.t > .75).length;   // 同時に出た分は画面上で下にずらす
+  pops.push({ text, color: color || '#fff', big: !!big, t: 1.1, x: p.x, y: p.y + 2.5, dy: recent * 24 });
+}
+function burst(n, col) {
+  for (let i = 0; i < n; i++) {
+    const a = rnd() * Math.PI * 2, v = 6 + rnd() * 26;
+    sparks.push({ x:p.x, y:p.y, vx:Math.cos(a)*v, vy:Math.sin(a)*v, t:.5+rnd()*.5, c:col||'#ffd34d' });
+  }
+}
+
+/* ── キャラ配置 ─────────────────────────────────────────
+   ヒコの弾道を先読みして、その高さの近くに置く。
+   高さを完全ランダムにすると高く飛んだときに誰にも当たらず、
+   「キャラに当てて伸ばす」というゲームが成立しない。                */
+function ensureChars(untilX) {
+  while (nextX < untilX) {
+    nextX += 11 + rnd() * 20;
+    // nextX に到達するころのヒコの高度（等加速度で概算）
+    let ref = -1;
+    if (p.vx > 4) {
+      const dtf = (nextX - p.x) / p.vx;
+      ref = p.y + p.vy * dtf - .5 * G * dtf * dtf;
+    }
+    if (!isFinite(ref) || ref < 0) ref = rnd() * 7;
+    const spread = clamp(6 + ref * .16, 6, 22);
+    const n = rnd() < .45 ? 2 : 1;             // 同じ位置に高さ違いで2体出ることがある
+    for (let i = 0; i < n; i++) {
+      const type = pickType();
+      const T = TYPES[type];
+      let alt;
+      if (!T.air) alt = rnd() * 2.2;                                   // 地上キャラ
+      else if (i === 0 && rnd() < .55) alt = Math.max(0, ref + (rnd() - .5) * spread); // 弾道の近く
+      else alt = Math.pow(rnd(), 1.4) * (8 + Math.min(34, nextX / 32)); // ばらけさせる分
+      chars.push({ x: nextX + (i ? (rnd() - .5) * 5 : 0), y: alt, type, hit: false, ph: rnd() * 6.283 });
+    }
+  }
+}
+function pickType() {
+  let total = 0;
+  for (const k of TYPE_KEYS) total += TYPES[k].w;
+  let r = rnd() * total;
+  for (const k of TYPE_KEYS) { r -= TYPES[k].w; if (r <= 0) return k; }
+  return 'baby';
+}
+
+/* ── 進行 ───────────────────────────────────────────────── */
+function reset() {
+  state = 'title';
+  p.x = 0; p.y = 1.4; p.vx = 0; p.vy = 0; p.rot = 0;
+  cam.x = -24; cam.y = 0; cam.s = 9;
+  chars = []; pops = []; sparks = [];
+  aerialLeft = AERIAL_N; charge = 100; blocked = false; spW = null;
+  combo = 0; peak = 0; bounces = 0;
+  bounceBoost = 0; reviveLeft = 0; x2Left = 0; diving = false;
+  flash = 0; shake = 0; nextX = 14; seed = (Date.now() % 100000) + 7;
+  ageruFx = null; popAt = {};
+  ensureChars(120);
+  ov('ov-title', true); ov('ov-over', false);
+  document.getElementById('title-best').textContent = best > 0 ? 'BEST  ' + fmt(best) + ' m' : '';
+  document.getElementById('btn-dive').classList.remove('on');
+}
+function startAim() { state = 'angle'; aimT = 0; ov('ov-title', false); }
+
+function launch() {
+  const v = 9 + 39 * (power / 100);
+  const a = angle * Math.PI / 180;
+  p.vx = Math.cos(a) * v;
+  p.vy = Math.sin(a) * v;
+  p.y = 1.6;
+  state = 'fly';
+  flash = .3; shake = .35;
+  burst(26, '#ff5f8d');
+  pop('CRASH!!', '#ff5f8d', true);
+  document.getElementById('btn-dive').classList.add('on');
+}
+
+function gameOver() {
+  if (reviveLeft > 0) {                       // デンパのアゲルスペシャル：1度だけ復活
+    reviveLeft--;
+    p.y = 1.2; p.vx = 26; p.vy = 24;
+    state = 'fly'; flash = .4;
+    burst(34, '#44e0c8');
+    pop('REVIVE!!', '#44e0c8', true);
+    return;
+  }
+  state = 'end';
+  lastStop = p.x;
+  if (p.x > best) { best = p.x; try { localStorage.setItem('crash-best', String(best)); } catch (e) {} }
+  document.getElementById('over-score').textContent = fmt(p.x) + ' m';
+  document.getElementById('over-title').textContent = p.x >= best ? 'NEW RECORD!' : 'CRASH END';
+  document.getElementById('over-detail').innerHTML =
+    'BEST ' + fmt(best) + ' m　/　最高到達点 ' + peak.toFixed(1) + ' m　/　ヒット ' + combo + ' 回　/　バウンド ' + bounces + ' 回';
+  document.getElementById('btn-dive').classList.remove('on');
+  ov('ov-over', true);
+}
+function ov(id, on) { document.getElementById(id).classList.toggle('show', on); }
+
+/* ── 打ち出し ───────────────────────────────────────────── */
+function relaunch(ang, mul, min) {
+  let sp = Math.max(speed() * mul, min);
+  if (x2Left > 0 && mul > 1) { x2Left--; sp *= 2; pop('×2!!', '#ff3b30', true); }
+  sp = Math.min(sp, MAX_SPD);
+  if (ang === null) {                       // 角度そのまま（減速・ブロック系）
+    const s0 = speed() || 1;
+    p.vx = p.vx / s0 * sp; p.vy = p.vy / s0 * sp;
+  } else {
+    const a = ang * Math.PI / 180;
+    p.vx = Math.cos(a) * sp; p.vy = Math.sin(a) * sp;
+  }
+  if (p.y < .6) p.y = .6;
+}
+
+function onHit(c) {
+  const T = TYPES[c.type];
+  combo++;
+  burst(14, T.c || '#fff');
+  shake = Math.max(shake, .22);
+
+  if (c.type === 'boss') {                   // ボスアゲル＝即死。0.7秒だけチャンス
+    state = 'chance'; chanceT = SP_WIN; chanceCh = c;
+    flash = .5; shake = .4;
+    return;
+  }
+  if (c.type === 'robo') {
+    blocked = true;
+    relaunch(null, T.mul, 0);
+    pop('BLOCK', '#9aa3ad');
+    spW = { t: SP_WIN, ch: c, used: false };
+    return;
+  }
+  if (blocked && T.ageru) {
+    const near100 = Math.abs(p.x - Math.round(p.x / 100) * 100) < 1.0 && p.x >= 100;
+    blocked = false;
+    if (near100) { ageruSpecial(c); return; }
+    pop('BLOCKED…', '#9aa3ad');
+    return;                                   // 効果は消える
+  }
+  relaunch(T.ang, T.mul, T.min);
+  pop(T.name, ASSETS[IMG_OF[c.type]].c);
+  spW = { t: SP_WIN, ch: c, used: false };
+}
+
+function trySpecial() {
+  if (!spW || spW.used) return false;
+  const T = TYPES[spW.ch.type];
+  spW.used = true; spW = null;
+  relaunch(T.sAng, T.sMul, T.sMin);
+  pop('SPECIAL!!', '#ffd34d', true);
+  burst(30, '#ffd34d'); flash = .35; shake = .3;
+  return true;
+}
+
+function bossChance(hit) {
+  const c = chanceCh; chanceCh = null;
+  if (!hit) { state = 'fly'; p.vx = 0; p.vy = 0; pop('ボスアゲルに捕まった', '#ff3b30', true); gameOver(); return; }
+  const T = TYPES.boss;
+  state = 'fly';
+  relaunch(T.sAng, T.sMul, T.sMin);
+  pop('BOSS SPECIAL!!', '#ff3b30', true);
+  burst(60, '#ff3b30'); flash = .6; shake = .5;
+  if (c) c.hit = true;
+}
+
+/* アゲルスペシャル：ブロック状態 × 100の倍数地点 × アゲル系 */
+function ageruSpecial(c) {
+  flash = .7; shake = .5; burst(70, '#fff');
+  pop('AGERU SPECIAL!!', '#ff5f8d', true);
+  if (c.type === 'baby')  { relaunch(70, 1, 92); pop('100人ぶん打ち上げ', '#ffa7c4'); }
+  if (c.type === 'goth')  { bounceBoost = 5; relaunch(40, 1.5, 40); pop('5回バウンド加速', '#b06bff'); }
+  if (c.type === 'denpa') { reviveLeft = 1; relaunch(22, 1.6, 44); pop('停止時に1度だけ復活', '#44e0c8'); }
+  if (c.type === 'boss')  { x2Left = 3; relaunch(50, 1.8, 50); pop('以後3回の加速が2倍', '#ff3b30'); }
+}
+
+/* ── 空中アクション ─────────────────────────────────────── */
+function aerial() {
+  if (aerialLeft <= 0) { pop('AERIAL なし', '#ff8f8f'); return; }
+  if (!inBand())       { pop('地上3〜10mでのみ', '#ff8f8f'); return; }
+  aerialLeft--;
+  p.vy = Math.max(p.vy, 0) + 21;
+  p.vx += 7;
+  capSpeed();
+  ageruFx = { t: .38, kind: 'kick' };
+  pop('AERIAL!', '#ff5f8d'); burst(16, '#ff5f8d'); shake = .2;
+}
+function dive() {
+  if (charge < 100) { pop('CHARGE不足', '#8fd0ff'); return; }
+  if (!inBand())    { pop('地上3〜10mでのみ', '#8fd0ff'); return; }
+  charge = 0; diving = true;
+  p.vy = -24; p.vx += 10;
+  capSpeed();
+  ageruFx = { t: .38, kind: 'dive' };
+  pop('DIVE!', '#7ee6ff'); burst(16, '#7ee6ff');
+}
+
+/* ── 物理 ───────────────────────────────────────────────── */
+function physics(dt) {
+  p.vy -= G * dt;
+  const sp0 = speed();
+  const k = Math.max(0, 1 - dt * (0.02 + sp0 * sp0 / 90000));   // 速いほど強く効く空気抵抗
+  p.vx *= k; p.vy *= k;
+  p.x += p.vx * dt;
+  p.y += p.vy * dt;
+  if (p.y > peak) peak = p.y;
+  p.rot += (p.vx * .12 + 2) * dt * (p.y > .3 ? 1 : 3);
+
+  if (p.y <= 0) {                                   // 着地
+    p.y = 0;
+    const vd = -p.vy;
+    if (vd > 1.2) {
+      if (diving) {                                  // ダイブの叩きつけは前方向に化ける
+        p.vx = p.vx * .95 + vd * .55;
+        p.vy = vd * .75;
+        pop('SLAM!!', '#7ee6ff', true); burst(28, '#7ee6ff'); shake = .35;
+        diving = false;
+      } else {
+        p.vy = vd * .5;
+        p.vx = p.vx * .88 + vd * .2;
+      }
+      if (bounceBoost > 0) { bounceBoost--; p.vx *= 1.5; p.vy *= 1.15; pop('BOUND ×1.5', '#b06bff'); }
+      bounces++; shake = Math.max(shake, .18);
+      burst(8, '#c9c0b4');
+    } else {
+      p.vy = 0; diving = false;
+      p.vx = Math.max(0, p.vx - 7 * dt);             // 転がって止まる
+      if (p.vx < .7) { gameOver(); return; }
+    }
+  }
+
+  if (inBand()) charge = Math.min(100, charge + 62 * dt);
+
+  // 当たり判定
+  ensureChars(p.x + 140);
+  for (const c of chars) {
+    if (c.hit) continue;
+    const dx = c.x - p.x;
+    if (dx > HIT_R + 1 || dx < -(HIT_R + 1)) continue;
+    const cy = c.y + Math.sin(t * 1.7 + c.ph) * .35;
+    const dy = cy - p.y;
+    if (dx * dx + dy * dy < HIT_R * HIT_R) { c.hit = true; onHit(c); break; }
+  }
+  if (p.x > 40) chars = chars.filter(c => c.x > p.x - 60);
+}
+
+/* ── カメラ ─────────────────────────────────────────────── */
+function camera(dt) {
+  const ts = clamp((GROUND_SY - 70) / Math.max(15, p.y * 1.3 + 8), 1.6, 11);
+  cam.s += (ts - cam.s) * Math.min(1, dt * 2.6);
+  const ty = Math.max(0, p.y - (GROUND_SY - H * .42) / cam.s);
+  cam.y += (ty - cam.y) * Math.min(1, dt * 4.5);
+  cam.x = p.x - (W * .32) / cam.s;
+}
+
+/* ── 更新 ───────────────────────────────────────────────── */
+function update(dt) {
+  t += dt;
+  flash = Math.max(0, flash - dt * 2.2);
+  shake = Math.max(0, shake - dt * 2.4);
+  if (ageruFx) { ageruFx.t -= dt; if (ageruFx.t <= 0) ageruFx = null; }
+  if (spW)     { spW.t     -= dt; if (spW.t     <= 0) spW = null; }
+  for (const s of sparks) { s.t -= dt; s.x += s.vx * dt; s.y += s.vy * dt; s.vy -= 22 * dt; }
+  sparks = sparks.filter(s => s.t > 0);
+  for (const q of pops) { q.t -= dt; q.y += dt * 3.2; }
+  pops = pops.filter(q => q.t > 0);
+
+  if (state === 'angle')  { aimT += dt; angle = 12 + 68 * tri(aimT * 1.15); }
+  else if (state === 'power') { powT += dt; power = 100 * tri(powT * 1.65); }
+  else if (state === 'crash') { crashT -= dt; if (crashT <= 0) launch(); }
+  else if (state === 'chance'){ chanceT -= dt; if (chanceT <= 0) bossChance(false); }
+  else if (state === 'fly')   { physics(dt); }
+  camera(dt);
+}
+
+/* ── 描画ヘルパ ─────────────────────────────────────────── */
+const SX = wx => (wx - cam.x) * cam.s;
+const SY = wy => GROUND_SY - (wy - cam.y) * cam.s;
+
+function sprite(key, cx, cy, hpx, opt) {
+  const a = ASSETS[key], im = IMG[key];
+  opt = opt || {};
+  CTX.save();
+  CTX.translate(cx, cy);
+  if (opt.rot) CTX.rotate(opt.rot);
+  if (opt.flip) CTX.scale(-1, 1);
+  if (opt.alpha != null) CTX.globalAlpha = opt.alpha;
+  if (im && im.naturalWidth) {
+    const w = hpx * (im.naturalWidth / im.naturalHeight);
+    CTX.drawImage(im, -w / 2, -hpx / 2, w, hpx);
+  } else {
+    const w = hpx * (a.w / a.h);
+    CTX.fillStyle = a.c;
+    CTX.globalAlpha = (opt.alpha != null ? opt.alpha : 1) * .82;
+    roundRect(-w / 2, -hpx / 2, w, hpx, Math.min(10, hpx * .12));
+    CTX.fill();
+    CTX.globalAlpha = opt.alpha != null ? opt.alpha : 1;
+    CTX.strokeStyle = 'rgba(255,255,255,.55)'; CTX.lineWidth = 1.5; CTX.stroke();
+    if (hpx > 26) {
+      CTX.fillStyle = 'rgba(0,0,0,.72)';
+      CTX.font = '500 ' + Math.max(8, Math.min(13, hpx * .16)) + 'px "Noto Sans JP", sans-serif';
+      CTX.textAlign = 'center'; CTX.textBaseline = 'middle';
+      const lines = a.label.split('\n');
+      lines.forEach((ln, i) => CTX.fillText(ln, 0, (i - (lines.length - 1) / 2) * hpx * .19));
+    }
+  }
+  CTX.restore();
+}
+function roundRect(x, y, w, h, r) {
+  CTX.beginPath();
+  CTX.moveTo(x + r, y);
+  CTX.arcTo(x + w, y,     x + w, y + h, r);
+  CTX.arcTo(x + w, y + h, x,     y + h, r);
+  CTX.arcTo(x,     y + h, x,     y,     r);
+  CTX.arcTo(x,     y,     x + w, y,     r);
+  CTX.closePath();
+}
+function tileX(key, py, hpx, factor) {
+  const a = ASSETS[key], im = IMG[key];
+  const w = hpx * ((im && im.naturalWidth ? im.naturalWidth / im.naturalHeight : a.w / a.h));
+  let off = -((cam.x * cam.s * factor) % w);
+  if (off > 0) off -= w;
+  for (let x = off; x < W; x += w) {
+    if (im && im.naturalWidth) CTX.drawImage(im, x, py, w, hpx);
+    else { CTX.fillStyle = a.c; CTX.fillRect(x, py, w + 1, hpx); }
+  }
+}
+
+/* ── 背景 ───────────────────────────────────────────────── */
+function drawBg() {
+  if (IMG.bg_sky && IMG.bg_sky.naturalWidth) {
+    CTX.drawImage(IMG.bg_sky, 0, 0, W, H);
+  } else {
+    const g = CTX.createLinearGradient(0, 0, 0, H);
+    const high = clamp(p.y / 120, 0, 1);              // 高く飛ぶほど宇宙に近づく
+    g.addColorStop(0, high > .5 ? '#0a0c1a' : '#1d2b4d');
+    g.addColorStop(.55, high > .5 ? '#16204a' : '#4a5f8f');
+    g.addColorStop(1, '#8fa5c8');
+    CTX.fillStyle = g; CTX.fillRect(0, 0, W, H);
+    if (high > .25) {                                 // 星
+      CTX.fillStyle = 'rgba(255,255,255,' + (high * .9).toFixed(2) + ')';
+      for (let i = 0; i < 70; i++) {
+        const sx = ((i * 137.5) % W), sy = ((i * 79.3) % (H * .7));
+        CTX.fillRect(sx, sy, 2, 2);
+      }
+    }
+  }
+  const horizon = clamp(SY(0), 0, H);
+  if (horizon > 0) {
+    tileX('bg_far',  horizon - 190 * (cam.s / 9), 190 * (cam.s / 9), .25);
+    tileX('bg_near', horizon - 120 * (cam.s / 9), 120 * (cam.s / 9), .55);
+  }
+}
+function drawGround() {
+  const gy = SY(0);
+  if (gy > H) return;
+  const h = Math.max(0, H - gy);
+  if (h > 0) {
+    if (IMG.ground && IMG.ground.naturalWidth) tileX('ground', gy, Math.min(h, 160), 1);
+    else { CTX.fillStyle = '#3b3f4a'; CTX.fillRect(0, gy, W, h); }
+    CTX.fillStyle = 'rgba(255,255,255,.22)';
+    CTX.fillRect(0, gy, W, 2);
+  }
+  // 距離の目盛り
+  const step = cam.s > 6 ? 10 : cam.s > 3.5 ? 25 : 50;
+  const from = Math.floor(cam.x / step) * step;
+  CTX.font = '11px "Press Start 2P", monospace';
+  CTX.textAlign = 'center'; CTX.textBaseline = 'top';
+  for (let m = from; m < cam.x + W / cam.s; m += step) {
+    if (m < 0) continue;
+    const x = SX(m);
+    CTX.fillStyle = 'rgba(255,255,255,.18)';
+    CTX.fillRect(x, gy, 1, 10);
+    if (m % (step * 5) === 0) {
+      CTX.fillStyle = 'rgba(255,255,255,.4)';
+      CTX.fillRect(x, gy, 2, 18);
+      CTX.fillText(m + 'm', x, gy + 22);
+    }
+  }
+  // 低空帯（エアリアル可能ゾーン）
+  if (state === 'fly' || state === 'chance') {
+    const y1 = SY(BAND_HI), y2 = SY(BAND_LO);
+    if (y2 > 0 && y1 < H) {
+      CTX.fillStyle = inBand() ? 'rgba(255,95,141,.13)' : 'rgba(255,255,255,.05)';
+      CTX.fillRect(0, y1, W, y2 - y1);
+      CTX.strokeStyle = inBand() ? 'rgba(255,95,141,.5)' : 'rgba(255,255,255,.14)';
+      CTX.lineWidth = 1; CTX.setLineDash([6, 6]);
+      CTX.beginPath(); CTX.moveTo(0, y1); CTX.lineTo(W, y1);
+      CTX.moveTo(0, y2); CTX.lineTo(W, y2); CTX.stroke();
+      CTX.setLineDash([]);
+    }
+  }
+}
+
+/* ── キャラ・プレイヤー ─────────────────────────────────── */
+function drawChars() {
+  for (const c of chars) {
+    const x = SX(c.x);
+    if (x < -120 || x > W + 120) continue;
+    const bob = Math.sin(t * 1.7 + c.ph) * .35;
+    const y = SY(c.y + bob);
+    if (y < -160 || y > H + 160) continue;
+    const key = IMG_OF[c.type];
+    // ズームアウトしても見えなくならないように下限を持たせる
+    const hpx = Math.max(24, ASSETS[key].h * cam.s / 46);
+    sprite(key, x, y, hpx, { alpha: c.hit ? .25 : 1 });
+    if (!c.hit && c.type === 'boss' && cam.s > 4) {
+      CTX.fillStyle = 'rgba(255,59,48,.85)';
+      CTX.font = 'bold 10px "Noto Sans JP", sans-serif';
+      CTX.textAlign = 'center'; CTX.textBaseline = 'bottom';
+      CTX.fillText('！', x, y - hpx / 2 - 4);
+    }
+  }
+}
+function drawPlayer() {
+  const x = SX(p.x), y = SY(p.y);
+  const hpx = Math.max(30, 150 * cam.s / 46);
+
+  if (state === 'title' || state === 'angle' || state === 'power' || state === 'crash') {
+    sprite('ageru_bike', x - hpx * .75, SY(0) - hpx * .62, hpx * 1.5);
+    sprite('hico_fly', x + hpx * .25, y, hpx, { rot: .2 });
+    return;
+  }
+  if (state === 'end') { sprite('hico_down', x, SY(0) - hpx * .3, hpx * .75); return; }
+
+  sprite('hico_fly', x, y, hpx, { rot: p.rot });
+  if (ageruFx) {
+    const a = ageruFx.t / .38;
+    sprite(ageruFx.kind === 'dive' ? 'ageru_dive' : 'ageru_kick',
+           x - 30 * a, y + (ageruFx.kind === 'dive' ? -40 : 40) * a,
+           hpx * 1.6, { alpha: Math.min(1, a * 1.6) });
+  }
+}
+function drawFx() {
+  for (const s of sparks) {
+    CTX.globalAlpha = clamp(s.t * 2, 0, 1);
+    CTX.fillStyle = s.c;
+    CTX.fillRect(SX(s.x) - 2, SY(s.y) - 2, 4, 4);
+  }
+  CTX.globalAlpha = 1;
+  CTX.textAlign = 'center'; CTX.textBaseline = 'middle';
+  for (const q of pops) {
+    CTX.globalAlpha = clamp(q.t, 0, 1);
+    CTX.fillStyle = q.color;
+    CTX.font = q.big ? 'bold 26px "Noto Sans JP", sans-serif' : '500 16px "Noto Sans JP", sans-serif';
+    CTX.strokeStyle = 'rgba(0,0,0,.6)'; CTX.lineWidth = 4;
+    const sx = clamp(SX(q.x), 60, W - 60), sy = clamp(SY(q.y), 40, H - 40) + q.dy;
+    CTX.strokeText(q.text, sx, sy); CTX.fillText(q.text, sx, sy);
+  }
+  CTX.globalAlpha = 1;
+}
+
+/* ── 照準・パワー ───────────────────────────────────────── */
+function drawAim() {
+  const x = SX(p.x), y = SY(1.4);
+  const a = angle * Math.PI / 180, len = 110;
+  CTX.save();
+  CTX.strokeStyle = '#ff5f8d'; CTX.lineWidth = 4; CTX.lineCap = 'round';
+  CTX.beginPath(); CTX.moveTo(x, y);
+  CTX.lineTo(x + Math.cos(a) * len, y - Math.sin(a) * len); CTX.stroke();
+  CTX.fillStyle = '#ff5f8d';
+  CTX.font = '12px "Press Start 2P", monospace'; CTX.textAlign = 'left'; CTX.textBaseline = 'middle';
+  CTX.fillText(Math.round(angle) + '°', x + Math.cos(a) * (len + 12), y - Math.sin(a) * (len + 12));
+  CTX.restore();
+  banner('ANGLE — クリックで決定');
+}
+function drawPower() {
+  const x = SX(p.x), y = SY(1.4);
+  const a = angle * Math.PI / 180, len = 110;
+  CTX.strokeStyle = 'rgba(255,95,141,.5)'; CTX.lineWidth = 4; CTX.lineCap = 'round';
+  CTX.beginPath(); CTX.moveTo(x, y); CTX.lineTo(x + Math.cos(a) * len, y - Math.sin(a) * len); CTX.stroke();
+
+  const bw = 420, bh = 22, bx = (W - bw) / 2, by = H - 74;
+  CTX.fillStyle = 'rgba(0,0,0,.5)'; roundRect(bx, by, bw, bh, 4); CTX.fill();
+  const g = CTX.createLinearGradient(bx, 0, bx + bw, 0);
+  g.addColorStop(0, '#7ee6ff'); g.addColorStop(.6, '#ffd34d'); g.addColorStop(1, '#ff3b30');
+  CTX.fillStyle = g; roundRect(bx + 2, by + 2, (bw - 4) * (power / 100), bh - 4, 3); CTX.fill();
+  CTX.strokeStyle = 'rgba(255,255,255,.55)'; CTX.lineWidth = 1.5; roundRect(bx, by, bw, bh, 4); CTX.stroke();
+  CTX.fillStyle = '#fff'; CTX.font = '11px "Press Start 2P", monospace';
+  CTX.textAlign = 'center'; CTX.textBaseline = 'bottom';
+  CTX.fillText('POWER ' + Math.round(power), W / 2, by - 8);
+  banner('POWER — 右端に近いほど強い');
+}
+function banner(text) {
+  CTX.fillStyle = 'rgba(0,0,0,.45)';
+  CTX.fillRect(0, 54, W, 34);
+  CTX.fillStyle = '#fff';
+  CTX.font = '500 15px "Noto Sans JP", sans-serif';
+  CTX.textAlign = 'center'; CTX.textBaseline = 'middle';
+  CTX.fillText(text, W / 2, 71);
+}
+function drawChance() {
+  CTX.fillStyle = 'rgba(255,59,48,' + (.18 + .12 * Math.sin(t * 30)) + ')';
+  CTX.fillRect(0, 0, W, H);
+  const r = chanceT / SP_WIN;
+  CTX.fillStyle = '#fff';
+  CTX.font = 'bold 42px "Noto Sans JP", sans-serif';
+  CTX.textAlign = 'center'; CTX.textBaseline = 'middle';
+  CTX.strokeStyle = 'rgba(0,0,0,.6)'; CTX.lineWidth = 6;
+  CTX.strokeText('CHANCE!!  クリック!!', W / 2, H * .34);
+  CTX.fillText('CHANCE!!  クリック!!', W / 2, H * .34);
+  const bw = 380, bx = (W - bw) / 2, by = H * .34 + 40;
+  CTX.fillStyle = 'rgba(0,0,0,.55)'; roundRect(bx, by, bw, 14, 3); CTX.fill();
+  CTX.fillStyle = '#ffd34d'; roundRect(bx + 2, by + 2, (bw - 4) * r, 10, 2); CTX.fill();
+}
+
+/* ── HUD ────────────────────────────────────────────────── */
+function drawHud() {
+  CTX.textAlign = 'left'; CTX.textBaseline = 'top';
+  CTX.fillStyle = 'rgba(0,0,0,.35)'; CTX.fillRect(0, 0, W, 62);
+
+  CTX.fillStyle = '#fff'; CTX.font = '22px "Press Start 2P", monospace';
+  CTX.fillText(fmt(Math.max(0, p.x)) + ' m', 20, 10);
+
+  CTX.font = '10px "Press Start 2P", monospace'; CTX.fillStyle = 'rgba(255,255,255,.55)';
+  CTX.fillText('BEST ' + fmt(best) + ' m', 20, 42);
+
+  CTX.textAlign = 'right';
+  CTX.fillStyle = 'rgba(255,255,255,.75)'; CTX.font = '11px "Press Start 2P", monospace';
+  CTX.fillText('HIT ' + combo + '   ALT ' + p.y.toFixed(1) + 'm', W - 20, 12);
+  if (blocked)     { CTX.fillStyle = '#9aa3ad'; CTX.fillText('BLOCK', W - 20, 38); }
+  if (x2Left > 0)  { CTX.fillStyle = '#ff3b30'; CTX.fillText('×2 残り' + x2Left, W - 120, 38); }
+  if (reviveLeft)  { CTX.fillStyle = '#44e0c8'; CTX.fillText('REVIVE', W - 220, 38); }
+  if (bounceBoost) { CTX.fillStyle = '#b06bff'; CTX.fillText('BOUND×' + bounceBoost, W - 320, 38); }
+
+  if (state !== 'fly' && state !== 'chance') { if (flash > 0) drawFlash(); return; }
+
+  // エアリアル残数
+  const bx = 20, by = H - 58;
+  CTX.textAlign = 'left'; CTX.fillStyle = 'rgba(255,255,255,.6)';
+  CTX.font = '9px "Press Start 2P", monospace';
+  CTX.fillText('AERIAL', bx, by - 14);
+  for (let i = 0; i < AERIAL_N; i++) {
+    CTX.beginPath(); CTX.arc(bx + 9 + i * 24, by + 6, 8, 0, 6.284);
+    CTX.fillStyle = i < aerialLeft ? (inBand() ? '#ff5f8d' : 'rgba(255,95,141,.35)') : 'rgba(255,255,255,.12)';
+    CTX.fill();
+  }
+  // チャージ
+  const cx = bx + 100, cw = 160;
+  CTX.fillStyle = 'rgba(255,255,255,.6)';
+  CTX.fillText('CHARGE', cx, by - 14);
+  CTX.fillStyle = 'rgba(0,0,0,.45)'; roundRect(cx, by, cw, 13, 3); CTX.fill();
+  CTX.fillStyle = charge >= 100 ? (inBand() ? '#7ee6ff' : 'rgba(126,230,255,.45)') : 'rgba(255,255,255,.3)';
+  roundRect(cx + 2, by + 2, (cw - 4) * (charge / 100), 9, 2); CTX.fill();
+  if (charge >= 100) {
+    CTX.fillStyle = '#7ee6ff'; CTX.font = '9px "Press Start 2P", monospace';
+    CTX.fillText('DIVE OK', cx + cw + 10, by + 2);
+  }
+  // スペシャル受付
+  if (spW && !spW.used) {
+    const r = spW.t / SP_WIN;
+    CTX.textAlign = 'center'; CTX.fillStyle = '#ffd34d';
+    CTX.font = 'bold 20px "Noto Sans JP", sans-serif';
+    CTX.fillText('SPECIAL!  クリック', W / 2, 72);
+    CTX.fillStyle = 'rgba(0,0,0,.5)'; roundRect(W / 2 - 90, 98, 180, 8, 2); CTX.fill();
+    CTX.fillStyle = '#ffd34d'; roundRect(W / 2 - 88, 100, 176 * r, 4, 2); CTX.fill();
+  }
+  if (flash > 0) drawFlash();
+}
+function drawFlash() {
+  CTX.fillStyle = 'rgba(255,255,255,' + (flash * .55).toFixed(3) + ')';
+  CTX.fillRect(0, 0, W, H);
+}
+
+/* ── 描画 ───────────────────────────────────────────────── */
+function draw() {
+  CTX.save();
+  if (shake > 0) CTX.translate((Math.random() - .5) * shake * 26, (Math.random() - .5) * shake * 26);
+  drawBg();
+  drawGround();
+  drawChars();
+  drawPlayer();
+  drawFx();
+  if (state === 'angle') drawAim();
+  if (state === 'power') drawPower();
+  if (state === 'chance') drawChance();
+  CTX.restore();
+  drawHud();
+}
+
+/* ── 入力 ───────────────────────────────────────────────── */
+function press(which) {
+  if (document.getElementById('ov-help').classList.contains('show')) return;
+  switch (state) {
+    case 'title': startAim(); break;
+    case 'angle': state = 'power'; powT = 0; break;
+    case 'power': state = 'crash'; crashT = .42; ageruFx = { t: .42, kind: 'bike' }; break;
+    case 'chance': bossChance(true); break;
+    case 'end':   reset(); break;
+    case 'fly':
+      if (trySpecial()) return;
+      if (which === 'down') dive(); else aerial();
+      break;
+  }
+}
+const wrap = document.getElementById('wrap');
+wrap.addEventListener('pointerdown', e => {
+  if (e.target.id === 'btn-dive') return;
+  e.preventDefault();
+  press(e.button === 2 ? 'down' : 'up');
+});
+wrap.addEventListener('contextmenu', e => { e.preventDefault(); });
+document.getElementById('btn-dive').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); press('down'); });
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowUp' || e.code === 'KeyZ') { e.preventDefault(); press('up'); }
+  else if (e.code === 'ArrowDown' || e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyX') { e.preventDefault(); press('down'); }
+  else if (e.code === 'Escape') closeHelp();
+});
+document.getElementById('btn-retry').addEventListener('pointerdown', e => { e.stopPropagation(); reset(); });
+
+/* 遊び方 */
+function openHelp()  { ov('ov-help', true); }
+function closeHelp() { ov('ov-help', false); }
+document.getElementById('btn-help').addEventListener('click', openHelp);
+document.getElementById('btn-help-close').addEventListener('click', closeHelp);
+(() => {   // キャラ効果表を TYPES から作る（仕様とヘルプがズレないように）
+  const tb = document.getElementById('help-chars');
+  tb.innerHTML = TYPE_KEYS.map(k =>
+    '<tr><td>' + TYPES[k].name + '</td><td>' + TYPES[k].desc + '</td></tr>').join('');
+})();
+
+/* ── メインループ ───────────────────────────────────────── */
+let last = performance.now();
+function loop(now) {
+  let dt = (now - last) / 1000; last = now;
+  if (dt > .25) dt = .25;
+  const steps = Math.max(1, Math.ceil(dt / (1 / 120)));
+  const sd = dt / steps;
+  for (let i = 0; i < steps; i++) update(sd);
+  draw();
+  requestAnimationFrame(loop);
+}
+reset();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -589,6 +589,77 @@ a.link-item:hover { opacity: .5; }
 .kuku-spinner circle.track { stroke: #e8e8e8; }
 @keyframes kuku-spin { to { transform: rotate(360deg); } }
 
+/* ── GAME タブ（ゲーム一覧） ─────────────────────────────── */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 18px;
+}
+.game-card { position: relative; display: block; text-align: left; padding: 0; }
+.game-thumb {
+  display: block; position: relative;
+  aspect-ratio: 16 / 10; overflow: hidden;
+  background: #f2f2f2; border: 1px solid #e6e6e6;
+}
+.game-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s cubic-bezier(.2,0,.2,1); }
+.game-card:hover .game-thumb img { transform: scale(1.05); }
+/* サムネ画像がまだ無いときの代替（頭文字を出す） */
+.game-thumb.noimg { background: linear-gradient(135deg, #14161d 0%, #3a2740 58%, #6b2f4a 100%); border-color: #14161d; }
+.game-thumb.noimg::after {
+  content: attr(data-init); position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cormorant Garamond', serif; font-size: 34px; letter-spacing: .1em;
+  color: rgba(255,255,255,.88);
+}
+.game-name { display: block; margin-top: 11px; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #111; }
+.game-sub  { display: block; margin-top: 4px; font-size: 11px; color: #999; }
+.game-tag {
+  position: absolute; top: 8px; left: 8px;
+  background: #111; color: #fff;
+  font-size: 9px; letter-spacing: .14em; padding: 3px 7px;
+}
+.game-note { margin-top: 30px; font-size: 11px; color: #bbb; line-height: 1.9; }
+
+/* ── GAME モーダル（iframe でゲームを起動） ─────────────── */
+#game-backdrop {
+  position: fixed; inset: 0; z-index: 598;
+  background: rgba(0,0,0,0); pointer-events: none;
+  transition: background .4s ease;
+}
+#game-backdrop.open { background: rgba(0,0,0,.58); pointer-events: auto; }
+#game-panel {
+  position: fixed;
+  top: 3dvh; left: 50%;
+  width: min(96vw, 1340px); height: 94dvh;
+  background: #0b0d12;
+  border-radius: 14px;
+  box-shadow: 0 32px 80px rgba(0,0,0,.45);
+  z-index: 599;
+  transform: translateX(-50%) scale(.965);
+  opacity: 0; pointer-events: none;
+  transition: transform .42s cubic-bezier(.4,0,.2,1), opacity .3s ease;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+#game-panel.open { transform: translateX(-50%) scale(1); opacity: 1; pointer-events: auto; }
+#game-iframe { width: 100%; flex: 1; min-height: 0; border: none; display: block; opacity: 0; transition: opacity .3s ease; }
+#game-iframe.loaded { opacity: 1; }
+#game-loading {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; pointer-events: none;
+}
+#game-loading.hidden { display: none; }
+#game-loading p { font-size: 12px; letter-spacing: .14em; color: #777; }
+#game-panel .kuku-close { background: rgba(255,255,255,.1); color: #ccc; }
+#game-panel .kuku-close:hover { background: rgba(255,255,255,.2); color: #fff; }
+#game-newtab { right: 58px; }
+#game-newtab:hover { transform: none; }
+@media (max-width: 640px) {
+  #game-panel { top: 0; width: 100vw; height: 100dvh; border-radius: 0; }
+  .game-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+}
+
 .kuku-close {
   position: absolute; top: 12px; right: 12px; z-index: 1;
   background: rgba(0,0,0,.06); border: none; border-radius: 50%; cursor: pointer;
@@ -1004,6 +1075,7 @@ body.pn-open { overflow: hidden; }
   <ul class="hd-nav">
     <li><a href="#" class="active">Top</a></li>
     <li><a href="#gallery">Gallery</a></li>
+    <li><a href="#tab-game" id="nav-game">Game</a></li>
     <li><a href="#tab-info">About</a></li>
     <li><a href="#" id="open-kuku">kukuCome</a></li>
     <li><a href="/patchnotes" id="open-pn">Patchnotes</a></li>
@@ -1047,6 +1119,27 @@ body.pn-open { overflow: hidden; }
     <p>Loading</p>
   </div>
   <iframe id="kuku-iframe" title="kukuCome"></iframe>
+</div>
+
+<!-- GAME modal（ゲーム一覧から起動する） -->
+<div id="game-backdrop" aria-hidden="true"></div>
+<div id="game-panel" role="dialog" aria-modal="true" aria-label="ゲーム">
+  <a class="kuku-close" id="game-newtab" href="#" target="_blank" rel="noopener" aria-label="単独ページで開く" title="単独ページで開く">
+    <svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+  </a>
+  <button class="kuku-close" id="game-close" aria-label="閉じる">
+    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <div id="game-loading">
+    <svg class="kuku-spinner" viewBox="0 0 36 36" fill="none">
+      <circle class="track" cx="18" cy="18" r="14" stroke-width="3"/>
+      <circle cx="18" cy="18" r="14" stroke="#888" stroke-width="3"
+              stroke-dasharray="44 44" stroke-linecap="round"
+              transform-origin="18 18"/>
+    </svg>
+    <p>Loading</p>
+  </div>
+  <iframe id="game-iframe" title="ゲーム" allow="fullscreen; autoplay"></iframe>
 </div>
 
 <!-- UPLOAD SLIDE PANEL -->
@@ -1155,6 +1248,7 @@ body.pn-open { overflow: hidden; }
     <div class="tabs-bar">
       <button class="tab-btn active" data-tab="info">INFO</button>
       <button class="tab-btn" data-tab="index">PHOTO INDEX</button>
+      <button class="tab-btn" data-tab="game">GAME</button>
     </div>
     <div id="tab-info" class="tab-content">
       <p class="tab-intro">A streamer, a character, a world.<br>Hoshino Ageru lives at the edge of gothic night and cyberpunk chrome — brought to life through kukuCome.</p>
@@ -1167,6 +1261,11 @@ body.pn-open { overflow: hidden; }
     </div>
     <div id="tab-index" class="tab-content" hidden>
       <div class="index-grid" id="photo-index-grid"></div>
+    </div>
+    <div id="tab-game" class="tab-content" hidden>
+      <p class="tab-intro">Pick a game. It opens right here.</p>
+      <div class="game-grid" id="game-grid"></div>
+      <p class="game-note">ゲームは順次追加予定。カードを押すとこのページの中で起動します（右上の ↗ で単独ページ）。</p>
     </div>
   </div>
 </section>
@@ -1376,25 +1475,32 @@ mpEl.addEventListener('touchend',   e=>{
 });
 
 /* ── Tabs ────────────────────────────────────────────────── */
+const TAB_IDS = ['info','index','game'];
 let indexBuilt = false;
+function showTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  TAB_IDS.forEach(id=>{ document.getElementById('tab-'+id).hidden = id!==tab; });
+  if(tab==='index' && !indexBuilt){
+    indexBuilt=true;
+    const grid = document.getElementById('photo-index-grid');
+    V89.forEach((src,i)=>{
+      const img=document.createElement('img');
+      img.src=src; img.className='index-img';
+      img.alt=`Photo ${i+1}`; img.loading='lazy';
+      grid.appendChild(img);
+    });
+  }
+  // ゲーム一覧は GAME タブを最初に開いたときに組み立てる（定義は下の GAME modal 側）
+  if(tab==='game' && window.buildGameGrid) window.buildGameGrid();
+}
 document.querySelectorAll('.tab-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    const tab = btn.dataset.tab;
-    document.getElementById('tab-info').hidden  = tab!=='info';
-    document.getElementById('tab-index').hidden = tab!=='index';
-    if(tab==='index' && !indexBuilt){
-      indexBuilt=true;
-      const grid = document.getElementById('photo-index-grid');
-      V89.forEach((src,i)=>{
-        const img=document.createElement('img');
-        img.src=src; img.className='index-img';
-        img.alt=`Photo ${i+1}`; img.loading='lazy';
-        grid.appendChild(img);
-      });
-    }
-  });
+  btn.addEventListener('click', ()=>showTab(btn.dataset.tab));
+});
+// ヘッダーの Game はギャラリーまでスクロールしつつ GAME タブを開く
+document.getElementById('nav-game').addEventListener('click', e=>{
+  e.preventDefault();
+  showTab('game');
+  document.getElementById('tab-game').scrollIntoView({behavior:'smooth', block:'center'});
 });
 
 /* ── Screensaver: filmstrip (same style as hero) ─────────── */
@@ -1985,6 +2091,88 @@ ssOver.addEventListener('touchstart', exitSS, {passive:true});
   closeBtn.addEventListener('click', closeKuku);
   backdrop.addEventListener('click', closeKuku);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeKuku(); });
+})();
+
+/* ── GAME 一覧＋モーダル起動 ──────────────────────────────
+   ゲームを増やすときは GAMES に1行足すだけ。
+   url は Pages のパス（/xxx.html は /xxx に 308 されるので拡張子なしで書く）。
+   thumb が無い場合はカードがグラデーション＋頭文字になる。          */
+(function(){
+  const GAMES = [
+    { id:'crash', title:'AGERU CRASH!!', sub:'飛距離アタック',
+      url:'/games/crash', thumb:'./img-games/crash.webp', tag:'NEW' },
+    { id:'dino',  title:'DINO', sub:'エンドレスラン',
+      url:'/dino', thumb:'./img-games/dino.webp' },
+  ];
+
+  const panel    = document.getElementById('game-panel');
+  const backdrop = document.getElementById('game-backdrop');
+  const iframe   = document.getElementById('game-iframe');
+  const loading  = document.getElementById('game-loading');
+  const newtab   = document.getElementById('game-newtab');
+  const closeBtn = document.getElementById('game-close');
+  const grid     = document.getElementById('game-grid');
+  const ANIM_MS  = 430;
+  let built = false, revealTimer = null;
+
+  function reveal(){
+    clearTimeout(revealTimer); revealTimer = null;
+    loading.classList.add('hidden');
+    iframe.classList.add('loaded');
+  }
+  iframe.addEventListener('load', reveal);
+
+  window.buildGameGrid = function(){
+    if (built) return;
+    built = true;
+    GAMES.forEach((g, i) => {
+      const card = document.createElement('button');
+      card.className = 'game-card';
+      card.type = 'button';
+      card.innerHTML =
+        '<span class="game-thumb"><img alt="" loading="lazy"></span>' +
+        (g.tag ? '<span class="game-tag">' + g.tag + '</span>' : '') +
+        '<span class="game-name"></span><span class="game-sub"></span>';
+      card.querySelector('.game-name').textContent = g.title;
+      card.querySelector('.game-sub').textContent  = g.sub;
+      const thumb = card.querySelector('.game-thumb');
+      const img   = card.querySelector('img');
+      // サムネが用意されていなければ頭文字カードにする
+      img.onerror = () => { img.remove(); thumb.classList.add('noimg'); thumb.dataset.init = g.title.charAt(0); };
+      img.src = g.thumb;
+      card.addEventListener('click', () => openGame(i));
+      grid.appendChild(card);
+    });
+  };
+
+  function openGame(i){
+    const g = GAMES[i];
+    panel.classList.add('open');
+    backdrop.classList.add('open');
+    backdrop.setAttribute('aria-hidden','false');
+    panel.setAttribute('aria-label', g.title);
+    newtab.href = g.url;
+    document.body.style.overflow = 'hidden';
+    loading.classList.remove('hidden');
+    iframe.classList.remove('loaded');
+    setTimeout(() => { iframe.src = g.url; }, ANIM_MS);
+    revealTimer = setTimeout(reveal, ANIM_MS + 4000);   // 保険（load が来なくても表示する）
+  }
+  function closeGame(){
+    if (!panel.classList.contains('open')) return;
+    panel.classList.remove('open');
+    backdrop.classList.remove('open');
+    backdrop.setAttribute('aria-hidden','true');
+    document.body.style.overflow = '';
+    clearTimeout(revealTimer); revealTimer = null;
+    // ゲームのループ・音を止めるため iframe は毎回捨てる
+    setTimeout(() => { iframe.removeAttribute('src'); iframe.classList.remove('loaded'); }, ANIM_MS);
+  }
+
+  closeBtn.addEventListener('click', closeGame);
+  backdrop.addEventListener('click', closeGame);
+  newtab.addEventListener('click', e => { e.stopPropagation(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeGame(); });
 })();
 
 /* ── LIVE badge ──────────────────────────────────────────── */
