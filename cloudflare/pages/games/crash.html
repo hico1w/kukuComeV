@@ -330,6 +330,7 @@ const CHAR_SPACING = 100;    // キャラの配置間隔 m（100mちょうどに
 const CAM_S = 10.5;          // カメラの拡大率 px/m（初期値。これ以上は寄らない）
 const CAM_ZOOM_MAX = 2;      // 画角を広げる上限倍率（＝拡大率は CAM_S の 1/2 まで下がる）
 const CAM_BIAS_VY = 120;     // この上昇/下降速度(m/s)でカメラの上下の狙い位置が最大まで偏る
+const MIN_HORIZ_RATIO = 0.5; // 減速・ブロック系ヒット後、速度の何割以上を横方向に残すか（真下落下を防ぐ）
 const CRASH_T = 0.55;        // アゲルが左から突っ込んでくる演出の長さ 秒
 const KMH      = 3.6;        // m/s → km/h
 
@@ -512,7 +513,15 @@ function relaunch(ang, mul, min) {
   sp = Math.min(sp, MAX_SPD);
   if (ang === null) {                       // 角度そのまま（減速・ブロック系）
     const s0 = speed() || 1;
-    p.vx = p.vx / s0 * sp; p.vy = p.vy / s0 * sp;
+    let ux = p.vx / s0, uy = p.vy / s0;     // 進行方向の単位ベクトル
+    // 真下寄りに落ちている（横方向の成分が小さい）ときにそのまま減速すると、
+    // 以降も真下に落ち続けてしまう。横方向の割合を最低 MIN_HORIZ_RATIO まで持ち上げて、
+    // 減速後も横に流れていくようにする（真下＝ux=0のときは前方＝右へ流す）。
+    if (Math.abs(ux) < MIN_HORIZ_RATIO) {
+      ux = ux >= 0 ? MIN_HORIZ_RATIO : -MIN_HORIZ_RATIO;
+      uy = Math.sign(uy) * Math.sqrt(Math.max(0, 1 - ux * ux));
+    }
+    p.vx = ux * sp; p.vy = uy * sp;
   } else {
     const a = ang * Math.PI / 180;
     p.vx = Math.cos(a) * sp; p.vy = Math.sin(a) * sp;
