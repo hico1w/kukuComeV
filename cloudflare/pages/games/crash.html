@@ -34,6 +34,11 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   border-bottom: 1px solid rgba(255,255,255,.1);
 }
 .bar-home { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; letter-spacing: .05em; }
+.wip-badge {
+  font-size: 10px; letter-spacing: .1em; color: #ffb454;
+  border: 1px solid rgba(255,180,84,.5); border-radius: 999px;
+  padding: 2px 9px;
+}
 .bar-back { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: rgba(237,224,212,.5); transition: color .15s; }
 .bar-back:hover { color: #ede0d4; }
 .bar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
@@ -120,6 +125,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 
 <div id="bar">
   <a href="/" class="bar-home" target="_top">hico1</a>
+  <span class="wip-badge">作成中</span>
   <a href="/" class="bar-back" target="_top">← back to site</a>
   <div class="bar-right">
     <span class="bar-hint" id="hint">押した瞬間に角度決定 → 押しっぱなしでパワー → 離して発射　／　空中はクリックでエアリアル・右クリックでダイブ</span>
@@ -138,6 +144,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
       <p class="pix ov-title" id="title-text">AGERU CRASH!!</p>
       <p class="ov-sub">クリック / SPACE でスタート</p>
       <p class="ov-small">アゲルが自転車でヒコをはね飛ばす。<br>地上のキャラに当てて、どこまでも飛ばせ。</p>
+      <p class="ov-small" style="color:#ffb454">⚠ このゲームはまだ作成中です。仕様や見た目は変更されることがあります</p>
       <p class="ov-small" id="title-best"></p>
     </div>
 
