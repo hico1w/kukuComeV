@@ -2,6 +2,16 @@
 
 ---
 
+## v2.961.0 — 2026-09-18
+
+### docs: 公開サイトのLINKSに「リスナープレイリスト」を追加
+
+- **`cloudflare/pages/index.html`**（kukucome-chara.pages.dev）の `#yt-links` セクション、Links一覧の末尾（VRoid Hubの後）に追加
+  - `<a class="link-item" href="https://suno.com/playlist/da41f422-71ea-45c0-b2e7-428a1bac12d1">` リスナープレイリスト（suno.com）
+- 既存リンクの構造・スタイルをそのまま踏襲（label/url/arrowの3span構成）
+
+---
+
 ## v2.960.0 — 2026-09-17
 
 ### fix: キャラ作成の一時画像（charImageData）の反映漏れを修正（ランダムキャラ・ステータス確認）
