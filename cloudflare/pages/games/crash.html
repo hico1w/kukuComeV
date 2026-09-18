@@ -201,7 +201,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 const CV  = document.getElementById('game');
 const CTX = CV.getContext('2d');
 const W = 1200, H = 600;
-const GROUND_SY = 520;          // cam.y = 0 のときの地面の画面Y
+const GROUND_SY = H;            // 地面＝画面の下端（バンパーは下部にぴったり立つ）
 
 /* ── 必要画像の定義（w/h は推奨サイズ・透過PNG/WebP） ───────── */
 const DIR = './img-crash/';
@@ -316,7 +316,10 @@ const CHAR_SCALE = 3;        // キャラ・自機の表示倍率（当たり判
 // ワールド上の大きさ（m）は h * CHAR_SCALE / 46 で、カメラ倍率に依らず一定になる。
 const PLAYER_R = ASSETS.hico_fly.h * CHAR_SCALE / 46 * .32;   // 自機の当たり半径 m
 const MAX_CH_H = Math.max.apply(null, Object.values(IMG_OF).map(k => ASSETS[k].h)) * CHAR_SCALE / 46;
-const MAX_SPD  = 330;        // 速度上限 m/s（= 約1188km/h）
+const POW_X    = 2;          // 飛ぶ力の倍率（発射・打ち上げ・エアリアル・ダイブ・復活に掛かる）
+const BOUNCE   = 0.8;        // 着地の跳ね返り。1.0 だとエネルギーが減らず永久に弾むので 0.8
+const DIST_SCALE = 0.1;      // 距離表示の倍率（ワールド100m＝表示10m）
+const MAX_SPD  = 330 * POW_X;   // 速度上限 m/s
 const BOSS_FROM = 400;       // ボスアゲルが出はじめる距離 m（序盤の回避不能な即死を避ける）
 const CHAR_SPACING = 100;    // キャラの配置間隔 m（100mちょうどに1体ずつ）
 const CAM_S = 10.5;          // カメラの拡大率 px/m（固定。ズームアウトするとキャラが見えない）
@@ -374,7 +377,7 @@ function capSpeed() {
   if (s > MAX_SPD) { p.vx = p.vx / s * MAX_SPD; p.vy = p.vy / s * MAX_SPD; }
 }
 const inBand = () => p.y >= BAND_LO && p.y <= BAND_HI;
-const fmt = m => m.toFixed(2);
+const fmt = m => (m * DIST_SCALE).toFixed(2);   // 距離はすべて DIST_SCALE を掛けて表示する
 
 let popAt = {};
 function pop(text, color, big) {
@@ -455,7 +458,7 @@ function reset() {
 function startAim() { state = 'angle'; aimT = 0; ov('ov-title', false); }
 
 function launch() {
-  const v = (9 + 39 * (power / 100)) * SPD_X;
+  const v = (9 + 39 * (power / 100)) * SPD_X * POW_X;
   const a = angle * Math.PI / 180;
   p.vx = Math.cos(a) * v;
   p.vy = Math.sin(a) * v;
@@ -474,7 +477,7 @@ function launch() {
 function gameOver() {
   if (reviveLeft > 0) {                       // デンパのアゲルスペシャル：1度だけ復活
     reviveLeft--;
-    p.y = 1.2; p.vx = 78; p.vy = 72;
+    p.y = 1.2; p.vx = 78 * POW_X; p.vy = 72 * POW_X;
     state = 'fly'; flash = .45;
     burst(50, '#44e0c8', 1.4);
     shockwave(p.x, p.y, '#44e0c8', 1.3);
@@ -498,7 +501,7 @@ function ov(id, on) { document.getElementById(id).classList.toggle('show', on); 
 
 /* ── 打ち出し ───────────────────────────────────────────── */
 function relaunch(ang, mul, min) {
-  let sp = Math.max(speed() * mul, min);
+  let sp = Math.max(speed() * mul, min * POW_X);   // 最低打ち出し速度は POW_X 倍
   if (x2Left > 0 && mul > 1) { x2Left--; sp *= 2; pop('×2!!', '#ff3b30', true); }
   sp = Math.min(sp, MAX_SPD);
   if (ang === null) {                       // 角度そのまま（減速・ブロック系）
@@ -574,7 +577,8 @@ function onHit(c) {
     return;
   }
   if (blocked && T.ageru) {
-    const near100 = Math.abs(p.x - Math.round(p.x / 100) * 100) < 1.5 && p.x >= 100;
+    // 「表示上の距離の下2桁が00」＝ワールドでは1000の倍数（DIST_SCALE=0.1 のため）
+    const near100 = Math.abs(p.x - Math.round(p.x / 1000) * 1000) < 15 && p.x >= 1000;
     blocked = false;
     if (near100) { ageruSpecial(c); return; }
     pop('BLOCKED…', '#9aa3ad');
@@ -643,8 +647,8 @@ function aerial() {
   if (aerialLeft <= 0) { pop('AERIAL なし', '#ff8f8f'); return; }
   if (!inBand())       { pop('地上9〜30mでのみ', '#ff8f8f'); return; }
   aerialLeft--;
-  p.vy = Math.max(p.vy, 0) + 63;
-  p.vx += 21;
+  p.vy = Math.max(p.vy, 0) + 63 * POW_X;
+  p.vx += 21 * POW_X;
   capSpeed();
   ageruFx = { t: .38, dur: .38, kind: 'kick' };
   pop('AERIAL!', '#ff5f8d'); burst(26, '#ff5f8d', 1.3); shockwave(p.x, p.y, '#ff5f8d', .9);
@@ -654,7 +658,7 @@ function dive() {
   if (charge < 100) { pop('CHARGE不足', '#8fd0ff'); return; }
   if (!inBand())    { pop('地上9〜30mでのみ', '#8fd0ff'); return; }
   charge = 0; diving = true;
-  p.vy = -72; p.vx += 30;
+  p.vy = -72 * POW_X; p.vx += 30 * POW_X;
   capSpeed();
   ageruFx = { t: .38, dur: .38, kind: 'dive' };
   pop('DIVE!', '#7ee6ff'); burst(26, '#7ee6ff', 1.3); se('dive');
@@ -695,8 +699,8 @@ function physics(dt) {
         hitstop(.26, .2); se('slam');
         diving = false;
       } else {
-        p.vy = vd * .5;
-        p.vx = p.vx * .88 + vd * .2;
+        p.vy = vd * BOUNCE;
+        p.vx = p.vx * .88 + vd * .3;
         se('bound');
       }
       if (bounceBoost > 0) { bounceBoost--; p.vx *= 1.5; p.vy *= 1.15; pop('BOUND ×1.5', '#b06bff'); }
@@ -891,28 +895,30 @@ function drawBang() {
 
 function drawGround() {
   const gy = SY(0);
-  if (gy > H) return;
+  // 以前はここで gy > H なら return していたが、地面＝画面下端にした結果
+  // カメラが少しでも上がると即 return してしまい、距離目盛りと低空帯のガイドまで
+  // 消えていた。地面テクスチャだけを h > 0 で出し分ける。
   const h = Math.max(0, H - gy);
   if (h > 0) {
     if (IMG.ground && IMG.ground.naturalWidth) tileX('ground', gy, Math.min(h, 160), 1);
     else { CTX.fillStyle = '#3b3f4a'; CTX.fillRect(0, gy, W, h); }
-    CTX.fillStyle = 'rgba(255,255,255,.22)';
-    CTX.fillRect(0, gy, W, 2);
   }
+  // 地面線は下端の内側に引く（gy が画面外でも見えるように）
+  if (gy > 2 && gy < H + 200) { CTX.fillStyle = 'rgba(255,255,255,.22)'; CTX.fillRect(0, Math.min(gy, H) - 2, W, 2); }
   // 距離の目盛り
-  const step = cam.s > 6 ? 25 : cam.s > 3.5 ? 50 : 100;
+  const step = 100;                        // 100mごと（表示上は10m）
   const from = Math.floor(cam.x / step) * step;
   CTX.font = '11px "Press Start 2P", monospace';
   CTX.textAlign = 'center'; CTX.textBaseline = 'top';
   for (let m = from; m < cam.x + W / cam.s; m += step) {
     if (m < 0) continue;
-    const x = SX(m);
+    const x = SX(m), by0 = Math.min(gy, H);     // 目盛りは地面線から上に伸ばす
     CTX.fillStyle = 'rgba(255,255,255,.18)';
-    CTX.fillRect(x, gy, 1, 10);
+    CTX.fillRect(x, by0 - 10, 1, 10);
     if (m % (step * 4) === 0) {
       CTX.fillStyle = 'rgba(255,255,255,.4)';
-      CTX.fillRect(x, gy, 2, 18);
-      CTX.fillText(m + 'm', x, gy + 22);
+      CTX.fillRect(x, by0 - 18, 2, 18);
+      CTX.fillText(Math.round(m * DIST_SCALE) + 'm', x, by0 - 34);
     }
   }
   // 低空帯（エアリアル可能ゾーン）
@@ -1007,7 +1013,7 @@ function drawAgeruRush(x, hpx) {
   const bh = hpx * 1.25;                          // 自機が大きくなったぶん倍率を下げる
   const fromX = -bh * 1.2, toX = x - hpx * .85;
   const ax = fromX + (toX - fromX) * e;
-  const ay = SY(0) - bh * .46;
+  const ay = SY(0) - bh * .5;                     // 足元を地面（画面下端）に合わせる
   // 勢いを出すスピード線
   CTX.save();
   CTX.globalAlpha = .2 + .55 * e;
@@ -1023,9 +1029,10 @@ function drawAgeruRush(x, hpx) {
 }
 
 function drawPlayer() {
-  const x = SX(p.x), y = SY(p.y);
   // 自機もバンパーと同じスケールで描く（当たり判定もこの大きさで取っている）
   const hpx = Math.max(24, ASSETS.hico_fly.h * cam.s / 46) * CHAR_SCALE;
+  // p.y は足元の高さとして扱う。地面が画面下端なので、中心で描くと接地時に半分切れる
+  const x = SX(p.x), y = SY(p.y) - hpx / 2;
 
   // 照準中はアゲルを出さない（発射の瞬間に左から登場する）
   if (state === 'title' || state === 'angle' || state === 'power') {
@@ -1037,7 +1044,7 @@ function drawPlayer() {
     drawAgeruRush(x, hpx);
     return;
   }
-  if (state === 'end') { sprite('hico_down', x, SY(0) - hpx * .3, hpx * .75); return; }
+  if (state === 'end') { sprite('hico_down', x, SY(0) - hpx * .75 / 2, hpx * .75); return; }
 
   sprite('hico_fly', x, y, hpx, { rot: p.rot });
   if (ageruFx) {
@@ -1045,7 +1052,7 @@ function drawPlayer() {
     if (ageruFx.kind === 'bike') {
       // 激突した場所に残る（カメラが進むので自然に置き去りになる）
       const bh = hpx * 1.9, bx = SX(crashX);
-      if (bx > -bh) sprite('ageru_bike', bx, SY(0) - bh * .46, bh, { alpha: Math.min(1, a * 1.6) });
+      if (bx > -bh) sprite('ageru_bike', bx, SY(0) - bh * .5, bh, { alpha: Math.min(1, a * 1.6) });
     } else {
       sprite(ageruFx.kind === 'dive' ? 'ageru_dive' : 'ageru_kick',
              x - hpx * .22 * a, y + (ageruFx.kind === 'dive' ? -hpx * .3 : hpx * .3) * a,
@@ -1188,8 +1195,54 @@ function drawUpcoming() {
     CTX.textAlign = 'center'; CTX.textBaseline = 'top';
     CTX.font = '9px "Press Start 2P", monospace';
     CTX.fillStyle = i === 0 ? '#fff' : 'rgba(255,255,255,.6)';
-    CTX.fillText(Math.round(d) + 'm', cx0, by + bh - 18);
+    CTX.fillText(Math.round(d * DIST_SCALE) + 'm', cx0, by + bh - 18);
   });
+}
+
+/* ── 画面外のバンパーを画面端にアイコンで出す ─────────────
+   高く飛ぶと地上のキャラが画面の下に消えて何も見えなくなるため、
+   スマブラの画面外表示のように、端にアイコンと向きの三角を出す。     */
+function drawOffscreen() {
+  if (state !== 'fly' && state !== 'chance') return;
+  const L = 36, R = W - 36, T = 96, B = H - 100;
+  let n = 0;
+  for (const c of chars) {
+    if (c.hit || c.x < p.x - 30) continue;
+    if (c.x > p.x + 500 || n >= 3) break;
+    const key = IMG_OF[c.type];
+    const hgt = ASSETS[key].h * cam.s / 46 * CHAR_SCALE;   // 画面上の高さ px
+    const sx = SX(c.x), sy = SY(0) - hgt / 2;              // キャラの中心
+    if (sx > L && sx < R && sy > T && sy < B) continue;     // 画面内なら出さない
+    const mx = clamp(sx, L, R), my = clamp(sy, T, B);
+    n++;
+
+    CTX.save();
+    CTX.globalAlpha = .92;
+    CTX.fillStyle = 'rgba(0,0,0,.5)';
+    CTX.beginPath(); CTX.arc(mx, my, 26, 0, 6.283); CTX.fill();
+    CTX.strokeStyle = c.type === 'boss' ? '#ff3b30' : (spReady(c) ? '#ffd34d' : 'rgba(255,255,255,.55)');
+    CTX.lineWidth = 2; CTX.stroke();
+    CTX.restore();
+
+    sprite(key, mx, my, 38, { alpha: .95 });
+
+    // 実際の位置を指す三角
+    const dx = sx - mx, dy = sy - my;
+    if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+      const a = Math.atan2(dy, dx);
+      CTX.save();
+      CTX.translate(mx + Math.cos(a) * 31, my + Math.sin(a) * 31);
+      CTX.rotate(a);
+      CTX.fillStyle = c.type === 'boss' ? '#ff3b30' : '#fff';
+      CTX.beginPath(); CTX.moveTo(10, 0); CTX.lineTo(-6, 7); CTX.lineTo(-6, -7); CTX.closePath(); CTX.fill();
+      CTX.restore();
+    }
+
+    CTX.fillStyle = 'rgba(255,255,255,.85)';
+    CTX.font = '9px "Press Start 2P", monospace';
+    CTX.textAlign = 'center'; CTX.textBaseline = 'top';
+    CTX.fillText(Math.round((c.x - p.x) * DIST_SCALE) + 'm', mx, my + 30);
+  }
 }
 
 /* ── HUD ────────────────────────────────────────────────── */
@@ -1225,15 +1278,13 @@ function drawHud() {
   if (bounceBoost) { CTX.fillStyle = '#b06bff'; CTX.fillText('BOUND×' + bounceBoost, W - 320, 40); }
 
   drawUpcoming();
+  drawOffscreen();
 
   if (state !== 'fly' && state !== 'chance') { if (flash > 0) drawFlash(); return; }
 
-  // 下部HUDの下地（地面の絵と重なって読めなくなるのを防ぐ）
-  CTX.fillStyle = 'rgba(0,0,0,.38)';
-  CTX.fillRect(0, H - 80, W, 80);
-
-  // エアリアル残数
-  const ax = 20, ay = H - 58;
+  // エアリアル残数・チャージは画面上部の左に置く
+  //（画面下端が地面になり、そこにバンパーが立つので下部は空けておく）
+  const ax = 20, ay = 96;
   CTX.textAlign = 'left'; CTX.fillStyle = 'rgba(255,255,255,.6)';
   CTX.font = '9px "Press Start 2P", monospace';
   CTX.fillText('AERIAL', ax, ay - 14);
