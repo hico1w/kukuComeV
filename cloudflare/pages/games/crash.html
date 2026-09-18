@@ -322,6 +322,7 @@ const BOSS_FROM = 400;       // ボスアゲルが出はじめる距離 m（序�
 const CHAR_SPACING = 100;    // キャラの配置間隔 m（100mちょうどに1体ずつ）
 const CAM_S = 10.5;          // カメラの拡大率 px/m（初期値。これ以上は寄らない）
 const CAM_ZOOM_MAX = 2;      // 画角を広げる上限倍率（＝拡大率は CAM_S の 1/2 まで下がる）
+const CAM_BIAS_VY = 120;     // この上昇/下降速度(m/s)でカメラの上下の狙い位置が最大まで偏る
 const CRASH_T = 0.55;        // アゲルが左から突っ込んでくる演出の長さ 秒
 const KMH      = 3.6;        // m/s → km/h
 
@@ -741,7 +742,13 @@ function camera(dt) {
   const need = (GROUND_SY - H * .18) / Math.max(12, p.y + 6);
   const ts = clamp(need, CAM_S / CAM_ZOOM_MAX, CAM_S);
   cam.s += (ts - cam.s) * Math.min(1, dt * 3);
-  const ty = Math.max(0, p.y - (GROUND_SY - H * .5) / cam.s);
+  // 上昇中は自機を画面下寄りに捉えて上（行き先）を広く見せ、
+  // 下降中は自機を画面上寄りに捉えて下（地面）を広く見せる。
+  // 縦速度でその狙い位置を frac=0.16（上寄り）〜0.66（下寄り）の間で滑らかに動かす
+  // （この2値は下の画面外判定と同じ帯。静止時はその中間＝frac=0.41）。
+  const bias = clamp(p.vy / CAM_BIAS_VY, -1, 1);
+  const frac = .16 + (bias + 1) / 2 * (.66 - .16);
+  const ty = Math.max(0, p.y - (GROUND_SY - H * frac) / cam.s);
   cam.y += (ty - cam.y) * Math.min(1, dt * 4.5);
   // 速度3倍＋固定拡大だと、上昇/落下に追従が間に合わず自機が画面外に出る。
   // 自機の画面Yが必ず帯（上16%〜下66%）に収まるよう、追従後にクランプする。
@@ -853,7 +860,10 @@ function drawBg() {
       for (let i = 0; i < 70; i++) CTX.fillRect((i * 137.5) % W, (i * 79.3) % (H * .7), 2, 2);
     }
   }
-  const horizon = clamp(SY(0), 0, H);
+  // H で頭打ちにしていたため、カメラが離れて本来は画面外に消えるはずの場面でも
+  // 近景・遠景の帯が常に画面下端に張り付いたままになっていた（地面本体は drawGround() 側で
+  // 正しく消えるのに、こちらだけ取り残されていた）。上限を外し、地面と同じく自然に画面外へ出す。
+  const horizon = Math.max(0, SY(0));
   if (horizon > 0) {
     tileX('bg_far',  horizon - 190 * (cam.s / 9), 190 * (cam.s / 9), .25);
     tileX('bg_near', horizon - 120 * (cam.s / 9), 120 * (cam.s / 9), .55);
