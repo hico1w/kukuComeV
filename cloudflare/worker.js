@@ -174,6 +174,39 @@ export default {
         }
       }
 
+      // DELETE /admin/crash-ranking — AGERU CRASH!! のランキングから消す
+      //   dino 側と同じ指定方法（clear / index / name+score）
+      if (request.method === 'DELETE' && url.pathname === '/admin/crash-ranking') {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const cur = await getCrashRaw(env);
+          const keep = e => !(e.name === body.name && Number(e.score) === Number(body.score));
+          const which = body.list === 'recent' ? 'recent' : 'ranking';
+          let next;
+          if (body.clear) {
+            next = { ranking: [], recent: [] };
+          } else if (Number.isInteger(body.index)) {
+            next = { ranking: cur.ranking.slice(), recent: cur.recent.slice() };
+            next[which].splice(body.index - 1, 1);
+          } else {
+            next = { ranking: cur.ranking.filter(keep), recent: cur.recent.filter(keep) };
+          }
+          const before = cur.ranking.length + cur.recent.length;
+          const after = next.ranking.length + next.recent.length;
+          const res = await ghPut(
+            env, CRASH_RANKING_PATH,
+            encodeContent(JSON.stringify(next, null, 1)),
+            body.clear ? 'crash ranking: clear' : `crash ranking: remove ${body.name} ${body.score}`,
+            cur.sha
+          );
+          if (!res.ok) return json({ error: 'GitHub ' + res.status }, 500, cors);
+          return json({ ok: true, removed: before - after,
+                        ranking: stripIp(next.ranking), recent: stripIp(next.recent) }, 200, cors);
+        } catch (e) {
+          return json({ error: e.message }, 500, cors);
+        }
+      }
+
       // GET /admin/image?key={filename} — GitHubからプライベート画像をプロキシ
       if (request.method === 'GET' && url.pathname === '/admin/image') {
         try {
@@ -202,6 +235,75 @@ export default {
           return new Response(e.message, { status: 500, headers: cors });
         }
       }
+    }
+
+    // ── AGERU CRASH!! 飛距離ランキング ─────────────────
+    // 仕組みは DINO と同じ（非公開リポジトリの JSON に追記）。
+    // 違いは2つだけ：ハードモードが無いことと、スコアが飛距離(m)なので小数点2桁を持つこと。
+    if (url.pathname === '/crash-ranking') {
+      if (request.method === 'GET') {
+        const cur = await getCrashRaw(env);
+        return json({ ranking: stripIp(cur.ranking), recent: stripIp(cur.recent) },
+                    200, { ...cors, 'Cache-Control': 'no-store' });
+      }
+
+      if (request.method === 'POST') {
+        let body;
+        try { body = await request.json(); } catch { return json({ error: 'JSON が不正です' }, 400, cors); }
+
+        const isRecent = body.type === 'recent';
+        const name = String(body.name ?? '')
+          .replace(/[\u0000-\u001f\u007f]/g, '')
+          .trim()
+          .slice(0, 15) || (isRecent ? DEFAULT_NAME : '');
+        if (!name) return json({ error: '名前を入力してください' }, 400, cors);
+
+        // 飛距離は小数点あり。上限はゆるく見ておく
+        const score = Math.round(Number(body.score) * 100) / 100;
+        if (!Number.isFinite(score) || score < 0 || score > 1e9) {
+          return json({ error: 'スコアが不正です' }, 400, cors);
+        }
+
+        const entry = { name, score, date: jstDate(), ip };
+
+        let saved = null;
+        for (let i = 0; i < 4; i++) {
+          const cur = await getCrashRaw(env);
+          const next = { ranking: cur.ranking, recent: cur.recent };
+          if (isRecent) {
+            next.recent = [entry].concat(cur.recent).slice(0, RECENT_MAX);
+          } else {
+            // 同じ名前は1件にまとめ、いちばん遠い記録だけ残す
+            const best = new Map();
+            for (const e of cur.ranking.concat([entry])) {
+              const prev = best.get(e.name);
+              if (!prev || Number(e.score) > Number(prev.score)) best.set(e.name, e);
+            }
+            next.ranking = [...best.values()]
+              .sort((a, b) => b.score - a.score || String(a.date).localeCompare(String(b.date)))
+              .slice(0, RANKING_MAX);
+          }
+          const res = await ghPut(
+            env, CRASH_RANKING_PATH,
+            encodeContent(JSON.stringify(next, null, 1)),
+            `crash ${isRecent ? 'recent' : 'ranking'}: ${name} ${score}`,
+            cur.sha
+          );
+          if (res.ok) { saved = next; break; }
+          if (res.status !== 409 && res.status !== 422) {
+            return json({ error: '保存に失敗しました (' + res.status + ')' }, 500, cors);
+          }
+          await new Promise(r => setTimeout(r, 120 * (i + 1)));
+        }
+        if (!saved) return json({ error: '混み合っています。少し待って再度お試しください' }, 503, cors);
+
+        const out = { ranking: stripIp(saved.ranking), recent: stripIp(saved.recent) };
+        const rank = isRecent ? null
+          : out.ranking.findIndex(e => e.name === name && e.score === score) + 1 || null;
+        return json({ ok: true, rank, ...out }, 200, cors);
+      }
+
+      return json({ error: 'Method not allowed' }, 405, cors);
     }
 
     // ── DINO ハイスコアランキング ────────────────────────────────
@@ -350,6 +452,7 @@ function decodeContent(b64) {
 // ── DINO ランキング (_dino_ranking.json) ──────────────────────────
 
 const RANKING_PATH = '_dino_ranking.json';
+const CRASH_RANKING_PATH = '_crash_ranking.json';   // AGERU CRASH!! の飛距離ランキング
 
 /** 日本時間の YYYY-MM-DD */
 function jstDate() {
@@ -383,6 +486,26 @@ async function getRankingRaw(env) {
 }
 
 const stripIp = list => list.map(({ ip, ...rest }) => rest);   // 公開用。IP は落とす
+
+/** AGERU CRASH!! のランキング。中身は { ranking, recent } だけでハードモードは無い */
+async function getCrashRaw(env) {
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/contents/${CRASH_RANKING_PATH}`,
+      { headers: ghHeaders(env), cf: { cacheTtl: 0 } }
+    );
+    if (!res.ok) return { ranking: [], recent: [], sha: undefined };   // 未作成なら新規で作る
+    const data = await res.json();
+    const parsed = JSON.parse(decodeContent(data.content));
+    return {
+      ranking: Array.isArray(parsed.ranking) ? parsed.ranking : [],
+      recent: Array.isArray(parsed.recent) ? parsed.recent : [],
+      sha: data.sha,
+    };
+  } catch {
+    return { ranking: [], recent: [], sha: undefined };
+  }
+}
 
 /** ノーマルとハードは別々のランキングとして返す */
 function splitRanking(cur) {

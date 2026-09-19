@@ -63,4 +63,11 @@ description: kukucome-chara.pages.dev（公開サイト）と Worker のデプ�
   サムネは `cloudflare/pages/img-games/<id>.webp`（16:10）。**無くてもグラデーション＋頭文字で表示されるので、後から足してよい。**
   一覧カードは `#game-panel` の iframe で開く。ゲーム側のページは iframe と単独ページの両方で開かれるので、
   戻るリンクには `target="_top"` を付けること。
+- **ランキングを使うゲームは Worker も別途デプロイする。** スコアの保存先は Worker
+  （`cloudflare/worker.js`）で、`pages deploy` では反映されない。**`npx wrangler deploy` を忘れると
+  ゲーム側だけ新しくなり、ランキングが「取得できませんでした」になる。**
+  現在のエンドポイントは DINO が `/dino-ranking`、AGERU CRASH!! が `/crash-ranking`。
+  保存先は非公開リポジトリの `_dino_ranking.json` / `_crash_ranking.json`。
+  管理用の削除は `DELETE /admin/<game>-ranking?secret=<ADMIN_SECRET>` で、
+  ボディは `{clear:true}` 全消し / `{index:N}` 順位指定 / `{name,score}` 指定。
 - アップロードの対応形式・サイズ上限は **`index.html` のモーダル / `puru.html` / `worker.js` の3か所**にある。1か所だけ直すと表示と実挙動がズレる。

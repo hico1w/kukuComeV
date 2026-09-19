@@ -34,11 +34,6 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   border-bottom: 1px solid rgba(255,255,255,.1);
 }
 .bar-home { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; letter-spacing: .05em; }
-.wip-badge {
-  font-size: 10px; letter-spacing: .1em; color: #ffb454;
-  border: 1px solid rgba(255,180,84,.5); border-radius: 999px;
-  padding: 2px 9px;
-}
 .bar-back { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: rgba(237,224,212,.5); transition: color .15s; }
 .bar-back:hover { color: #ede0d4; }
 .bar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
@@ -50,6 +45,23 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 }
 .bar-btn:hover { color: #ede0d4; border-color: rgba(255,255,255,.4); }
 .bar-btn.on { color: #7ee6ff; border-color: #7ee6ff; }
+.bar-vol { display: flex; align-items: center; gap: 6px; }
+.bar-vol input[type=range] {
+  -webkit-appearance: none; appearance: none; width: 84px; height: 3px; margin: 0;
+  background: rgba(255,255,255,.22); border-radius: 2px; outline: none; cursor: pointer;
+}
+.bar-vol input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 11px; height: 11px;
+  border-radius: 50%; background: #7ee6ff; border: none; cursor: pointer;
+}
+.bar-vol input[type=range]::-moz-range-thumb {
+  width: 11px; height: 11px; border-radius: 50%; background: #7ee6ff; border: none; cursor: pointer;
+}
+.bar-vol span {
+  font-size: 10px; letter-spacing: .06em; color: rgba(237,224,212,.5);
+  width: 22px; text-align: right; font-variant-numeric: tabular-nums;
+}
+@media (max-width: 620px) { .bar-vol { display: none; } }
 .bar-hint { font-size: 10px; letter-spacing: .1em; color: rgba(237,224,212,.4); }
 @media (max-width: 860px) { .bar-hint, .bar-back { display: none; } }
 
@@ -79,6 +91,8 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   backdrop-filter: blur(2px);
 }
 .ov.show { display: flex; }
+/* タイトルとリザルトは背景をぼかさない（暗い覆いはそのまま） */
+#ov-title, #ov-over { backdrop-filter: none; }
 .pix { font-family: 'Press Start 2P', monospace; line-height: 1.5; }
 .ov-title { font-size: clamp(16px, 3.4vw, 34px); color: #ff5f8d; text-shadow: 0 0 18px rgba(255,95,141,.55); }
 .ov-sub { font-size: clamp(10px, 1.5vw, 14px); color: rgba(237,224,212,.75); letter-spacing: .1em; }
@@ -91,6 +105,94 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 }
 .ov-btn:hover { background: rgba(255,255,255,.12); border-color: #fff; }
 .ov-logo { max-width: min(58%, 420px); height: auto; }
+
+/* CRASHES（図鑑）— 1ページに1キャラ */
+#ov-dex { gap: 14px; padding: 2%; }
+.dex-box { display: flex; align-items: center; gap: clamp(4px, 1.5vw, 18px); width: 100%; max-width: 980px; min-height: 0; flex: 1 1 auto; }
+.dex-nav {
+  flex: 0 0 auto; font-size: 20px; line-height: 1; color: rgba(237,224,212,.65);
+  border: 1px solid rgba(255,255,255,.2); border-radius: 50%;
+  width: 40px; height: 40px; transition: color .15s, border-color .15s, background .15s;
+}
+.dex-nav:hover { color: #fff; border-color: #fff; background: rgba(255,255,255,.1); }
+.dex-card {
+  flex: 1 1 auto; min-width: 0; min-height: 0; height: 100%;
+  display: flex; align-items: center; gap: clamp(10px, 2.5vw, 28px);
+  background: rgba(14,16,24,.72); border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px; padding: clamp(10px, 2vw, 22px);
+}
+.dex-figure {
+  flex: 0 0 38%; max-width: 38%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+}
+.dex-figure img { max-width: 100%; max-height: 100%; object-fit: contain; filter: drop-shadow(0 10px 26px rgba(0,0,0,.55)); }
+.dex-info { flex: 1 1 auto; min-width: 0; text-align: left; overflow-y: auto; max-height: 100%; }
+.dex-no { font-family: 'Press Start 2P', monospace; font-size: 10px; color: rgba(255,255,255,.4); }
+.dex-name { font-size: clamp(16px, 2.6vw, 26px); color: #ede0d4; margin: 6px 0 2px; font-weight: 600; }
+.dex-sub {
+  font-family: 'Press Start 2P', monospace; font-size: 9px; letter-spacing: .14em;
+  color: #ff5f8d; margin-bottom: 12px;
+}
+.dex-desc { font-size: clamp(11px, 1.3vw, 14px); line-height: 1.9; color: rgba(237,224,212,.82); }
+.dex-stats { margin-top: 14px; display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; font-size: clamp(10px, 1.2vw, 12px); }
+.dex-stats dt { color: rgba(237,224,212,.45); white-space: nowrap; }
+.dex-stats dd { color: rgba(237,224,212,.9); }
+.dex-stats dd b { color: #ffd34d; font-weight: 600; }
+.dex-dots { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.dex-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.22); transition: background .15s; }
+.dex-dot.on { background: #ff5f8d; }
+@media (max-width: 760px) {
+  .dex-card { flex-direction: column; gap: 10px; }
+  .dex-figure { flex: 0 0 auto; max-width: 100%; height: 38%; }
+  .dex-nav { width: 34px; height: 34px; font-size: 16px; }
+}
+
+/* ランキング */
+.rank-wrap {
+  display: flex; gap: clamp(10px, 2.5%, 26px); justify-content: center;
+  width: 100%; max-width: 880px; min-width: 0;
+}
+.rank-box { flex: 1 1 0; min-width: 0; }
+.rank-head {
+  font-size: clamp(9px, 1.15vw, 11px); letter-spacing: .12em;
+  color: rgba(237,224,212,.6); text-align: left;
+  padding: 0 4px 6px; border-bottom: 1px solid rgba(255,255,255,.14); margin-bottom: 6px;
+}
+.rank-list { list-style: none; font-size: clamp(10px, 1.15vw, 13px); }
+.rank-list li {
+  display: grid; grid-template-columns: 2.2em minmax(0,1fr) auto 5.2em;
+  gap: 8px; align-items: center; padding: 3px 4px;
+}
+.rank-list.recent li { grid-template-columns: minmax(0,1fr) auto 5.2em; }
+.rank-list li.me { background: rgba(255,211,77,.18); border-radius: 3px; }
+.rank-no { font-family: 'Press Start 2P', monospace; font-size: .72em; color: rgba(255,255,255,.55); }
+.rank-list li:nth-child(1) .rank-no { color: #ffd34d; }
+.rank-list li:nth-child(2) .rank-no { color: #d8d8d8; }
+.rank-list li:nth-child(3) .rank-no { color: #e0a878; }
+.rank-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; color: rgba(237,224,212,.9); }
+.rank-score { font-family: 'Press Start 2P', monospace; font-size: .8em; color: #fff; white-space: nowrap; }
+.rank-date { font-size: .8em; color: rgba(255,255,255,.42); text-align: right; white-space: nowrap; }
+.rank-empty { font-size: 11px; color: rgba(255,255,255,.5); padding: 10px 0; text-align: left; }
+.reg-row { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.reg-row input {
+  background: rgba(0,0,0,.4); border: 1px solid rgba(255,255,255,.25); border-radius: 4px;
+  color: #ede0d4; padding: 7px 10px; font-size: 12px; width: 210px; font-family: inherit;
+}
+.reg-row input:focus { outline: none; border-color: #7ee6ff; }
+.reg-row button {
+  font-size: 11px; letter-spacing: .1em; color: #ede0d4;
+  border: 1px solid rgba(255,255,255,.35); border-radius: 4px; padding: 7px 14px;
+  transition: background .15s;
+}
+.reg-row button:hover { background: rgba(255,255,255,.12); }
+.reg-row button:disabled { opacity: .5; }
+@media (max-width: 700px) {
+  .rank-wrap { flex-direction: column; gap: 12px; align-items: center; }
+  .rank-box { width: 100%; max-width: 360px; flex: 0 0 auto; }
+  .rank-date { display: none; }
+  .rank-list li { grid-template-columns: 2.2em minmax(0,1fr) auto; }
+  .rank-list.recent li { grid-template-columns: minmax(0,1fr) auto; }
+}
 
 /* 遊び方 */
 .help-box {
@@ -111,25 +213,77 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 .help-tbl td:first-child { white-space: nowrap; color: #fff; width: 10em; }
 
 /* タッチ用 DIVE ボタン */
-#btn-dive {
-  position: absolute; right: 14px; bottom: 14px; z-index: 3;
-  width: 74px; height: 74px; border-radius: 50%;
-  border: 2px solid rgba(126,230,255,.55); background: rgba(10,20,30,.45);
-  color: #7ee6ff; font-family: 'Press Start 2P', monospace; font-size: 9px;
-  display: none; align-items: center; justify-content: center;
+/* ── タイトル／リザルトのボタン ── */
+.ov-btns { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.ov-btn.primary { background: #ff5f8d; border-color: #ff5f8d; color: #14060c; font-weight: 500; }
+.ov-btn.primary:hover { background: #ff7da3; border-color: #ff7da3; }
+
+/* ── ショップ画面 ── */
+#ov-shop { background: rgba(8,10,16,.94); padding: 0; justify-content: flex-start; gap: 0; }
+.sh-wrap { width: 100%; height: 100%; display: flex; flex-direction: column; }
+.sh-head {
+  height: 52px; flex-shrink: 0; display: flex; align-items: center; gap: 14px;
+  padding: 0 16px; background: rgba(255,255,255,.05);
+  border-bottom: 1px solid rgba(255,255,255,.12);
 }
-#btn-dive.on { display: flex; }
+.sh-back {
+  width: 34px; height: 34px; flex-shrink: 0; border-radius: 6px;
+  border: 1px solid rgba(255,255,255,.22); color: #ede0d4; font-size: 15px;
+  display: flex; align-items: center; justify-content: center; transition: background .15s;
+}
+.sh-back:hover { background: rgba(255,255,255,.14); }
+.sh-title { font-family: 'Press Start 2P', monospace; font-size: clamp(11px,1.5vw,15px); color: #ff5f8d; letter-spacing: .08em; }
+.sh-pts { margin-left: auto; font-size: clamp(10px,1.2vw,12px); color: rgba(255,211,77,.8); }
+.sh-pts b { font-family: 'Press Start 2P', monospace; font-size: 1.5em; color: #ffd34d; margin-right: 3px; }
+.sh-body { flex: 1; min-height: 0; display: flex; gap: 12px; padding: 12px 16px; }
+.sh-portrait {
+  height: 100%; width: auto; max-width: 26%; flex-shrink: 0;
+  object-fit: contain; object-position: bottom center; align-self: flex-end;
+  filter: drop-shadow(0 8px 20px rgba(0,0,0,.55));
+}
+.sh-grid {
+  flex: 1; min-width: 0; display: grid; gap: 10px;
+  grid-template-columns: repeat(3, 1fr); grid-auto-rows: min-content;
+  align-content: start; overflow-y: auto;
+}
+.sh-card {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 10px 12px; border-radius: 6px;
+  border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.04);
+}
+.sh-card.can  { border-color: rgba(255,211,77,.55); background: rgba(255,211,77,.07); }
+.sh-card.full { border-color: rgba(126,230,255,.35); }
+.sh-name { font-size: clamp(11px,1.25vw,13px); color: #ede0d4; }
+.sh-lv   { font-family: 'Press Start 2P', monospace; font-size: clamp(9px,1.05vw,11px); color: #ffd34d; }
+.sh-eff  { font-size: clamp(9px,1.05vw,11px); color: rgba(237,224,212,.5); line-height: 1.5; min-height: 2.1em; }
+.sh-now  { font-size: clamp(9px,1.05vw,11px); color: rgba(126,230,255,.7); }
+.sh-buy {
+  margin-top: 4px; padding: 7px 4px; border-radius: 4px; text-align: center;
+  border: 1px solid rgba(255,255,255,.18); font-family: 'Press Start 2P', monospace;
+  font-size: clamp(9px,1.05vw,11px); color: rgba(237,224,212,.4); cursor: default;
+}
+.sh-card.can .sh-buy { color: #14060c; background: #ffd34d; border-color: #ffd34d; cursor: pointer; }
+.sh-card.can .sh-buy:hover { background: #ffe27a; }
+.sh-card.full .sh-buy { color: #7ee6ff; }
+.sh-foot {
+  flex-shrink: 0; padding: 8px 16px 12px; font-size: clamp(9px,1.1vw,11px);
+  color: rgba(237,224,212,.4); border-top: 1px solid rgba(255,255,255,.08);
+}
+@media (max-width: 760px) {
+  .sh-portrait { display: none; }
+  .sh-grid { grid-template-columns: repeat(2, 1fr); }
+}
 </style>
 </head>
 <body>
 
 <div id="bar">
   <a href="/" class="bar-home" target="_top">hico1</a>
-  <span class="wip-badge">作成中</span>
   <a href="/" class="bar-back" target="_top">← back to site</a>
   <div class="bar-right">
     <span class="bar-hint" id="hint">押した瞬間に角度決定 → 押しっぱなしでパワー → 離して発射　／　空中はクリックでエアリアル・右クリックでダイブ</span>
     <button class="bar-btn" id="btn-sound" aria-pressed="true">♪ SOUND</button>
+    <label class="bar-vol" title="全体音量"><input id="vol" type="range" min="0" max="100" step="1" value="50" aria-label="全体音量"><span id="vol-n">50</span></label>
     <button class="bar-btn" id="btn-help">遊び方</button>
   </div>
 </div>
@@ -142,10 +296,14 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
     <div class="ov show" id="ov-title">
       <img class="ov-logo" id="title-logo" src="./img-crash/logo.webp" alt="" hidden>
       <p class="pix ov-title" id="title-text">AGERU CRASH!!</p>
-      <p class="ov-sub">クリック / SPACE でスタート</p>
-      <p class="ov-small">アゲルが自転車でヒコをはね飛ばす。<br>地上のキャラに当てて、どこまでも飛ばせ。</p>
-      <p class="ov-small" style="color:#ffb454">⚠ このゲームはまだ作成中です。仕様や見た目は変更されることがあります</p>
+      <div class="ov-btns">
+        <button class="ov-btn primary" id="btn-start">START</button>
+        <button class="ov-btn" id="btn-shop">SHOP</button>
+        <button class="ov-btn" id="btn-rank">RANKING</button>
+        <button class="ov-btn" id="btn-dex">CRASHES</button>
+      </div>
       <p class="ov-small" id="title-best"></p>
+      <p class="ov-small" id="title-pts"></p>
     </div>
 
     <!-- リザルト -->
@@ -153,8 +311,59 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
       <p class="pix ov-title" id="over-title">CRASH END</p>
       <p class="pix ov-score" id="over-score">0.00 m</p>
       <p class="ov-small" id="over-detail"></p>
-      <button class="ov-btn" id="btn-retry">もう一度</button>
-      <p class="ov-small">クリック / SPACE でもリトライ</p>
+      <div class="reg-row">
+        <input id="rk-name" type="text" maxlength="15" placeholder="なまえ（未入力なら 名無し）" autocomplete="off">
+        <button id="rk-send">ランキングに登録</button>
+      </div>
+      <p class="ov-small" id="rk-msg"></p>
+      <div class="ov-btns">
+        <button class="ov-btn primary" id="btn-retry">RESTART</button>
+        <button class="ov-btn" id="btn-shop2">SHOP</button>
+        <button class="ov-btn" id="btn-rank2">RANKING</button>
+      </div>
+    </div>
+
+    <!-- ランキング -->
+    <div class="ov" id="ov-rank">
+      <p class="pix ov-score">RANKING</p>
+      <div class="rank-wrap">
+        <div class="rank-box">
+          <p class="rank-head">飛距離 — TOP 10</p>
+          <ol class="rank-list" id="rank-list"></ol>
+        </div>
+        <div class="rank-box">
+          <p class="rank-head">最新のプレイ — 10件</p>
+          <ol class="rank-list recent" id="recent-list"></ol>
+        </div>
+      </div>
+      <p class="ov-small">自己ベスト <b id="best-score" style="color:#ffd34d">0.00 m</b> を登録</p>
+      <div class="reg-row">
+        <input id="best-name" type="text" maxlength="15" placeholder="なまえ（未入力なら 名無し）" autocomplete="off">
+        <button id="best-send">登録</button>
+      </div>
+      <p class="ov-small" id="best-msg"></p>
+      <button class="ov-btn" id="rank-close">とじる</button>
+    </div>
+
+    <!-- CRASHES（図鑑）1ページに1キャラ -->
+    <div class="ov" id="ov-dex">
+      <p class="pix ov-score">CRASHES</p>
+      <div class="dex-box">
+        <button class="dex-nav" id="dex-prev" aria-label="前へ">◀</button>
+        <div class="dex-card">
+          <div class="dex-figure"><img id="dex-img" src="" alt=""></div>
+          <div class="dex-info">
+            <p class="dex-no"   id="dex-no"></p>
+            <p class="dex-name" id="dex-name"></p>
+            <p class="dex-sub"  id="dex-sub"></p>
+            <p class="dex-desc" id="dex-desc"></p>
+            <dl class="dex-stats" id="dex-stats"></dl>
+          </div>
+        </div>
+        <button class="dex-nav" id="dex-next" aria-label="次へ">▶</button>
+      </div>
+      <div class="dex-dots" id="dex-dots"></div>
+      <button class="ov-btn" id="dex-close">とじる</button>
     </div>
 
     <!-- 遊び方 -->
@@ -170,7 +379,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
         <table class="help-tbl">
           <tr><td>エアリアル<br>（クリック / SPACE）</td><td>アゲルが飛び蹴りで<b>上に打ち上げ</b>。<b>1プレイ3回</b>まで。<em>高度に関係なくいつでも撃てる</em>。</td></tr>
           <tr><td>ダイブ<br>（右クリック / ↓ / Shift）</td><td>アゲルが<b>下に叩き落とす</b>。<b>チャージ100%が必要</b>だが回数は無制限、<em>高度に関係なくいつでも撃てる</em>。<br>叩きつけた勢いは着地で前方向に変換される（SLAM）。</td></tr>
-          <tr><td>チャージ</td><td>飛んでいる間<b>常に回復</b>する。溜まりしだいダイブを撃てる。</td></tr>
+          <tr><td>チャージ</td><td>飛んでいる間<b>常に回復</b>する（<b>満タンまで約4.8秒</b>）。溜まりしだいダイブを撃てる。</td></tr>
         </table>
 
         <h3>キャラの効果（全員 地上にいる）</h3>
@@ -181,7 +390,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
         <table class="help-tbl" id="help-sp"></table>
 
         <h3>アゲルスペシャル</h3>
-        <b>ヨクネロボ</b>に当たると<em>ブロック状態</em>になる。その状態で<b>飛距離がちょうど100の倍数の地点</b>でアゲル系（ベビー／ゴス／デンパ／ボス）に当たると <em>AGERU SPECIAL</em>。
+        <b>ヨクネロボ</b>に当たると<em>ブロック状態</em>になる。その状態でアゲル系（ベビー／ゴス／デンパ／ボス）に当たると<b>必ず</b> <em>AGERU SPECIAL</em>。
         <table class="help-tbl">
           <tr><td>ベビーアゲル</td><td>100人ぶん浮いてふっ飛ぶ</td></tr>
           <tr><td>ゴスアゲル</td><td>5回バウンド加速</td></tr>
@@ -192,7 +401,22 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
       <button class="ov-btn" id="btn-help-close">閉じる</button>
     </div>
 
-    <button id="btn-dive">DIVE</button>
+    <!-- ショップ -->
+    <div class="ov" id="ov-shop">
+      <div class="sh-wrap">
+        <div class="sh-head">
+          <button class="sh-back" id="shop-back" aria-label="戻る">←</button>
+          <span class="sh-title">SHOP</span>
+          <span class="sh-pts"><b id="shop-pts">0</b> P</span>
+        </div>
+        <div class="sh-body">
+          <img class="sh-portrait" id="shop-portrait" src="./img-crash/shop_ageru.webp" alt="">
+          <div class="sh-grid" id="shop-list"></div>
+        </div>
+        <div class="sh-foot">飛距離100mごとに1P獲得　/　バリアとエアリアル追加以外は買うたびに値上がりします（1, 2, 3, 5, 8, 13 …）</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -207,7 +431,30 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 
 const CV  = document.getElementById('game');
 const CTX = CV.getContext('2d');
-const W = 1200, H = 600;
+const W = 1200, H = 600;            // 描画はこの論理座標で行う
+
+/* ── 表示解像度の追従（高DPI・拡大表示対策） ────────
+   canvas の中身は 1200x600 固定だったのに、CSS では width:100% で伸びる。
+   devicePixelRatio 1.25〜2 の環境（Windows の表示スケール 125%、Retina など）だと
+   1200x600 の絵をブラウザが引き伸ばしていたため、元画像がいくら高解像度でもボケる。
+   バッキングストアを「CSS上の表示サイズ × devicePixelRatio」にし、
+   描画時に DPR を掛けることで、ゲーム側の座標を変えずに実ピクセル等倍で描く。  */
+let DPR = 1;
+function fitCanvas() {
+  const r = CV.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  const d = Math.min(window.devicePixelRatio || 1, 3);   // 上限を切って描画量の爆発を防ぐ
+  const bw = Math.max(1, Math.round(r.width * d));
+  const bh = Math.max(1, Math.round(r.height * d));
+  // サイズを代入するとコンテキストの状態（変換・補間設定）が初期化されるので、
+  // 変わったときだけ代入し、実際の設定は毎フレーム draw() の先頭で入れ直す。
+  if (CV.width !== bw || CV.height !== bh) { CV.width = bw; CV.height = bh; }
+  DPR = bw / W;
+}
+fitCanvas();
+addEventListener('resize', fitCanvas);
+// ウィンドウサイズが変わらなくても、iframe のモーダル開閉などで表示サイズは変わる
+if (window.ResizeObserver) new ResizeObserver(fitCanvas).observe(CV);
 const GROUND_SY = H;            // 地面＝画面の下端（バンパーは下部にぴったり立つ）
 
 /* ── 必要画像の定義（w/h は推奨サイズ・透過PNG/WebP） ───────── */
@@ -218,6 +465,7 @@ const ASSETS = {
   ageru_kick : { w:300, h:300, c:'#ff3d78', label:'アゲル\n飛び蹴り' },
   ageru_dive : { w:300, h:300, c:'#7b5bff', label:'アゲル\nダイブ' },
   hico_fly   : { w:220, h:220, c:'#ffd34d', label:'ヒコ\n飛行' },
+  hico_stand : { w:220, h:220, c:'#ffe27a', label:'ヒコ\n待機' },
   hico_down  : { w:260, h:160, c:'#b9a05a', label:'ヒコ\nダウン' },
   /* バンパーキャラ */
   c_baby     : { w:220, h:260, c:'#ffa7c4', label:'ベビー\nアゲル' },
@@ -228,6 +476,17 @@ const ASSETS = {
   c_kani     : { w:240, h:160, c:'#ff8f4d', label:'カニ' },
   c_hugu     : { w:220, h:200, c:'#7fd4f5', label:'フグ' },
   c_neko     : { w:200, h:200, c:'#ffe08a', label:'キショ\nネコ' },
+  /* 当たったあとの絵（ヒコを打ち上げているポーズなど）。
+     無ければ通常の絵のままになるので、用意できたものから順に置けばよい。
+     描画の高さは通常の絵と同じ基準（上の h）で、横幅は画像の縦横比で決まる。 */
+  c_baby_hit : { w:340, h:260, c:'#ffa7c4', label:'ベビー\nHIT' },
+  c_goth_hit : { w:340, h:280, c:'#b06bff', label:'ゴス\nHIT' },
+  c_denpa_hit: { w:340, h:280, c:'#44e0c8', label:'デンパ\nHIT' },
+  c_boss_hit : { w:480, h:360, c:'#ff3b30', label:'ボス\nHIT' },
+  c_robo_hit : { w:340, h:260, c:'#9aa3ad', label:'ロボ\nHIT' },
+  c_kani_hit : { w:360, h:160, c:'#ff8f4d', label:'カニ\nHIT' },
+  c_hugu_hit : { w:340, h:200, c:'#7fd4f5', label:'フグ\nHIT' },
+  c_neko_hit : { w:320, h:200, c:'#ffe08a', label:'ネコ\nHIT' },
   /* 背景 */
   bg_sky     : { w:1200, h:600,  c:'#2a3b5c', label:'空' },
   bg_far     : { w:1600, h:420,  c:'#1d2740', label:'遠景' },
@@ -238,55 +497,185 @@ const ASSETS = {
 /* ── 効果音 ─────────────────────────────────────────────
    ./sfx-crash/<key>.mp3 を読む。無ければ黙って鳴らないだけ。       */
 const SFX_DIR = './sfx-crash/';
+/* v = ミックス上の相対的な大きさ（演出としてどれくらい目立たせたいか）
+   r = 素材の実測ラウドネス（300ms 窓の最大 RMS・Web Audio でデコードして計測）
+   実際に鳴らす音量は gain = v * SFX_TGT / r。素材ごとの音量差を打ち消すので、
+   「素材が小さいから聞こえない／大きいから割れる」が起きず v どおりの比率になる。
+   pref はどの拡張子を先に読むか（既定 .mp3）。正規化済みの wav を持つキーだけ .wav にしてある。
+   ※ gain が 1 を超えると element.volume では頭打ちになるので、
+      その素材は書き出し側で正規化して r を .22 にそろえること（sfx-crash/README.md 参照）。 */
+const SFX_TGT = .22;         // そろえる先のラウドネス
 const SFX_LIST = {
-  ui_click      : { v:.5,  desc:'角度決定・パワー決定のクリック' },
-  crash         : { v:.9,  desc:'発射（アゲルの自転車がヒコに激突）' },
-  wind          : { v:.0,  desc:'高速時の風切り音（ループ・音量が速度連動）', loop:true },
-  hit           : { v:.85, desc:'キャラに当たった（通常ヒット）' },
-  hit_slow      : { v:.7,  desc:'減速系（フグ）に当たった' },
-  block         : { v:.7,  desc:'ヨクネロボでブロック状態になった' },
-  chance        : { v:.9,  desc:'ボスアゲル接触＝チャンス発生（警告音）' },
-  special       : { v:1,   desc:'スペシャル発動（画面バーン）' },
-  ageru_special : { v:1,   desc:'アゲルスペシャル発動' },
-  boss_fail     : { v:.9,  desc:'チャンス失敗＝ボスに捕まって終了' },
-  aerial        : { v:.8,  desc:'エアリアル（飛び蹴り）' },
-  dive          : { v:.8,  desc:'ダイブ（叩き落とし）' },
-  slam          : { v:1,   desc:'ダイブ後の着地（SLAM）' },
-  bound         : { v:.6,  desc:'通常バウンド（着地）' },
-  roll          : { v:.4,  desc:'地面を転がっている（ループ）', loop:true },
-  revive        : { v:.9,  desc:'復活（デンパのアゲルスペシャル）' },
-  stop          : { v:.7,  desc:'停止＝ゲーム終了' },
-  record        : { v:1,   desc:'ハイスコア更新' },
+  click         : { v:.5,  r:.22,  pref:'.wav', desc:'クリック（角度決定・パワー決定・UI操作）' },
+  tame          : { v:.6,  r:.22,  pref:'.wav', desc:'パワーを溜めている間（押しっぱなし・ループ）', loop:true },
+  '100percent'  : { v:.82, r:.181, desc:'ダイブのチャージが100%になった瞬間' },
+  '100hit'      : { v:1,   r:.345, desc:'100%パワーでの発射／スペシャル発動' },
+  crash         : { v:.9,  r:.523, desc:'発射（アゲルの自転車がヒコに激突）' },
+  wind          : { v:.33, r:.072, desc:'高速時の風切り音（ループ・音量が速度連動）', loop:true },
+  hit           : { v:.85, r:.693, desc:'キャラに当たった（通常ヒット）' },
+  hit_slow      : { v:.7,  r:.156, desc:'減速系（フグ）に当たった' },
+  block         : { v:.7,  r:.242, desc:'ヨクネロボでブロック状態になった' },
+  chance        : { v:.9,  r:.431, desc:'ボスアゲル接触＝チャンス発生（警告音）' },
+  special       : { v:1,   r:.528, desc:'スペシャル発動（画面バーン）' },
+  ageru_special : { v:1,   r:.286, desc:'アゲルスペシャル発動' },
+  boss_fail     : { v:.9,  r:.255, desc:'チャンス失敗＝ボスに捕まって終了' },
+  aerial        : { v:.8,  r:.311, desc:'（未使用）エアリアル。今は slam を鳴らしている' },
+  dive          : { v:.8,  r:.312, desc:'（未使用）ダイブ。今は slam を鳴らしている' },
+  slam          : { v:1,   r:.419, desc:'ダイブ後の着地（SLAM）・エアリアル・ダイブ' },
+  bound         : { v:.6,  r:.466, desc:'通常バウンド（着地）' },
+  roll          : { v:.35, r:.078, desc:'地面を転がっている（ループ）', loop:true },
+  revive        : { v:.9,  r:.382, desc:'復活（デンパのアゲルスペシャル）' },
+  stop          : { v:.7,  r:.22,  desc:'停止＝ゲーム終了' },
+  record        : { v:1,   r:.342, desc:'ハイスコア更新' },
 };
-let sndOn = true;
+let sndOn = true, masterVol = .5;
 try { sndOn = localStorage.getItem('crash-snd') !== '0'; } catch (e) {}
+try { const m = parseFloat(localStorage.getItem('crash-vol')); if (m >= 0 && m <= 1) masterVol = m; } catch (e) {}
+
+/* ── 音量 ────────────────────────────────────────────────
+   音量は HTMLAudioElement.volume だけで決める。
+   Web Audio の createMediaElementSource は file:// で開くと素材を別オリジン扱いにして
+   出力が完全な無音になるため使わない（実測：http で 0.297 → file で 0.000）。
+   volume は 0〜1 が上限なので、1 を超える持ち上げが必要だった素材
+   （click / tame / stop）は素材側を正規化して r を .22 にそろえてある。   */
+function gainOf(k, mix) {            // 実測ラウドネス r でそろえた音量
+  const d = SFX_LIST[k];
+  return (mix == null ? d.v : mix) * SFX_TGT / (d.r || SFX_TGT);
+}
+function applyVol(el, gain) {
+  el._g = gain;                      // 全体音量を変えたときの再適用用に覚えておく
+  el.volume = Math.max(0, Math.min(1, gain * masterVol));
+}
+function setMasterVol(v) {
+  masterVol = Math.max(0, Math.min(1, v));
+  try { localStorage.setItem('crash-vol', String(masterVol)); } catch (e) {}
+  // いま鳴っている持続音にその場で反映する（単発は次に鳴るときに反映される）
+  for (const k in SFX_LIST) if (SND[k]) applyVol(SND[k], SND[k]._g == null ? gainOf(k) : SND[k]._g);
+  for (const k in VOICE) for (const a of VOICE[k].pool) applyVol(a, VOICE[k].v);
+  if (bgm) applyVol(bgm, bgm._g == null ? BGM_GAIN : bgm._g);
+}
+
 const SND = {};
-for (const k in SFX_LIST) {
+function makeSfx(k, ext, onFail) {
   try {
-    const a = new Audio(SFX_DIR + k + '.mp3');
+    const a = new Audio(SFX_DIR + k + ext);
     a.preload = 'auto';
-    a.volume = SFX_LIST[k].v;
+    applyVol(a, gainOf(k));
     if (SFX_LIST[k].loop) a.loop = true;
-    a.addEventListener('error', () => { SND[k] = null; });
-    SND[k] = a;
-  } catch (e) { SND[k] = null; }
+    a.addEventListener('error', onFail);
+    return a;
+  } catch (e) { return null; }
+}
+// pref（既定 .mp3）を先に読み、無ければもう一方を使う（両方無ければ黙って鳴らない）
+for (const k in SFX_LIST) {
+  const pref = SFX_LIST[k].pref || '.mp3';
+  const alt  = pref === '.mp3' ? '.wav' : '.mp3';
+  SND[k] = makeSfx(k, pref, () => {
+    SND[k] = makeSfx(k, alt, () => { SND[k] = null; });
+  });
+}
+
+/* ── BGM（発射と同時にループ開始、ゲームオーバーで停止） ── */
+const BGM_FILE = 'アゲル CRASH!!.mp3';
+const BGM_GAIN = .42 * SFX_TGT / .145;   // 効果音と同じ基準でそろえた音量
+let bgm = null;
+try {
+  bgm = new Audio(SFX_DIR + encodeURIComponent(BGM_FILE));
+  bgm.loop = true; bgm.preload = 'auto';
+  applyVol(bgm, BGM_GAIN);
+  bgm.addEventListener('error', () => { bgm = null; });
+} catch (e) { bgm = null; }
+function bgmPlay() {
+  if (!bgm || !sndOn) return;
+  try { applyVol(bgm, BGM_GAIN); bgm.currentTime = 0; bgm.play().catch(() => {}); } catch (e) {}
+}
+function bgmStop() {
+  if (!bgm) return;
+  try { bgm.pause(); bgm.currentTime = 0; } catch (e) {}
 }
 function se(k) {                     // 単発。重なって鳴るように複製して再生する
   if (!sndOn) return;
   const a = SND[k];
   if (!a || SFX_LIST[k].loop) return;
-  try { const n = a.cloneNode(); n.volume = SFX_LIST[k].v; n.play().catch(() => {}); } catch (e) {}
+  try { const n = a.cloneNode(); applyVol(n, gainOf(k)); n.play().catch(() => {}); } catch (e) {}
 }
-function seLoop(k, vol) {            // ループ音。vol=0 で止める
-  if (!sndOn) { const a0 = SND[k]; if (a0) { try { a0.pause(); } catch (e) {} } return; }
+function seLoop(k, mix) {            // ループ音。mix=0 で止める（mix は SFX_LIST の v と同じ尺度）
   const a = SND[k];
   if (!a) return;
+  if (!sndOn || mix <= 0.005) { try { if (!a.paused) a.pause(); } catch (e) {} return; }
   try {
-    if (vol <= 0.01) { if (!a.paused) a.pause(); return; }
-    a.volume = Math.min(1, vol);
+    applyVol(a, gainOf(k, mix));
     if (a.paused) a.play().catch(() => {});
   } catch (e) {}
 }
+/* ── ボイス（効果音とは別レイヤー） ──────────────
+   sfx-crash/hit/ の中から 1つランダムで鳴らす。
+   ボイス同士は重ねない（重なると何を言っているか分からなくなる）ように **1ch** で、
+   新しいボイスが鳴るときは前のボイスを止める。直前と同じファイルは選ばない。
+   ファイルは全部 r=.22 に正規化してあるので、v がそのまま音量になる。
+   ※ファイルを足したらこの配列にも足すこと（静的サイトなのでフォルダを列挙できない）。
+     新しい素材も r=.22 にそろえてから置く（sfx-crash/README.md 参照）。   */
+const VO_DIR = SFX_DIR + 'hit/';
+const VOICE = {
+  hit : { v:.85, dir:'',           desc:'地面以外（キャラ）に当たったとき', files:[
+    'aha_01.wav',
+    'fever_02.wav',
+    'hyoihyoihyoi_01.wav',
+    'kora_01.wav',
+    'mataattane_01.wav',
+    'mazete_01.wav',
+    'naniganandaka_02.wav',
+    'naninani_02.wav',
+    'tonde_01.wav',
+    '「えい！」.wav',
+    '「ドン！」.wav'] },
+  dive: { v:.85, dir:'diveArial/', desc:'エアリアル／ダイブ', files:[
+    'dokaan_01.wav',
+    'ikkee_04.wav',
+    'meteor_01.wav',
+    'meteor_02.wav'] },
+  over: { v:.85, dir:'over/',      desc:'ゲームオーバー', files:[
+    'anonee_01.wav',
+    'donnakanji_02.wav',
+    'haa_05.wav',
+    'karukuasondeyattadakedaga_01.wav',
+    'kurai_01.wav'] },
+};
+for (const k in VOICE) {
+  const g = VOICE[k];
+  g.pool = []; g.last = -1;
+  for (const f of g.files) {
+    try {
+      const a = new Audio(VO_DIR + g.dir + encodeURIComponent(f));
+      a.preload = 'auto';
+      applyVol(a, g.v);
+      a.addEventListener('error', () => {   // 読めないファイルは選択候補から外す
+        const i = g.pool.indexOf(a); if (i >= 0) g.pool.splice(i, 1);
+      });
+      g.pool.push(a);
+    } catch (e) {}
+  }
+}
+let voNow = null;
+function voStop() { if (voNow) { try { voNow.pause(); voNow.currentTime = 0; } catch (e) {} voNow = null; } }
+function vo(k) {
+  if (!sndOn) return;
+  const g = VOICE[k];
+  if (!g || !g.pool.length) return;
+  // 地形の抽選に使っている rnd() を消費するとステージが変わるので Math.random() を使う
+  let i = Math.floor(Math.random() * g.pool.length);
+  if (g.pool.length > 1 && i === g.last) i = (i + 1) % g.pool.length;   // 直前と同じのは避ける
+  g.last = i;
+  const a = g.pool[i];
+  try {
+    voStop();
+    applyVol(a, g.v);
+    a.currentTime = 0;
+    a.play().catch(() => {});
+    voNow = a;
+  } catch (e) {}
+}
+
 function stopAllLoops() { for (const k in SFX_LIST) if (SFX_LIST[k].loop && SND[k]) { try { SND[k].pause(); } catch (e) {} } }
 
 /* ── キャラ効果テーブル ─────────────────────────────────────
@@ -303,36 +692,103 @@ const TYPES = {
   neko : { name:'キショネコ',   fx:'HOP!!',       ageru:false, w:8, ang:58,   mul:1.08, min:48,  sAng:60, sMul:1.6,  sMin:102, desc:'小さく打ち上げ', spCond:null },
   kani : { name:'カニ',         fx:'ANGLE UP!!',  ageru:false, w:7, ang:55,   mul:1.0,  min:42,  sAng:60, sMul:1.55, sMin:96,  desc:'角度を変える',   spCond:null },
   hugu : { name:'フグ',         fx:'SLOW DOWN…',  ageru:false, w:7, ang:null, mul:0.58, min:0,   sAng:null, sMul:1.25, sMin:0, desc:'減速する',       spCond:null },
-  robo : { name:'ヨクネロボ',   fx:'BLOCK!!',     ageru:false, w:6, ang:null, mul:0.94, min:0,   sAng:null, sMul:1.3,  sMin:0, desc:'ブロック（次のアゲル系の効果を消す）', spCond:null },
+  robo : { name:'ヨクネロボ',   fx:'BLOCK!!',     ageru:false, w:6, ang:null, mul:0.94, min:0,   sAng:null, sMul:1.3,  sMin:0, desc:'ブロック（次に当てたアゲル系がアゲルスペシャルになる）', spCond:null },
   boss : { name:'ボスアゲル',   fx:'DANGER!!',    ageru:true,  w:5, ang:null, mul:0,    min:0,   sAng:55, sMul:2.5,  sMin:186, desc:'当たると即終了',
            spCond:'他のキャラに当てた後、バウンドせずに当てたとき' },
 };
 const TYPE_KEYS = Object.keys(TYPES);
 const IMG_OF = { baby:'c_baby', goth:'c_goth', denpa:'c_denpa', neko:'c_neko', kani:'c_kani', hugu:'c_hugu', robo:'c_robo', boss:'c_boss' };
+// 当たったあとに差し替える絵。画像が無いキーは通常の絵のまま残る
+const IMG_HIT_OF = { baby:'c_baby_hit', goth:'c_goth_hit', denpa:'c_denpa_hit', neko:'c_neko_hit',
+                     kani:'c_kani_hit', hugu:'c_hugu_hit', robo:'c_robo_hit', boss:'c_boss_hit' };
 
 /* ── チューニング ─────────────────────────────────────────
    速度は以前の3倍。重力も3倍にして弾道の形を保っている。           */
 const SPD_X    = 3;          // 速度倍率（3倍）
-const G        = 9.8 * 3;    // 重力 m/s^2
+const GRAV_X   = 1.5;        // 重力の追加倍率（滞空時間の調整用）
+const G        = 9.8 * 3 * GRAV_X;   // 重力 m/s^2
 const SP_WIN   = 0.70;       // スペシャル受付（実時間の秒）
 const AERIAL_N = 3;          // エアリアル回数
-const CHAR_SCALE = 3;        // キャラ・自機の表示倍率（当たり判定も同じ大きさで取る）
-// 当たり判定は「見た目そのまま」。描画は h * cam.s / 46 * CHAR_SCALE なので、
-// ワールド上の大きさ（m）は h * CHAR_SCALE / 46 で、カメラ倍率に依らず一定になる。
-const PLAYER_R = ASSETS.hico_fly.h * CHAR_SCALE / 46 * .32;   // 自機の当たり半径 m
-const MAX_CH_H = Math.max.apply(null, Object.values(IMG_OF).map(k => ASSETS[k].h)) * CHAR_SCALE / 46;
-const POW_X    = 2;          // 飛ぶ力の倍率（発射・打ち上げ・エアリアル・ダイブ・復活に掛かる）
-const BOUNCE   = 0.8;        // 着地の跳ね返り。1.0 だとエネルギーが減らず永久に弾むので 0.8
+const CHARGE_RATE     = 62 / 15;  // ダイブのチャージ回復 %/秒（満タンまで約24秒）
+const CHARGE_RATE_MAX = 62 / 3;   // ショップで30回買い切ったときの回復（満タンまで約4.8秒）
+const CHAR_SCALE = 3;        // キャラ・自機の基本倍率（こちらは当たり判定にも効く）
+// バンパーは種類に関係なく全部同じ高さで描く（ボスも含む）。
+// ASSETS の w/h は画像が無いときのプレースホルダ用になり、大きさには使わない。
+const CHAR_BASE_H = 260;     // 全バンパー共通の絵の高さ（ここを変えれば全部同時に変わる）
+const ROLL_FRIC = 60;        // 転がりの減速 m/s²（ショップの「転がり摩擦」で下がる）
+const ROLL_MIN  = 21;        // 30回購入したときの減速
+const RELAUNCH_CAP = 2.2;    // バンパーの最低打ち出しは「現在速度×これ」を超えない
+const DODGE_D = .45;         // ヨクネロボが右へ避けきるまでの秒数
+const DODGE_X = 9;           // 右へ動く距離 m（ワールド。絵の横幅とほぼ同じ）
+const CHAR_DRAW  = 1.5;        // バンパーの「見た目だけ」の倍率（当たり判定には掛けない）
+// 当たり判定のワールド上の大きさ（m）は h * CHAR_SCALE / 46。カメラ倍率に依らず一定。
+// 描画だけが h * cam.s / 46 * CHAR_SCALE * CHAR_DRAW で、判定より CHAR_DRAW 倍大きく出る。
+const PLAYER_SCALE     = 2;    // 発射前（待機・突っ込み・激突）の自機の表示倍率
+const PLAYER_FLY_SCALE = 1.5;  // 発射後（飛行中・ダウン）の自機の表示倍率
+// 当たり判定は衝突が起きる「飛行中の大きさ」を基準にする
+const PLAYER_H = ASSETS.hico_fly.h * CHAR_SCALE * PLAYER_FLY_SCALE / 46;   // 自機の高さ m（カメラ倍率に依らず一定）
+const PLAYER_R = PLAYER_H * .32;                              // 自機の当たり半径 m
+const MAX_CH_H = CHAR_BASE_H * CHAR_SCALE / 46;   // 全バンパー共通なので最大値を探す必要がない
+const POW_X    = 1.5;        // 飛ぶ力の倍率（発射・打ち上げ・エアリアル・ダイブ・復活に掛かる）
+const BOUNCE   = 0.5;        // 着地の縦方向の反発係数（1.0 だとエネルギーが減らず永久に弾む）
 const DIST_SCALE = 0.1;      // 距離表示の倍率（ワールド100m＝表示10m）
 const MAX_SPD  = 330 * POW_X;   // 速度上限 m/s
-const BOSS_FROM = 400;       // ボスアゲルが出はじめる距離 m（序盤の回避不能な即死を避ける）
-const CHAR_SPACING = 100;    // キャラの配置間隔 m（100mちょうどに1体ずつ）
+const BOSS_FROM = 900;       // ボスアゲルが出はじめる距離 m（序盤の回避不能な即死を避ける）
+const CHAR_SPACING = 300;    // キャラの配置間隔 m（300mちょうどに1体ずつ＝画面表示では30m）
 const CAM_S = 10.5;          // カメラの拡大率 px/m（初期値。これ以上は寄らない）
 const CAM_ZOOM_MAX = 2;      // 画角を広げる上限倍率（＝拡大率は CAM_S の 1/2 まで下がる）
+const AGERU_SCALE = 2;       // アゲル（自転車・飛び蹴り・ダイブ）の表示倍率。ここ1か所で調整できる
 const CAM_BIAS_VY = 120;     // この上昇/下降速度(m/s)でカメラの上下の狙い位置が最大まで偏る
+// 自機を画面の左から何割の位置に置くか。小さいほど先が見えるが、
+// バンパーに当たる瞬間は自機とバンパーが同じ位置に来るので、
+// 小さすぎると衝突が画面左端寄りで起きて見づらい。
+const CAM_X_FRAC = .45;
 const MIN_HORIZ_RATIO = 0.5; // 減速・ブロック系ヒット後、速度の何割以上を横方向に残すか（真下落下を防ぐ）
 const CRASH_T = 0.55;        // アゲルが左から突っ込んでくる演出の長さ 秒
+const HITSTOP_X = 1.2;      // ヒットストップ全体の長さ倍率（ここ1か所で調整できる）
+const IMPACT_T = 0.8;        // 発射時の激突で止まる時間 秒（HITSTOP_X は掛けない固定値）       // 激突した瞬間に止まる時間 秒（ヒットストップ）
 const KMH      = 3.6;        // m/s → km/h
+
+/* ── アップグレード（タイトル画面で購入・localStorage に保存） ───
+   1P = 表示距離100mごと。反発係数／バンパー出現率／アゲルパワーは
+   フィボナッチ式（1,2,3,5,8,13…）で1回ごとに値上がりする。          */
+const UPG = [
+  { k:'bounce',  name:'反発係数',       max:30,  fib:true, unit:'1回ごとに +0.1' },
+  { k:'spacing', name:'バンパー出現率', max:100, fib:true, unit:'1回ごとに 間隔-2' },
+  { k:'power',   name:'アゲルパワー',   max:30,  fib:true, unit:'1回ごとに 激突+0.1' },
+  { k:'roll',    name:'転がり摩擦',     max:30,  fib:true, unit:'1回ごとに 摩擦-1.3' },
+  { k:'charge',  name:'DIVEチャージ',   max:30,  fib:true, unit:'1回ごとに 回復+0.55%/秒' },
+  { k:'barrier', name:'バリア',         max:1,   cost:100, unit:'即死を1回だけ防ぐ' },
+  { k:'aerial',  name:'エアリアル追加', max:3,   cost:100, unit:'1回ごとに +1回' },
+];
+let pts = 0;
+const lv = { bounce:0, spacing:0, power:0, roll:0, charge:0, barrier:0, aerial:0 };
+try {
+  const d = JSON.parse(localStorage.getItem('crash-upg') || '{}');
+  pts = Math.max(0, +d.pts || 0);
+  for (const u of UPG) lv[u.k] = clamp(+((d.lv || {})[u.k]) || 0, 0, u.max);
+} catch (e) {}
+function saveUpg() { try { localStorage.setItem('crash-upg', JSON.stringify({ pts, lv })); } catch (e) {} }
+function fibCost(n) { let a = 1, b = 2; for (let i = 0; i < n; i++) { const c = a + b; a = b; b = c; } return a; }
+function costOf(u) { return u.fib ? fibCost(lv[u.k]) : u.cost; }
+// 価格は桁が伸びる（30回目で134万、100回目は21桁）ので短く表示する
+function shortP(n) {
+  if (n < 10000) return String(n);
+  if (n < 1e6)   return (n / 1e3).toFixed(1) + 'K';
+  if (n < 1e9)   return (n / 1e6).toFixed(1) + 'M';
+  if (n < 1e12)  return (n / 1e9).toFixed(1) + 'B';
+  return n.toExponential(1).replace('e+', 'E');
+}
+
+// 実際に使う値（購入数を足したもの）
+const bounceVal  = () => BOUNCE + lv.bounce * .1;
+const spacingVal = () => Math.max(20, CHAR_SPACING - lv.spacing * 2);
+const powerVal   = () => POW_X + lv.power * .1;     // 発射（最初の激突）だけに効く
+const aerialMax  = () => AERIAL_N + lv.aerial;
+// 転がりの減速。購入するほど小さく（＝遠くまで転がる）なる。購入30回で ROLL_MIN に届く
+const rollVal    = () => ROLL_FRIC - lv.roll * (ROLL_FRIC - ROLL_MIN) / 30;
+// ダイブのチャージ回復。購入30回で CHARGE_RATE_MAX に届く
+const chargeVal  = () => CHARGE_RATE + lv.charge * (CHARGE_RATE_MAX - CHARGE_RATE) / 30;
 
 /* ── 画像ロード（失敗してもそのまま進む） ───────────────── */
 const IMG = {};
@@ -355,10 +811,10 @@ for (const k in ASSETS) {
 
 /* ── 状態 ───────────────────────────────────────────────── */
 let state = 'title';   // title / angle / power / crash / fly / chance / end
-const p   = { x:0, y:1.4, vx:0, vy:0, rot:0 };
+const p   = { x:0, y:0, vx:0, vy:0, rot:0 };   // y は足元の高さ。発射前は地面にぴったり立つ
 const cam = { x:-24, y:0, s:9 };
-let chars = [], pops = [], sparks = [], winds = [], shocks = [];
-let aimT=0, powT=0, angle=45, power=0, crashT=0, chanceT=0, chanceCh=null;
+let chars = [], pops = [], sparks = [], winds = [], shocks = [], hitFx = [];
+let aimT=0, powT=0, angle=45, power=0, crashT=0, impactT=0, chanceT=0, chanceCh=null;
 let aerialLeft = AERIAL_N, charge = 100, blocked = false;
 let spW = null;                 // {t, ch, used}  条件を満たしたときだけ作る
 let combo = 0, best = 0, peak = 0, bounces = 0, topKmh = 0;
@@ -367,6 +823,7 @@ let flash = 0, shake = 0, t = 0, seed = 1, nextX = 0;
 let ageruFx = null;             // {t, kind:'kick'|'dive'|'bike'}
 let spFx = null;                // スペシャルの画面バーン {t, dur, x, y, c}
 let pendingType = null;         // 次の100m地点に置くと条件が成立する型
+let barrier = false;            // バリア（購入していれば毎回1回だけ即死を防ぐ）
 let crashX = 0;                 // 激突した地点（アゲルはそこに置き去りになる）
 let slowT = 0, slowDur = 1;     // ヒットストップ（スロー）
 let lastHitType = null;         // 直前に当てたキャラ（デンパ連続判定）
@@ -403,12 +860,23 @@ function burst(n, col, pw) {
   }
 }
 function shockwave(x, y, col, pw) { shocks.push({ x, y, t:.55, dur:.55, c:col||'#fff', pw:pw||1 }); }
-function hitstop(dur, deep) { slowT = slowDur = dur; slowDeep = deep == null ? .12 : deep; }
+/* 当たったことが一目で分かるヒットエフェクト（ギザギザの星＋放射線） */
+function hitEffect(x, y, col, pw) {
+  hitFx.push({ x, y, t:.42, dur:.42, c:col||'#fff', pw:pw||1, rot:Math.random()*6.283 });
+}
+/* abs=true なら HITSTOP_X を掛けず、指定した秒数そのままで止める
+   （スペシャルの受付時間とぴったり合わせたいときに使う）        */
+function hitstop(dur, deep, abs) {
+  slowT = slowDur = abs ? dur : dur * HITSTOP_X;
+  slowDeep = deep == null ? .12 : deep;
+}
 let slowDeep = .12;
 function timeScale() {
   if (slowT <= 0) return 1;
   const r = 1 - slowT / slowDur;                 // 0→1
-  return slowDeep + (1 - slowDeep) * r * r;      // ゆっくり戻す
+  if (r < .85) return slowDeep;                  // ほぼ全編、止まったまま保つ
+  const k = (r - .85) / .15;                     // 最後の15%だけ通常速度へ戻す
+  return slowDeep + (1 - slowDeep) * k * k;
 }
 
 /* ── キャラ配置（全員 地上・100mごと） ───────────────────
@@ -417,7 +885,7 @@ function timeScale() {
    （相方は次の100m地点に置かれ、右上の NEXT パネルで予告される）。   */
 function ensureChars(untilX) {
   while (nextX < untilX) {
-    nextX += CHAR_SPACING;
+    nextX += spacingVal();
     let type;
     if (pendingType) { type = pendingType; pendingType = null; }
     else {
@@ -433,7 +901,7 @@ function addChar(type) {
   // 序盤にボスが出ると、他のキャラに当てる前なのでスペシャル条件
   //（他キャラ接触後ノーバウンド）を満たしようがなく、回避不能な即死になる
   if (type === 'boss' && nextX < BOSS_FROM) type = 'neko';
-  chars.push({ x: nextX, y: 0, type, hit: false, ph: rnd() * 6.283, kvx: 0, kvy: 0, krot: 0, kt: 0 });
+  chars.push({ x: nextX, y: 0, type, hit: false, ph: rnd() * 6.283 });
 }
 function pickType() {
   let total = 0;
@@ -446,26 +914,28 @@ function pickType() {
 /* ── 進行 ───────────────────────────────────────────────── */
 function reset() {
   state = 'title';
-  p.x = 0; p.y = 1.4; p.vx = 0; p.vy = 0; p.rot = 0;
+  p.x = 0; p.y = 0; p.vx = 0; p.vy = 0; p.rot = 0;   // 地面に接地させる
   cam.x = -24; cam.y = 0; cam.s = 9;
-  chars = []; pops = []; sparks = []; winds = []; shocks = [];
-  aerialLeft = AERIAL_N; charge = 100; blocked = false; spW = null;
+  chars = []; pops = []; sparks = []; winds = []; shocks = []; hitFx = [];
+  aerialLeft = aerialMax(); charge = 100; blocked = false; spW = null;
+  barrier = lv.barrier > 0;
   combo = 0; peak = 0; bounces = 0; topKmh = 0;
   bounceBoost = 0; reviveLeft = 0; x2Left = 0; diving = false;
   flash = 0; shake = 0; nextX = 14; seed = (Date.now() % 100000) + 7;
+  voStop();
   ageruFx = null; spFx = null; popAt = {}; slowT = 0;
   lastHitType = null; bouncedSinceHit = true; pendingType = null;
-  stopAllLoops();
+  stopAllLoops(); bgmStop();
   nextX = 0;
-  ensureChars(600);
+  ensureChars(spacingVal() * 6);        // NEXTパネルの5体分を最初から用意する
   ov('ov-title', true); ov('ov-over', false);
   document.getElementById('title-best').textContent = best > 0 ? 'BEST  ' + fmt(best) + ' m' : '';
-  document.getElementById('btn-dive').classList.remove('on');
+  drawShop();
 }
 function startAim() { state = 'angle'; aimT = 0; ov('ov-title', false); }
 
 function launch() {
-  const v = (9 + 39 * (power / 100)) * SPD_X * POW_X;
+  const v = (9 + 39 * (power / 100)) * SPD_X * powerVal();   // アゲルパワーの購入ぶんが乗る
   const a = angle * Math.PI / 180;
   p.vx = Math.cos(a) * v;
   p.vy = Math.sin(a) * v;
@@ -473,12 +943,27 @@ function launch() {
   state = 'fly';
   crashX = p.x;                                   // 激突地点にアゲルを残す
   ageruFx = { t: 1.4, dur: 1.4, kind: 'bike' };   // 余韻（爆発が晴れてからも見えるよう長めに置き去る）
-  flash = .35; shake = .4;
-  burst(40, '#ff5f8d', 1.6);
-  shockwave(p.x, p.y, '#ff5f8d', 1.4);
+  shake = Math.max(shake, .45);
+  burst(34, '#ff5f8d', 1.7);                      // ふっ飛ぶ瞬間の追い打ち
+  bgmPlay();                                      // 発射と同時にBGM開始
+  if (Math.round(power) >= 100) se('100hit');      // 表示100%ちょうどで発射できたとき
+}
+
+/* 激突の瞬間：一瞬止めて、その間ヒコが震える（ヒットストップ）。
+   止まっている間は physics を呼ばないので世界は完全に静止する。      */
+function startImpact() {
+  state = 'impact'; impactT = IMPACT_T;
+  // 最初の激突だけは別格の派手さにする。
+  // スペシャルと同じ画面バーン（全画面の放射＋集中線）に、画面を覆う巨大な星を重ねる。
+  bang('#ff5f8d', true);
+  hitEffect(p.x, p.y + 1.5, '#ff5f8d', 4.5);      // 画面を覆うサイズ（通常ヒットは1.2）
+  burst(80, '#ff5f8d', 2.6);
+  burst(36, '#fff', 3.2);
+  shockwave(p.x, p.y, '#ff5f8d', 3);
+  shockwave(p.x, p.y, '#fff', 2);
+  flash = .85; shake = .75;
   pop('CRASH!!', '#ff5f8d', true);
   se('crash');
-  document.getElementById('btn-dive').classList.add('on');
 }
 
 function gameOver() {
@@ -494,6 +979,10 @@ function gameOver() {
   }
   state = 'end';
   stopAllLoops();
+  bgmStop();
+  vo('over');
+  const gain = Math.floor(Math.max(0, p.x) * DIST_SCALE / 100);   // 表示距離100mごとに1P
+  if (gain > 0) { pts += gain; saveUpg(); }
   const isNew = p.x > best;
   if (isNew) { best = p.x; try { localStorage.setItem('crash-best', String(best)); } catch (e) {} }
   se(isNew ? 'record' : 'stop');
@@ -501,14 +990,19 @@ function gameOver() {
   document.getElementById('over-title').textContent = isNew ? 'NEW RECORD!' : 'CRASH END';
   document.getElementById('over-detail').innerHTML =
     'BEST ' + fmt(best) + ' m　/　最高速度 ' + Math.round(topKmh) + ' km/h　/　最高到達点 ' + peak.toFixed(1) + ' m　/　ヒット ' + combo + ' 回　/　バウンド ' + bounces + ' 回';
-  document.getElementById('btn-dive').classList.remove('on');
+  document.getElementById('over-detail').innerHTML += '　/　獲得 <b style="color:#ffd34d">' + gain + ' P</b>';
   ov('ov-over', true);
+  document.getElementById('rk-msg').textContent = '';
+  postRecent(+fmt(p.x));          // 名前を付けた登録は「ランキングに登録」ボタンから
 }
 function ov(id, on) { document.getElementById(id).classList.toggle('show', on); }
 
 /* ── 打ち出し ───────────────────────────────────────────── */
 function relaunch(ang, mul, min) {
-  let sp = Math.max(speed() * mul, min * POW_X);   // 最低打ち出し速度は POW_X 倍
+  // 最低打ち出し速度は現在速度の RELAUNCH_CAP 倍まで。
+  // 以前は現在速度に関係なく満額出ていたため、止まりかけで当たっても
+  // 毎回 99〜121 m/s で打ち出され、転がり→バンパー→転がり…が永久に続いていた。
+  let sp = Math.max(speed() * mul, Math.min(min * POW_X, speed() * RELAUNCH_CAP));
   if (x2Left > 0 && mul > 1) { x2Left--; sp *= 2; pop('×2!!', '#ff3b30', true); }
   sp = Math.min(sp, MAX_SPD);
   if (ang === null) {                       // 角度そのまま（減速・ブロック系）
@@ -530,11 +1024,17 @@ function relaunch(ang, mul, min) {
 }
 
 /* キャラを吹っ飛ばす（当たった演出） */
-function knockAway(c) {
-  c.hit = true; c.kt = 1.4;
-  c.kvx = 8 + rnd() * 26 + speed() * .06;
-  c.kvy = 16 + rnd() * 26;
-  c.krot = (rnd() - .5) * 18;
+// 当たった印を付けるだけ。吹っ飛ばずその場に残り、絵だけ IMG_HIT_OF に差し替わる。
+// ヨクネロボだけは「避けた」演出として右へすっと移動させる
+function markHit(c) {
+  c.hit = true;
+  if (c.type === 'robo') c.dodgeT = 0;
+}
+// 避けの横ズレ m。最初が一番速くてそっと止まる（ease-out）
+function dodgeOf(c) {
+  if (c.dodgeT == null) return 0;
+  const u = clamp(c.dodgeT / DODGE_D, 0, 1);
+  return DODGE_X * (1 - Math.pow(1 - u, 3));
 }
 
 /* スペシャル条件（本家に合わせた並び／履歴の条件） */
@@ -555,17 +1055,29 @@ function onHit(c) {
   const T = TYPES[c.type];
   const col = ASSETS[IMG_OF[c.type]].c;
   combo++;
+  vo('hit');                 // 地面ではなくキャラに当たったときだけボイスを鳴らす
 
   /* ── 派手なヒット演出＋スロー ── */
-  hitstop(c.type === 'boss' ? .55 : .38, c.type === 'boss' ? .07 : .12);
+  // スペシャルのクリック受付（SP_WIN）と同じ長さだけ止める
+  hitstop(SP_WIN, c.type === 'boss' ? .07 : .12, true);
   burst(52, col, 1.5); burst(22, '#fff', 2.1);
   shockwave(p.x, p.y, col, 1.5);
+  hitEffect(p.x, p.y + 1, col, c.type === 'boss' ? 1.6 : 1.2);
   flash = Math.max(flash, .4); shake = Math.max(shake, .5);
 
   const ready = spReady(c);
 
   if (c.type === 'boss') {                   // ボスアゲル
-    knockAway(c);
+    markHit(c);
+    if (!ready && barrier) {                 // バリアがあれば即死を1回だけ肩代わりする
+      barrier = false;
+      relaunch(45, 1.2, 60);
+      bang('#7ee6ff');
+      pop('BARRIER!!', '#7ee6ff', true);
+      se('revive');
+      lastHitType = c.type; bouncedSinceHit = false;
+      return;
+    }
     if (!ready) {                            // 条件を満たしていなければ即終了
       se('boss_fail');
       p.vx = 0; p.vy = 0;
@@ -580,7 +1092,7 @@ function onHit(c) {
     return;
   }
 
-  knockAway(c);
+  markHit(c);
   lastHitType = c.type;
   bouncedSinceHit = false;
 
@@ -591,14 +1103,10 @@ function onHit(c) {
     se('block');
     return;
   }
-  if (blocked && T.ageru) {
-    // 「表示上の距離の下2桁が00」＝ワールドでは1000の倍数（DIST_SCALE=0.1 のため）
-    const near100 = Math.abs(p.x - Math.round(p.x / 1000) * 1000) < 15 && p.x >= 1000;
+  if (blocked && T.ageru) {            // ブロック状態でアゲル系に当てれば必ず発動
     blocked = false;
-    if (near100) { ageruSpecial(c); return; }
-    pop('BLOCKED…', '#9aa3ad');
-    se('hit_slow');
-    return;                                   // 効果は消える
+    ageruSpecial(c);
+    return;
   }
   relaunch(T.ang, T.mul, T.min);
   pop(T.fx, col, true);                                 // 効果を大きい文字で出す
@@ -613,7 +1121,7 @@ function trySpecial() {
   relaunch(T.sAng, T.sMul, T.sMin);
   bang(ASSETS[IMG_OF[c.type]].c);
   pop('SPECIAL!!', '#ffd34d', true);
-  se('special');
+  se('100hit');
   return true;
 }
 
@@ -642,11 +1150,11 @@ function bossChance(hit) {
   relaunch(T.sAng, T.sMul, T.sMin);
   bang('#ff3b30', true);
   pop('BOSS SPECIAL!!', '#ff3b30', true);
-  se('special');
+  se('100hit');
   if (c) c.hit = true;
 }
 
-/* アゲルスペシャル：ブロック状態 × 100の倍数地点 × アゲル系 */
+/* アゲルスペシャル：ブロック状態 × アゲル系（ベビー／ゴス／デンパ／ボス） */
 function ageruSpecial(c) {
   bang('#ff5f8d', true);
   pop('AGERU SPECIAL!!', '#ff5f8d', true);
@@ -666,15 +1174,20 @@ function aerial() {
   capSpeed();
   ageruFx = { t: .38, dur: .38, kind: 'kick' };
   pop('AERIAL!', '#ff5f8d'); burst(26, '#ff5f8d', 1.3); shockwave(p.x, p.y, '#ff5f8d', .9);
-  shake = Math.max(shake, .3); se('aerial');
+  hitEffect(p.x, p.y + 1, '#ff5f8d', 1.1);        // 蹴り上げた手応え
+  hitstop(.22, .15);
+  shake = Math.max(shake, .3); se('slam'); vo('dive');   // 音は SLAM と共通
 }
 function dive() {
   if (charge < 100) { pop('CHARGE不足', '#8fd0ff'); return; }
   charge = 0; diving = true;                      // 高度の制限なし（いつでも撃てる）
-  p.vy = -72 * POW_X; p.vx += 30 * POW_X;
+  p.vy = -72 * POW_X; p.vx += 55 * POW_X;         // 横方向を強めに
   capSpeed();
   ageruFx = { t: .38, dur: .38, kind: 'dive' };
-  pop('DIVE!', '#7ee6ff'); burst(26, '#7ee6ff', 1.3); se('dive');
+  pop('DIVE!', '#7ee6ff'); burst(26, '#7ee6ff', 1.3); shockwave(p.x, p.y, '#7ee6ff', .9);
+  hitEffect(p.x, p.y + 1, '#7ee6ff', 1.1);        // 叩き落とした手応え
+  hitstop(.22, .15);
+  shake = Math.max(shake, .3); se('slam'); vo('dive');   // 音は SLAM と共通
 }
 
 /* ── 物理 ───────────────────────────────────────────────── */
@@ -698,21 +1211,22 @@ function physics(dt) {
                  y: p.y - Math.sin(ang) * 2 + Math.cos(ang) * off,
                  a: ang, len: 6 + wr * 30 + rnd() * 10, t: .3 + rnd() * .25, dur: .55 });
   }
-  seLoop('wind', wr * .55);
+  seLoop('wind', wr * SFX_LIST.wind.v);
 
   if (p.y <= 0) {                                   // 着地
     p.y = 0;
     const vd = -p.vy;
     if (vd > 3.6) {
       if (diving) {                                  // ダイブの叩きつけは前方向に化ける
-        p.vx = p.vx * .95 + vd * .55;
-        p.vy = vd * .75;
+        p.vx = p.vx * .95 + vd * .8;                 // 落下の勢いを前方向へ多めに変換
+        p.vy = vd * .5;                              // そのぶん上へ返す量は控えめに
         pop('SLAM!!', '#7ee6ff', true); burst(46, '#7ee6ff', 1.8);
-        shockwave(p.x, 0, '#7ee6ff', 2); shake = Math.max(shake, .5);
+        shockwave(p.x, 0, '#7ee6ff', 2); hitEffect(p.x, .5, '#7ee6ff', 1.3);
+        shake = Math.max(shake, .5);
         hitstop(.26, .2); se('slam');
         diving = false;
       } else {
-        p.vy = vd * BOUNCE;
+        p.vy = vd * bounceVal();
         p.vx = p.vx * .88 + vd * .3;
         se('bound');
       }
@@ -724,22 +1238,24 @@ function physics(dt) {
     } else {
       p.vy = 0; diving = false;
       bouncedSinceHit = true;
-      p.vx = Math.max(0, p.vx - 21 * dt);             // 転がって止まる
-      seLoop('roll', clamp(p.vx / 40, 0, 1) * .5);
+      p.vx = Math.max(0, p.vx - rollVal() * dt);      // 転がって止まる
+      seLoop('roll', clamp(p.vx / 40, 0, 1) * SFX_LIST.roll.v);
       if (p.vx < 2.1) { seLoop('roll', 0); gameOver(); return; }
     }
   } else if (SND.roll && !SND.roll.paused) { seLoop('roll', 0); }
 
-  charge = Math.min(100, charge + 62 * dt);       // 高度に関係なく常に回復する
+  const chBefore = charge;
+  charge = Math.min(100, charge + chargeVal() * dt);   // 高度に関係なく常に回復する
+  if (chBefore < 100 && charge >= 100) se('100percent');   // 満タンになった瞬間
 
   // 当たり判定（キャラは地上に立っている）
-  ensureChars(p.x + 700);
+  ensureChars(p.x + spacingVal() * 6);  // 常に先6体ぶんを作っておく
   // 当たり判定は見た目どおり：キャラの絵の幅・高さ（ワールド換算）に自機の半径を足した箱
   if (p.y < MAX_CH_H + PLAYER_R) {
     for (const c of chars) {
       if (c.hit) continue;
       const key = IMG_OF[c.type], A = ASSETS[key], im = IMG[key];
-      const hgt = A.h * CHAR_SCALE / 46;                                   // 絵の高さ m
+      const hgt = CHAR_BASE_H * CHAR_SCALE / 46;                           // 判定の高さ m（全バンパー共通・CHAR_DRAW は掛けない）
       const asp = im && im.naturalWidth ? im.naturalWidth / im.naturalHeight : A.w / A.h;
       const halfW = hgt * asp / 2 + PLAYER_R;                              // 半幅＋自機
       if (Math.abs(c.x - p.x) > halfW) continue;
@@ -772,7 +1288,7 @@ function camera(dt) {
   const camYBot = p.y - (GROUND_SY - H * .66) / cam.s;   // これ超だと下に外れる
   cam.y = clamp(cam.y, camYTop, camYBot);
   if (cam.y < 0) cam.y = 0;                              // 地面より下は見せない
-  cam.x = p.x - (W * .3) / cam.s;
+  cam.x = p.x - (W * CAM_X_FRAC) / cam.s;
 }
 
 /* ── 更新 ───────────────────────────────────────────────── */
@@ -796,13 +1312,24 @@ function update(dt, rdt) {
   winds = winds.filter(w => w.t > 0);
   for (const s of shocks) s.t -= dt;
   shocks = shocks.filter(s => s.t > 0);
-  for (const c of chars) {
-    if (c.kt > 0) { c.kt -= dt; c.x += c.kvx * dt; c.y += c.kvy * dt; c.kvy -= 40 * dt; }
+  for (const h of hitFx) h.t -= dt;
+  hitFx = hitFx.filter(h => h.t > 0);
+  for (const c of chars) if (c.dodgeT != null && c.dodgeT < DODGE_D) c.dodgeT += dt;
+  // 流れ星（7〜17秒に1回、0.7秒だけ）
+  if (skyShoot) { skyShoot.t -= dt; if (skyShoot.t <= 0) skyShoot = null; }
+  else {
+    skyShootT -= dt;
+    if (skyShootT <= 0) {
+      skyShootT = 7 + Math.random() * 10;
+      skyShoot = { x: W * (.25 + Math.random() * .6), y: H * (.04 + Math.random() * .32),
+                   len: 90 + Math.random() * 110, a: Math.PI * (.16 + Math.random() * .12),
+                   t: .7, dur: .7 };
+    }
   }
-
   if (state === 'angle')  { aimT += dt; angle = 12 + 68 * tri(aimT * 1.15); }
   else if (state === 'power') { powT += dt; power = 100 * tri(powT * 1.65); }
-  else if (state === 'crash') { crashT -= dt; if (crashT <= 0) launch(); }
+  else if (state === 'crash') { crashT -= dt; if (crashT <= 0) startImpact(); }
+  else if (state === 'impact'){ impactT -= rdt; if (impactT <= 0) launch(); }   // 停止は実時間で数える
   else if (state === 'fly')   { physics(dt); }
   camera(dt);
 }
@@ -811,6 +1338,23 @@ function update(dt, rdt) {
 const SX = wx => (wx - cam.x) * cam.s;
 const SY = wy => GROUND_SY - (wy - cam.y) * cam.s;
 
+/* 画面外マーカー用の顔アップ。全身絵を 50px に縮めると顔が潰れるので、
+   顔まわりを正方形で切り出して丸く抜く。切り出し位置は絵の高さに対する比率で持つので、
+   絵を差し替えても構図（上寄りに顔）が同じならそのまま使える。        */
+const FACE_CY = .17;   // 切り出す中心（絵の高さに対する比）
+const FACE_R  = .20;   // 切り出す正方形の半辺（絵の高さに対する比）
+function faceIcon(key, mx, my, r) {
+  const im = IMG[key];
+  if (!im || !im.naturalWidth) { sprite(key, mx, my, r * 1.5, { alpha: .95 }); return; }
+  const sw = im.naturalWidth, sh = im.naturalHeight;
+  const side = Math.min(sw, sh * FACE_R * 2);
+  const sx0 = (sw - side) / 2;
+  const sy0 = clamp(sh * FACE_CY - side / 2, 0, sh - side);
+  CTX.save();
+  CTX.beginPath(); CTX.arc(mx, my, r, 0, 6.283); CTX.clip();
+  CTX.drawImage(im, sx0, sy0, side, side, mx - r, my - r, r * 2, r * 2);
+  CTX.restore();
+}
 function sprite(key, cx, cy, hpx, opt) {
   const a = ASSETS[key], im = IMG[key];
   opt = opt || {};
@@ -860,6 +1404,40 @@ function tileX(key, py, hpx, factor) {
   }
 }
 
+/* ── 空の星（背景の一部。目立たせない） ─────────────────────
+   位置は固定パターンから作り、カメラの6%だけ動かして遠景として流す。
+   地上付近は遠景・近景に隠れるので、実際に見えるのは空の部分だけ。     */
+const skyStars = Array.from({ length: 80 }, (_, i) => ({
+  x: (i * 149.3) % W,
+  y: (i * 83.7) % (H * .78),
+  s: 1 + ((i * 7) % 3) * .5,              // 1〜2px
+  ph: (i * .83) % 6.283,
+}));
+let skyShootT = 6, skyShoot = null;        // 流れ星（ごく稀に）
+
+function drawSkyStars() {
+  const dx = -cam.x * cam.s * .06, dy = cam.y * cam.s * .05;
+  CTX.save();
+  CTX.fillStyle = '#fff';
+  for (const st of skyStars) {
+    let sx = (st.x + dx) % W;              if (sx < 0) sx += W;
+    let sy = (st.y + dy) % (H * .78);      if (sy < 0) sy += H * .78;
+    CTX.globalAlpha = .18 + .22 * (.5 + .5 * Math.sin(t * 1.5 + st.ph));   // またたき
+    CTX.fillRect(sx, sy, st.s, st.s);
+  }
+  if (skyShoot) {                          // 流れ星
+    const a = clamp(skyShoot.t / skyShoot.dur, 0, 1);
+    const ex = skyShoot.x + Math.cos(skyShoot.a) * skyShoot.len;
+    const ey = skyShoot.y + Math.sin(skyShoot.a) * skyShoot.len;
+    const g = CTX.createLinearGradient(skyShoot.x, skyShoot.y, ex, ey);
+    g.addColorStop(0, 'rgba(255,255,255,0)');
+    g.addColorStop(1, 'rgba(255,255,255,' + (a * .45).toFixed(2) + ')');
+    CTX.globalAlpha = 1; CTX.strokeStyle = g; CTX.lineWidth = 1.5; CTX.lineCap = 'round';
+    CTX.beginPath(); CTX.moveTo(skyShoot.x, skyShoot.y); CTX.lineTo(ex, ey); CTX.stroke();
+  }
+  CTX.restore();
+}
+
 /* ── 背景 ───────────────────────────────────────────────── */
 function drawBg() {
   if (IMG.bg_sky && IMG.bg_sky.naturalWidth) {
@@ -876,6 +1454,7 @@ function drawBg() {
       for (let i = 0; i < 70; i++) CTX.fillRect((i * 137.5) % W, (i * 79.3) % (H * .7), 2, 2);
     }
   }
+  drawSkyStars();                          // 空 → 星 → 遠景 の順（地上付近は景色で隠れる）
   // H で頭打ちにしていたため、カメラが離れて本来は画面外に消えるはずの場面でも
   // 近景・遠景の帯が常に画面下端に張り付いたままになっていた（地面本体は drawGround() 側で
   // 正しく消えるのに、こちらだけ取り残されていた）。上限を外し、地面と同じく自然に画面外へ出す。
@@ -989,17 +1568,17 @@ function drawSpeedLines() {
 /* ── キャラ・プレイヤー ─────────────────────────────────── */
 function drawChars() {
   for (const c of chars) {
-    const x = SX(c.x);
+    const x = SX(c.x + dodgeOf(c));   // ヨクネロボは右へ避ける
     if (x < -160 || x > W + 160) continue;
     const key = IMG_OF[c.type];
-    // CHAR_SCALE 倍で描く。当たり判定もこの大きさから計算している（physics 参照）。
-    const hpx = Math.max(24, ASSETS[key].h * cam.s / 46) * CHAR_SCALE;
+    // 見た目は CHAR_SCALE * CHAR_DRAW 倍。当たり判定は CHAR_SCALE 倍のまま（physics 参照）。
+    const hpx = Math.max(24, CHAR_BASE_H * cam.s / 46) * CHAR_SCALE * CHAR_DRAW;
     const bob = c.hit ? 0 : Math.sin(t * 1.7 + c.ph) * .18;
     const y = SY(c.y + bob) - hpx / 2;          // 地面の上に立たせる
     if (y < -200 || y > H + 200) continue;
-    const fade = c.hit ? clamp(c.kt / 1.4, 0, 1) : 1;
-    if (fade <= 0) continue;
-    sprite(key, x, y, hpx, { alpha: fade, rot: c.hit ? c.krot * (1.4 - c.kt) : 0 });
+    // 当たったら被弾絵に差し替える。まだ用意されていなければ通常の絵のまま残す
+    const hk = IMG_HIT_OF[c.type];
+    sprite(c.hit && IMG[hk] ? hk : key, x, y, hpx);
     if (!c.hit && cam.s > 3.5) {
       if (c.type === 'boss') {
         CTX.fillStyle = 'rgba(255,59,48,.9)';
@@ -1023,7 +1602,8 @@ function drawAgeruRush(x, hpx) {
   // pr*pr にすると前半ほとんど動かず、突っ込みが一瞬しか見えない。
   // 最初から速く走り、最後にもう一段加速する曲線にする。
   const e = pr * (.45 + .55 * pr);
-  const bh = hpx * 1.25;                          // 自機が大きくなったぶん倍率を下げる
+  // アゲルの大きさは自機の倍率に引きずられないようにする
+  const bh = playerBase() * 1.25 * AGERU_SCALE;
   const fromX = -bh * 1.2, toX = x - hpx * .85;
   const ax = fromX + (toX - fromX) * e;
   const ay = SY(0) - bh * .5;                     // 足元を地面（画面下端）に合わせる
@@ -1041,20 +1621,41 @@ function drawAgeruRush(x, hpx) {
   sprite('ageru_bike', ax, ay, bh);
 }
 
+/* 発射前の自機。hico_stand が無ければ hico_fly で代用する
+   （画像を用意するまでプレースホルダの箱が出ないように）        */
+const standKey = () => (IMG.hico_stand && IMG.hico_stand.naturalWidth) ? 'hico_stand' : 'hico_fly';
+/* 倍率を掛ける前の自機サイズ。アゲルの大きさはここから出す
+   （自機の倍率が場面で変わるので、hpx から逆算すると破綻する）  */
+const playerBase = () => Math.max(24, ASSETS.hico_fly.h * cam.s / 46) * CHAR_SCALE;
+
 function drawPlayer() {
   // 自機もバンパーと同じスケールで描く（当たり判定もこの大きさで取っている）
-  const hpx = Math.max(24, ASSETS.hico_fly.h * cam.s / 46) * CHAR_SCALE;
+  // 発射前は大きく、発射後は縮む
+  const preLaunch = state === 'title' || state === 'angle' || state === 'power'
+                 || state === 'crash' || state === 'impact';
+  const hpx = playerBase() * (preLaunch ? PLAYER_SCALE : PLAYER_FLY_SCALE);
   // p.y は足元の高さとして扱う。地面が画面下端なので、中心で描くと接地時に半分切れる
   const x = SX(p.x), y = SY(p.y) - hpx / 2;
 
   // 照準中はアゲルを出さない（発射の瞬間に左から登場する）
   if (state === 'title' || state === 'angle' || state === 'power') {
-    sprite('hico_fly', x, y, hpx, { rot: .2 });
+    sprite(standKey(), x, y, hpx, { rot: 0 });
     return;
   }
   if (state === 'crash') {
-    sprite('hico_fly', x, y, hpx, { rot: .2 });
+    sprite(standKey(), x, y, hpx, { rot: 0 });
     drawAgeruRush(x, hpx);
+    return;
+  }
+  if (state === 'impact') {
+    // 世界は止まったまま、ヒコだけが細かく震える
+    const r = clamp(impactT / IMPACT_T, 0, 1);              // 1→0（だんだん収まる）
+    const amp = (4 + 12 * r) * (cam.s / CAM_S);
+    const bh = playerBase() * 1.25 * AGERU_SCALE;
+    sprite('ageru_bike', x - hpx * .85, SY(0) - bh * .5, bh);   // ぶつかった位置のアゲル
+    sprite(standKey(), x + (Math.random() - .5) * amp * 2,
+                       y + (Math.random() - .5) * amp * 2,
+                       hpx, { rot: (Math.random() - .5) * .14 });
     return;
   }
   if (state === 'end') { sprite('hico_down', x, SY(0) - hpx * .75 / 2, hpx * .75); return; }
@@ -1064,12 +1665,17 @@ function drawPlayer() {
     const a = ageruFx.t / ageruFx.dur;
     if (ageruFx.kind === 'bike') {
       // 激突した場所に残る（カメラが進むので自然に置き去りになる）
-      const bh = hpx * 1.9, bx = SX(crashX);
+      const bh = playerBase() * 1.25 * AGERU_SCALE, bx = SX(crashX);   // 突っ込み時と同じ大きさ
       if (bx > -bh) sprite('ageru_bike', bx, SY(0) - bh * .5, bh, { alpha: Math.min(1, a * 1.6) });
     } else {
-      sprite(ageruFx.kind === 'dive' ? 'ageru_dive' : 'ageru_kick',
-             x - hpx * .22 * a, y + (ageruFx.kind === 'dive' ? -hpx * .3 : hpx * .3) * a,
-             hpx * 1.15, { alpha: Math.min(1, a * 1.6) });
+      // 左から寄ってきて、自機に重ならない位置で止まる（a は 1→0）
+      // エアリアルは下から蹴り上げるので「左下」、ダイブは上から叩き落とすので「左上」で止める
+      const dive = ageruFx.kind === 'dive';
+      const dir = dive ? -1 : 1;                       // 画面座標なので +1 が下、-1 が上
+      sprite(dive ? 'ageru_dive' : 'ageru_kick',
+             x - hpx * (.75 + .4 * a),                 // 止まる位置 -0.75 / 寄ってくる幅 +0.4
+             y + dir * hpx * (.35 + .25 * a),          // 止まる位置 ±0.35 / 寄ってくる幅 +0.25
+             playerBase() * 1.15 * AGERU_SCALE, { alpha: Math.min(1, a * 1.6) });
     }
   }
 }
@@ -1085,6 +1691,46 @@ function drawShocks() {
   }
   CTX.globalAlpha = 1;
 }
+/* ヒットエフェクト本体。マンガの衝突表現（ギザギザの星＋白い芯＋放射線） */
+function drawHitFx() {
+  for (const h of hitFx) {
+    const r = 1 - h.t / h.dur;                                  // 0→1
+    const a = clamp(h.t / h.dur * 1.7, 0, 1);                   // 透明度
+    const R = (30 + 130 * r) * h.pw * clamp(cam.s / CAM_S, .5, 1.4);
+    CTX.save();
+    CTX.translate(SX(h.x), SY(h.y));
+    CTX.rotate(h.rot + r * .35);
+    // ギザギザの星
+    CTX.beginPath();
+    const N = 12;
+    for (let i = 0; i < N * 2; i++) {
+      const ang = i / (N * 2) * 6.283, rad = (i % 2 ? .44 : 1) * R;
+      if (i) CTX.lineTo(Math.cos(ang) * rad, Math.sin(ang) * rad);
+      else   CTX.moveTo(Math.cos(ang) * rad, Math.sin(ang) * rad);
+    }
+    CTX.closePath();
+    CTX.globalAlpha = a * .85; CTX.fillStyle = h.c; CTX.fill();
+    // 巨大なときに線が細く見えないよう、線幅もサイズに連動させる
+    const lw = Math.max(1, h.pw * .6);
+    CTX.globalAlpha = a;       CTX.strokeStyle = '#fff'; CTX.lineWidth = 3 * lw; CTX.stroke();
+    // 中心の白い芯（すぐ縮む）
+    CTX.globalAlpha = a * .95; CTX.fillStyle = '#fff';
+    CTX.beginPath(); CTX.arc(0, 0, R * .32 * (1 - r * .7), 0, 6.283); CTX.fill();
+    // 外へ伸びる放射線
+    CTX.globalAlpha = a * .8; CTX.strokeStyle = '#fff'; CTX.lineCap = 'round';
+    for (let i = 0; i < 8; i++) {
+      const ang = i / 8 * 6.283 + .4;
+      CTX.lineWidth = (4 - (i % 2) * 2) * lw;
+      CTX.beginPath();
+      CTX.moveTo(Math.cos(ang) * R * .95, Math.sin(ang) * R * .95);
+      CTX.lineTo(Math.cos(ang) * R * (1.45 + r * .7), Math.sin(ang) * R * (1.45 + r * .7));
+      CTX.stroke();
+    }
+    CTX.restore();
+  }
+  CTX.globalAlpha = 1;
+}
+
 function drawFx() {
   for (const s of sparks) {
     CTX.globalAlpha = clamp(s.t * 2, 0, 1);
@@ -1113,7 +1759,7 @@ function drawFx() {
 
 /* ── 照準・パワー ───────────────────────────────────────── */
 function drawAim() {
-  const x = SX(p.x), y = SY(1.4);
+  const x = SX(p.x), y = SY(p.y + PLAYER_H * .5);   // 矢印は体の中心から出す
   const a = angle * Math.PI / 180, len = 110;
   CTX.save();
   CTX.strokeStyle = '#ff5f8d'; CTX.lineWidth = 4; CTX.lineCap = 'round';
@@ -1126,7 +1772,7 @@ function drawAim() {
   banner('ANGLE — クリックで決定');
 }
 function drawPower() {
-  const x = SX(p.x), y = SY(1.4);
+  const x = SX(p.x), y = SY(p.y + PLAYER_H * .5);   // 矢印は体の中心から出す
   const a = angle * Math.PI / 180, len = 110;
   CTX.strokeStyle = 'rgba(255,95,141,.5)'; CTX.lineWidth = 4; CTX.lineCap = 'round';
   CTX.beginPath(); CTX.moveTo(x, y); CTX.lineTo(x + Math.cos(a) * len, y - Math.sin(a) * len); CTX.stroke();
@@ -1196,7 +1842,12 @@ function drawUpcoming() {
       CTX.strokeStyle = 'rgba(255,59,48,.8)'; CTX.lineWidth = 1.5;
       roundRect(cx0 - cw / 2 + 3, by + 4, cw - 6, bh - 8, 4); CTX.stroke();
     }
-    sprite(IMG_OF[c.type], cx0, iy, 42, {});
+    faceIcon(IMG_OF[c.type], cx0, iy, 23);   // 全身だと誰か分からないので顔のアップ
+    CTX.save();
+    CTX.strokeStyle = c.type === 'boss' ? 'rgba(255,59,48,.9)' : 'rgba(255,255,255,.28)';
+    CTX.lineWidth = 1.5;
+    CTX.beginPath(); CTX.arc(cx0, iy, 23, 0, 6.283); CTX.stroke();
+    CTX.restore();
     if (spReady(c)) {                              // 条件が整っているキャラは光らせる
       CTX.save();
       CTX.globalAlpha = .55 + .35 * Math.sin(t * 9);
@@ -1223,7 +1874,7 @@ function drawOffscreen() {
     if (c.hit || c.x < p.x - 30) continue;
     if (c.x > p.x + 500 || n >= 3) break;
     const key = IMG_OF[c.type];
-    const hgt = ASSETS[key].h * cam.s / 46 * CHAR_SCALE;   // 画面上の高さ px
+    const hgt = CHAR_BASE_H * cam.s / 46 * CHAR_SCALE * CHAR_DRAW;   // 画面上の高さ px（見た目）
     const sx = SX(c.x), sy = SY(0) - hgt / 2;              // キャラの中心
     if (sx > L && sx < R && sy > T && sy < B) continue;     // 画面内なら出さない
     const mx = clamp(sx, L, R), my = clamp(sy, T, B);
@@ -1233,11 +1884,15 @@ function drawOffscreen() {
     CTX.globalAlpha = .92;
     CTX.fillStyle = 'rgba(0,0,0,.5)';
     CTX.beginPath(); CTX.arc(mx, my, 26, 0, 6.283); CTX.fill();
-    CTX.strokeStyle = c.type === 'boss' ? '#ff3b30' : (spReady(c) ? '#ffd34d' : 'rgba(255,255,255,.55)');
-    CTX.lineWidth = 2; CTX.stroke();
     CTX.restore();
 
-    sprite(key, mx, my, 38, { alpha: .95 });
+    faceIcon(key, mx, my, 25);      // 全身だと誰か分からないので顔のアップにする
+
+    CTX.save();                     // リングは顔の上に描いて輪郭を残す
+    CTX.strokeStyle = c.type === 'boss' ? '#ff3b30' : (spReady(c) ? '#ffd34d' : 'rgba(255,255,255,.55)');
+    CTX.lineWidth = 2;
+    CTX.beginPath(); CTX.arc(mx, my, 26, 0, 6.283); CTX.stroke();
+    CTX.restore();
 
     // 実際の位置を指す三角
     const dx = sx - mx, dy = sy - my;
@@ -1281,6 +1936,14 @@ function drawHud() {
   const gg = CTX.createLinearGradient(bx, 0, bx + bw, 0);
   gg.addColorStop(0, '#7ee6ff'); gg.addColorStop(.55, '#ffd34d'); gg.addColorStop(1, '#ff3b30');
   CTX.fillStyle = gg; roundRect(bx + 1, 45, (bw - 2) * clamp(kh / (MAX_SPD * KMH), 0, 1), 6, 2); CTX.fill();
+  // アップグレード状況（速度の下）
+  CTX.textAlign = 'center'; CTX.textBaseline = 'top';
+  CTX.font = '9px "Press Start 2P", monospace';
+  CTX.fillStyle = 'rgba(255,255,255,.5)';
+  CTX.fillText('BOUNCE ' + bounceVal().toFixed(1) + '   GAP ' + spacingVal() + '   POWER ' + powerVal().toFixed(1)
+             + '   ROLL ' + rollVal().toFixed(1)
+             + '   DIVE ' + (100 / chargeVal()).toFixed(1) + 's'
+             + '   AERIAL ' + aerialMax() + (barrier ? '   BARRIER' : ''), W * .5, 56);
 
   CTX.textAlign = 'right';
   CTX.fillStyle = 'rgba(255,255,255,.75)'; CTX.font = '11px "Press Start 2P", monospace';
@@ -1301,7 +1964,7 @@ function drawHud() {
   CTX.textAlign = 'left'; CTX.fillStyle = 'rgba(255,255,255,.6)';
   CTX.font = '9px "Press Start 2P", monospace';
   CTX.fillText('AERIAL', ax, ay - 14);
-  for (let i = 0; i < AERIAL_N; i++) {
+  for (let i = 0; i < aerialMax(); i++) {
     CTX.beginPath(); CTX.arc(ax + 9 + i * 24, ay + 6, 8, 0, 6.284);
     CTX.fillStyle = i < aerialLeft ? '#ff5f8d' : 'rgba(255,255,255,.12)';
     CTX.fill();
@@ -1320,11 +1983,20 @@ function drawHud() {
   // スペシャル受付
   if (spW && !spW.used) {
     const r = spW.t / SP_WIN;
-    CTX.textAlign = 'center'; CTX.fillStyle = '#ffd34d';
-    CTX.font = 'bold 24px "Noto Sans JP", sans-serif';
-    CTX.fillText('SPECIAL!  クリック', W / 2, 92);
-    CTX.fillStyle = 'rgba(0,0,0,.5)'; roundRect(W / 2 - 90, 112, 180, 8, 2); CTX.fill();
-    CTX.fillStyle = '#ffd34d'; roundRect(W / 2 - 88, 114, 176 * r, 4, 2); CTX.fill();
+    const cy = H * .42;                                  // 画面中央に大きく出す
+    const pulse = 1 + .06 * Math.sin(t * 22);
+    CTX.save();
+    CTX.translate(W / 2, cy); CTX.scale(pulse, pulse);
+    CTX.textAlign = 'center'; CTX.textBaseline = 'middle';
+    CTX.font = 'bold 56px "Noto Sans JP", sans-serif';
+    CTX.lineWidth = 9; CTX.strokeStyle = 'rgba(0,0,0,.7)';
+    CTX.strokeText('SPECIAL!  クリック', 0, 0);
+    CTX.fillStyle = '#ffd34d';
+    CTX.fillText('SPECIAL!  クリック', 0, 0);
+    CTX.restore();
+    const sbw = 420, sbx = W / 2 - sbw / 2, sby = cy + 48;
+    CTX.fillStyle = 'rgba(0,0,0,.55)'; roundRect(sbx, sby, sbw, 14, 3); CTX.fill();
+    CTX.fillStyle = '#ffd34d'; roundRect(sbx + 2, sby + 2, (sbw - 4) * r, 10, 2); CTX.fill();
   }
   if (flash > 0) drawFlash();
 }
@@ -1336,6 +2008,10 @@ function drawFlash() {
 
 /* ── 描画 ───────────────────────────────────────────────── */
 function draw() {
+  // 論理座標(1200x600) → 実ピクセル。canvas リサイズで状態が飛んでもここで復帰する
+  CTX.setTransform(DPR, 0, 0, DPR, 0, 0);
+  CTX.imageSmoothingEnabled = true;
+  CTX.imageSmoothingQuality = 'high';   // 大きい絵を縮小するときのジャギ対策
   CTX.save();
   if (shake > 0) CTX.translate((Math.random() - .5) * shake * 30, (Math.random() - .5) * shake * 30);
   drawBg();
@@ -1345,6 +2021,7 @@ function draw() {
   drawChars();
   drawPlayer();
   drawShocks();
+  drawHitFx();
   drawFx();
   drawSpeedLines();
   if (state === 'angle') drawAim();
@@ -1355,11 +2032,13 @@ function draw() {
 }
 
 /* ── 入力 ───────────────────────────────────────────────── */
+const uiOpen = () => ['ov-help', 'ov-shop', 'ov-rank', 'ov-dex']
+  .some(id => document.getElementById(id).classList.contains('show'));
 function press(which) {
-  if (document.getElementById('ov-help').classList.contains('show')) return;
+  if (uiOpen()) return;
   switch (state) {
-    case 'title': startAim(); se('ui_click'); break;
-    case 'angle': state = 'power'; powT = 0; se('ui_click'); break;   // 押した瞬間に角度が決まる
+    case 'title': startAim(); se('click'); break;
+    case 'angle': state = 'power'; powT = 0; se('click'); seLoop('tame', SFX_LIST.tame.v); break;   // 押した瞬間に角度が決まる
     // 'power' は「離した瞬間」に確定する（本家と同じ押しっぱなし操作）→ release()
     case 'chance': bossChance(true); break;
     case 'end':   reset(); break;
@@ -1373,22 +2052,22 @@ function press(which) {
    本家は「押しっぱなしでパワーを溜め、最高値に近いところで離す」操作。 */
 function release() {
   if (state !== 'power') return;
-  if (document.getElementById('ov-help').classList.contains('show')) return;
+  if (uiOpen()) return;
+  seLoop('tame', 0);                    // 溜め音を止める
   state = 'crash'; crashT = CRASH_T;
   ageruFx = null;                       // 突っ込みの描画は state==='crash' 側で行う
-  se('ui_click');
+  se('click');
 }
 const wrap = document.getElementById('wrap');
 wrap.addEventListener('pointerdown', e => {
-  if (e.target.id === 'btn-dive') return;
+  if (e.target.closest && e.target.closest('.ov')) return;     // オーバーレイ上の操作はボタンに任せる
   e.preventDefault();
   press(e.button === 2 ? 'down' : 'up');
 });
-wrap.addEventListener('pointerup',     e => { e.preventDefault(); release(); });
+wrap.addEventListener('pointerup',     e => { if (e.target.closest && e.target.closest('.ov')) return; e.preventDefault(); release(); });
 wrap.addEventListener('pointercancel', () => release());
 wrap.addEventListener('pointerleave',  () => release());   // 押したまま外に出ても発射する
 wrap.addEventListener('contextmenu', e => { e.preventDefault(); });
-document.getElementById('btn-dive').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); press('down'); });
 document.addEventListener('keydown', e => {
   if (e.repeat) return;                                    // 押しっぱなしの連射を無視
   if (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowUp' || e.code === 'KeyZ') { e.preventDefault(); press('up'); }
@@ -1398,14 +2077,223 @@ document.addEventListener('keydown', e => {
 document.addEventListener('keyup', e => {
   if (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowUp' || e.code === 'KeyZ') release();
 });
-document.getElementById('btn-retry').addEventListener('pointerdown', e => { e.stopPropagation(); reset(); });
+document.getElementById('btn-retry').addEventListener('pointerdown', e => { e.stopPropagation(); se('click'); reset(); });
+document.getElementById('btn-start').addEventListener('pointerdown', e => { e.stopPropagation(); se('click'); startAim(); });
+document.getElementById('btn-shop' ).addEventListener('pointerdown', e => { e.stopPropagation(); se('click'); openShop('title'); });
+document.getElementById('btn-shop2').addEventListener('pointerdown', e => { e.stopPropagation(); se('click'); openShop('over'); });
+document.getElementById('shop-back').addEventListener('pointerdown', e => { e.stopPropagation(); se('click'); closeShop(); });
+// 立ち絵が無い場合は詰めて表示する
+(() => { const im = document.getElementById('shop-portrait'); if (im) im.onerror = () => im.remove(); })();
+
+/* ── CRASHES（図鑑）────────────────────────────────────────
+   1ページに1キャラ。バンパーの数値は TYPES から組み立てているので、
+   バランス調整をしたら図鑑の表示も自動で追従する。                  */
+const DEX = [
+  { key:'hico_fly', name:'ヒコ', sub:'PLAYER',
+    desc:'飛ばされる人。操作できるのは発射の角度とパワー、あとは空中のエアリアルとダイブだけ。' +
+         '地面を転がって止まったところまでが記録になる。',
+    stats:[['当たり判定', '絵の下半分'], ['転がり減速', () => rollVal().toFixed(1) + ' m/s²']] },
+  { key:'ageru_bike', name:'アゲル（自転車）', sub:'LAUNCH',
+    desc:'画面の左から自転車で突っ込んできてヒコをはね飛ばす。スタートで決めた角度とパワーが' +
+         'そのまま初速になる。パワー100%ちょうどで発射すると専用の音が鳴る。',
+    stats:[['角度', '12° 〜 80°'], ['初速', () => Math.round(9 * SPD_X * powerVal()) + ' 〜 ' + Math.round(48 * SPD_X * powerVal()) + ' m/s'],
+           ['アゲルパワー', () => '×' + powerVal().toFixed(1) + '（ショップで上昇）']] },
+  { key:'ageru_kick', name:'アゲル（エアリアル）', sub:'AERIAL / CLICK',
+    desc:'空中でクリックすると飛び蹴りで上に打ち上げる。高度に関係なくいつでも撃てる。' +
+         '落ちはじめたら早めに使うと立て直せる。',
+    stats:[['上方向', () => '+' + (63 * POW_X).toFixed(0) + ' m/s'], ['前方向', () => '+' + (21 * POW_X).toFixed(0) + ' m/s'],
+           ['使用回数', () => aerialMax() + ' 回 / プレイ']] },
+  { key:'ageru_dive', name:'アゲル（ダイブ）', sub:'DIVE / RIGHT CLICK',
+    desc:'右クリックで真下に叩き落とす。そのまま着地すると SLAM になり、落下の勢いが' +
+         '前方向に化けて大きく伸びる。チャージが100%のときだけ撃てる。',
+    stats:[['下方向', () => '-' + (72 * POW_X).toFixed(0) + ' m/s'], ['前方向', () => '+' + (55 * POW_X).toFixed(0) + ' m/s'],
+           ['チャージ', () => '満タンまで ' + (100 / chargeVal()).toFixed(1) + ' 秒']] },
+  { type:'baby',  desc:'斜め45度にきれいに打ち上げる基本のバンパー。次にゴスアゲルが並んでいると' +
+                       'スペシャルの条件が整う。' },
+  { type:'goth',  desc:'高い角度に打ち上げる。滞空時間が伸びるので、エアリアルやダイブを撃つ余裕ができる。' },
+  { type:'denpa', desc:'低く鋭く加速させる。飛距離を伸ばしたいならこれ。間に他を挟まず連続で当てるとスペシャル。' },
+  { type:'neko',  desc:'小さく打ち上げるだけ。地面すれすれで拾えると立て直しに使える。' },
+  { type:'kani',  desc:'速度はそのままで角度だけ変える。落ちてきたところを拾い直す繋ぎ役。' },
+  { type:'hugu',  desc:'当たると減速する。できれば避けたいが、角度は変わらないので立て直しは効く。' },
+  { type:'robo',  desc:'当たるとブロック状態になり、右へすっと動いて避ける。' +
+                       'このあとアゲル系（ベビー・ゴス・デンパ・ボス）に当てると必ずアゲルスペシャルが出る。' },
+  { type:'boss',  desc:'当たると即終了。ただし他のキャラに当てた後、バウンドせずに当てればチャンスになり、' +
+                       '0.7秒以内のクリックで大逆転できる。序盤に出ると回避不能なので900m以降にしか並ばない。' },
+];
+const AGERU_SP = {
+  baby : '70°に打ち上げ（最低 ' + Math.round(276 * POW_X) + ' m/s）',
+  goth : '以後5回のバウンドが ×1.5 加速',
+  denpa: '停止時に1度だけ復活',
+  boss : '以後3回の加速が2倍',
+};
+let dexI = 0;
+function dexEntries() {
+  return DEX.map(d => {
+    if (!d.type) return d;
+    const T = TYPES[d.type], total = TYPE_KEYS.reduce((a, k) => a + TYPES[k].w, 0);
+    const st = [
+      ['出現率', (T.w / total * 100).toFixed(1) + ' %' + (d.type === 'boss' ? '（900m以降）' : '')],
+      ['打ち上げ角', T.ang === null ? '角度そのまま' : T.ang + '°'],
+      ['速度', T.mul === 0 ? '即終了' : '×' + T.mul.toFixed(2)],
+    ];
+    if (T.min) st.push(['最低速度', Math.round(T.min * POW_X) + ' m/s']);
+    if (T.spCond) {
+      st.push(['スペシャル条件', T.spCond]);
+      st.push(['スペシャル', (T.sAng === null ? '角度そのまま' : T.sAng + '°') + ' ／ <b>×' + T.sMul.toFixed(2) + '</b>' +
+                             (T.sMin ? ' ／ 最低 ' + Math.round(T.sMin * POW_X) + ' m/s' : '')]);
+    }
+    if (AGERU_SP[d.type]) st.push(['アゲルスペシャル', AGERU_SP[d.type]]);
+    return { key: IMG_OF[d.type], name: T.name, sub: T.fx.replace(/[!…]+$/, ''), desc: d.desc, stats: st };
+  });
+}
+function drawDex() {
+  const list = dexEntries();
+  dexI = (dexI % list.length + list.length) % list.length;
+  const d = list[dexI];
+  const img = document.getElementById('dex-img');
+  img.src = DIR + d.key + '.webp';
+  img.alt = d.name;
+  img.onerror = () => { img.style.visibility = 'hidden'; };
+  img.onload  = () => { img.style.visibility = 'visible'; };
+  document.getElementById('dex-no').textContent = String(dexI + 1).padStart(2, '0') + ' / ' + String(list.length).padStart(2, '0');
+  document.getElementById('dex-name').textContent = d.name;
+  document.getElementById('dex-sub').textContent = d.sub;
+  document.getElementById('dex-desc').textContent = d.desc;
+  const dl = document.getElementById('dex-stats');
+  dl.innerHTML = '';
+  for (const [k, v] of (d.stats || [])) {
+    const dt = document.createElement('dt'); dt.textContent = k;
+    const dd = document.createElement('dd'); dd.innerHTML = typeof v === 'function' ? v() : v;
+    dl.appendChild(dt); dl.appendChild(dd);
+  }
+  const dots = document.getElementById('dex-dots');
+  dots.innerHTML = '';
+  list.forEach((_, i) => {
+    const b = document.createElement('button');
+    b.className = 'dex-dot' + (i === dexI ? ' on' : '');
+    b.setAttribute('aria-label', (i + 1) + 'ページ目');
+    b.addEventListener('pointerdown', e => { e.stopPropagation(); dexI = i; se('click'); drawDex(); });
+    dots.appendChild(b);
+  });
+}
+function dexMove(n) { dexI += n; se('click'); drawDex(); }
+document.getElementById('btn-dex'  ).addEventListener('pointerdown', e => { e.stopPropagation(); se('click'); dexI = 0; drawDex(); ov('ov-dex', true); });
+document.getElementById('dex-prev' ).addEventListener('pointerdown', e => { e.stopPropagation(); dexMove(-1); });
+document.getElementById('dex-next' ).addEventListener('pointerdown', e => { e.stopPropagation(); dexMove(1); });
+document.getElementById('dex-close').addEventListener('pointerdown', e => { e.stopPropagation(); se('click'); ov('ov-dex', false); });
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('ov-dex').classList.contains('show')) return;
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); dexMove(-1); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); dexMove(1); }
+  if (e.key === 'Escape')     { ov('ov-dex', false); }
+}, true);
+
+/* ── ランキング（DINO と同じ Worker・保存先だけ別ファイル） ──────
+   GET  /crash-ranking            → { ranking, recent }
+   POST /crash-ranking            → ハイスコア登録（同じ名前は最高記録だけ残る）
+   POST /crash-ranking type:recent → 最新のプレイに自動で積む（名前が空なら「名無し」）
+   スコアは「表示上の m」（DIST_SCALE を掛けた後）を小数2桁で送る。      */
+const WORKER  = 'https://kukucome-chara-worker.chikamakoo.workers.dev';
+const RANK_EP = WORKER + '/crash-ranking';
+const RANK_LISTS = ['rank-list', 'recent-list'];
+let myEntry = null;
+
+function renderRank(ol, list, ranked) {
+  if (!ol) return;
+  if (!list || !list.length) { ol.innerHTML = '<li class="rank-empty">まだ記録がありません</li>'; return; }
+  ol.innerHTML = '';
+  list.slice(0, 10).forEach((e, i) => {
+    const li = document.createElement('li');
+    if (myEntry && e.name === myEntry.name && Number(e.score) === Number(myEntry.score)) li.className = 'me';
+    const parts = [];
+    if (ranked) parts.push('<span class="rank-no">' + (i + 1) + '</span>');
+    parts.push('<span class="rank-name"></span>');
+    parts.push('<span class="rank-score">' + Number(e.score).toFixed(2) + ' m</span>');
+    parts.push('<span class="rank-date">' + (e.date || '') + '</span>');
+    li.innerHTML = parts.join('');
+    li.querySelector('.rank-name').textContent = e.name;   // 名前は必ず textContent で入れる
+    ol.appendChild(li);
+  });
+}
+function renderAll(d) {
+  renderRank(document.getElementById('rank-list'), d.ranking, true);
+  renderRank(document.getElementById('recent-list'), d.recent, false);
+}
+function fetchRanking() {
+  RANK_LISTS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '<li class="rank-empty">読み込み中…</li>';
+  });
+  return fetch(RANK_EP).then(r => r.json()).then(renderAll).catch(() => {
+    RANK_LISTS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<li class="rank-empty">取得できませんでした</li>';
+    });
+  });
+}
+function savedName() { try { return localStorage.getItem('crash-name') || ''; } catch (e) { return ''; } }
+/** ゲームオーバーのたびに自動で「最新のプレイ」に積む */
+function postRecent(score) {
+  const name = (document.getElementById('rk-name').value || savedName()).trim().slice(0, 15);
+  return fetch(RANK_EP, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'recent', name, score }),
+  }).then(r => r.json()).then(d => { if (d && d.ranking) renderAll(d); }).catch(() => {});
+}
+/** 名前を付けてハイスコアに登録する。何度でも押せる */
+function submitScore(input, btn, msg, score) {
+  const name = (input.value || '').trim().slice(0, 15);
+  if (!name)  { msg.textContent = '名前を入力してください'; input.focus(); return; }
+  if (!score) { msg.textContent = 'まだ記録がありません'; return; }
+  btn.disabled = true; msg.textContent = '送信中…';
+  try { localStorage.setItem('crash-name', name); } catch (e) {}
+  return fetch(RANK_EP, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, score }),
+  })
+    .then(r => r.json().then(d => ({ ok: r.ok, d })))
+    .then(res => {
+      if (!res.ok || res.d.error) throw new Error(res.d.error || '登録に失敗しました');
+      myEntry = { name, score };
+      msg.textContent = res.d.rank ? '登録しました（' + res.d.rank + '位）' : '登録しました';
+      renderAll(res.d);
+    })
+    .catch(err => { msg.textContent = err.message; })
+    .finally(() => { btn.disabled = false; });
+}
+
+const rkName = document.getElementById('rk-name');
+const rkSend = document.getElementById('rk-send');
+const rkMsg  = document.getElementById('rk-msg');
+const bestName = document.getElementById('best-name');
+const bestSend = document.getElementById('best-send');
+const bestMsg  = document.getElementById('best-msg');
+rkName.value = savedName();
+// 入力欄やボタンを押しても「クリックでリトライ」が走らないようにする
+document.querySelectorAll('.reg-row').forEach(el =>
+  el.addEventListener('pointerdown', e => e.stopPropagation()));
+rkSend.addEventListener('click', () => submitScore(rkName, rkSend, rkMsg, +fmt(p.x)));
+rkName.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') rkSend.click(); });
+bestSend.addEventListener('click', () => submitScore(bestName, bestSend, bestMsg, +fmt(best)));
+bestName.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') bestSend.click(); });
+
+function openRank() {
+  ov('ov-rank', true);
+  document.getElementById('best-score').textContent = fmt(best) + ' m';
+  bestName.value = savedName();
+  bestMsg.textContent = '';
+  fetchRanking();
+}
+document.getElementById('btn-rank' ).addEventListener('pointerdown', e => { e.stopPropagation(); se('click'); openRank(); });
+document.getElementById('btn-rank2').addEventListener('pointerdown', e => { e.stopPropagation(); se('click'); openRank(); });
+document.getElementById('rank-close').addEventListener('pointerdown', e => { e.stopPropagation(); se('click'); ov('ov-rank', false); });
 
 /* サウンド ON/OFF */
 const sndBtn = document.getElementById('btn-sound');
 function syncSnd() {
   sndBtn.classList.toggle('on', sndOn);
   sndBtn.setAttribute('aria-pressed', String(sndOn));
-  if (!sndOn) stopAllLoops();
+  if (!sndOn) { stopAllLoops(); bgmStop(); voStop(); }
 }
 sndBtn.addEventListener('click', () => {
   sndOn = !sndOn;
@@ -1414,7 +2302,70 @@ sndBtn.addEventListener('click', () => {
 });
 syncSnd();
 
+/* 全体音量（localStorage の crash-vol に保存） */
+const volEl = document.getElementById('vol'), volN = document.getElementById('vol-n');
+function syncVol() { volEl.value = String(Math.round(masterVol * 100)); volN.textContent = volEl.value; }
+volEl.addEventListener('pointerdown', e => e.stopPropagation());
+volEl.addEventListener('input',  () => { setMasterVol(volEl.value / 100); volN.textContent = volEl.value; });
+volEl.addEventListener('change', () => se('click'));   // 離したら今の音量で試聴
+syncVol();
+
 /* 遊び方 */
+/* ── ステータスアップ画面（タイトル） ───────────────────── */
+function nowText(k) {
+  if (k === 'bounce')  return '現在 ' + bounceVal().toFixed(2);
+  if (k === 'spacing') return '現在 ' + spacingVal();
+  if (k === 'power')   return '現在 ' + powerVal().toFixed(1);
+  if (k === 'roll')    return '現在 ' + rollVal().toFixed(1);
+  if (k === 'charge')  return '満タン ' + (100 / chargeVal()).toFixed(1) + '秒';
+  if (k === 'barrier') return lv.barrier ? '所持ずみ' : '未所持';
+  return '現在 ' + aerialMax() + '回';
+}
+function drawShop() {
+  const ptsEl = document.getElementById('shop-pts');
+  if (!ptsEl) return;
+  ptsEl.textContent = pts;
+  const tp = document.getElementById('title-pts');
+  if (tp) tp.textContent = '所持ポイント ' + pts + ' P';
+  const list = document.getElementById('shop-list');
+  list.innerHTML = '';
+  for (const u of UPG) {
+    const n = lv[u.k], full = n >= u.max, cost = costOf(u);
+    const card = document.createElement('div');
+    card.className = 'sh-card' + (full ? ' full' : (pts >= cost ? ' can' : ''));
+    [[u.name, 'sh-name'], [n + ' / ' + u.max, 'sh-lv'], [u.unit, 'sh-eff'], [nowText(u.k), 'sh-now']]
+      .forEach(([txt, cls]) => {
+        const el = document.createElement('div');
+        el.className = cls; el.textContent = txt; card.appendChild(el);
+      });
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'sh-buy';
+    btn.textContent = full ? 'MAX' : shortP(cost) + ' P';
+    if (!full) btn.addEventListener('click', e => { e.stopPropagation(); buy(u); });
+    card.appendChild(btn);
+    list.appendChild(card);
+  }
+}
+
+/* ショップ画面の開閉（タイトル／リザルトのどちらから来たか覚えておく） */
+let shopFrom = 'title';
+function openShop(from) {
+  shopFrom = from;
+  ov('ov-title', false); ov('ov-over', false); ov('ov-shop', true);
+  drawShop();
+}
+function closeShop() {
+  ov('ov-shop', false);
+  ov(shopFrom === 'over' ? 'ov-over' : 'ov-title', true);
+}
+
+function buy(u) {
+  const cost = costOf(u);
+  if (lv[u.k] >= u.max || pts < cost) return;
+  pts -= cost; lv[u.k]++;
+  saveUpg(); drawShop(); se('click');
+}
+
 function openHelp()  { ov('ov-help', true); }
 function closeHelp() { ov('ov-help', false); }
 document.getElementById('btn-help').addEventListener('click', openHelp);
