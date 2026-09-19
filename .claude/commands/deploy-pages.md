@@ -22,6 +22,9 @@ description: kukucome-chara.pages.dev（公開サイト）と Worker のデプ�
    サイトの Patchnotes ページは `PATCHNOTES.md` を直接読まず `cloudflare/pages/patchnotes.json` を読む。
    ビルドを忘れるとサイトだけ古いまま公開される。
    `public/saitoImg` に画像を足し引きしたときは `node scripts/build-saito-img.js` も。
+   **`cloudflare/pages/img/` の画像を足し引きしたら `node scripts/build-site-img.js`**。
+   トップページは `img/manifest.json` を読むので、これを忘れると消した画像を要求し続ける
+   （読めない img は自動で取り除くので歯抜けにはならないが、無駄なリクエストが残る）。
 
 2. **改行コードを LF に揃える**
    このリポジトリは `core.autocrlf=true` なので、**checkout や merge のたびに作業ツリーが CRLF に戻る。**

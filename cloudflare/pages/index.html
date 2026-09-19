@@ -1421,14 +1421,30 @@ body.pn-open { overflow: hidden; }
    vrageru89  → v8901-v8920  (photo index grid + hero strip)
    PHOTOAGERU → ph01-ph15    (page strip 2 + hero strip + screensaver)
    ════════════════════════════════════════════════════════════ */
-const AN  = Array.from({length:20}, (_,i) => `./img/an${String(i+1).padStart(2,'0')}.webp`);
-const COS = Array.from({length:25}, (_,i) => `./img/cos${String(i+1).padStart(2,'0')}.webp`);
-const V89 = Array.from({length:20}, (_,i) => `./img/v89${String(i+1).padStart(2,'0')}.webp`);
-const PH  = Array.from({length:15}, (_,i) => `./img/ph${String(i+1).padStart(2,'0')}.webp`);
-// sozai/ → strip1 (sz01-sz10) and strip2 (sz11-sz19)
-// seleSozai → ss01-ss41 (strip1: 01-21, strip2: 22-41)
-const SZ1 = Array.from({length:21}, (_,i) => `./img/ss${String(i+1).padStart(2,'0')}.webp`);
-const SZ2 = Array.from({length:20}, (_,i) => `./img/ss${String(i+22).padStart(2,'0')}.webp`);
+/* 画像の一覧は ./img/manifest.json（scripts/build-site-img.js が生成）を正とする。
+   画像を足したり消したりしたらスクリプトを流し直すだけでよく、ここは触らない。
+   マニフェストが読めなかったときだけ、従来どおり連番で組み立てる。        */
+const IMG_DIR = './img/';
+const AN = [], COS = [], V89 = [], PH = [], SZ1 = [], SZ2 = [];
+
+function fillFromManifest(m) {
+  const put = (arr, list) => { for (const f of (list || [])) arr.push(IMG_DIR + f); };
+  put(AN, m.an); put(COS, m.cos); put(V89, m.v89); put(PH, m.ph);
+  const ss = (m.ss || []).map(f => IMG_DIR + f);      // 前半が strip1、後半が strip2
+  const half = Math.ceil(ss.length / 2);
+  SZ1.push(...ss.slice(0, half));
+  SZ2.push(...ss.slice(half));
+}
+function fillFallback() {
+  const seq = (p, n, from = 1) =>
+    Array.from({length: n}, (_, i) => IMG_DIR + p + String(i + from).padStart(2, '0') + '.webp');
+  AN.push(...seq('an', 20));
+  COS.push(...seq('cos', 25));
+  V89.push(...seq('v89', 20));
+  PH.push(...seq('ph', 15));
+  SZ1.push(...seq('ss', 21));
+  SZ2.push(...seq('ss', 20, 22));
+}
 
 /* ── Helpers ─────────────────────────────────────────────── */
 function buildStrip(trackEl, srcs, lazy=true) {
@@ -1436,6 +1452,7 @@ function buildStrip(trackEl, srcs, lazy=true) {
     const img = document.createElement('img');
     img.src = src; img.alt = '';
     if (lazy && i >= 4) img.loading = 'lazy';
+    img.onerror = () => img.remove();   // 読めない画像は残さない（歯抜け防止）
     trackEl.appendChild(img);
   });
 }
@@ -1481,30 +1498,74 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 1800);
 
   /* ── Hero filmstrip (all 4 folders interleaved) ───────── */
-  const heroSrcs = [];
-  const maxLen = Math.max(AN.length, COS.length, V89.length, PH.length);
-  for (let i = 0; i < maxLen; i++) {
-    if (i < AN.length)  heroSrcs.push(AN[i]);
-    if (i < COS.length) heroSrcs.push(COS[i]);
-    if (i < V89.length) heroSrcs.push(V89[i]);
-    if (i < PH.length)  heroSrcs.push(PH[i]);
-  }
-  buildStrip(document.getElementById('hero-strip'), heroSrcs, true);
-  animStrip(document.getElementById('hero-strip'), 600, 'left');
+});
 
-  /* ── Page strips ─────────────────────────────────────── */
+/* ── 画像を使う初期化 ─────────────────────────────────────
+   マニフェストを読んでから走らせるので、すべてここにまとめてある。  */
+function initMedia() {
+  /* ヒーロー／スクリーンセーバー（4フォルダを交互に並べる） */
+  const inter = () => {
+    const out = [];
+    const maxLen = Math.max(AN.length, COS.length, V89.length, PH.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (i < AN.length)  out.push(AN[i]);
+      if (i < COS.length) out.push(COS[i]);
+      if (i < V89.length) out.push(V89[i]);
+      if (i < PH.length)  out.push(PH[i]);
+    }
+    return out;
+  };
+  buildStrip(document.getElementById('hero-strip'), inter(), true);
+  animStrip(document.getElementById('hero-strip'), 600, 'left');
+  buildStrip(document.getElementById('ss-strip'), inter(), false);
+  animStrip(document.getElementById('ss-strip'), 600, 'left');
+
+  /* ページ内のストリップ */
   buildStrip(document.getElementById('strip1'), SZ1);
   animStrip(document.getElementById('strip1'), 50, 'left');
   buildStrip(document.getElementById('strip2'), SZ2);
   animStrip(document.getElementById('strip2'), 50, 'right');
-});
+
+  /* ギャラリーのサムネ */
+  const tt = document.getElementById('thumbs-track');
+  GALLERY.forEach(src => {
+    const img = document.createElement('img');
+    img.src = src; img.className = 'thumb'; img.alt = '';
+    img.addEventListener('click', () => goTo([...tt.children].indexOf(img)));
+    img.onerror = () => dropGallery(src);
+    tt.appendChild(img);
+  });
+  goTo(0);
+}
+
+/* マニフェストを読んでから初期化。読めなければ連番にフォールバックする */
+fetch(IMG_DIR + 'manifest.json')
+  .then(r => r.ok ? r.json() : null)
+  .then(m => { (m && Array.isArray(m.cos)) ? fillFromManifest(m) : fillFallback(); })
+  .catch(() => fillFallback())
+  .then(() => {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initMedia, { once: true });
+    } else { initMedia(); }
+  });
 
 /* ── Gallery viewer ──────────────────────────────────────── */
 const GALLERY = COS;
-const TOTAL = GALLERY.length;
 let current = 0;
 
+/* 読めなかったコマを一覧から外す。穴を残さず、枚数表示もずれない */
+function dropGallery(src) {
+  const i = GALLERY.indexOf(src);
+  if (i < 0 || GALLERY.length <= 1) return;
+  GALLERY.splice(i, 1);
+  const th = document.querySelectorAll('.thumb')[i];
+  if (th) th.remove();
+  goTo(current >= i ? current : current - 0);
+}
+
 function goTo(idx) {
+  const TOTAL = GALLERY.length;
+  if (!TOTAL) return;
   current = (idx + TOTAL) % TOTAL;
   document.getElementById('main-photo').src = GALLERY[current];
   document.getElementById('counter').textContent =
@@ -1515,14 +1576,10 @@ function goTo(idx) {
   if (at) at.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
 }
 
-const tt = document.getElementById('thumbs-track');
-GALLERY.forEach((src,i) => {
-  const img = document.createElement('img');
-  img.src=src; img.className='thumb'; img.alt='';
-  if (i===0) img.classList.add('active');
-  img.addEventListener('click', ()=>goTo(i));
-  tt.appendChild(img);
-});
+/* メイン写真が読めなかったら次の1枚へ */
+document.getElementById('main-photo').onerror = function () {
+  dropGallery(this.getAttribute('src'));
+};
 
 document.getElementById('btn-prev').addEventListener('click', ()=>goTo(current-1));
 document.getElementById('btn-next').addEventListener('click', ()=>goTo(current+1));
@@ -1551,6 +1608,7 @@ function showTab(tab){
       const img=document.createElement('img');
       img.src=src; img.className='index-img';
       img.alt=`Photo ${i+1}`; img.loading='lazy';
+      img.onerror = () => img.remove();   // 読めないものはセルごと消す（歯抜け防止）
       grid.appendChild(img);
     });
   }
@@ -1571,19 +1629,7 @@ document.getElementById('nav-game').addEventListener('click', e=>{
 /* ── Screensaver: filmstrip (same style as hero) ─────────── */
 const ssOver = document.getElementById('ss-overlay');
 
-// Build strip once (all 4 folders interleaved, ×2 for seamless loop)
-(()=>{
-  const srcs = [];
-  const maxLen = Math.max(AN.length, COS.length, V89.length, PH.length);
-  for(let i=0; i<maxLen; i++){
-    if(i<AN.length)  srcs.push(AN[i]);
-    if(i<COS.length) srcs.push(COS[i]);
-    if(i<V89.length) srcs.push(V89[i]);
-    if(i<PH.length)  srcs.push(PH[i]);
-  }
-  buildStrip(document.getElementById('ss-strip'), srcs, false);
-  animStrip(document.getElementById('ss-strip'), 600, 'left');
-})();
+// ストリップの組み立ては initMedia()（マニフェスト読み込み後）で行う
 
 function enterSS() {
   if (document.getElementById('upload-panel').classList.contains('open')) return;
