@@ -877,6 +877,35 @@ body.screensaver #footer      { opacity: 0; pointer-events: none; }
 
 /* ── Patchnotes view ─────────────────────────────────────── */
 /* ヘッダー(60px)は共有したまま、その下の領域を左からスライドさせる */
+/* ── Games view ──────────────────────────── */
+/* Patchnotes と同じ、ヘッダー(60px)は共有したままこの下をスライドさせる。
+   こちらは **下から** 上がってくる。                                 */
+#gm-view {
+  position: fixed;
+  inset: 60px 0 0 0;
+  z-index: 150;
+  background: #fff;
+  overflow: hidden;
+  visibility: hidden;
+  transform: translateY(100%);
+  transition: transform .72s cubic-bezier(.76,0,.24,1), visibility 0s linear .72s;
+  will-change: transform;
+}
+#gm-view.open {
+  visibility: visible;
+  transform: translateY(0);
+  transition: transform .72s cubic-bezier(.76,0,.24,1), visibility 0s;
+}
+body.gm-open { overflow: hidden; }
+#gm-scroll {
+  position: relative;
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 40px 140px;
+}
+#gm-grid { margin-top: 42px; }
+
 #pn-view {
   position: fixed;
   inset: 60px 0 0 0;
@@ -1053,7 +1082,7 @@ body.pn-open { overflow: hidden; }
 .pn-msg { padding: 40px 4px; color: #888; font-size: 13px; }
 
 @media (max-width: 720px) {
-  #pn-scroll { padding: 0 20px 120px; }
+  #pn-scroll, #gm-scroll { padding: 0 20px 120px; }
   .pn-head-block { padding: 44px 0 26px; }
   .pn-head {
     grid-template-columns: 1fr 20px;
@@ -1070,7 +1099,7 @@ body.pn-open { overflow: hidden; }
   #pn-art.show { opacity: .42; }
 }
 @media (prefers-reduced-motion: reduce) {
-  #pn-view, .pn-body, .pn-x, #pn-art, .pn-head { transition: none; }
+  #pn-view, #gm-view, .pn-body, .pn-x, #pn-art, .pn-head { transition: none; }
 }
 </style>
 </head>
@@ -1122,6 +1151,21 @@ body.pn-open { overflow: hidden; }
       </div>
     </div>
     <ol id="pn-list"></ol>
+  </div>
+</section>
+
+<!-- GAMES view（ヘッダーを共有し、その下だけを下からスライドさせる） -->
+<section id="gm-view" aria-hidden="true" aria-label="ゲーム一覧">
+  <div id="gm-scroll">
+    <div class="pn-head-block">
+      <h1 class="pn-title">Games</h1>
+      <div class="pn-meta">
+        <span id="gm-count"></span>
+        <span>Tap a card to play</span>
+      </div>
+    </div>
+    <div class="game-grid" id="gm-grid"></div>
+    <p class="game-note">ゲームは順次追加予定。カードを押すとこの画面の上で起動します（右上の ↗ で単独ページ）。</p>
   </div>
 </section>
 
@@ -1273,7 +1317,7 @@ body.pn-open { overflow: hidden; }
     <div class="tabs-bar">
       <button class="tab-btn active" data-tab="info">INFO</button>
       <button class="tab-btn" data-tab="index">PHOTO INDEX</button>
-      <button class="tab-btn" data-tab="game">GAME</button>
+      <button class="tab-btn" id="tab-btn-game" type="button">GAME</button>
     </div>
     <div id="tab-info" class="tab-content">
       <p class="tab-intro">A streamer, a character, a world.<br>Hoshino Ageru lives at the edge of gothic night and cyberpunk chrome — brought to life through kukuCome.</p>
@@ -1286,11 +1330,6 @@ body.pn-open { overflow: hidden; }
     </div>
     <div id="tab-index" class="tab-content" hidden>
       <div class="index-grid" id="photo-index-grid"></div>
-    </div>
-    <div id="tab-game" class="tab-content" hidden>
-      <p class="tab-intro">Pick a game. It opens right here.</p>
-      <div class="game-grid" id="game-grid"></div>
-      <p class="game-note">ゲームは順次追加予定。カードを押すとこのページの中で起動します（右上の ↗ で単独ページ）。</p>
     </div>
   </div>
 </section>
@@ -1500,7 +1539,7 @@ mpEl.addEventListener('touchend',   e=>{
 });
 
 /* ── Tabs ────────────────────────────────────────────────── */
-const TAB_IDS = ['info','index','game'];
+const TAB_IDS = ['info','index'];
 let indexBuilt = false;
 function showTab(tab){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
@@ -1515,17 +1554,18 @@ function showTab(tab){
       grid.appendChild(img);
     });
   }
-  // ゲーム一覧は GAME タブを最初に開いたときに組み立てる（定義は下の GAME modal 側）
-  if(tab==='game' && window.buildGameGrid) window.buildGameGrid();
 }
-document.querySelectorAll('.tab-btn').forEach(btn=>{
+document.querySelectorAll('.tab-btn[data-tab]').forEach(btn=>{
   btn.addEventListener('click', ()=>showTab(btn.dataset.tab));
 });
-// ヘッダーの Game はギャラリーまでスクロールしつつ GAME タブを開く
+// GAME はタブではなく、下からせり上がる一覧ページを開く（配線は下の Games view 側）
+document.getElementById('tab-btn-game').addEventListener('click', ()=>{
+  if (window.openGamesView) window.openGamesView(true);
+});
+// ヘッダーの Game も同じ一覧ページを開く
 document.getElementById('nav-game').addEventListener('click', e=>{
   e.preventDefault();
-  showTab('game');
-  document.getElementById('tab-game').scrollIntoView({behavior:'smooth', block:'center'});
+  if (window.openGamesView) window.openGamesView(true);
 });
 
 /* ── Screensaver: filmstrip (same style as hero) ─────────── */
@@ -2136,7 +2176,7 @@ ssOver.addEventListener('touchstart', exitSS, {passive:true});
   const loading  = document.getElementById('game-loading');
   const newtab   = document.getElementById('game-newtab');
   const closeBtn = document.getElementById('game-close');
-  const grid     = document.getElementById('game-grid');
+  const grid     = document.getElementById('gm-grid');
   const ANIM_MS  = 430;
   let built = false, revealTimer = null;
 
@@ -2236,6 +2276,56 @@ updateClock();
 setInterval(updateClock,1000);
 </script>
 <script>
+/* ── Games view ────────────────────────────
+   GAME はタブの切り替えではなく、Patchnotes と同じく別ページとして
+   下からせり上がる。/games で直リンクもできる
+   （未知パスは Pages が index.html を返すので、そのまま開いた状態で出る）。 */
+(function () {
+  const view    = document.getElementById('gm-view');
+  const scroll  = document.getElementById('gm-scroll');
+  const countEl = document.getElementById('gm-count');
+  const navLink = document.getElementById('nav-game');
+  const PATH    = '/games';
+
+  const isPath = () => location.pathname.replace(/\/+$/, '') === PATH;
+
+  function openGm(push) {
+    if (view.classList.contains('open')) return;
+    if (window.buildGameGrid) window.buildGameGrid();
+    const n = document.querySelectorAll('#gm-grid .game-card').length;
+    countEl.textContent = n + (n === 1 ? ' title' : ' titles');
+    view.classList.add('open');
+    view.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('gm-open');
+    document.querySelectorAll('.hd-nav a').forEach(a => a.classList.remove('active'));
+    navLink.classList.add('active');
+    scroll.scrollTop = 0;
+    if (push && !isPath()) history.pushState({ gm: 1 }, '', PATH);
+  }
+
+  function closeGm(push) {
+    if (!view.classList.contains('open')) return;
+    view.classList.remove('open');
+    view.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('gm-open');
+    navLink.classList.remove('active');
+    if (push && isPath()) history.pushState({}, '', '/');
+  }
+
+  window.openGamesView  = openGm;
+  window.closeGamesView = closeGm;
+
+  /* ヘッダーの他のリンクを押したら閉じる（ヘッダーは共有しているため） */
+  document.querySelectorAll('.hd-nav a:not(#nav-game), .hd-logo').forEach(a => {
+    a.addEventListener('click', () => closeGm(true));
+  });
+
+  window.addEventListener('popstate', () => { isPath() ? openGm(false) : closeGm(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeGm(true); });
+
+  if (isPath()) openGm(false);
+})();
+
 /* ── Patchnotes ───────────────────────────────────────────
    PATCHNOTES.md → scripts/build-patchnotes.js → ./patchnotes.json を読む。
    md を更新したらビルドし直さないとここは古いまま。               */

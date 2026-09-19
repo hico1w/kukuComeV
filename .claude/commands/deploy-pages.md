@@ -61,7 +61,7 @@ description: kukucome-chara.pages.dev（公開サイト）と Worker のデプ�
   一覧に出すには **`index.html` の `GAMES` 配列に1行足す**（`{ id, title, sub, url, thumb, tag }`）。
   `url` は拡張子なしのパス（`/games/crash`）で書く。`/xxx.html` は 308 で `/xxx` に飛ぶため。
   サムネは `cloudflare/pages/img-games/<id>.webp`（16:10）。**無くてもグラデーション＋頭文字で表示されるので、後から足してよい。**
-  一覧カードは `#game-panel` の iframe で開く。ゲーム側のページは iframe と単独ページの両方で開かれるので、
+  一覧は `/games`（`#gm-view`・下からスライドする別ページ）に出る。カードを押すと `#game-panel` の iframe で開く。ゲーム側のページは iframe と単独ページの両方で開かれるので、
   戻るリンクには `target="_top"` を付けること。
 - **ランキングを使うゲームは Worker も別途デプロイする。** スコアの保存先は Worker
   （`cloudflare/worker.js`）で、`pages deploy` では反映されない。**`npx wrangler deploy` を忘れると
