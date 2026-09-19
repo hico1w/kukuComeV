@@ -771,7 +771,13 @@ const lv = { bounce:0, spacing:0, power:0, roll:0, charge:0, barrier:0, aerial:0
 try {
   const d = JSON.parse(localStorage.getItem('crash-upg') || '{}');
   pts = Math.max(0, +d.pts || 0);
-  for (const u of UPG) lv[u.k] = clamp(+((d.lv || {})[u.k]) || 0, 0, u.max);
+  // clamp() はこの行より下で const 定義されているので、ここで呼ぶと TDZ で ReferenceError になる。
+  // それを try/catch が黙って飲み込んでいたため、**購入したレベルが復元されていなかった**。
+  // 定義順に依存しないようここだけはベタ書きにしてある。
+  for (const u of UPG) {
+    const n = Math.floor(+((d.lv || {})[u.k]) || 0);
+    lv[u.k] = n < 0 ? 0 : n > u.max ? u.max : n;
+  }
 } catch (e) {}
 function saveUpg() { try { localStorage.setItem('crash-upg', JSON.stringify({ pts, lv })); } catch (e) {} }
 function fibCost(n) { let a = 1, b = 2; for (let i = 0; i < n; i++) { const c = a + b; a = b; b = c; } return a; }
