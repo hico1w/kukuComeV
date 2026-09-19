@@ -237,6 +237,16 @@ export default {
       }
     }
 
+    // ── ランキングの受付トークン ─────────────────────
+    // プレイを始めるときに取る。登録時にこれを必ず添えさせ、
+    // 「発行からの経過時間」でスコアの上限を決める。
+    // これで「リクエストを直打ちして 99999 を入れる」が通らなくなる。
+    if (url.pathname === '/rank-token') {
+      const game = url.searchParams.get('game') === 'crash' ? 'crash' : 'dino';
+      const t = Date.now();
+      return json({ t, s: await signTok(env, game, t, ip) }, 200, { ...cors, 'Cache-Control': 'no-store' });
+    }
+
     // ── AGERU CRASH!! 飛距離ランキング ─────────────────
     // 仕組みは DINO と同じ（非公開リポジトリの JSON に追記）。
     // 違いは2つだけ：ハードモードが無いことと、スコアが飛距離(m)なので小数点2桁を持つこと。
@@ -252,17 +262,13 @@ export default {
         try { body = await request.json(); } catch { return json({ error: 'JSON が不正です' }, 400, cors); }
 
         const isRecent = body.type === 'recent';
-        const name = String(body.name ?? '')
-          .replace(/[\u0000-\u001f\u007f]/g, '')
-          .trim()
-          .slice(0, 15) || (isRecent ? DEFAULT_NAME : '');
+        const name = cleanName(body.name, isRecent);
         if (!name) return json({ error: '名前を入力してください' }, 400, cors);
 
-        // 飛距離は小数点あり。上限はゆるく見ておく
+        // 飛距離は小数点あり
         const score = Math.round(Number(body.score) * 100) / 100;
-        if (!Number.isFinite(score) || score < 0 || score > 1e9) {
-          return json({ error: 'スコアが不正です' }, 400, cors);
-        }
+        const bad = await checkScore(env, 'crash', ip, body.tk, score);
+        if (bad) return json({ error: bad }, 400, cors);
 
         const entry = { name, score, date: jstDate(), ip };
 
@@ -322,16 +328,12 @@ export default {
         // 名前: 15文字以内。改行や制御文字は落とす。
         // 自動登録(type:'recent')は名前が無くても既定名で通す
         const isRecent = body.type === 'recent';
-        const name = String(body.name ?? '')
-          .replace(/[\u0000-\u001f\u007f]/g, '')
-          .trim()
-          .slice(0, 15) || (isRecent ? DEFAULT_NAME : '');
+        const name = cleanName(body.name, isRecent);
         if (!name) return json({ error: '名前を入力してください' }, 400, cors);
 
         const score = Math.floor(Number(body.score));
-        if (!Number.isFinite(score) || score < 0 || score > 9999999) {
-          return json({ error: 'スコアが不正です' }, 400, cors);
-        }
+        const bad = await checkScore(env, 'dino', ip, body.tk, score);
+        if (bad) return json({ error: bad }, 400, cors);
 
         const entry = {
           name,
@@ -450,6 +452,56 @@ function decodeContent(b64) {
 }
 
 // ── DINO ランキング (_dino_ranking.json) ──────────────────────────
+
+/* ── ランキングの不正対策 ───────────────────────
+   クライアントで動くゲームなので「完全に防ぐ」ことはできないが、
+   **実際に遊んだのと同じだけ時間を掛けないと登録できない**ようにする。
+   1. プレイ開始時に `/rank-token` で署名付きのトークン（発行時刻入り）を取る
+   2. 登録時にそれを添えさせ、HMAC と経過時間を検証する
+   3. スコアが「経過秒数 × ゲーム上の最大ペース」を超えていたら拒否
+   トークンは IP と紐づけているので、他所で取ったものは使えない。
+   鍵は RANK_SECRET（未設定なら GITHUB_TOKEN）。外には出ない。               */
+const RANK_RULE = {
+  // rate = 1秒あたりの最大ペース。実測値に余裕を乗せてある
+  dino : { rate: 110, base: 100, max: 1000000 },  // 実際は 1100px/s ÷ 12 = 91.7 点/秒
+  crash: { rate: 150, base: 30,  max: 1000000 },  // 実際は MAX_SPD から 64.8 表示m/秒
+};
+const RANK_MAX_AGE = 6 * 3600 * 1000;   // トークンの有効期限
+
+function rankKeyRaw(env) {
+  return new TextEncoder().encode(env.RANK_SECRET || env.GITHUB_TOKEN || 'kukucome-rank');
+}
+async function signTok(env, game, t, ip) {
+  const key = await crypto.subtle.importKey(
+    'raw', rankKeyRaw(env), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${game}|${t}|${ip}`));
+  return [...new Uint8Array(sig)].slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+/** 問題があればメッセージを、無ければ null を返す */
+async function checkScore(env, game, ip, tk, score) {
+  const rule = RANK_RULE[game];
+  if (!Number.isFinite(score) || score < 0 || score > rule.max) return 'スコアが不正です';
+  if (!tk || !Number.isFinite(Number(tk.t)) || typeof tk.s !== 'string') {
+    return 'ページを再読み込みしてからもう一度プレイしてください';
+  }
+  const age = Date.now() - Number(tk.t);
+  if (age < 0 || age > RANK_MAX_AGE) return '受付時間を過ぎています。もう一度プレイしてください';
+  if (await signTok(env, game, Number(tk.t), ip) !== tk.s) return '登録データが不正です';
+  const limit = rule.rate * (age / 1000) + rule.base;
+  if (score > limit) {
+    return `スコアが不正です（${Math.floor(age / 1000)}秒では最大 ${Math.floor(limit)} まで）`;
+  }
+  return null;
+}
+/** 名前の整形。制御文字と URL を落とし、15文字に切る */
+function cleanName(raw, allowDefault) {
+  const n = String(raw ?? '')
+    .replace(/[\u0000-\u001f\u007f]/g, '')
+    .replace(/(https?:\/\/|www\.)\S*/gi, '')   // 宣伝 URL を名前に入れられないように
+    .trim()
+    .slice(0, 15);
+  return n || (allowDefault ? DEFAULT_NAME : '');
+}
 
 const RANKING_PATH = '_dino_ranking.json';
 const CRASH_RANKING_PATH = '_crash_ranking.json';   // AGERU CRASH!! の飛距離ランキング

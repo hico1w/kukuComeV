@@ -77,6 +77,21 @@ body {
 .btn-unblock:not(:disabled):hover { background: rgba(61,214,140,.2); }
 .btn-sm { padding: 5px 12px; font-size: 11px; }
 
+/* ランキング管理 */
+.rk-tabs { display: flex; gap: 6px; padding: 10px 14px 0; }
+.rk-tab { font-size: 12px; padding: 5px 12px; border-radius: 6px; cursor: pointer;
+          background: rgba(255,255,255,.05); color: inherit; opacity: .6; }
+.rk-tab.on { opacity: 1; background: rgba(249,112,102,.18); }
+.rk-sec { padding: 6px 14px 0; font-size: 11px; opacity: .55; letter-spacing: .06em; }
+.rk-row { display: grid; grid-template-columns: 2.4em minmax(0,1fr) auto auto auto;
+          gap: 8px; align-items: center; padding: 5px 14px; font-size: 13px; }
+.rk-row + .rk-row { border-top: 1px solid rgba(255,255,255,.05); }
+.rk-no { opacity: .45; font-size: 11px; }
+.rk-nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rk-sc { font-variant-numeric: tabular-nums; font-weight: 600; }
+.rk-dt { opacity: .45; font-size: 11px; }
+.rk-empty { padding: 14px; font-size: 12px; opacity: .5; }
+
 /* ── main ── */
 #main-screen { display: none; padding: 32px; }
 .main-grid {
@@ -257,6 +272,22 @@ body {
         </div>
       </div>
     </div>
+
+    <!-- ranking -->
+    <div class="panel" style="grid-column: 1 / -1">
+      <div class="panel-head">
+        <span class="panel-title">Ranking</span>
+        <span class="panel-count" id="rk-count">—</span>
+      </div>
+      <div class="rk-tabs">
+        <button class="rk-tab on" data-game="dino">DINO</button>
+        <button class="rk-tab" data-game="crash">AGERU CRASH!!</button>
+        <button class="btn btn-sm btn-block" id="rk-clear" style="margin-left:auto">この一覧を全消し</button>
+      </div>
+      <div class="panel-body">
+        <div id="rk-body"><div class="rk-empty"><span class="spinner"></span></div></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -297,6 +328,80 @@ async function tryLogin() {
   document.getElementById('auth-btn').disabled = false;
 }
 
+/* ── ランキング管理 ─────────────────────────────────────────────
+   DINO と AGERU CRASH!! のランキングを表示して、1件ずつ消せる。
+   チート投稿（プレイせずに直接スコアを送る）の後始末に使う。          */
+let rkGame = 'dino';
+let rkData = null;
+
+function rkRows(title, list, listName, ranked) {
+  if (!list || !list.length) return '';
+  let html = '<div class="rk-sec">' + title + '</div>';
+  list.forEach((e, i) => {
+    html += '<div class="rk-row">'
+      + '<span class="rk-no">' + (ranked ? i + 1 : '') + '</span>'
+      + '<span class="rk-nm"></span>'
+      + '<span class="rk-sc">' + Number(e.score).toLocaleString() + '</span>'
+      + '<span class="rk-dt">' + (e.date || '') + (e.hard ? ' / HARD' : '') + '</span>'
+      + '<button class="btn btn-sm btn-block" data-list="' + listName + '" data-i="' + (i + 1) + '">削除</button>'
+      + '</div>';
+  });
+  return html;
+}
+function renderRk() {
+  const box = document.getElementById('rk-body');
+  if (!rkData) { box.innerHTML = '<div class="rk-empty">取得できませんでした</div>'; return; }
+  // 一覧の index はサーバ側の生の並び（ranking は normal→hard の連結）に合わせる必要があるため、
+  // 表示用の分割ではなく「サーバが返した ranking 配列そのもの」を順番に出す
+  const rank = rkGame === 'dino'
+    ? (rkData.ranking || []).concat(rkData.rankingHard || [])
+    : (rkData.ranking || []);
+  const html = rkRows('ハイスコア', rank, 'ranking', true)
+             + rkRows('最新のプレイ', rkData.recent || [], 'recent', false);
+  box.innerHTML = html || '<div class="rk-empty">まだ記録がありません</div>';
+  // 名前は textContent で入れる（HTML を書かせない）
+  const names = rank.map(e => e.name).concat((rkData.recent || []).map(e => e.name));
+  box.querySelectorAll('.rk-nm').forEach((el, i) => { el.textContent = names[i] ?? ''; });
+  document.getElementById('rk-count').textContent = rank.length + ' 件';
+  box.querySelectorAll('button[data-i]').forEach(b =>
+    b.addEventListener('click', () => rkDelete(b.dataset.list, +b.dataset.i, b)));
+}
+async function loadRanking() {
+  document.getElementById('rk-body').innerHTML = '<div class="rk-empty"><span class="spinner"></span></div>';
+  try {
+    const r = await fetch(`${WORKER}/${rkGame}-ranking`);
+    rkData = await r.json();
+  } catch { rkData = null; }
+  renderRk();
+}
+async function rkPost(body, btn) {
+  if (btn) btn.disabled = true;
+  try {
+    const r = await fetch(`${WORKER}/admin/${rkGame}-ranking?secret=${encodeURIComponent(SECRET)}`, {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    });
+    const d = await r.json();
+    if (!r.ok || d.error) throw new Error(d.error || 'HTTP ' + r.status);
+    await loadRanking();
+  } catch (e) {
+    alert('削除できませんでした: ' + e.message);
+    if (btn) btn.disabled = false;
+  }
+}
+function rkDelete(list, index, btn) {
+  if (!confirm(index + ' 件目を削除します。よろしいですか？')) return;
+  rkPost({ list, index }, btn);
+}
+document.querySelectorAll('.rk-tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.rk-tab').forEach(x => x.classList.toggle('on', x === t));
+  rkGame = t.dataset.game;
+  loadRanking();
+}));
+document.getElementById('rk-clear').addEventListener('click', () => {
+  if (!confirm(rkGame + ' のランキングを全部消します。元に戻せません。よろしいですか？')) return;
+  rkPost({ clear: true }, null);
+});
+
 document.getElementById('auth-btn').addEventListener('click', tryLogin);
 secretInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
 
@@ -307,7 +412,7 @@ try {
 
 // ── load ──────────────────────────────────────────────────────────
 async function loadAll() {
-  await Promise.all([loadBlocklist(), loadLogs()]);
+  await Promise.all([loadBlocklist(), loadLogs(), loadRanking()]);
 }
 
 async function loadBlocklist() {

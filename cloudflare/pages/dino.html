@@ -867,7 +867,21 @@ function renderAll(d) {
   renderRank(document.getElementById('recent-list2'), d.recent, false);
 }
 
+const TOKEN_EP = WORKER + '/rank-token?game=dino';
 const RANK_LISTS = ['rank-list', 'rank-list2', 'hard-list', 'hard-list2', 'recent-list', 'recent-list2'];
+/* ── ランキングの受付トークン ────────────────────
+   登録するときに必ず添える。サーバ側は「発行からの経過時間」で
+   スコアの上限を決めるので、ページを開いていない人は高い点を登録できない。
+   ページを開いたときに1回取り、有効期限（6時間）が近づいたら取り直す。    */
+let rankTok = null;
+function refreshTok(retry) {
+  fetch(TOKEN_EP).then(r => r.json())
+    .then(d => { if (d && d.s) rankTok = d; else if (retry) setTimeout(() => refreshTok(false), 4000); })
+    .catch(() => { if (retry) setTimeout(() => refreshTok(false), 4000); });
+}
+refreshTok(true);
+setInterval(() => { if (!rankTok || Date.now() - rankTok.t > 5 * 3600e3) refreshTok(false); }, 60000);
+
 
 function fetchRanking() {
   RANK_LISTS.forEach(id => {
@@ -890,7 +904,7 @@ function postRecent(score) {
   return fetch(WORKER + '/dino-ranking', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'recent', name: name, score: score, hard: hardMode }),
+    body: JSON.stringify({ type: 'recent', name: name, score: score, hard: hardMode, tk: rankTok }),
   })
     .then(r => r.json())
     .then(d => { if (d && d.ranking) renderAll(d); })
@@ -908,7 +922,7 @@ function submitScore(nameInput, btn, msg, score) {
   return fetch(WORKER + '/dino-ranking', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: name, score: score, hard: hardMode }),
+    body: JSON.stringify({ name: name, score: score, hard: hardMode, tk: rankTok }),
   })
     .then(r => r.json().then(d => ({ ok: r.ok, d: d })))
     .then(res => {

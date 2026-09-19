@@ -717,6 +717,11 @@ const CHAR_SCALE = 3;        // キャラ・自機の基本倍率（こちらは
 const CHAR_BASE_H = 260;     // 全バンパー共通の絵の高さ（ここを変えれば全部同時に変わる）
 const ROLL_FRIC = 60;        // 転がりの減速 m/s²（ショップの「転がり摩擦」で下がる）
 const ROLL_MIN  = 21;        // 30回購入したときの減速
+const FULL_POW = 95;         // このパワー以上は「100%」扱い（ピタリ止めるのは難しすぎるため）
+// 飛行中のシミュレーションだけを速める倍率。弾道の形は時間をスケールしても
+// 変わらないので、飛距離や挙動はそのままで、発射からゲームオーバーまでの時間だけが短くなる。
+// エフェクト（火花・ポップ・風・回避）とヒットストップには掛けていない。
+const GAME_SPEED = 1.5;
 const RELAUNCH_CAP = 2.2;    // バンパーの最低打ち出しは「現在速度×これ」を超えない
 const DODGE_D = .45;         // ヨクネロボが右へ避けきるまでの秒数
 const DODGE_X = 9;           // 右へ動く距離 m（ワールド。絵の横幅とほぼ同じ）
@@ -822,6 +827,7 @@ let bounceBoost = 0, reviveLeft = 0, x2Left = 0, diving = false;
 let flash = 0, shake = 0, t = 0, seed = 1, nextX = 0;
 let ageruFx = null;             // {t, kind:'kick'|'dive'|'bike'}
 let spFx = null;                // スペシャルの画面バーン {t, dur, x, y, c}
+let perfectFx = null;           // 100%発射の金色のリング {t, dur}
 let pendingType = null;         // 次の100m地点に置くと条件が成立する型
 let barrier = false;            // バリア（購入していれば毎回1回だけ即死を防ぐ）
 let crashX = 0;                 // 激突した地点（アゲルはそこに置き去りになる）
@@ -923,7 +929,7 @@ function reset() {
   bounceBoost = 0; reviveLeft = 0; x2Left = 0; diving = false;
   flash = 0; shake = 0; nextX = 14; seed = (Date.now() % 100000) + 7;
   voStop();
-  ageruFx = null; spFx = null; popAt = {}; slowT = 0;
+  ageruFx = null; spFx = null; perfectFx = null; popAt = {}; slowT = 0;
   lastHitType = null; bouncedSinceHit = true; pendingType = null;
   stopAllLoops(); bgmStop();
   nextX = 0;
@@ -935,6 +941,8 @@ function reset() {
 function startAim() { state = 'angle'; aimT = 0; ov('ov-title', false); }
 
 function launch() {
+  const full = power >= FULL_POW;          // 95～100% は 100% 扱い。切り上げてから初速を求める
+  if (full) power = 100;
   const v = (9 + 39 * (power / 100)) * SPD_X * powerVal();   // アゲルパワーの購入ぶんが乗る
   const a = angle * Math.PI / 180;
   p.vx = Math.cos(a) * v;
@@ -946,7 +954,14 @@ function launch() {
   shake = Math.max(shake, .45);
   burst(34, '#ff5f8d', 1.7);                      // ふっ飛ぶ瞬間の追い打ち
   bgmPlay();                                      // 発射と同時にBGM開始
-  if (Math.round(power) >= 100) se('100hit');      // 表示100%ちょうどで発射できたとき
+  if (full) {                                     // パーフェクト発射のご褒美
+    se('100hit');
+    perfectFx = { t: 1.1, dur: 1.1 };
+    pop('PERFECT!!', '#ffd34d', true);
+    burst(70, '#ffd34d', 2.8); burst(30, '#fff', 3.2);
+    shockwave(p.x, p.y, '#ffd34d', 2.6);
+    flash = Math.max(flash, .9); shake = Math.max(shake, .8);
+  }
 }
 
 /* 激突の瞬間：一瞬止めて、その間ヒコが震える（ヒットストップ）。
@@ -1303,6 +1318,7 @@ function update(dt, rdt) {
   shake = Math.max(0, shake - dt * 2.4);
   if (ageruFx) { ageruFx.t -= dt; if (ageruFx.t <= 0) ageruFx = null; }
   if (spFx)    { spFx.t    -= dt; if (spFx.t    <= 0) spFx = null; }
+  if (perfectFx) { perfectFx.t -= dt; if (perfectFx.t <= 0) perfectFx = null; }
 
   for (const s of sparks) { s.t -= dt; s.x += s.vx * dt; s.y += s.vy * dt; s.vy -= 22 * dt; }
   sparks = sparks.filter(s => s.t > 0);
@@ -1330,8 +1346,8 @@ function update(dt, rdt) {
   else if (state === 'power') { powT += dt; power = 100 * tri(powT * 1.65); }
   else if (state === 'crash') { crashT -= dt; if (crashT <= 0) startImpact(); }
   else if (state === 'impact'){ impactT -= rdt; if (impactT <= 0) launch(); }   // 停止は実時間で数える
-  else if (state === 'fly')   { physics(dt); }
-  camera(dt);
+  else if (state === 'fly')   { physics(dt * GAME_SPEED); }   // 飛行中だけ速める
+  camera(dt * GAME_SPEED);      // 自機が速くなるのでカメラの追従も同じ倍率で速める
 }
 
 /* ── 描画ヘルパ ─────────────────────────────────────────── */
@@ -1466,6 +1482,22 @@ function drawBg() {
 }
 
 /* スペシャルの画面バーン（背景として描く） */
+/* 100%発射のご褒美。金色のリングが3重に広がる */
+function drawPerfect() {
+  if (!perfectFx) return;
+  const r = 1 - perfectFx.t / perfectFx.dur;        // 0→1
+  const cx = clamp(SX(p.x), 0, W), cy = clamp(SY(p.y), 0, H);
+  CTX.save();
+  for (let i = 0; i < 3; i++) {
+    const u = clamp(r * 1.25 - i * .16, 0, 1);
+    if (u <= 0 || u >= 1) continue;
+    CTX.globalAlpha = (1 - u) * .8;
+    CTX.strokeStyle = i === 1 ? '#fff' : '#ffd34d';
+    CTX.lineWidth = 8 * (1 - u) + 1.5;
+    CTX.beginPath(); CTX.arc(cx, cy, u * W * .7 + 20, 0, 6.283); CTX.stroke();
+  }
+  CTX.restore();
+}
 function drawBang() {
   if (!spFx) return;
   const r = spFx.t / spFx.dur;                 // 1→0
@@ -2024,6 +2056,7 @@ function draw() {
   drawHitFx();
   drawFx();
   drawSpeedLines();
+  drawPerfect();
   if (state === 'angle') drawAim();
   if (state === 'power') drawPower();
   if (state === 'chance') drawChance();
@@ -2195,7 +2228,21 @@ document.addEventListener('keydown', e => {
    スコアは「表示上の m」（DIST_SCALE を掛けた後）を小数2桁で送る。      */
 const WORKER  = 'https://kukucome-chara-worker.chikamakoo.workers.dev';
 const RANK_EP = WORKER + '/crash-ranking';
+const TOKEN_EP = WORKER + '/rank-token?game=crash';
 const RANK_LISTS = ['rank-list', 'recent-list'];
+/* ── ランキングの受付トークン ────────────────────
+   登録するときに必ず添える。サーバ側は「発行からの経過時間」で
+   スコアの上限を決めるので、ページを開いていない人は高い点を登録できない。
+   ページを開いたときに1回取り、有効期限（6時間）が近づいたら取り直す。    */
+let rankTok = null;
+function refreshTok(retry) {
+  fetch(TOKEN_EP).then(r => r.json())
+    .then(d => { if (d && d.s) rankTok = d; else if (retry) setTimeout(() => refreshTok(false), 4000); })
+    .catch(() => { if (retry) setTimeout(() => refreshTok(false), 4000); });
+}
+refreshTok(true);
+setInterval(() => { if (!rankTok || Date.now() - rankTok.t > 5 * 3600e3) refreshTok(false); }, 60000);
+
 let myEntry = null;
 
 function renderRank(ol, list, ranked) {
@@ -2237,7 +2284,7 @@ function postRecent(score) {
   const name = (document.getElementById('rk-name').value || savedName()).trim().slice(0, 15);
   return fetch(RANK_EP, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'recent', name, score }),
+    body: JSON.stringify({ type: 'recent', name, score, tk: rankTok }),
   }).then(r => r.json()).then(d => { if (d && d.ranking) renderAll(d); }).catch(() => {});
 }
 /** 名前を付けてハイスコアに登録する。何度でも押せる */
@@ -2249,7 +2296,7 @@ function submitScore(input, btn, msg, score) {
   try { localStorage.setItem('crash-name', name); } catch (e) {}
   return fetch(RANK_EP, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, score }),
+    body: JSON.stringify({ name, score, tk: rankTok }),
   })
     .then(r => r.json().then(d => ({ ok: r.ok, d })))
     .then(res => {
@@ -2383,7 +2430,7 @@ function loop(now) {
   let rdt = (now - last) / 1000; last = now;
   if (rdt > .25) rdt = .25;
   const dt = rdt * timeScale();                 // ヒット時はスローになる
-  const steps = Math.max(1, Math.ceil(dt / (1 / 120)));
+  const steps = Math.max(1, Math.ceil(dt * GAME_SPEED / (1 / 120)));   // 刻み幅は物理側の時間で決める
   const sd = dt / steps, srd = rdt / steps;
   for (let i = 0; i < steps; i++) update(sd, srd);
   draw();
